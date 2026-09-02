@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => {
           start_url: base,
           scope: base,
           id: base,
-          background_color: '#0E100E',
-          theme_color: '#0E100E',
+          background_color: '#0A0D12',
+          theme_color: '#0A0D12',
           icons: [
             { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
             { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       host: '0.0.0.0',
-      port: 5173,
+      port: 8080,
     },
     preview: {
       host: '0.0.0.0',
@@ -58,4 +58,3 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-

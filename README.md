@@ -4,6 +4,11 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
+Version **0.2.0** — Interval visual system (dusk navy, parchment type, honest
+range/withdrawal graphics). Product behaviour is unchanged from 0.1.x.
+
+Live PWA: https://megabomb420.github.io/tbreak-calculator/
+
 ## Run
 
 ```bash
@@ -11,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Then open the printed local URL (dev is served at `/`). Production:
+Then open the printed local URL (dev is served at `/` on port 8080). Production:
 
 ```bash
 npm run build

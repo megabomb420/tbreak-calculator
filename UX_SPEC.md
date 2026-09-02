@@ -630,36 +630,49 @@ The check-in exists primarily to catch the one event that changes the plan: THC 
 
 ### 12.1 Feel
 
-Dark, premium, calm, tool-like. Native-utility quality, not "AI glass dashboard." No frosted-glass stacks, no neon gradients, no glow blobs, no hero imagery, no medical clichés, no stoner clichés.
+Dark, premium, calm, slightly editorial. Dusk-navy surfaces with warm parchment type — a pause/interval tool, not a clinic, not a dispensary, not a generic form. No frosted-glass stacks, no neon gradients, no glow blobs, no hero photography, no medical clichés, no cannabis-leaf / smoke / Rastafarian clichés.
 
 ### 12.2 Palette (tokens)
 
+Implemented in `src/ui/styles.css`. Identity is dusk navy + warm sand, not weed-green on black.
+
 | Token | Value | Use |
 |---|---|---|
-| `bg/base` | `#0E100E` | app background (near-black, green-biased) |
-| `bg/card` | `#171B17` | cards, sheets |
-| `bg/raised` | `#1F241F` | chips, pressed states |
-| `accent/primary` | `#7FB069` | primary CTA, active states, progress |
-| `accent/soft` | `#2A3527` | accent-tinted fills (selected chips) |
-| `text/primary` | `#F2F4F0` | |
-| `text/secondary` | `#A8AFA6` | helpers, meta |
-| `text/faint` | `#6B7268` | disabled, placeholders |
-| `state/warn` | `#E0B458` | uncertainty/paused badges |
-| `state/error` | `#D96C5F` | validation only |
-| `state/ok` | `#7FB069` | shared with accent |
+| `bg/base` | `#0A0D12` | app background (ink navy) |
+| `bg/mist` | `#10151C` | atmospheric layer, tab bar |
+| `bg/card` | `#151B24` | raised surfaces, sheets |
+| `bg/raised` | `#1D2530` | chips, pressed, tracks |
+| `accent/primary` | `#8FA9B8` | progress, icons, selected rings |
+| `accent/strong` | `#D7C4A8` | hero numbers, selected marks, brand mark |
+| `accent/fg` | `#10141A` | text on the paper primary CTA |
+| `accent/soft` | `#1A2830` | selected fills |
+| `text/primary` | `#F0EDE6` | warm parchment |
+| `text/secondary` | `#A7B0BD` | helpers, meta |
+| `text/faint` | `#6E7785` | micro-labels, disabled |
+| `state/warn` | `#D4A574` | uncertainty / validation warnings |
+| `state/error` | `#C97A72` | validation / delete only |
+| `state/ok` | `#7D9A8A` | past/complete marks only — not brand |
 
-Colour never carries meaning alone — always icon + text.
+Primary CTAs are parchment-on-ink (`text/primary` fill, `accent/fg` label), not accent-green buttons. Colour never carries meaning alone — always icon + text.
 
 ### 12.3 Typography roles
 
-System stack (`-apple-system, Segoe UI, Roboto, Inter`). `display` 34/40 bold (result range only), `title` 22/28 semibold (step questions), `body` 16/24, `meta` 13/18 (helpers), `numeric` 28/34 tabular-nums (day counters). All-caps only for 11 pt tracking-wide micro-labels on card headers.
+- Display: Fraunces (self-hosted) with `ui-serif` fallback. First-launch title, question titles, result ranges, screen titles.
+- Body: Figtree (self-hosted) with `ui-sans-serif` / SF Pro fallback.
+- Result range: ~2.4–3.4 rem display, tabular-nums, unit in 11–12 pt uppercase tracking.
+- Step questions: ~1.5–1.85 rem display.
+- Body 16/24, meta 13/18, micro-label 11 pt uppercase wide tracking.
+- Slider readout: 64 px display, tabular-nums.
 
 ### 12.4 Cards, spacing, progress graphics
 
-- Cards: 16 pt radius, 1 pt `bg/raised` border, no shadows (dark UIs read elevation through tint).
-- Spacing: 4 / 8 / 12 / 16 / 24 / 32; card padding 20; gutters 16.
-- One hero per screen: the range on results, the day counter on `Today`.
-- The only progress graphics in v1: the slim questionnaire bar and the plan day ring (labelled "plan progress"). Withdrawal is a status track, not a chart. History is a list, not a graph (a check-in trend chart is a deliberate v1.x candidate).
+- Not everything is a card. Heroes, driver lists, and timelines sit on the page; cards/sheets are for grouped controls and answers.
+- Surfaces use hairline rings (transparent mix of `--fg`) rather than heavy drop shadows. Radius is concentric: tiles 20, nested chips 999, sheets 24.
+- Spacing: 4 / 8 / 12 / 16 / 24 / 32 / 48; card padding 20; gutters 20.
+- One hero per screen: the range on results, the interval mark + title on first launch.
+- Progress graphics that are honest to the engines: slim questionnaire bar; recommended-break range band on a 0–28-day rail (v1 policy ceiling) with min/max labels and a plan marker at `preferredTargetDays`. Withdrawal is a status track (icon + text), not a chart; sleep stays undated. History is a list, not a graph. The plan day ring (labelled "plan progress") remains the graphic for the unbuilt break loop (§16 step 4).
+
+---
 
 ---
 

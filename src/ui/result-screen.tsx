@@ -11,6 +11,8 @@ import {
   recommendedBreakTitle,
   RESULT,
 } from './result-copy.ts';
+import { CloseIcon } from './icons.tsx';
+import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
 
 export interface ResultScreenProps {
@@ -47,7 +49,7 @@ export function ResultScreen({
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge}>
-          <CloseGlyph />
+          <CloseIcon />
         </button>
       </header>
       <div className="questionnaire-body result-body">
@@ -90,50 +92,64 @@ function ResultBody({
   readonly onDetectionBasics: () => void;
 }) {
   switch (view.kind) {
-    case 'tolerance_result':
+    case 'tolerance_result': {
+      const title = recommendedBreakTitle(view.rangeDays.min, view.rangeDays.max);
       return (
         <div className="stack">
-          <section className="card">
-            <p className="micro-label">Recommended break</p>
-            <h2 id="result-title" className="hero-range">
-              {recommendedBreakTitle(view.rangeDays.min, view.rangeDays.max)}
+          <header className="result-hero">
+            <p className="eyebrow">Recommended break</p>
+            <h2 id="result-title" className="hero-range" aria-label={title}>
+              <span className="hero-range-visual" aria-hidden="true">
+                <span className="hero-num">
+                  {view.rangeDays.min}–{view.rangeDays.max}
+                </span>
+                <span className="hero-unit">days</span>
+              </span>
             </h2>
             <p className="meta">{planForTarget(view.preferredTargetDays)}</p>
+            <RangeBand
+              min={view.rangeDays.min}
+              max={view.rangeDays.max}
+              preferred={view.preferredTargetDays}
+            />
             <p className="body">{view.uncertainty}</p>
-          </section>
-          <section className="card">
+          </header>
+          <section className="result-section">
             <h3 className="card-title">{RESULT.whyHeading}</h3>
-            <ul className="body">
+            <ul className="driver-list">
               {view.drivers.map((line) => (
-                <li key={line}>{line}</li>
+                <li key={line} className="driver-item">
+                  <span className="driver-mark" aria-hidden="true" />
+                  <span>{line}</span>
+                </li>
               ))}
             </ul>
           </section>
           {view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
           {view.history ? (
-            <section className="card">
+            <section className="result-section">
               <h3 className="card-title">{RESULT.historyHeading}</h3>
               <p className="body">{view.history}</p>
             </section>
           ) : (
-            <section className="card">
-              <p className="meta">Taken a tolerance break before? You can add it later from History.</p>
-            </section>
+            <p className="meta">Taken a tolerance break before? You can add it later from History.</p>
           )}
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
         </div>
       );
+    }
     case 'abstinence_planning':
       return (
         <div className="stack">
-          <section className="card">
+          <header className="result-hero">
+            <p className="eyebrow">Plan</p>
             <h2 id="result-title" className="title">
               {RESULT.abstinenceTitle}
             </h2>
             {view.withdrawal ? <p className="body">{aroundDay(view.withdrawal.breakDay)}</p> : null}
-            <p className="body">{view.phaseCopy}</p>
-          </section>
+            <p className="meta">{view.phaseCopy}</p>
+          </header>
           {view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
         </div>
@@ -149,13 +165,14 @@ function ResultBody({
     case 'baseline_low':
       return (
         <div className="stack">
-          <section className="card">
+          <header className="result-hero">
+            <p className="eyebrow">Baseline</p>
             <h2 id="result-title" className="title">
               {view.title}
             </h2>
             <p className="body">{view.body}</p>
             {view.daysSinceLastUse !== null ? <p className="meta">{daysSince(view.daysSinceLastUse)}</p> : null}
-          </section>
+          </header>
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
         </div>
       );
@@ -165,7 +182,8 @@ function ResultBody({
           <p className="banner" data-testid="detection-banner">
             {view.banner}
           </p>
-          <section className="card">
+          <header className="result-hero">
+            <p className="eyebrow">Detection</p>
             <h2 id="result-title" className="title">
               {RESULT.matrixHeading}
             </h2>
@@ -174,14 +192,14 @@ function ResultBody({
                 {line}
               </p>
             ))}
-          </section>
+          </header>
           {view.contextNote ? (
-            <section className="card">
+            <section className="result-section">
               <h3 className="card-title">{RESULT.contextHeading}</h3>
               <p className="body">{view.contextNote}</p>
             </section>
           ) : null}
-          <section className="card">
+          <section className="result-section">
             <h3 className="card-title">{RESULT.whatHelpsHeading}</h3>
             <p className="body">{view.whatHelps}</p>
           </section>
@@ -190,12 +208,12 @@ function ResultBody({
       );
     case 'unavailable':
       return (
-        <section className="card">
+        <header className="result-hero">
           <h2 id="result-title" className="title">
             {RESULT.unavailableTitle}
           </h2>
           <p className="body">{RESULT.unavailableBody}</p>
-        </section>
+        </header>
       );
   }
 }
@@ -213,15 +231,16 @@ function ReductionBody({
   const [sessions, setSessions] = useState<number | null>(null);
   return (
     <div className="stack">
-      <section className="card">
+      <header className="result-hero">
+        <p className="eyebrow">Cutting down</p>
         <h2 id="result-title" className="title">
           {RESULT.reductionTitle}
         </h2>
         <p className="body">{RESULT.reductionBody}</p>
-      </section>
+      </header>
       <section className="card">
         <h3 className="card-title">{RESULT.limitsHeading}</h3>
-        <label className="meta">
+        <label className="limit-field meta">
           {RESULT.maxDaysWeek}
           <input
             type="number"
@@ -233,7 +252,7 @@ function ReductionBody({
             onInput={(event) => setDays(Number((event.target as HTMLInputElement).value))}
           />
         </label>
-        <label className="meta">
+        <label className="limit-field meta">
           {RESULT.maxSessions}
           <input
             type="number"
@@ -249,7 +268,7 @@ function ReductionBody({
           />
         </label>
       </section>
-      <section className="card">
+      <section className="result-section">
         <p className="body">{RESULT.reductionSoft}</p>
         <button type="button" className="cta-secondary" onClick={onSeeBreakRange}>
           {RESULT.seeBreakRange}
@@ -366,7 +385,7 @@ function FooterLinks({
   readonly detection: boolean;
 }) {
   return (
-    <div className="stack">
+    <div className="footer-links">
       <button type="button" className="text-back" onClick={onDetection}>
         {detection ? RESULT.breakRecommendation : RESULT.detectionBasics}
       </button>
@@ -402,14 +421,15 @@ function NominalThcSheet({ onClose }: { readonly onClose: () => void }) {
     <div className="modal-root" data-testid="nominal-thc-sheet">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-sheet" role="dialog" aria-modal="true" aria-label={NOMINAL_THC.title}>
+        <div className="sheet-handle" aria-hidden="true" />
         <header className="modal-header">
           <h2 className="card-title">{NOMINAL_THC.title}</h2>
           <button type="button" className="icon-button" aria-label={NOMINAL_THC.close} onClick={onClose}>
-            <CloseGlyph />
+            <CloseIcon />
           </button>
         </header>
         <p className="meta">{NOMINAL_THC.intro}</p>
-        <label className="meta">
+        <label className="limit-field meta">
           {NOMINAL_THC.amount}
           <input
             type="number"
@@ -420,7 +440,7 @@ function NominalThcSheet({ onClose }: { readonly onClose: () => void }) {
             onInput={(event) => setGrams(Number((event.target as HTMLInputElement).value))}
           />
         </label>
-        <label className="meta">
+        <label className="limit-field meta">
           {NOMINAL_THC.potency}
           <input
             type="number"
@@ -432,25 +452,19 @@ function NominalThcSheet({ onClose }: { readonly onClose: () => void }) {
           />
         </label>
         <p className="meta">{NOMINAL_THC.helper}</p>
-        <button type="button" className={label ? 'chip selected' : 'chip'} onClick={() => setLabel(true)}>
-          {NOMINAL_THC.fromLabel}
-        </button>
-        <button type="button" className={!label ? 'chip selected' : 'chip'} onClick={() => setLabel(false)}>
-          {NOMINAL_THC.myEstimate}
-        </button>
+        <div className="chip-row">
+          <button type="button" className={label ? 'chip selected' : 'chip'} onClick={() => setLabel(true)}>
+            {NOMINAL_THC.fromLabel}
+          </button>
+          <button type="button" className={!label ? 'chip selected' : 'chip'} onClick={() => setLabel(false)}>
+            {NOMINAL_THC.myEstimate}
+          </button>
+        </div>
         <button type="button" className="cta-primary" onClick={calculate} disabled={!(grams > 0 && percent > 0)}>
           {NOMINAL_THC.calculate}
         </button>
         {output ? <p className="body" data-testid="nominal-thc-output">{output}</p> : null}
       </div>
     </div>
-  );
-}
-
-function CloseGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path d="M4 4l10 10M14 4L4 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
   );
 }

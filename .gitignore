@@ -4,3 +4,15 @@ node_modules/
 dist/
 .vite/
 *.tsbuildinfo
+
+# Grok sandbox overlay — not part of the product
+.grok/
+.node_modules.lock
+.prettierrc
+AGENTS.project.md
+AGENTS.sandbox.md
+public/__grok/
+screenshots/
+server/
+artifacts/
+startup.sh

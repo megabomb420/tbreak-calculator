@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate simple geometric PWA icons. No mascot, no invented branding."""
+"""Generate geometric PWA icons: interval mark on dusk navy. No mascot, no cannabis leaf."""
 
 from pathlib import Path
 
@@ -9,9 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 ICONS = PUBLIC / "icons"
 
-BG = (14, 16, 14)  # #0E100E
-CARD = (23, 27, 23)  # #171B17
-ACCENT = (127, 176, 105)  # #7FB069
+BG = (10, 13, 18)  # #0A0D12
+CARD = (21, 27, 36)  # #151B24
+ACCENT = (215, 196, 168)  # #D7C4A8
 
 
 def rounded_rect(draw: ImageDraw.ImageDraw, box, radius: int, fill) -> None:
@@ -41,7 +41,6 @@ def draw_mark(draw: ImageDraw.ImageDraw, size: int, inset_ratio: float) -> None:
 def make(size: int, *, maskable: bool = False) -> Image.Image:
     img = Image.new("RGB", (size, size), BG)
     draw = ImageDraw.Draw(img)
-    # Maskable icons keep the mark inside the inner 80% safe zone.
     inset = 0.22 if maskable else 0.12
     draw_mark(draw, size, inset)
     return img

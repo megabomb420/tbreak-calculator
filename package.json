@@ -1,6 +1,6 @@
 {
   "name": "tbreak-calculator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Local-first T-Break calculator PWA. Deterministic domain core; browser shell.",
@@ -8,9 +8,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 8080",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "node --test \"tests/unit/**/*.test.ts\" \"tests/golden/**/*.test.ts\" && vitest run",
     "test:ui": "vitest run"
@@ -26,6 +26,8 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "@fontsource/figtree": "^5.2.8",
+    "@fontsource/fraunces": "^5.2.8",
     "preact": "^10.29.8"
   }
 }

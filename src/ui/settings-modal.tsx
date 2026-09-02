@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { SETTINGS_MENU, type SettingsMenuId } from '../application/settings/settings.ts';
 import { SETTINGS } from './copy.ts';
+import { CloseIcon } from './icons.tsx';
 
 const HOLD_MS = 3000;
 
@@ -35,6 +36,7 @@ export function SettingsModal({ open, onClose, onDeleteEverything }: SettingsMod
         aria-modal="true"
         aria-labelledby={titleId}
       >
+        <div className="sheet-handle" aria-hidden="true" />
         <header className="modal-header">
           <h2 id={titleId} className="card-title">
             {SETTINGS.title}
@@ -144,19 +146,5 @@ function HoldToDelete({ onConfirm }: { readonly onConfirm: () => void }) {
       <span className="hold-delete-label">{SETTINGS.deleteHoldLabel}</span>
       <span className="hold-delete-bar" aria-hidden="true" />
     </button>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-      <path
-        d="M5 5l10 10M15 5L5 15"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }

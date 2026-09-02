@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
-import type { ProductKind, Route } from '../domain/schemas/enums.ts';
 import {
   applyAnswer,
   isStepComplete,
-  lastUseNeedsReselect,
-  nextDestination,
   previousStep,
   progressFraction,
   STEP_SPECS,
@@ -25,6 +22,7 @@ import {
   UseDaysSlider,
 } from './questionnaire-controls.tsx';
 import { QUESTIONNAIRE, STEP_COPY } from './questionnaire-copy.ts';
+import { CloseIcon } from './icons.tsx';
 
 export interface QuestionnaireFlowProps {
   readonly session: QuestionnaireSession;
@@ -56,6 +54,7 @@ export function QuestionnaireFlow({
   const backTarget = previousStep(currentStep, answers);
   const fraction = progressFraction(currentStep, answers);
   const advance = spec.answerType === 'single_select_advance';
+  const percent = Math.round(fraction * 100);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -80,25 +79,29 @@ export function QuestionnaireFlow({
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={QUESTIONNAIRE.close} onClick={onClose}>
-          <CloseGlyph />
+          <CloseIcon />
         </button>
-        <div
-          className="progress-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(fraction * 100)}
-          aria-label="Questionnaire progress"
-        >
-          <div className="progress-fill" style={{ width: `${Math.round(fraction * 100)}%` }} />
+        <div className="progress-cluster">
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+            aria-label="Questionnaire progress"
+          >
+            <div className="progress-fill" style={{ width: `${percent}%` }} />
+          </div>
         </div>
       </header>
       <div className="questionnaire-body">
         <section className="questionnaire-step" key={currentStep}>
-          <h2 id="questionnaire-title" className="title" tabIndex={-1} ref={headingRef}>
-            {copy.title}
-          </h2>
-          {copy.helper ? <p className="meta">{copy.helper}</p> : null}
+          <div>
+            <h2 id="questionnaire-title" className="title" tabIndex={-1} ref={headingRef}>
+              {copy.title}
+            </h2>
+            {copy.helper ? <p className="meta">{copy.helper}</p> : null}
+          </div>
           {lastUseWarning ? (
             <p className="warning" data-testid="last-use-warning">
               {currentStep === 'Q3-opt' ? QUESTIONNAIRE.lastUseOlderWarning : QUESTIONNAIRE.lastUseWindowWarning}
@@ -256,13 +259,3 @@ function pendingAnswer(step: QuestionnaireStepId, answers: QuestionnaireAnswers)
       return null;
   }
 }
-
-function CloseGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path d="M4 4l10 10M14 4L4 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-

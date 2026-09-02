@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import type { AppTab, ShellState } from '../application/shell/shell-controller.ts';
 import { OPEN_SETTINGS } from './copy.ts';
+import { GearIcon, HistoryIcon, TodayIcon } from './icons.tsx';
 
 export interface ShellProps {
   readonly shell: ShellState;
@@ -9,9 +10,9 @@ export interface ShellProps {
   readonly children: ComponentChildren;
 }
 
-const TABS: ReadonlyArray<{ id: AppTab; label: string }> = [
-  { id: 'today', label: 'Today' },
-  { id: 'history', label: 'History' },
+const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }> = [
+  { id: 'today', label: 'Today', icon: TodayIcon },
+  { id: 'history', label: 'History', icon: HistoryIcon },
 ];
 
 export function Shell({ shell, onSelectTab, onOpenSettings, children }: ShellProps) {
@@ -36,6 +37,7 @@ export function Shell({ shell, onSelectTab, onOpenSettings, children }: ShellPro
       <nav className="tab-bar" aria-label="Primary">
         {TABS.map((tab) => {
           const selected = shell.activeTab === tab.id;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
@@ -45,26 +47,12 @@ export function Shell({ shell, onSelectTab, onOpenSettings, children }: ShellPro
               data-tab={tab.id}
               onClick={() => onSelectTab(tab.id)}
             >
+              <Icon size={20} />
               {tab.label}
             </button>
           );
         })}
       </nav>
     </div>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-      <path
-        d="M9.1 2.4h3.8l.5 2.1a6.6 6.6 0 0 1 1.7.9l2-.9 1.9 3.3-1.6 1.5c.1.4.2.9.2 1.4s-.1 1-.2 1.4l1.6 1.5-1.9 3.3-2-.9a6.6 6.6 0 0 1-1.7.9l-.5 2.1H9.1l-.5-2.1a6.6 6.6 0 0 1-1.7-.9l-2 .9-1.9-3.3 1.6-1.5A6.2 6.2 0 0 1 4.4 11c0-.5.1-1 .2-1.4L3 8.1 4.9 4.8l2 .9a6.6 6.6 0 0 1 1.7-.9l.5-2.4z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="11" cy="11" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
   );
 }

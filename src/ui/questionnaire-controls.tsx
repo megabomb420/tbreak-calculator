@@ -1,6 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
-import type { ProductKind, Route } from '../domain/schemas/enums.ts';
+import type { DetectionContext, DetectionMatrix, Goal, ProductKind, Route } from '../domain/schemas/enums.ts';
 import {
   DATE_CHIPS,
   DAY_PARTS,
@@ -27,7 +27,16 @@ import {
   USE_DAY_PRESETS,
 } from './questionnaire-copy.ts';
 import { GOAL_CHIPS } from './copy.ts';
-import type { DetectionContext, DetectionMatrix, Goal } from '../domain/schemas/enums.ts';
+import {
+  BreakNoIcon,
+  BreakYesIcon,
+  CheckIcon,
+  contextIcon,
+  goalIcon,
+  matrixIcon,
+  productIcon,
+  routeIcon,
+} from './icons.tsx';
 
 export function GoalCards({ onSelect }: { readonly onSelect: (goal: Goal) => void }) {
   return (
@@ -40,8 +49,11 @@ export function GoalCards({ onSelect }: { readonly onSelect: (goal: Goal) => voi
           data-goal={goal.id}
           onClick={() => onSelect(goal.id)}
         >
-          <span className="choice-title">{goal.title}</span>
-          <span className="meta">{goal.helper}</span>
+          <span className="choice-icon">{goalIcon(goal.id, { size: 20 })}</span>
+          <span className="choice-copy">
+            <span className="choice-title">{goal.title}</span>
+            <span className="meta">{goal.helper}</span>
+          </span>
         </button>
       ))}
     </div>
@@ -65,8 +77,16 @@ export function BreakCards({
           data-break={option.value ? 'yes' : 'no'}
           onClick={() => onSelect(option.value)}
         >
-          <span className="choice-title">{option.title}</span>
-          <span className="meta">{option.helper}</span>
+          <span className="choice-icon">
+            {option.value ? <BreakYesIcon size={20} /> : <BreakNoIcon size={20} />}
+          </span>
+          <span className="choice-copy">
+            <span className="choice-title">{option.title}</span>
+            <span className="meta">{option.helper}</span>
+          </span>
+          <span className="choice-check">
+            <CheckIcon size={16} />
+          </span>
         </button>
       ))}
     </div>
@@ -90,7 +110,13 @@ export function MatrixCards({
           data-matrix={option.id}
           onClick={() => onSelect(option.id)}
         >
-          <span className="choice-title">{option.title}</span>
+          <span className="choice-icon">{matrixIcon(option.id, { size: 20 })}</span>
+          <span className="choice-copy">
+            <span className="choice-title">{option.title}</span>
+          </span>
+          <span className="choice-check">
+            <CheckIcon size={16} />
+          </span>
         </button>
       ))}
     </div>
@@ -114,7 +140,13 @@ export function ContextCards({
           data-context={option.id}
           onClick={() => onSelect(option.id)}
         >
-          <span className="choice-title">{option.title}</span>
+          <span className="choice-icon">{contextIcon(option.id, { size: 20 })}</span>
+          <span className="choice-copy">
+            <span className="choice-title">{option.title}</span>
+          </span>
+          <span className="choice-check">
+            <CheckIcon size={16} />
+          </span>
         </button>
       ))}
     </div>
@@ -129,25 +161,37 @@ export function UseDaysSlider({
   readonly onChange: (value: number) => void;
 }) {
   const shown = value ?? 0;
+  const pct = `${(shown / 30) * 100}%`;
   return (
     <div className="control-stack">
-      <p className="slider-readout" data-testid="use-days-readout" aria-live="polite">
-        {shown}
-      </p>
-      <input
-        type="range"
-        min={0}
-        max={30}
-        step={1}
-        value={shown}
-        aria-valuemin={0}
-        aria-valuemax={30}
-        aria-valuenow={shown}
-        aria-label="Days you used THC in the last 30 days"
-        data-testid="use-days-slider"
-        className="slider"
-        onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
-      />
+      <div className="slider-stage">
+        <p className="slider-readout" data-testid="use-days-readout" aria-live="polite">
+          {shown}
+        </p>
+        <p className="slider-unit">days in the last 30</p>
+      </div>
+      <div className="slider-wrap" style={{ '--slider-pct': pct } as Record<string, string>}>
+        <input
+          type="range"
+          min={0}
+          max={30}
+          step={1}
+          value={shown}
+          aria-valuemin={0}
+          aria-valuemax={30}
+          aria-valuenow={shown}
+          aria-label="Days you used THC in the last 30 days"
+          data-testid="use-days-slider"
+          className="slider"
+          onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
+        />
+      </div>
+      <div className="slider-ticks" aria-hidden="true">
+        <span>0</span>
+        <span>10</span>
+        <span>20</span>
+        <span>30</span>
+      </div>
       <div className="chip-row">
         {USE_DAY_PRESETS.map((preset) => (
           <button
@@ -253,18 +297,19 @@ export function ProductsRoutesControl({
   return (
     <div className="control-stack">
       <p className="micro-label">{PRODUCT_GROUP_LABEL}</p>
-      <div className="chip-row">
+      <div className="tile-grid">
         {PRODUCT_OPTIONS.map((option) => (
           <button
             key={option.id}
             type="button"
-            className={chipClass(products.includes(option.id))}
+            className={tileClass(products.includes(option.id))}
             aria-pressed={products.includes(option.id)}
             data-product={option.id}
             onClick={() => toggleProduct(option.id)}
           >
-            {option.title}
-            {option.helper ? <span className="meta"> {option.helper}</span> : null}
+            {productIcon(option.id, { size: 22 })}
+            <span className="choice-title">{option.title}</span>
+            {option.helper ? <span className="meta">{option.helper}</span> : null}
           </button>
         ))}
       </div>
@@ -274,17 +319,18 @@ export function ProductsRoutesControl({
         </p>
       ) : null}
       <p className="micro-label">{ROUTE_GROUP_LABEL}</p>
-      <div className="chip-row">
+      <div className="tile-grid">
         {ROUTE_OPTIONS.map((option) => (
           <button
             key={option.id}
             type="button"
-            className={chipClass(routes.includes(option.id))}
+            className={tileClass(routes.includes(option.id))}
             aria-pressed={routes.includes(option.id)}
             data-route={option.id}
             onClick={() => toggleRoute(option.id)}
           >
-            {option.title}
+            {routeIcon(option.id, { size: 22 })}
+            <span className="choice-title">{option.title}</span>
           </button>
         ))}
       </div>
@@ -466,4 +512,8 @@ function cardClass(selected: boolean): string {
 
 function chipClass(selected: boolean): string {
   return selected ? 'chip selected' : 'chip';
+}
+
+function tileClass(selected: boolean): string {
+  return selected ? 'tile selected' : 'tile';
 }

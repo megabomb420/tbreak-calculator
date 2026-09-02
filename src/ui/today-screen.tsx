@@ -9,6 +9,8 @@ import {
   RESUME,
   resumeTitle,
 } from './copy.ts';
+import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, goalIcon } from './icons.tsx';
+
 
 export interface TodayScreenProps {
   readonly view: TodayView;
@@ -84,18 +86,34 @@ function PrimaryStateShell({
   }
 }
 
+const REASSURANCE_ICONS = {
+  offline: OfflineIcon,
+  local: DeviceIcon,
+  'no-account': NoAccountIcon,
+} as const;
+
 function FirstLaunch({ onGetStarted }: { readonly onGetStarted: () => void }) {
   return (
     <div className="stack" data-testid="state-first-launch">
-      <h2 className="title">{FIRST_LAUNCH.title}</h2>
-      <p className="body">{FIRST_LAUNCH.promise}</p>
+      <div className="hero">
+        <div className="brand-mark">
+          <IntervalMark size={32} />
+        </div>
+        <h2 className="title">{FIRST_LAUNCH.title}</h2>
+        <p className="body">{FIRST_LAUNCH.promise}</p>
+      </div>
       <ul className="reassurance-list">
-        {FIRST_LAUNCH.reassurances.map((item) => (
-          <li key={item.id} className="reassurance-item">
-            <span className="reassurance-mark" aria-hidden="true" />
-            <span>{item.label}</span>
-          </li>
-        ))}
+        {FIRST_LAUNCH.reassurances.map((item) => {
+          const Icon = REASSURANCE_ICONS[item.id];
+          return (
+            <li key={item.id} className="reassurance-item">
+              <span className="reassurance-mark">
+                <Icon size={18} />
+              </span>
+              <span>{item.label}</span>
+            </li>
+          );
+        })}
       </ul>
       <aside className="safety-slot" data-slot="safety_first_launch" aria-label="Safety information">
         <p className="meta">{FIRST_LAUNCH.safetyPending}</p>
@@ -110,7 +128,10 @@ function FirstLaunch({ onGetStarted }: { readonly onGetStarted: () => void }) {
 function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => void }) {
   return (
     <div className="stack" data-testid="state-no-profile">
-      <h2 className="title">{NO_PROFILE.title}</h2>
+      <div className="hero">
+        <p className="eyebrow">Today</p>
+        <h2 className="title">{NO_PROFILE.title}</h2>
+      </div>
       <div className="choice-list">
         {GOAL_CHIPS.map((goal) => (
           <button
@@ -120,8 +141,11 @@ function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => vo
             data-goal={goal.id}
             onClick={() => onSelectGoal(goal.id)}
           >
-            <span className="choice-title">{goal.title}</span>
-            <span className="meta">{goal.helper}</span>
+            <span className="choice-icon">{goalIcon(goal.id, { size: 20 })}</span>
+            <span className="choice-copy">
+              <span className="choice-title">{goal.title}</span>
+              <span className="meta">{goal.helper}</span>
+            </span>
           </button>
         ))}
       </div>
@@ -140,7 +164,7 @@ function DeferredStateShell({
 }) {
   const copy = DEFERRED_TODAY_SHELL[state];
   return (
-    <article className="card" data-testid={`state-${state}`}>
+    <article className="deferred-shell" data-testid={`state-${state}`}>
       <p className="micro-label">Today</p>
       <h2 className="card-title">{copy.title}</h2>
       <p className="body">{copy.body}</p>
@@ -174,7 +198,7 @@ function ResumeCard({
   readonly onResume: () => void;
 }) {
   return (
-    <article className="card" data-testid="resume-card" data-resume-placement={placement}>
+    <article className="deferred-shell resume-card" data-testid="resume-card" data-resume-placement={placement}>
       <p className="micro-label">Unfinished</p>
       <h2 className="card-title">{resumeTitle(answeredSteps)}</h2>
       <div className="cta-row">
