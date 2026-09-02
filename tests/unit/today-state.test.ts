@@ -11,9 +11,11 @@ import type { QuestionnaireProgressRecord } from '../../src/application/progress
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
 const DRAFT: QuestionnaireProgressRecord = {
-  schemaVersion: 'questionnaire-draft-v1',
+  schemaVersion: 'questionnaire-draft-v2',
   answeredSteps: 3,
   updatedAt: toInstant(1787184000000),
+  currentStep: 'Q3',
+  answers: { goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: '2026-08-18T12:00:00Z' },
 };
 
 function facts(overrides: Partial<TodayFacts> = {}): TodayFacts {

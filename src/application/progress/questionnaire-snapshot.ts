@@ -1,0 +1,93 @@
+// Completed questionnaire raw-answer snapshot (UX_SPEC 4.5).
+//
+// Stored separately from the unfinished draft so Today does not show Resume
+// after a finished flow. Result screens (UX_SPEC §16 step 3) consume this
+// record; this slice does not invoke engines.
+
+import type { Instant } from '../../domain/schemas/time.ts';
+import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
+import type { RawAnswerSnapshot } from '../questionnaire/snapshot.ts';
+import { DETECTION_CONTEXTS, DETECTION_MATRICES, GOALS } from '../../domain/schemas/enums.ts';
+
+export const QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION = 'questionnaire-snapshot-v1' as const;
+export const QUESTIONNAIRE_SNAPSHOT_KEY = 'tbreak.questionnaire-snapshot.v1';
+
+export interface QuestionnaireSnapshotRecord {
+  readonly schemaVersion: typeof QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION;
+  readonly snapshot: RawAnswerSnapshot;
+  readonly updatedAt: Instant;
+}
+
+export interface QuestionnaireSnapshotStore {
+  readonly load: () => QuestionnaireSnapshotRecord | null;
+  readonly save: (record: QuestionnaireSnapshotRecord) => void;
+  readonly clear: () => void;
+}
+
+export function createQuestionnaireSnapshotStore(
+  adapter: StorageAdapter,
+  key: string = QUESTIONNAIRE_SNAPSHOT_KEY,
+): QuestionnaireSnapshotStore {
+  return {
+    load: () => readSnapshot(adapter, key),
+    save: (record) => writeSnapshot(adapter, key, record),
+    clear: () => {
+      adapter.removeItem(key);
+    },
+  };
+}
+
+function readSnapshot(adapter: StorageAdapter, key: string): QuestionnaireSnapshotRecord | null {
+  const raw = adapter.getItem(key);
+  if (raw === null) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    adapter.removeItem(key);
+    return null;
+  }
+  if (!isValidRecord(parsed)) {
+    adapter.removeItem(key);
+    return null;
+  }
+  return parsed;
+}
+
+function writeSnapshot(adapter: StorageAdapter, key: string, record: QuestionnaireSnapshotRecord): void {
+  if (!isValidRecord(record)) {
+    throw new RangeError(`invalid questionnaire snapshot record: ${JSON.stringify(record)}`);
+  }
+  adapter.setItem(key, JSON.stringify(record));
+}
+
+function isValidRecord(value: unknown): value is QuestionnaireSnapshotRecord {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.schemaVersion === QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION &&
+    typeof record.updatedAt === 'number' &&
+    Number.isInteger(record.updatedAt) &&
+    Number.isFinite(record.updatedAt) &&
+    isValidSnapshot(record.snapshot)
+  );
+}
+
+function isValidSnapshot(value: unknown): value is RawAnswerSnapshot {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  if (record.kind === 'detection') {
+    const request = record.request;
+    if (typeof request !== 'object' || request === null) return false;
+    const body = request as Record<string, unknown>;
+    return (
+      (DETECTION_MATRICES as readonly unknown[]).includes(body.matrix) &&
+      (DETECTION_CONTEXTS as readonly unknown[]).includes(body.context)
+    );
+  }
+  if (record.kind !== 'use_profile') return false;
+  const profile = record.profile;
+  if (typeof profile !== 'object' || profile === null) return false;
+  const body = profile as Record<string, unknown>;
+  return (GOALS as readonly unknown[]).includes(body.goal) && typeof body.breakRequested === 'boolean';
+}

@@ -2,15 +2,25 @@
 //
 // An unfinished questionnaire is persisted after every answered step so a
 // relaunch never loses answers and the `Today` router can show its resume
-// card. The record is an envelope: the actual step answers are owned by the
-// future questionnaire engine; this slice persists the presence, progress
-// count and update time the router needs. Save and clear take explicit
-// instants/values and never read a clock.
+// card. v2 stores the current step and the typed answer snapshot the engine
+// owns. v1 envelopes (count-only) are incompatible and fail closed.
 
+import {
+  QUESTIONNAIRE_STEP_IDS,
+  type QuestionnaireAnswers,
+  type QuestionnaireStepId,
+} from '../questionnaire/engine.ts';
 import type { Instant } from '../../domain/schemas/time.ts';
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
+import {
+  DETECTION_CONTEXTS,
+  DETECTION_MATRICES,
+  GOALS,
+  PRODUCT_KINDS,
+  ROUTES,
+} from '../../domain/schemas/enums.ts';
 
-export const QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION = 'questionnaire-draft-v1';
+export const QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION = 'questionnaire-draft-v2' as const;
 export const QUESTIONNAIRE_PROGRESS_KEY = 'tbreak.questionnaire-progress.v1';
 
 export interface QuestionnaireProgressRecord {
@@ -18,6 +28,8 @@ export interface QuestionnaireProgressRecord {
   /** Number of answered steps persisted (>= 1; a draft with 0 answers is not stored). */
   readonly answeredSteps: number;
   readonly updatedAt: Instant;
+  readonly currentStep: QuestionnaireStepId;
+  readonly answers: QuestionnaireAnswers;
 }
 
 export interface QuestionnaireProgressStore {
@@ -47,7 +59,6 @@ function readProgress(adapter: StorageAdapter, key: string): QuestionnaireProgre
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // Corrupt transient draft: drop it and treat it as absent (UX_SPEC 13.3).
     adapter.removeItem(key);
     return null;
   }
@@ -59,12 +70,7 @@ function readProgress(adapter: StorageAdapter, key: string): QuestionnaireProgre
 }
 
 function writeProgress(adapter: StorageAdapter, key: string, record: QuestionnaireProgressRecord): void {
-  if (
-    !Number.isInteger(record.answeredSteps) ||
-    record.answeredSteps < 1 ||
-    !Number.isInteger(record.updatedAt) ||
-    !Number.isFinite(record.updatedAt)
-  ) {
+  if (!isValidRecord(record)) {
     throw new RangeError(`invalid questionnaire progress record: ${JSON.stringify(record)}`);
   }
   adapter.setItem(key, JSON.stringify(record));
@@ -80,6 +86,71 @@ function isValidRecord(value: unknown): value is QuestionnaireProgressRecord {
     record.answeredSteps >= 1 &&
     typeof record.updatedAt === 'number' &&
     Number.isInteger(record.updatedAt) &&
-    Number.isFinite(record.updatedAt)
+    Number.isFinite(record.updatedAt) &&
+    typeof record.currentStep === 'string' &&
+    (QUESTIONNAIRE_STEP_IDS as readonly string[]).includes(record.currentStep) &&
+    isValidAnswers(record.answers)
   );
+}
+
+function isValidAnswers(value: unknown): value is QuestionnaireAnswers {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  const allowed = new Set([
+    'goal',
+    'breakRequested',
+    'thcUseDaysLast30',
+    'lastUseAt',
+    'lastUseSkipped',
+    'sessionsPerUseDay',
+    'products',
+    'routes',
+    'detectionMatrix',
+    'detectionContext',
+  ]);
+  for (const key of Object.keys(record)) {
+    if (!allowed.has(key)) return false;
+  }
+  if (record.goal !== undefined && !(GOALS as readonly unknown[]).includes(record.goal)) return false;
+  if (record.breakRequested !== undefined && typeof record.breakRequested !== 'boolean') return false;
+  if (
+    record.thcUseDaysLast30 !== undefined &&
+    (typeof record.thcUseDaysLast30 !== 'number' ||
+      !Number.isInteger(record.thcUseDaysLast30) ||
+      record.thcUseDaysLast30 < 0 ||
+      record.thcUseDaysLast30 > 30)
+  ) {
+    return false;
+  }
+  if (record.lastUseAt !== undefined && typeof record.lastUseAt !== 'string') return false;
+  if (record.lastUseSkipped !== undefined && typeof record.lastUseSkipped !== 'boolean') return false;
+  if (
+    record.sessionsPerUseDay !== undefined &&
+    (typeof record.sessionsPerUseDay !== 'number' ||
+      !Number.isInteger(record.sessionsPerUseDay) ||
+      record.sessionsPerUseDay < 1 ||
+      record.sessionsPerUseDay > 9)
+  ) {
+    return false;
+  }
+  if (record.products !== undefined && !isStringArrayIn(record.products, PRODUCT_KINDS)) return false;
+  if (record.routes !== undefined && !isStringArrayIn(record.routes, ROUTES)) return false;
+  if (
+    record.detectionMatrix !== undefined &&
+    !(DETECTION_MATRICES as readonly unknown[]).includes(record.detectionMatrix)
+  ) {
+    return false;
+  }
+  if (
+    record.detectionContext !== undefined &&
+    !(DETECTION_CONTEXTS as readonly unknown[]).includes(record.detectionContext)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isStringArrayIn(value: unknown, allowed: readonly string[]): boolean {
+  if (!Array.isArray(value)) return false;
+  return value.every((item) => typeof item === 'string' && allowed.includes(item));
 }

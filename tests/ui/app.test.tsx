@@ -17,6 +17,8 @@ function saveDraft(storage: StorageAdapter, answeredSteps = 3): void {
     schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
     answeredSteps,
     updatedAt: AT,
+    currentStep: 'Q3',
+    answers: { goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: '2026-08-18T12:00:00Z' },
   });
 }
 

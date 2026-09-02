@@ -10,6 +10,7 @@ import {
   createQuestionnaireProgressStore,
   QUESTIONNAIRE_PROGRESS_KEY,
   QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
+  type QuestionnaireProgressRecord,
 } from '../../src/application/progress/questionnaire-progress.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
@@ -98,17 +99,16 @@ describe('browser storage adapter', () => {
   it('persists a questionnaire draft through the Web Storage adapter', () => {
     const web = createFakeWebStorage();
     const store = createQuestionnaireProgressStore(createWebStorageAdapter(web));
-    store.save({
+    const draft: QuestionnaireProgressRecord = {
       schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
       answeredSteps: 3,
       updatedAt: AT,
-    });
+      currentStep: 'Q3',
+      answers: { goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: '2026-08-18T12:00:00Z' },
+    };
+    store.save(draft);
     assert.ok(web.store.get(QUESTIONNAIRE_PROGRESS_KEY));
-    assert.deepEqual(store.load(), {
-      schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
-      answeredSteps: 3,
-      updatedAt: AT,
-    });
+    assert.deepEqual(store.load(), draft);
   });
 
   it('self-heals a corrupt draft stored in Web Storage', () => {

@@ -15,7 +15,17 @@ import { toInstant } from '../../src/domain/schemas/time.ts';
 const AT = toInstant(1787184000000);
 
 function record(answeredSteps = 3, updatedAt = AT): QuestionnaireProgressRecord {
-  return { schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION, answeredSteps, updatedAt };
+  return {
+    schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
+    answeredSteps,
+    updatedAt,
+    currentStep: 'Q3',
+    answers: {
+      goal: 'tolerance_reset',
+      thcUseDaysLast30: 10,
+      lastUseAt: '2026-08-18T12:00:00Z',
+    },
+  };
 }
 
 describe('questionnaire progress persistence (UX_SPEC 3.2 resume)', () => {
@@ -55,10 +65,18 @@ describe('questionnaire progress persistence (UX_SPEC 3.2 resume)', () => {
     const adapter: StorageAdapter = createMemoryStorage();
     for (const raw of [
       JSON.stringify({ schemaVersion: 'other-v1', answeredSteps: 3, updatedAt: AT }),
+      JSON.stringify({ schemaVersion: 'questionnaire-draft-v1', answeredSteps: 3, updatedAt: AT }),
       JSON.stringify({ schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION, answeredSteps: 0, updatedAt: AT }),
       JSON.stringify({ schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION, answeredSteps: 3 }),
       JSON.stringify({ schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION, answeredSteps: 3.5, updatedAt: AT }),
       JSON.stringify({ schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION, answeredSteps: 3, updatedAt: 12.5 }),
+      JSON.stringify({
+        schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
+        answeredSteps: 3,
+        updatedAt: AT,
+        currentStep: 'Q9',
+        answers: { goal: 'tolerance_reset' },
+      }),
       JSON.stringify('draft'),
     ]) {
       adapter.setItem(QUESTIONNAIRE_PROGRESS_KEY, raw);
@@ -72,6 +90,15 @@ describe('questionnaire progress persistence (UX_SPEC 3.2 resume)', () => {
     const store = createQuestionnaireProgressStore(createMemoryStorage());
     assert.throws(() => store.save(record(0)), RangeError);
     assert.throws(() => store.save(record(1.5)), RangeError);
+  });
+
+  it('round-trips currentStep and answers so resume can restore them', () => {
+    const store = createQuestionnaireProgressStore(createMemoryStorage());
+    const saved = record(2);
+    store.save(saved);
+    assert.deepEqual(store.load()?.currentStep, 'Q3');
+    assert.equal(store.load()?.answers.goal, 'tolerance_reset');
+    assert.equal(store.load()?.answers.thcUseDaysLast30, 10);
   });
 });
 

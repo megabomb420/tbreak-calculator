@@ -8,6 +8,7 @@ import {
   RESUME,
   SETTINGS,
 } from '../../src/ui/copy.ts';
+import * as questionnaireCopy from '../../src/ui/questionnaire-copy.ts';
 
 describe('UI copy invariants', () => {
   const dumped = JSON.stringify({
@@ -18,6 +19,7 @@ describe('UI copy invariants', () => {
     NO_PROFILE,
     RESUME,
     SETTINGS,
+    questionnaireCopy,
   });
 
   it('does not invent prohibited scientific claims', () => {
