@@ -2,11 +2,13 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   emptyTodayFacts,
+  liveTimingState,
   resolveTodayState,
   type TodayFacts,
   type TodayPrimaryState,
 } from '../../src/application/shell/today-state.ts';
 import type { BreakAttemptStatus } from '../../src/domain/breaks/break-attempt.ts';
+import type { AbstinenceTrackStatus } from '../../src/domain/breaks/abstinence-track.ts';
 import type { QuestionnaireProgressRecord } from '../../src/application/progress/questionnaire-progress.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
@@ -23,6 +25,10 @@ function facts(overrides: Partial<TodayFacts> = {}): TodayFacts {
 }
 
 function attempt(status: BreakAttemptStatus): TodayFacts['attempt'] {
+  return { status };
+}
+
+function tracking(status: AbstinenceTrackStatus): TodayFacts['tracking'] {
   return { status };
 }
 
@@ -51,7 +57,7 @@ describe('Today router: primary state precedence (UX_SPEC 3.2)', () => {
       'profile-no-break',
     );
     assert.equal(
-      resolveTodayState(facts({ detectionOnly: true, abstinenceTracking: true })).primary,
+      resolveTodayState(facts({ detectionOnly: true, tracking: tracking('tracking') })).primary,
       'abstinence-tracking',
     );
   });
@@ -60,14 +66,14 @@ describe('Today router: primary state precedence (UX_SPEC 3.2)', () => {
     assert.equal(resolveTodayState(facts({ hasAnyData: true, hasProfile: true })).primary, 'profile-no-break');
   });
 
-  it('keeps abstinence-tracking above profile-no-break', () => {
-    const view = resolveTodayState(facts({ hasAnyData: true, hasProfile: true, abstinenceTracking: true }));
+  it('keeps live tracking above profile-no-break', () => {
+    const view = resolveTodayState(facts({ hasAnyData: true, hasProfile: true, tracking: tracking('tracking') }));
     assert.equal(view.primary, 'abstinence-tracking');
   });
 
   it('gives an active break precedence over tracking and profile', () => {
     const view = resolveTodayState(
-      facts({ hasAnyData: true, hasProfile: true, abstinenceTracking: true, attempt: attempt('active') }),
+      facts({ hasAnyData: true, hasProfile: true, tracking: tracking('tracking'), attempt: attempt('active') }),
     );
     assert.equal(view.primary, 'active-break');
   });
@@ -79,27 +85,32 @@ describe('Today router: primary state precedence (UX_SPEC 3.2)', () => {
     assert.equal(view.primary, 'interrupted');
   });
 
-  it('shows completed-break until acknowledged, even over tracking and profile', () => {
-    const unacknowledged = resolveTodayState(
-      facts({ hasProfile: true, abstinenceTracking: true, attempt: attempt('completed') }),
-    );
-    assert.equal(unacknowledged.primary, 'completed-break');
+  it('treats paused open-ended tracking as interrupted too (timing suspended)', () => {
+    const view = resolveTodayState(facts({ hasProfile: true, tracking: tracking('interrupted_time_needed') }));
+    assert.equal(view.primary, 'interrupted');
+    assert.equal(liveTimingState(facts({ tracking: tracking('interrupted_time_needed') })), true);
+  });
 
-    const acknowledged = resolveTodayState(
-      facts({ hasAnyData: true, hasProfile: true, attempt: attempt('completed'), completedBreakAcknowledged: true }),
-    );
+  it('shows completed-break until acknowledged; acknowledged attempts leave Today', () => {
+    const unacknowledged = resolveTodayState(facts({ hasProfile: true, tracking: tracking('tracking'), attempt: attempt('completed') }));
+    assert.equal(unacknowledged.primary, 'completed-break');
+    // An acknowledged completed attempt is excluded from facts by the loader,
+    // so Today falls back to the profile state.
+    const acknowledged = resolveTodayState(facts({ hasAnyData: true, hasProfile: true }));
     assert.equal(acknowledged.primary, 'profile-no-break');
   });
 
   it('lets planned and ended attempts fall through to the profile state', () => {
     assert.equal(resolveTodayState(facts({ hasProfile: true, attempt: attempt('planned') })).primary, 'profile-no-break');
     assert.equal(resolveTodayState(facts({ hasProfile: true, attempt: attempt('ended') })).primary, 'profile-no-break');
-    // An acknowledged completed attempt without a profile falls back to no-profile.
     assert.equal(
-      resolveTodayState(facts({ hasAnyData: true, attempt: attempt('completed'), completedBreakAcknowledged: true }))
-        .primary,
-      'no-profile',
+      resolveTodayState(facts({ hasAnyData: true, attempt: attempt('completed') })).primary,
+      'completed-break',
     );
+  });
+
+  it('lets ended tracking fall through to the profile state', () => {
+    assert.equal(resolveTodayState(facts({ hasProfile: true, tracking: tracking('ended') })).primary, 'profile-no-break');
   });
 });
 
@@ -108,11 +119,19 @@ describe('Today router: questionnaire resume placement (UX_SPEC 3.2)', () => {
     assert.equal(resolveTodayState(facts({ hasProfile: true })).resume, 'none');
   });
 
-  it('keeps an active or interrupted break primary and places resume secondary', () => {
+  it('keeps an active or interrupted attempt primary and places resume secondary', () => {
     for (const status of ['active', 'interrupted_time_needed'] as const) {
       const view = resolveTodayState(facts({ attempt: attempt(status), draft: DRAFT }));
       assert.equal(view.resume, 'secondary', status);
       assert.equal(view.primary, status === 'active' ? 'active-break' : 'interrupted');
+    }
+  });
+
+  it('keeps live or paused tracking primary and places resume secondary', () => {
+    for (const status of ['tracking', 'interrupted_time_needed'] as const) {
+      const view = resolveTodayState(facts({ tracking: tracking(status), draft: DRAFT }));
+      assert.equal(view.resume, 'secondary', status);
+      assert.equal(liveTimingState(facts({ tracking: tracking(status) })), true, status);
     }
   });
 
@@ -122,8 +141,9 @@ describe('Today router: questionnaire resume placement (UX_SPEC 3.2)', () => {
       facts({ hasAnyData: true, draft: DRAFT }), // no-profile
       facts({ detectionOnly: true, draft: DRAFT }), // detection-only
       facts({ hasProfile: true, draft: DRAFT }), // profile-no-break
-      facts({ abstinenceTracking: true, draft: DRAFT }), // abstinence-tracking
-      facts({ attempt: attempt('completed'), draft: DRAFT }), // completed-break (not active/interrupted)
+      facts({ attempt: attempt('planned'), draft: DRAFT }), // planned attempt
+      facts({ attempt: attempt('completed'), draft: DRAFT }), // completed-break (not live timing)
+      facts({ tracking: tracking('ended'), draft: DRAFT }), // ended tracking
     ];
     for (const input of cases) {
       const view = resolveTodayState(input);
@@ -144,9 +164,10 @@ describe('Today router: every documented state is reachable', () => {
     { facts: facts({ hasAnyData: true }), expected: 'no-profile' },
     { facts: facts({ detectionOnly: true }), expected: 'detection-only' },
     { facts: facts({ hasProfile: true }), expected: 'profile-no-break' },
-    { facts: facts({ abstinenceTracking: true }), expected: 'abstinence-tracking' },
+    { facts: facts({ tracking: tracking('tracking') }), expected: 'abstinence-tracking' },
     { facts: facts({ attempt: attempt('active') }), expected: 'active-break' },
     { facts: facts({ attempt: attempt('interrupted_time_needed') }), expected: 'interrupted' },
+    { facts: facts({ tracking: tracking('interrupted_time_needed') }), expected: 'interrupted' },
     { facts: facts({ attempt: attempt('completed') }), expected: 'completed-break' },
   ];
   for (const { facts: input, expected } of reachable) {

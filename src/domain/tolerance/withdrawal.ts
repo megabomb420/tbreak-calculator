@@ -7,7 +7,8 @@
 
 import type { WithdrawalAnchor } from '../policies/tolerance-policy-v1.ts';
 import type { WithdrawalAnchorState, WithdrawalDisplay } from '../schemas/result.ts';
-import { MILLIS_PER_DAY, MILLIS_PER_HOUR, type Instant } from '../schemas/time.ts';
+import { MILLIS_PER_HOUR, type Instant } from '../schemas/time.ts';
+import { abstinenceDayAt } from '../breaks/break-time.ts';
 
 /**
  * Positions the withdrawal anchors at `calculatedAt` relative to the last use.
@@ -21,7 +22,7 @@ export function computeWithdrawalDisplay(
 ): WithdrawalDisplay {
   const elapsedMilliseconds = calculatedAt - lastUseAt;
   const elapsedHours = elapsedMilliseconds / MILLIS_PER_HOUR;
-  const breakDay = Math.floor(elapsedMilliseconds / MILLIS_PER_DAY) + 1;
+  const breakDay = abstinenceDayAt(calculatedAt, lastUseAt);
 
   const anchorStates: WithdrawalAnchorState[] = anchors.map((anchor) => ({
     anchor: anchor.code,

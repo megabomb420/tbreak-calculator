@@ -30,7 +30,7 @@ export const DAY_PART_HOURS: Record<DayPart, number> = {
   night: 23,
 };
 
-export type DateWindowKind = 'within_30_days' | 'older_than_30_days' | 'any_past';
+export type DateWindowKind = 'within_30_days' | 'older_than_30_days' | 'any_past' | 'since_anchor';
 
 /** Formats a local Date as ISO-8601 with an explicit numeric timezone offset. */
 export function formatIsoWithOffset(date: Date): string {
@@ -47,7 +47,7 @@ export function formatIsoWithOffset(date: Date): string {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.${ms}${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`;
 }
 
-export function isInstantInWindow(instant: Instant, now: Instant, window: DateWindowKind): boolean {
+export function isInstantInWindow(instant: Instant, now: Instant, window: DateWindowKind, from?: Instant): boolean {
   if (instant > now) return false;
   const elapsed = now - instant;
   switch (window) {
@@ -57,6 +57,10 @@ export function isInstantInWindow(instant: Instant, now: Instant, window: DateWi
       return elapsed > THIRTY_DAY_WINDOW_MS;
     case 'any_past':
       return true;
+    case 'since_anchor':
+      // Interruption window: after the current segment start, not in the
+      // future (UX_SPEC 10.3).
+      return from === undefined || instant >= from;
   }
 }
 
@@ -66,9 +70,10 @@ export function resolveDateChip(
   dayPart: DayPart,
   now: Instant,
   window: DateWindowKind,
+  from?: Instant,
 ): string | null {
   const date = chipToDate(chip, dayPart, now);
-  return constrainIso(formatIsoWithOffset(date), now, window);
+  return constrainIso(formatIsoWithOffset(date), now, window, from);
 }
 
 /** Resolves a picked calendar date (`YYYY-MM-DD`) plus day-part. `Today` uses the current time. */
@@ -77,6 +82,7 @@ export function resolvePickedDate(
   dayPart: DayPart,
   now: Instant,
   window: DateWindowKind,
+  from?: Instant,
 ): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
   const year = Number(isoDate.slice(0, 4));
@@ -85,9 +91,9 @@ export function resolvePickedDate(
   const picked = atDayPart(new Date(year, month - 1, day), dayPart);
   const current = new Date(now);
   if (sameLocalDay(picked, current)) {
-    return constrainIso(formatIsoWithOffset(current), now, window);
+    return constrainIso(formatIsoWithOffset(current), now, window, from);
   }
-  return constrainIso(formatIsoWithOffset(picked), now, window);
+  return constrainIso(formatIsoWithOffset(picked), now, window, from);
 }
 
 export function localIsoDate(instant: Instant): string {
@@ -98,6 +104,7 @@ export function localIsoDate(instant: Instant): string {
 export function dateInputBounds(
   now: Instant,
   window: DateWindowKind,
+  from?: Instant,
 ): { readonly min: string; readonly max: string } {
   const current = new Date(now);
   const max = localIsoDate(now);
@@ -108,13 +115,16 @@ export function dateInputBounds(
     const latestOlder = now - THIRTY_DAY_WINDOW_MS - 1;
     return { min: '1970-01-01', max: localIsoDate(latestOlder as Instant) };
   }
+  if (window === 'since_anchor') {
+    return { min: from === undefined ? '1970-01-01' : localIsoDate(from), max };
+  }
   return { min: '1970-01-01', max };
 }
 
-function constrainIso(iso: string, now: Instant, window: DateWindowKind): string | null {
+function constrainIso(iso: string, now: Instant, window: DateWindowKind, from?: Instant): string | null {
   const parsed = parseSubmittedTimestamp(iso);
   if (parsed === null) return null;
-  return isInstantInWindow(parsed, now, window) ? iso : null;
+  return isInstantInWindow(parsed, now, window, from) ? iso : null;
 }
 
 function chipToDate(chip: DateChipId, dayPart: DayPart, now: Instant): Date {

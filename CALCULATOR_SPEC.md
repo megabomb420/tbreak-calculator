@@ -125,17 +125,24 @@ PreviousBreak
 ```text
 DailyCheckin
   recordedAt: timestamp
-  craving: integer 0..10
-  sleep: integer 0..10
-  irritability: integer 0..10
-  anxiety: integer 0..10
-  appetite: integer 0..10
+  craving: integer 0..10 or null
+  sleep: integer 0..10 or null
+  irritability: integer 0..10 or null
+  anxiety: integer 0..10 or null
+  appetite: integer 0..10 or null
   usedThc: boolean
   usedAt: SourcedValue<timestamp with timezone> or missing
   note: string or null
 ```
 
 The note is an optional private journal entry shown back to the user in local history. It is not parsed, classified, or used by a deterministic result.
+
+**Amendment (UX_SPEC 15.2 D5, implemented in 0.3.0):** the five symptom fields
+are `integer 0..10 or null`; an untouched slider is stored as `null` and is
+never prefilled or silently stored as 0. Anchors follow UX_SPEC 10.2 — 10
+always means more of the named thing (stronger craving, better sleep quality,
+stronger appetite). A use-day check-in (`usedThc = true`) requires a
+confirmed `usedAt`; symptom entry is not offered on a use-day check-in.
 
 ### 4.5 Detection request
 
@@ -156,6 +163,28 @@ NominalFlowerInput
 ```
 
 This branch is optional and shown only when the user asks to calculate nominal flower THC.
+
+### 4.7 Open-ended abstinence tracking record (D4)
+
+Abstinence is open-ended and MUST NOT be modelled as a `BreakAttempt` with a
+fake finite target: it has no `targetDurationDays`, no completion milestone,
+and no planned target date (UX_SPEC 9.8, 15.2 D4).
+
+```text
+AbstinenceTrack
+  id: string
+  calculationRecordId: string or null
+  status: tracking | interrupted_time_needed | ended
+  startedAt: timestamp
+  segments: BreakSegment[]   (same shape as a break attempt)
+```
+
+`BreakSegment` (ARCHITECTURE section 8) anchors each open segment to the
+authoritative `UseProfile.lastUseAt`. The interruption mechanics of section
+7.9 apply unchanged minus any target-date recomputation: a reported use
+suspends timing until its instant is confirmed, then closes the open segment
+at that instant and opens a new one. `ended` is a neutral user stop; the
+record never acquires a target or a completed state.
 
 ## 5. Validation and normalisation
 

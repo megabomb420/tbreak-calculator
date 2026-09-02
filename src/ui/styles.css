@@ -1284,3 +1284,404 @@ details.card > summary::-webkit-details-marker {
     background: #07090c;
   }
 }
+
+/* ---- Break loop surfaces (UX_SPEC 8/10) ---------------------------------- */
+
+.flow-title {
+  margin: 0;
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+}
+
+.today-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--card-pad) var(--card-pad);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 10%, var(--bg-card)), var(--bg-card) 42%);
+  box-shadow: var(--shadow-border);
+  border-radius: var(--radius-xl);
+}
+
+.today-plan-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.today-plan-main:hover .eyebrow {
+  color: var(--accent-strong);
+}
+
+.plan-day-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 8vw, 2.2rem);
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.today-plan-card .hero-range.compact {
+  font-size: clamp(2rem, 10vw, 2.7rem);
+}
+
+.plan-focus-line {
+  color: var(--fg-muted);
+  border-left: 2px solid var(--hairline-strong);
+  padding-left: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.today-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.today-note {
+  color: var(--fg-faint);
+  text-align: center;
+}
+
+.withdrawal-position {
+  color: var(--accent-strong);
+}
+
+.paused-note {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--warn) 14%, var(--bg-card));
+  color: var(--warn);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Plan detail ------------------------------------------------------------- */
+
+.plan-detail-body {
+  padding-bottom: var(--space-6);
+}
+
+.plan-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.plan-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: var(--space-2) auto 0;
+}
+
+.plan-ring-track {
+  stroke: color-mix(in oklab, var(--fg) 10%, transparent);
+}
+
+.plan-ring-fill {
+  stroke: var(--accent-strong);
+  transition: stroke-dashoffset var(--motion-slow) var(--ease-out);
+}
+
+.plan-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.plan-ring-day {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-ring-of {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 600;
+}
+
+.plan-ring-label {
+  position: absolute;
+  bottom: -4px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 600;
+}
+
+.plan-facts {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.plan-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.plan-fact dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--fg);
+}
+
+.plan-overflow summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plan-overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.plan-overflow summary .card-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.plan-overflow[open] summary {
+  margin-bottom: var(--space-3);
+}
+
+.overflow-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-2);
+}
+
+.overflow-actions .text-back {
+  text-align: left;
+  padding: 0;
+}
+
+.clock-note {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg-card));
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.date-pick-wrap {
+  margin-top: var(--space-3);
+}
+
+.choice-card.compact {
+  min-height: 56px;
+  grid-template-columns: 1fr auto;
+}
+
+/* Post-break plan editor / summary ----------------------------------------- */
+
+.post-break-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.post-break-limit-list {
+  margin: 0;
+  padding-left: 1.15em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guidance-chips {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.guidance-chips .chip {
+  min-height: 36px;
+  font-size: 13px;
+  line-height: 18px;
+  background: var(--bg-raised);
+}
+
+.stepper-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.reduced-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.chip-group {
+  border: 0;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chip-group legend {
+  padding: 0;
+}
+
+/* Check-in ------------------------------------------------------------------ */
+
+.two-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.two-choice .choice-card {
+  min-height: 96px;
+  grid-template-columns: 1fr;
+  justify-items: start;
+  align-content: space-between;
+}
+
+.two-choice .choice-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.symptom-field {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.symptom-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.symptom-output {
+  min-width: 52px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.symptom-field.unset .symptom-output {
+  background: var(--bg-raised);
+  color: var(--fg-faint);
+}
+
+.symptom-field.unset .slider::-webkit-slider-thumb {
+  background: var(--fg-faint);
+}
+
+.symptom-field.unset .slider::-moz-range-thumb {
+  background: var(--fg-faint);
+}
+
+.symptom-slider {
+  height: 40px;
+}
+
+.symptom-slider .slider {
+  height: 40px;
+}
+
+.symptom-anchors {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 12px;
+  color: var(--fg-faint);
+}
+
+.note-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note-field input {
+  min-height: 56px;
+  width: 100%;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 0;
+  background: var(--bg-card);
+  color: var(--fg);
+  font: inherit;
+  font-size: 16px;
+  box-shadow: var(--shadow-border);
+  color-scheme: dark;
+}
+
+.modal-sheet .cta-primary,
+.modal-sheet .cta-secondary {
+  margin-top: var(--space-3);
+}

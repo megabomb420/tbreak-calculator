@@ -53,13 +53,20 @@ export interface ValidatedPreviousBreak {
   readonly createdAt: Instant;
 }
 
+/**
+ * A daily check-in (CALCULATOR_SPEC section 4.4 as amended by UX_SPEC D5).
+ * Symptom anchors follow UX_SPEC section 10.2: 10 always means more of the
+ * named thing (stronger craving, better sleep quality, stronger appetite).
+ * Untouched sliders are stored as `null` — they are never prefilled with 0.
+ * `usedAt` is present only once a reported use has been confirmed.
+ */
 export interface DailyCheckin {
   readonly recordedAt: string;
-  readonly craving: number;
-  readonly sleep: number;
-  readonly irritability: number;
-  readonly anxiety: number;
-  readonly appetite: number;
+  readonly craving: number | null;
+  readonly sleep: number | null;
+  readonly irritability: number | null;
+  readonly anxiety: number | null;
+  readonly appetite: number | null;
   readonly usedThc: boolean;
   readonly usedAt: SourcedValue<string> | null;
   readonly note: string | null;

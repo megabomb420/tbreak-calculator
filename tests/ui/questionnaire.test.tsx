@@ -84,16 +84,15 @@ describe('Q1 tap-advance, persistence, resume, start over', () => {
 });
 
 describe('goal chips and branching', () => {
-  it('opens the reduction path at Q2R from the no-profile chips', () => {
-    render(<App storage={createMemoryStorage()} clock={clock} extraFacts={{ hasAnyData: true }} />);
+  it('opens the reduction path at Q2R from the Q1 goal card', () => {
+    openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2R');
     expect(screen.getByRole('heading', { name: STEP_COPY.Q2R.title })).toBeTruthy();
   });
 
   it('does not ask last use on the reduction-no-break path', () => {
-    const storage = createMemoryStorage();
-    render(<App storage={storage} clock={clock} extraFacts={{ hasAnyData: true }} />);
+    const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
     fireEvent.click(screen.getByRole('button', { name: /Not now/ }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
@@ -142,8 +141,7 @@ describe('step controls and keyboard', () => {
 
 describe('last-use steps', () => {
   it('completes abstinence from the still-use chip', () => {
-    const storage = createMemoryStorage();
-    render(<App storage={storage} clock={clock} extraFacts={{ hasAnyData: true }} />);
+    const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2A');
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.stillUseToday }));

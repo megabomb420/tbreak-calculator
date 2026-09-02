@@ -1,0 +1,396 @@
+import { fireEvent, render, screen, within } from '@testing-library/preact';
+import { describe, expect, it } from 'vitest';
+import { App } from '../../src/ui/app.tsx';
+import { FIRST_LAUNCH } from '../../src/ui/copy.ts';
+import { QUESTIONNAIRE } from '../../src/ui/questionnaire-copy.ts';
+import { BREAK_START } from '../../src/ui/break-copy.ts';
+import { RESTART_COPY_BREAK } from '../../src/ui/break-copy.ts';
+import { RESULT } from '../../src/ui/result-copy.ts';
+import {
+  createQuestionnaireSnapshotStore,
+  QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
+} from '../../src/application/progress/questionnaire-snapshot.ts';
+import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../../src/application/progress/result-view.ts';
+import {
+  createBreakAttemptsStore,
+  type StoredAttempt,
+} from '../../src/application/progress/break-attempt-record.ts';
+import { createTrackingRecordsStore } from '../../src/application/progress/tracking-record.ts';
+import { createCheckinsStore } from '../../src/application/progress/checkin-store.ts';
+import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
+import { fixedClock } from '../../src/infrastructure/clock.ts';
+import { toInstant, type Instant } from '../../src/domain/schemas/time.ts';
+import { localIsoDate } from '../../src/application/questionnaire/date-answers.ts';
+import type { UseProfileInput, DailyCheckin } from '../../src/domain/schemas/profile.ts';
+
+const AT: Instant = toInstant(1787184000000); // 2026-08-20T00:00:00Z
+const DAY_MS = 24 * 3_600_000;
+const ANCHOR = toInstant(AT - 3 * DAY_MS); // 2026-08-17
+
+function clockAt(instant: Instant) {
+  return fixedClock(instant);
+}
+
+function renderApp(storage: StorageAdapter, instant: Instant = AT) {
+  return render(<App storage={storage} clock={clockAt(instant)} />);
+}
+
+function toleranceProfile(lastUseAt = new Date(ANCHOR).toISOString()): UseProfileInput {
+  return {
+    goal: 'tolerance_reset',
+    breakRequested: true,
+    postBreakMode: null,
+    thcUseDaysLast30: { value: 20, provenance: 'user_estimate' },
+    sessionsPerUseDay: { value: 1, provenance: 'user_estimate' },
+    products: ['flower'],
+    routes: ['smoking'],
+    lastUseAt: { value: lastUseAt, provenance: 'user_estimate' },
+    previousBreaks: [],
+  };
+}
+
+function seedAcknowledgedProfile(storage: StorageAdapter, profile: UseProfileInput): void {
+  createQuestionnaireSnapshotStore(storage).save({
+    schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
+    snapshot: { kind: 'use_profile', profile },
+    updatedAt: AT,
+  });
+  createResultViewStore(storage).save({ schemaVersion: RESULT_VIEW_SCHEMA_VERSION, status: 'acknowledged', updatedAt: AT });
+}
+
+function storedAttempt(overrides: Partial<StoredAttempt> = {}): StoredAttempt {
+  return {
+    id: 'attempt-1',
+    status: 'active',
+    calculationRecordId: 'run-1',
+    targetDurationDays: 21,
+    postBreakMode: 'occasional',
+    startedAt: AT,
+    segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
+    postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+    completionAcknowledged: false,
+    createdAt: AT,
+    updatedAt: AT,
+    ...overrides,
+  };
+}
+
+function seedAttempt(storage: StorageAdapter, attempt: StoredAttempt): void {
+  createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [attempt] });
+}
+
+function attemptsOf(storage: StorageAdapter): StoredAttempt[] {
+  return createBreakAttemptsStore(storage).load()?.attempts ?? [];
+}
+
+function checkinsOf(storage: StorageAdapter): readonly DailyCheckin[] {
+  return createCheckinsStore(storage).load()?.checkins ?? [];
+}
+
+/** Completes a tolerance questionnaire whose result offers Start this break. */
+function completeToleranceFlow(storage: StorageAdapter) {
+  const rendered = renderApp(storage);
+  fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+  fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+  fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '20' } });
+  fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+  const flow = screen.getByTestId('questionnaire-flow');
+  fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+  fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(within(flow).getByRole('button', { name: '1' }));
+  fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  const q5 = screen.getByTestId('questionnaire-flow');
+  fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
+  fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
+  fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  return rendered;
+}
+
+describe('break start sheet', () => {
+  it('Start this break opens the real sheet and Now creates an active plan', () => {
+    const storage = createMemoryStorage();
+    completeToleranceFlow(storage);
+    const result = screen.getByTestId('result-screen');
+    expect(result.getAttribute('data-kind')).toBe('tolerance_result');
+    fireEvent.click(screen.getByRole('button', { name: RESULT.startThisBreak }));
+    const sheet = screen.getByTestId('break-start-sheet');
+    expect(sheet).toBeTruthy();
+    expect(screen.getByRole('heading', { name: BREAK_START.title })).toBeTruthy();
+    fireEvent.click(within(sheet).getByRole('button', { name: /Occasional use/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: BREAK_START.startBreak }));
+    expect(screen.queryByTestId('break-start-sheet')).toBeNull();
+    expect(screen.queryByTestId('result-screen')).toBeNull();
+    // Real attempt created and owning Today.
+    const attempt = attemptsOf(storage)[0];
+    expect(attempt?.status).toBe('active');
+    expect(attempt?.targetDurationDays).toBe(21);
+    expect(attempt?.postBreakMode).toBe('occasional');
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+  });
+
+  it('a future start creates a planned attempt that activates after reload', () => {
+    const storage = createMemoryStorage();
+    const first = completeToleranceFlow(storage);
+    fireEvent.click(screen.getByRole('button', { name: RESULT.startThisBreak }));
+    const sheet = screen.getByTestId('break-start-sheet');
+    fireEvent.click(within(sheet).getByRole('button', { name: /Pick a date/ }));
+    const tomorrow = localIsoDate(toInstant(AT + DAY_MS));
+    fireEvent.input(screen.getByTestId('break-start-date'), { target: { value: tomorrow } });
+    fireEvent.click(within(sheet).getByRole('button', { name: /Not sure yet/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: BREAK_START.startBreak }));
+    expect(attemptsOf(storage)[0]?.status).toBe('planned');
+    // Scheduled plan card replaces Start-this-break.
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
+    expect(screen.getByTestId('scheduled-start')).toBeTruthy();
+    // Reload after the start date has arrived activates the plan.
+    first.unmount();
+    renderApp(storage, toInstant(AT + 2 * DAY_MS));
+    const attempt = attemptsOf(storage)[0];
+    expect(attempt?.status).toBe('active');
+    // The plan anchors to the authoritative last use (today at creation),
+    // not to the chosen plan-start date.
+    expect(attempt?.segments[0]?.startedFromLastUseAt).toBe(AT);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+  });
+});
+
+describe('plan detail', () => {
+  it('shows real plan progress, phase focus and editable post-break settings', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    const detail = screen.getByTestId('plan-detail');
+    expect(detail).toBeTruthy();
+    expect(screen.getByTestId('plan-ring-day').textContent).toBe('Day 4');
+    expect(screen.getByTestId('target-date')).toBeTruthy();
+    expect(screen.getByTestId('phase-focus')).toBeTruthy();
+    expect(screen.getByTestId('post-break-card')).toBeTruthy();
+    // Change the mode to reduced regular use and save.
+    fireEvent.click(within(detail).getByRole('button', { name: /Regular use, but less than before/ }));
+    fireEvent.click(screen.getByTestId('save-post-break'));
+    const attempt = attemptsOf(storage)[0];
+    expect(attempt?.postBreakMode).toBe('reduced_regular_use');
+    expect(attempt?.postBreakPlan?.mode).toBe('reduced_regular_use');
+    expect(screen.getByText('Your tolerance may be lower than before the break.')).toBeTruthy();
+  });
+
+  it('End break early confirms and ends the plan neutrally', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    fireEvent.click(screen.getByTestId('plan-more'));
+    fireEvent.click(screen.getByTestId('end-early'));
+    fireEvent.click(screen.getByTestId('confirm-action'));
+    expect(screen.queryByTestId('plan-detail')).toBeNull();
+    expect(attemptsOf(storage)[0]?.status).toBe('ended');
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
+  });
+
+  it('Mark complete from plan detail produces the completed card', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    const longAnchor = toInstant(AT - 28 * DAY_MS);
+    seedAttempt(storage, storedAttempt({ segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }] }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    fireEvent.click(screen.getByTestId('mark-complete'));
+    expect(screen.queryByTestId('plan-detail')).toBeNull();
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
+    expect(attemptsOf(storage)[0]?.status).toBe('completed');
+  });
+});
+
+describe('daily check-in', () => {
+  it('No + Save is the fast path and stores a no-use check-in', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('checkin-cta'));
+    expect(screen.getByTestId('checkin-flow').getAttribute('data-screen')).toBe('question');
+    const save = screen.getByTestId('checkin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(screen.getByTestId('checkin-no'));
+    fireEvent.click(screen.getByTestId('checkin-save'));
+    expect(screen.queryByTestId('checkin-flow')).toBeNull();
+    const checkin = checkinsOf(storage)[0] as { usedThc: boolean; craving: null };
+    expect(checkin.usedThc).toBe(false);
+    expect(checkin.craving).toBe(null);
+  });
+
+  it('optional symptoms stay null until touched, and a note is stored', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('checkin-cta'));
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    expect(screen.getByTestId('checkin-flow').getAttribute('data-screen')).toBe('symptoms');
+    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
+    // Set one slider deliberately; the others must stay untouched.
+    const craving = screen.getByRole('slider', { name: 'Craving' });
+    fireEvent.focus(craving);
+    fireEvent.input(craving, { target: { value: '6' } });
+    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
+    fireEvent.input(screen.getByTestId('checkin-note'), { target: { value: 'steady so far' } });
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    expect(screen.queryByTestId('checkin-flow')).toBeNull();
+    const checkin = checkinsOf(storage)[0] as { craving: number; sleep: null; note: string; usedThc: boolean };
+    expect(checkin.craving).toBe(6);
+    expect(checkin.sleep).toBe(null);
+    expect(checkin.appetite).toBe(null);
+    expect(checkin.note).toBe('steady so far');
+    expect(checkin.usedThc).toBe(false);
+  });
+
+  it('Yes moves straight to interruption without symptom entry', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('checkin-cta'));
+    fireEvent.click(screen.getByTestId('checkin-yes'));
+    expect(screen.queryByTestId('checkin-flow')).toBeNull();
+    const confirm = screen.getByTestId('confirm-use');
+    expect(confirm.getAttribute('data-scope')).toBe('attempt');
+    expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
+    // No check-in is recorded until the use is confirmed.
+    expect(checkinsOf(storage)).toHaveLength(0);
+  });
+});
+
+describe('interruption confirmation', () => {
+  it('confirming when restarts the plan and records the use-day check-in', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt({ status: 'interrupted_time_needed' }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    const confirm = screen.getByTestId('confirm-use');
+    expect(screen.getByTestId('paused-note')).toBeTruthy();
+    // Pick Today inside the constrained window and confirm.
+    const flow = within(confirm);
+    fireEvent.click(flow.getByRole('button', { name: 'Today' }));
+    const submit = screen.getByTestId('confirm-use-submit') as HTMLButtonElement;
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+    expect(screen.getByTestId('restart-copy').textContent).toContain(RESTART_COPY_BREAK);
+    // The attempt restarted from the confirmed use: day counter resets.
+    const attempt = attemptsOf(storage)[0];
+    expect(attempt?.status).toBe('active');
+    expect(attempt?.segments.length).toBe(2);
+    expect(attempt?.segments[1]?.startedFromLastUseAt).toBeGreaterThanOrEqual(AT - 60_000);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    const checkin = checkinsOf(storage)[0] as { usedThc: boolean; usedAt: { value: string } | null };
+    expect(checkin.usedThc).toBe(true);
+    expect(checkin.usedAt?.value).toMatch(/^2026-08-20/);
+    // The authoritative profile anchor is updated to the confirmed use.
+    const snapshot = createQuestionnaireSnapshotStore(storage).load();
+    expect(snapshot?.snapshot.kind).toBe('use_profile');
+    if (snapshot?.snapshot.kind === 'use_profile') {
+      expect(snapshot.snapshot.profile.lastUseAt.value).toMatch(/^2026-08-20/);
+    }
+  });
+
+  it('closing confirmation without choosing keeps timing suspended', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt({ status: 'interrupted_time_needed' }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByTestId('confirm-use')).toBeNull();
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
+  });
+});
+
+describe('reload persistence', () => {
+  it('restores an active break after remount', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    const first = renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    first.unmount();
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 21');
+  });
+
+  it('restores an interrupted state and its confirm flow after remount', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt({ status: 'interrupted_time_needed' }));
+    const first = renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    first.unmount();
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('attempt');
+  });
+
+  it('restores a completed break until acknowledged', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(
+      storage,
+      storedAttempt({ status: 'completed', segments: [{ startedFromLastUseAt: ANCHOR, endedAt: toInstant(ANCHOR + 21 * DAY_MS), endReason: 'completed' }] }),
+    );
+    const first = renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
+    first.unmount();
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
+    fireEvent.click(screen.getByTestId('acknowledge-complete'));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
+  });
+});
+
+describe('open-ended abstinence tracking (D4)', () => {
+  it('abstinence result Start tracking opens Today tracking with a day counter', () => {
+    const storage = createMemoryStorage();
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
+    const flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
+    fireEvent.click(screen.getByTestId('start-tracking'));
+    expect(screen.queryByTestId('result-screen')).toBeNull();
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
+    expect(screen.getByTestId('tracking-day-label').textContent).toContain('Day 1');
+    // The stored tracking record carries no finite target.
+    const tracking = createTrackingRecordsStore(storage).load();
+    expect(tracking?.records[0]?.status).toBe('tracking');
+    expect('targetDurationDays' in (tracking?.records[0] ?? {})).toBe(false);
+  });
+
+  it('paused tracking interruption restarts without any target recomputation', () => {
+    const storage = createMemoryStorage();
+    createTrackingRecordsStore(storage).save({
+      schemaVersion: 'tracking-records-v1',
+      records: [
+        {
+          id: 'track-1',
+          calculationRecordId: 'run-1',
+          status: 'interrupted_time_needed',
+          startedAt: AT,
+          segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
+          createdAt: AT,
+          updatedAt: AT,
+        },
+      ],
+    });
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('tracking');
+  });
+});

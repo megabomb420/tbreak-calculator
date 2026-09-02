@@ -24,6 +24,12 @@ export interface ResultScreenProps {
   readonly onBreakRecommendation: () => void;
   readonly onDetectionBasics: () => void;
   readonly onStartOver: () => void;
+  /** Opens the break-start sheet. Absent while a live plan owns the break. */
+  readonly onStartBreak?: () => void;
+  /** Starts open-ended tracking (abstinence / baseline-low results). */
+  readonly onStartTracking?: () => void;
+  /** False hides baseline Keep tracking (no last-use anchor stored). */
+  readonly trackingAvailable?: boolean;
 }
 
 export function ResultScreen({
@@ -35,6 +41,9 @@ export function ResultScreen({
   onBreakRecommendation,
   onDetectionBasics,
   onStartOver,
+  onStartBreak,
+  onStartTracking,
+  trackingAvailable = true,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
 
@@ -69,6 +78,9 @@ export function ResultScreen({
           onSeeBreakRange={onSeeBreakRange}
           onCheckAnotherTest={onCheckAnotherTest}
           onStartOver={onStartOver}
+          onStartBreak={onStartBreak}
+          onStartTracking={onStartTracking}
+          trackingAvailable={trackingAvailable}
         />
       </footer>
       {thcOpen ? <NominalThcSheet onClose={() => setThcOpen(false)} /> : null}
@@ -285,18 +297,33 @@ function ResultActions({
   onSeeBreakRange,
   onCheckAnotherTest,
   onStartOver,
+  onStartBreak,
+  onStartTracking,
+  trackingAvailable,
 }: {
   readonly view: ResultView;
   readonly onAcknowledge: () => void;
   readonly onSeeBreakRange: () => void;
   readonly onCheckAnotherTest: () => void;
   readonly onStartOver: () => void;
+  readonly onStartBreak?: () => void;
+  readonly onStartTracking?: () => void;
+  readonly trackingAvailable: boolean;
 }) {
   switch (view.kind) {
     case 'tolerance_result':
+      // While a live plan owns the break, Start-this-break is not offered:
+      // starting a second plan over an active one is undefined by the spec.
+      if (onStartBreak === undefined) {
+        return (
+          <button type="button" className="cta-primary" onClick={onAcknowledge}>
+            {RESULT.saveWithoutStarting}
+          </button>
+        );
+      }
       return (
         <>
-          <button type="button" className="cta-primary" data-deferred="break-start" onClick={onAcknowledge}>
+          <button type="button" className="cta-primary" data-testid="start-this-break" onClick={onStartBreak}>
             {RESULT.startThisBreak}
           </button>
           <button type="button" className="cta-secondary" onClick={onAcknowledge}>
@@ -306,7 +333,12 @@ function ResultActions({
       );
     case 'abstinence_planning':
       return (
-        <button type="button" className="cta-primary" data-deferred="abstinence-tracking" onClick={onAcknowledge}>
+        <button
+          type="button"
+          className="cta-primary"
+          data-testid="start-tracking"
+          onClick={onStartTracking ?? onAcknowledge}
+        >
           {RESULT.startTracking}
         </button>
       );
@@ -319,9 +351,16 @@ function ResultActions({
     case 'baseline_low':
       return (
         <>
-          <button type="button" className="cta-primary" data-deferred="abstinence-tracking" onClick={onAcknowledge}>
-            {RESULT.keepTracking}
-          </button>
+          {trackingAvailable ? (
+            <button
+              type="button"
+              className="cta-primary"
+              data-testid="keep-tracking"
+              onClick={onStartTracking ?? onAcknowledge}
+            >
+              {RESULT.keepTracking}
+            </button>
+          ) : null}
           <button type="button" className="cta-secondary" onClick={onAcknowledge}>
             {RESULT.done}
           </button>

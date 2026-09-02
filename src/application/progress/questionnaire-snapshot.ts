@@ -16,6 +16,9 @@ export interface QuestionnaireSnapshotRecord {
   readonly schemaVersion: typeof QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION;
   readonly snapshot: RawAnswerSnapshot;
   readonly updatedAt: Instant;
+  /** Stable identifier for this snapshot run, backfilled when a plan or
+   * tracking record first references it. Absent on legacy records. */
+  readonly runId?: string;
 }
 
 export interface QuestionnaireSnapshotStore {
@@ -69,6 +72,7 @@ function isValidRecord(value: unknown): value is QuestionnaireSnapshotRecord {
     typeof record.updatedAt === 'number' &&
     Number.isInteger(record.updatedAt) &&
     Number.isFinite(record.updatedAt) &&
+    (record.runId === undefined || (typeof record.runId === 'string' && record.runId !== '')) &&
     isValidSnapshot(record.snapshot)
   );
 }

@@ -244,6 +244,11 @@ When a check-in records THC use:
 
 This is a plan restart, not a claim that biological recovery returned to zero.
 
+Open-ended abstinence tracking uses the same segment shape through a
+separate open-ended record (CALCULATOR_SPEC 4.7): no `targetDurationDays`,
+no `completed`, and the interruption mechanics apply minus any target-date
+recomputation.
+
 ## 9. Local persistence
 
 Use IndexedDB behind repository interfaces for durable records (profiles,
@@ -252,6 +257,13 @@ settings). The v1 **transient questionnaire draft** is a single versioned JSON
 string and is stored through the Web Storage-shaped `StorageAdapter`
 (`localStorage` in the browser, in-memory in tests). IndexedDB is not used for
 that draft.
+
+**Current slice note (0.3.0):** break attempts, open-ended tracking records,
+and check-ins currently persist through the same key-value adapter behind
+versioned, validated envelopes whose repository interfaces mirror the
+`breakAttempts` / tracking / `checkins` stores below. The IndexedDB-backed
+history slice replaces that backing with the per-record stores; the interfaces
+and record shapes are the migration boundary.
 
 Minimal logical stores (IndexedDB, later slice) are:
 

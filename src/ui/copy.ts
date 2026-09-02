@@ -1,8 +1,6 @@
 // User-facing copy for this slice. Scientific/message-code sentences live in
 // UX_SPEC §14 and MUST NOT be invented here. First-launch and shell strings
-// are taken from UX_SPEC §3; later-slice screens use structural labels only.
-
-import type { TodayPrimaryState } from '../application/shell/today-state.ts';
+// are taken from UX_SPEC §3; break-loop copy lives in `break-copy.ts`.
 
 export const APP_NAME = 'T-Break Calculator';
 export const APP_SHORT_NAME = 'T-Break';
@@ -59,46 +57,3 @@ export const RESUME = {
   resume: 'Resume',
   startOver: 'Start over',
 } as const;
-
-export interface DeferredShellCopy {
-  readonly title: string;
-  readonly body: string;
-  readonly cta?: string;
-}
-
-/** Structural shells for Today states whose full screens belong to later slices.
- * No ranges, day counters, percentages, or engine-derived numbers. */
-export const DEFERRED_TODAY_SHELL: Record<
-  Exclude<TodayPrimaryState, 'first-launch' | 'no-profile'>,
-  DeferredShellCopy
-> = {
-  'profile-no-break': {
-    title: 'Your saved result',
-    body: 'Your calculation is saved on this device.',
-    cta: 'Start this break',
-  },
-  'active-break': {
-    title: 'Your break',
-    body: 'Your current break is in progress.',
-    cta: 'Check in',
-  },
-  interrupted: {
-    title: 'Break paused',
-    body: 'You marked that you used THC. Confirm when, so your plan can restart.',
-    cta: 'Confirm when',
-  },
-  'completed-break': {
-    title: 'Break complete',
-    body: 'This break has reached its planning target.',
-  },
-  'abstinence-tracking': {
-    title: 'Staying off THC',
-    body: 'Tracking since your last use is active.',
-    cta: 'Check in',
-  },
-  'detection-only': {
-    title: 'Detection information',
-    body: 'Your last detection information is saved on this device.',
-    cta: 'Get a break recommendation',
-  },
-};

@@ -451,3 +451,61 @@ export function TrackDot({
     </svg>
   );
 }
+
+/** Back chevron (points left) for pushed flow headers. */
+export function BackIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M15 6l-6 6 6 6" {...stroke} />
+    </Glyph>
+  );
+}
+
+/** Pause bars — timing suspended (never colour alone). */
+export function PauseIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M8 6.5v11M16 6.5v11" {...stroke} />
+    </Glyph>
+  );
+}
+
+/** Calendar — plan start / target dates. */
+export function CalendarIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <rect x="4" y="5.5" width="16" height="14" rx="2.5" {...stroke} />
+      <path d="M4 10h16M8.5 3.5v3M15.5 3.5v3" {...stroke} />
+    </Glyph>
+  );
+}
+
+/** More (horizontal ellipsis) — overflow actions. */
+export function MoreIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <circle cx="5.5" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="18.5" cy="12" r="1.4" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+/** Stop square — neutral end (stop tracking / end early). */
+export function StopIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2" {...stroke} />
+    </Glyph>
+  );
+}
+
+/** Flag — completion acknowledgement. */
+export function FlagIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M6 20.5V4.5" {...stroke} />
+      <path d="M6 5.5h10.5l-2.6 3.4 2.6 3.6H6" {...stroke} />
+    </Glyph>
+  );
+}

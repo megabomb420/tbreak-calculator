@@ -343,12 +343,15 @@ export function DateControl({
   now,
   value,
   showStillUse,
+  from,
   onChange,
 }: {
   readonly window: DateWindowKind;
   readonly now: Instant;
   readonly value?: string;
   readonly showStillUse?: boolean;
+  /** Lower instant bound for the `since_anchor` window (interruption). */
+  readonly from?: Instant;
   readonly onChange: (iso: string) => void;
 }) {
   const [chip, setChip] = useState<DateChipId | 'pick' | 'still' | null>(null);
@@ -357,15 +360,15 @@ export function DateControl({
   const [picked, setPicked] = useState(
     Number.isFinite(parsedValue) ? localIsoDate(parsedValue as Instant) : '',
   );
-  const bounds = dateInputBounds(now, window);
+  const bounds = dateInputBounds(now, window, from);
 
   function applyPicked(nextDate: string, nextPart: DayPart) {
-    const iso = resolvePickedDate(nextDate, nextPart, now, window);
+    const iso = resolvePickedDate(nextDate, nextPart, now, window, from);
     if (iso !== null) onChange(iso);
   }
 
   function applyChip(nextChip: DateChipId, nextPart: DayPart) {
-    const iso = resolveDateChip(nextChip, nextPart, now, window);
+    const iso = resolveDateChip(nextChip, nextPart, now, window, from);
     if (iso !== null) onChange(iso);
   }
 
@@ -373,9 +376,9 @@ export function DateControl({
     <div className="control-stack">
       <div className="chip-row">
         {DATE_CHIPS.map((id) => {
-          const iso = resolveDateChip(id, dayPart, now, window);
+          const iso = resolveDateChip(id, dayPart, now, window, from);
           if (iso === null && id !== 'today') return null;
-          if (id === 'today' && resolveDateChip('today', dayPart, now, window) === null) return null;
+          if (id === 'today' && resolveDateChip('today', dayPart, now, window, from) === null) return null;
           return (
             <button
               key={id}
@@ -406,7 +409,7 @@ export function DateControl({
             data-date-chip="still-use"
             onClick={() => {
               setChip('still');
-              const iso = resolveDateChip('today', 'morning', now, window);
+              const iso = resolveDateChip('today', 'morning', now, window, from);
               if (iso !== null) onChange(iso);
             }}
           >

@@ -111,12 +111,30 @@ const BASELINE_TITLE = 'Your baseline tolerance is likely already low.';
 const BASELINE_BODY =
   "You haven't used THC in the last 30 days, so there's no break to recommend — a break only makes sense with recent use to reset from.";
 
-const PHASE_1_6 =
-  'Routine, regular sleep times, normal food and hydration, trigger avoidance, one replacement activity, short daily check-in.';
-const PHASE_7_14 =
-  'Acute symptoms easing is not the finish line — feeling better is not the same as meeting a tolerance goal.';
-const PHASE_15 =
-  'Habits and trigger management stay useful. This is not a clearance or recovery-percentage claim.';
+export type PlanPhaseKey = 'days_1_6' | 'days_7_14' | 'days_15_28';
+
+// Static versioned phase-focus copy (UX_SPEC 10.1). Keyed to `breakDay`; the
+// UI selects by phase and never invents phases or their copy.
+const PHASE_COPY: Record<PlanPhaseKey, string> = {
+  days_1_6:
+    'Routine, regular sleep times, normal food and hydration, trigger avoidance, one replacement activity, short daily check-in.',
+  days_7_14:
+    'Acute symptoms easing is not the finish line — feeling better is not the same as meeting a tolerance goal.',
+  days_15_28:
+    'Habits and trigger management stay useful. This is not a clearance or recovery-percentage claim.',
+};
+
+/** Selects the current plan phase from the abstinence day count. */
+export function phaseKeyForDay(breakDay: number): PlanPhaseKey {
+  if (breakDay <= 6) return 'days_1_6';
+  if (breakDay <= 14) return 'days_7_14';
+  return 'days_15_28';
+}
+
+/** Copy for the current phase focus block. */
+export function phaseFocusCopy(breakDay: number): string {
+  return PHASE_COPY[phaseKeyForDay(breakDay)];
+}
 
 export function presentToleranceResult(result: ToleranceResult, profile: UseProfileInput): ResultView {
   if (result.kind === 'validation_error') return { kind: 'unavailable' };
@@ -134,7 +152,7 @@ export function presentToleranceResult(result: ToleranceResult, profile: UseProf
         kind: 'abstinence_planning',
         rangeDays: null,
         withdrawal: presentWithdrawal(result.withdrawal),
-        phaseCopy: phaseCopyFor(result.withdrawal?.breakDay ?? 1),
+        phaseCopy: phaseFocusCopy(result.withdrawal?.breakDay ?? 1),
         answers: answerRows(profile),
       };
     }
@@ -214,12 +232,6 @@ function presentHistory(insight: HistoryInsight | null): string | null {
   return extra === null
     ? `${primary} Your history never changes the recommended range.`
     : `${primary} ${extra} Your history never changes the recommended range.`;
-}
-
-function phaseCopyFor(breakDay: number): string {
-  if (breakDay <= 6) return PHASE_1_6;
-  if (breakDay <= 14) return PHASE_7_14;
-  return PHASE_15;
 }
 
 function answerRows(profile: UseProfileInput): AnswerRow[] {
