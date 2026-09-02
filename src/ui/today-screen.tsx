@@ -17,6 +17,7 @@ export interface TodayScreenProps {
   readonly onGetStarted: () => void;
   readonly onSelectGoal: (goal: Goal) => void;
   readonly onResume: () => void;
+  readonly onViewResult?: () => void;
 }
 
 export function TodayScreen({
@@ -26,6 +27,7 @@ export function TodayScreen({
   onGetStarted,
   onSelectGoal,
   onResume,
+  onViewResult,
 }: TodayScreenProps) {
   const resume =
     view.resume !== 'none' && draft !== null ? (
@@ -48,7 +50,12 @@ export function TodayScreen({
         resume
       ) : (
         <>
-          <PrimaryStateShell state={view.primary} onGetStarted={onGetStarted} onSelectGoal={onSelectGoal} />
+          <PrimaryStateShell
+            state={view.primary}
+            onGetStarted={onGetStarted}
+            onSelectGoal={onSelectGoal}
+            onViewResult={onViewResult}
+          />
           {view.resume === 'secondary' ? resume : null}
         </>
       )}
@@ -60,10 +67,12 @@ function PrimaryStateShell({
   state,
   onGetStarted,
   onSelectGoal,
+  onViewResult,
 }: {
   readonly state: TodayPrimaryState;
   readonly onGetStarted: () => void;
   readonly onSelectGoal: (goal: Goal) => void;
+  readonly onViewResult?: () => void;
 }) {
   switch (state) {
     case 'first-launch':
@@ -71,7 +80,7 @@ function PrimaryStateShell({
     case 'no-profile':
       return <NoProfile onSelectGoal={onSelectGoal} />;
     default:
-      return <DeferredStateShell state={state} onSelectGoal={onSelectGoal} />;
+      return <DeferredStateShell state={state} onSelectGoal={onSelectGoal} onViewResult={onViewResult} />;
   }
 }
 
@@ -123,9 +132,11 @@ function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => vo
 function DeferredStateShell({
   state,
   onSelectGoal,
+  onViewResult,
 }: {
   readonly state: Exclude<TodayPrimaryState, 'first-launch' | 'no-profile'>;
   readonly onSelectGoal: (goal: Goal) => void;
+  readonly onViewResult?: () => void;
 }) {
   const copy = DEFERRED_TODAY_SHELL[state];
   return (
@@ -140,6 +151,11 @@ function DeferredStateShell({
       ) : copy.cta ? (
         <button type="button" className="cta-primary">
           {copy.cta}
+        </button>
+      ) : null}
+      {onViewResult && (state === 'profile-no-break' || state === 'detection-only') ? (
+        <button type="button" className="cta-secondary" onClick={onViewResult}>
+          View result
         </button>
       ) : null}
     </article>

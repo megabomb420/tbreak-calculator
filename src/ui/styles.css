@@ -540,6 +540,70 @@ input[type='date'] {
   font: inherit;
 }
 
+.hero-range {
+  margin: 0 0 var(--space-2);
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 700;
+}
+
+.result-body {
+  padding-bottom: var(--space-4);
+}
+
+.banner {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.withdrawal-track {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.withdrawal-stop {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.withdrawal-mark {
+  width: 24px;
+  text-align: center;
+  color: var(--accent-primary);
+}
+
+.answer-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.answer-row .cta-secondary {
+  width: auto;
+  min-width: 72px;
+  padding: 0 var(--space-3);
+}
+
 @keyframes q-slide {
   from {
     transform: translateX(24px);

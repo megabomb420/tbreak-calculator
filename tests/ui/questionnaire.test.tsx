@@ -100,6 +100,7 @@ describe('goal chips and branching', () => {
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '8' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('reduction_planning');
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
     expect(snapshot?.snapshot.kind).toBe('use_profile');
@@ -148,6 +149,7 @@ describe('last-use steps', () => {
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.stillUseToday }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
     expect(snapshot?.snapshot.kind).toBe('use_profile');
     if (snapshot?.snapshot.kind === 'use_profile') {
@@ -164,6 +166,7 @@ describe('last-use steps', () => {
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q3-opt');
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.skip }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('baseline_low');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
     expect(snapshot?.snapshot.kind).toBe('use_profile');
     if (snapshot?.snapshot.kind === 'use_profile') {
@@ -182,6 +185,7 @@ describe('detection completion snapshot', () => {
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q3D');
     fireEvent.click(screen.getByRole('button', { name: /Just curious/ }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('detection');
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
     expect(screen.queryByTestId('resume-card')).toBeNull();
     const snapshot = createQuestionnaireSnapshotStore(storage).load();

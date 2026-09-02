@@ -1,4 +1,6 @@
 import { useMemo, useReducer, useState } from 'preact/hooks';
+import { answersFromSnapshot } from '../application/calculation/answers-from-snapshot.ts';
+import { runCalculation } from '../application/calculation/run-calculation.ts';
 import {
   createQuestionnaireProgressStore,
   QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
@@ -8,12 +10,17 @@ import {
   createQuestionnaireSnapshotStore,
   QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
 } from '../application/progress/questionnaire-snapshot.ts';
+import {
+  createResultViewStore,
+  RESULT_VIEW_SCHEMA_VERSION,
+} from '../application/progress/result-view.ts';
 import { deleteAllLocalData } from '../application/settings/settings.ts';
 import {
   INITIAL_SHELL_STATE,
   shellReducer,
   type AppTab,
 } from '../application/shell/shell-controller.ts';
+import { todayFactsFromSnapshot } from '../application/shell/today-facts-from-snapshot.ts';
 import {
   emptyTodayFacts,
   resolveTodayState,
@@ -28,6 +35,7 @@ import {
   restoreStep,
   startSession,
   type QuestionnaireSession,
+  type QuestionnaireStepId,
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
@@ -36,6 +44,7 @@ import { systemClock, type Clock } from '../infrastructure/clock.ts';
 import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.ts';
 import { HistoryScreen } from './history-screen.tsx';
 import { QuestionnaireFlow } from './questionnaire-flow.tsx';
+import { ResultScreen } from './result-screen.tsx';
 import { SettingsModal } from './settings-modal.tsx';
 import { Shell } from './shell.tsx';
 import { TodayScreen } from './today-screen.tsx';
@@ -44,7 +53,6 @@ export type ExtraTodayFacts = Partial<Omit<TodayFacts, 'draft'>>;
 
 export interface AppProps {
   readonly storage: StorageAdapter;
-  /** Facts the future persistence layer will supply. Draft is always read from storage. */
   readonly extraFacts?: ExtraTodayFacts;
   readonly clock?: Clock;
 }
@@ -53,15 +61,33 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
   const [shell, dispatch] = useReducer(shellReducer, INITIAL_SHELL_STATE);
   const progress = useMemo(() => createQuestionnaireProgressStore(storage), [storage]);
   const snapshots = useMemo(() => createQuestionnaireSnapshotStore(storage), [storage]);
+  const resultViews = useMemo(() => createResultViewStore(storage), [storage]);
   const [factsEpoch, setFactsEpoch] = useState(0);
   const [session, setSession] = useState<QuestionnaireSession | null>(null);
   const [lastUseWarning, setLastUseWarning] = useState(false);
 
+  const snapshotRecord = useMemo(() => snapshots.load(), [snapshots, factsEpoch]);
+  const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
+  const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
+
   const facts = useMemo(
-    () => loadTodayFacts(progress, extraFacts),
-    [progress, extraFacts, factsEpoch],
+    () =>
+      loadTodayFacts(
+        draft,
+        extraFacts,
+        snapshotRecord?.snapshot ?? null,
+        resultRecord?.status === 'acknowledged',
+      ),
+    [draft, extraFacts, snapshotRecord, resultRecord],
   );
   const view = resolveTodayState(facts);
+
+  const showResult =
+    session === null &&
+    snapshotRecord !== null &&
+    draft === null &&
+    resultRecord?.status !== 'acknowledged';
+  const resultModel = showResult ? runCalculation(snapshotRecord.snapshot, clock.now()) : null;
 
   function refresh() {
     setFactsEpoch((value) => value + 1);
@@ -83,6 +109,14 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
     });
   }
 
+  function markResult(status: 'open' | 'acknowledged'): void {
+    resultViews.save({
+      schemaVersion: RESULT_VIEW_SCHEMA_VERSION,
+      status,
+      updatedAt: clock.now(),
+    });
+  }
+
   function openStart() {
     setLastUseWarning(false);
     setSession(startSession());
@@ -97,12 +131,12 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
   }
 
   function openResume() {
-    const draft = progress.load();
-    if (draft === null) return;
+    const loaded = progress.load();
+    if (loaded === null) return;
     const now = clock.now();
-    const currentStep = restoreStep(draft.answers, now, draft.currentStep);
-    setLastUseWarning(lastUseNeedsReselect(draft.answers, now));
-    setSession({ currentStep, answers: draft.answers });
+    const currentStep = restoreStep(loaded.answers, now, loaded.currentStep);
+    setLastUseWarning(lastUseNeedsReselect(loaded.answers, now));
+    setSession({ currentStep, answers: loaded.answers });
   }
 
   function closeSession() {
@@ -114,8 +148,50 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
 
   function startOver() {
     progress.clear();
+    snapshots.clear();
+    resultViews.clear();
     setSession(null);
     setLastUseWarning(false);
+    refresh();
+  }
+
+  function acknowledgeResult() {
+    markResult('acknowledged');
+    refresh();
+  }
+
+  function editFromResult(step: QuestionnaireStepId) {
+    if (snapshotRecord === null) return;
+    const answers = answersFromSnapshot(snapshotRecord.snapshot);
+    const next = { currentStep: restoreStep(answers, clock.now(), step), answers };
+    persist(next);
+    setSession(next);
+    setLastUseWarning(lastUseNeedsReselect(answers, clock.now()));
+    refresh();
+  }
+
+  function seeBreakRange() {
+    if (snapshotRecord === null) return;
+    const answers = answersFromSnapshot(snapshotRecord.snapshot);
+    const next = { currentStep: 'Q2R' as const, answers: { ...answers, goal: 'reduction' as const } };
+    persist(next);
+    setSession(next);
+    refresh();
+  }
+
+  function checkAnotherTest() {
+    if (snapshotRecord === null) return;
+    const answers = answersFromSnapshot(snapshotRecord.snapshot);
+    const next = { currentStep: 'Q2D' as const, answers };
+    persist(next);
+    setSession(next);
+    refresh();
+  }
+
+  function breakRecommendation() {
+    const next = startSession('tolerance_reset');
+    persist(next);
+    setSession(next);
     refresh();
   }
 
@@ -144,12 +220,13 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
           snapshot: finished.snapshot,
           updatedAt: now,
         });
+        markResult('open');
         setSession(null);
         setLastUseWarning(false);
         refresh();
         return;
       }
-      const resumeAt = finished.status === 'incomplete' ? finished.currentStep : finished.currentStep;
+      const resumeAt = finished.currentStep;
       const next = { currentStep: resumeAt, answers };
       persist(next);
       setSession(next);
@@ -182,6 +259,14 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
             onGetStarted={openStart}
             onSelectGoal={openGoal}
             onResume={openResume}
+            onViewResult={
+              snapshotRecord !== null
+                ? () => {
+                    markResult('open');
+                    refresh();
+                  }
+                : undefined
+            }
           />
         ) : (
           <HistoryScreen />
@@ -203,6 +288,18 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
           onSkip={skipOptionalLastUse}
         />
       ) : null}
+      {resultModel !== null ? (
+        <ResultScreen
+          view={resultModel}
+          onAcknowledge={acknowledgeResult}
+          onEditStep={editFromResult}
+          onSeeBreakRange={seeBreakRange}
+          onCheckAnotherTest={checkAnotherTest}
+          onBreakRecommendation={breakRecommendation}
+          onDetectionBasics={() => openGoal('detection_information')}
+          onStartOver={startOver}
+        />
+      ) : null}
       <SettingsModal
         open={shell.settingsOpen}
         onClose={() => dispatch({ type: 'close_settings' })}
@@ -218,12 +315,15 @@ export function App({ storage, extraFacts, clock = systemClock }: AppProps) {
 }
 
 function loadTodayFacts(
-  progress: QuestionnaireProgressStore,
+  draft: TodayFacts['draft'],
   extraFacts: ExtraTodayFacts | undefined,
+  snapshot: Parameters<typeof todayFactsFromSnapshot>[0],
+  acknowledged: boolean,
 ): TodayFacts {
   return {
     ...emptyTodayFacts(),
+    ...(acknowledged ? todayFactsFromSnapshot(snapshot) : {}),
     ...extraFacts,
-    draft: progress.load(),
+    draft,
   };
 }
