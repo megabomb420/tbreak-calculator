@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/preact';
+import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
 import {
   createQuestionnaireProgressStore,
@@ -172,6 +172,38 @@ describe('last-use steps', () => {
     if (snapshot?.snapshot.kind === 'use_profile') {
       expect(snapshot.snapshot.profile.lastUseAt.value).toBeNull();
       expect(snapshot.snapshot.profile.thcUseDaysLast30.value).toBe(0);
+    }
+  });
+});
+
+describe('Q5 vape product', () => {
+  it('offers a vape product chip distinct from the vaping route and stores it', () => {
+    const storage = openQ1();
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    let flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: '1' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    flow = screen.getByTestId('questionnaire-flow');
+    expect(flow.getAttribute('data-step')).toBe('Q5');
+    expect(within(flow).getByRole('button', { name: 'Vape (cart / pod / disposable)' })).toBeTruthy();
+    expect(within(flow).getByRole('button', { name: 'Vaping' })).toBeTruthy();
+
+    fireEvent.click(within(flow).getByRole('button', { name: 'Vape (cart / pod / disposable)' }));
+    fireEvent.click(within(flow).getByRole('button', { name: 'Vaping' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+
+    expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
+    expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('tolerance_result');
+    const snapshot = createQuestionnaireSnapshotStore(storage).load();
+    expect(snapshot?.snapshot.kind).toBe('use_profile');
+    if (snapshot?.snapshot.kind === 'use_profile') {
+      expect(snapshot.snapshot.profile.products).toEqual(['vape']);
+      expect(snapshot.snapshot.profile.routes).toEqual(['vaping']);
     }
   });
 });

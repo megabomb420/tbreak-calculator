@@ -100,6 +100,27 @@ describe('questionnaire progress persistence (UX_SPEC 3.2 resume)', () => {
     assert.equal(store.load()?.answers.goal, 'tolerance_reset');
     assert.equal(store.load()?.answers.thcUseDaysLast30, 10);
   });
+
+  it('accepts a draft that includes the vape product kind', () => {
+    const store = createQuestionnaireProgressStore(createMemoryStorage());
+    store.save({
+      schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
+      answeredSteps: 5,
+      updatedAt: AT,
+      currentStep: 'Q5',
+      answers: {
+        goal: 'tolerance_reset',
+        thcUseDaysLast30: 20,
+        lastUseAt: '2026-08-18T12:00:00Z',
+        sessionsPerUseDay: 1,
+        products: ['vape'],
+        routes: ['vaping'],
+      },
+    });
+    const loaded = store.load();
+    assert.deepEqual(loaded?.answers.products, ['vape']);
+    assert.deepEqual(loaded?.answers.routes, ['vaping']);
+  });
 });
 
 describe('delete everything returns to first launch (UX_SPEC 13.3)', () => {

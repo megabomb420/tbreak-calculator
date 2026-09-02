@@ -249,6 +249,22 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
     );
   });
 
+  it('accepts vape as a Q5 product while keeping the vaping route separate', () => {
+    const after = applyAnswer(
+      {
+        goal: 'tolerance_reset',
+        thcUseDaysLast30: 20,
+        lastUseAt: withinWindowIso(),
+        sessionsPerUseDay: 1,
+      },
+      { step: 'Q5', value: { products: ['vape'], routes: ['vaping'] } },
+      NOW,
+    );
+    assert.deepEqual(after.products, ['vape']);
+    assert.deepEqual(after.routes, ['vaping']);
+    assert.equal(isStepComplete('Q5', after, NOW), true);
+  });
+
   it('treats Q3-opt skip as a complete answer and clears a stored timestamp', () => {
     const after = applyAnswer(
       { goal: 'tolerance_reset', thcUseDaysLast30: 0, lastUseAt: olderThanWindowIso() },

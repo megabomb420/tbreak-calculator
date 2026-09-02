@@ -93,7 +93,12 @@ describe('profile validation: enums and scalar ranges', () => {
 
   it('rejects unknown products and routes', () => {
     expectCodes(sampleProfile({ products: ['pill'] as unknown as ProductKind[] }), ['invalid_product']);
+    expectCodes(sampleProfile({ products: ['cartridge'] as unknown as ProductKind[] }), ['invalid_product']);
     expectCodes(sampleProfile({ routes: ['injecting'] as unknown as Route[] }), ['invalid_route']);
+  });
+
+  it('accepts vape as a product kind, distinct from the vaping route', () => {
+    expectValid(sampleProfile({ products: ['vape'], routes: ['vaping'] }));
   });
 });
 
@@ -481,6 +486,19 @@ describe('profile normalisation', () => {
     if (outcome.ok) {
       assert.deepEqual(outcome.profile.products, ['flower', 'concentrate']);
       assert.deepEqual(outcome.profile.routes, ['smoking', 'dabbing']);
+    }
+  });
+
+  it('places vape after concentrate in canonical product order', () => {
+    const input = sampleProfile({
+      products: ['other', 'oil', 'vape', 'edible', 'concentrate', 'flower'],
+      routes: ['vaping'],
+    });
+    const outcome = validateAndNormalizeProfile(input, C0);
+    assert.equal(outcome.ok, true);
+    if (outcome.ok) {
+      assert.deepEqual(outcome.profile.products, ['flower', 'concentrate', 'vape', 'edible', 'oil', 'other']);
+      assert.deepEqual(outcome.profile.routes, ['vaping']);
     }
   });
 

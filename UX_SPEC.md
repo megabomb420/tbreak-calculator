@@ -303,7 +303,7 @@ Presets set the slider (which can then be fine-tuned). No "I don't know" — the
 
 > **What have you been using, and how?**
 >
-> *Products* (multi-select): **Flower (bud)** · **Concentrates** (wax, shatter, resin) · **Edibles** · **Oils / tinctures** · **Something else**
+> *Products* (multi-select): **Flower (bud)** · **Concentrates** (wax, shatter, resin) · **Vape (cart / pod / disposable)** · **Edibles** · **Oils / tinctures** · **Something else**
 >
 > *How you take it* (multi-select): **Smoking** · **Vaping** · **Dabbing** · **Eating or drinking** · **Under the tongue** · **Other way**
 >
@@ -312,6 +312,8 @@ Presets set the slider (which can then be fine-tuned). No "I don't know" — the
 > Subtle link under products, visible only when **Flower** is selected: "Know your flower's strength? Estimate its nominal THC →" (opens the §6 sheet; purely optional).
 
 `Continue` disabled until ≥1 product and ≥1 route.
+
+**Vape (cart / pod / disposable)** is a product form (`ProductKind = vape`). **Vaping** remains a route. V1 does not map vapes onto concentrate intensity, potency, dose, or PK.
 
 **Q2D — Test type** (single-select cards)
 

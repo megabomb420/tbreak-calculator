@@ -260,6 +260,23 @@ describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant it
     ]);
   });
 
+  it('does not treat vape product or vaping route as the concentrate/dabbing override', () => {
+    const result = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['vape'],
+        routes: ['vaping'],
+      }),
+    );
+    assert.equal(result.kind, 'tolerance_result');
+    assert.deepEqual(result.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(result.preferredTargetDays, 21);
+    assert.equal(result.limitations.includes('heuristic_frequency_intensity_v1'), false);
+    assert.equal(result.drivers.includes('concentrate_product_use'), false);
+    assert.equal(result.drivers.includes('dabbing_route_use'), false);
+  });
+
   it('does not apply the override below 16 use days (isolated concentrate is not heavy)', () => {
     for (const d of [1, 4, 15]) {
       const result = resultOf(

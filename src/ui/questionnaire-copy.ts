@@ -108,6 +108,7 @@ export const CONTEXT_OPTIONS: ReadonlyArray<{ id: DetectionContext; title: strin
 export const PRODUCT_OPTIONS: ReadonlyArray<{ id: ProductKind; title: string; helper?: string }> = [
   { id: 'flower', title: 'Flower (bud)' },
   { id: 'concentrate', title: 'Concentrates', helper: 'wax, shatter, resin' },
+  { id: 'vape', title: 'Vape (cart / pod / disposable)' },
   { id: 'edible', title: 'Edibles' },
   { id: 'oil', title: 'Oils / tinctures' },
   { id: 'other', title: 'Something else' },

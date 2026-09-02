@@ -59,7 +59,7 @@ Goal = tolerance_reset | reduction | abstinence | detection_information
 
 PostBreakMode = continue_abstinence | occasional | reduced_regular_use | undecided
 
-ProductKind = flower | concentrate | edible | oil | other
+ProductKind = flower | concentrate | vape | edible | oil | other
 Route = smoking | vaping | dabbing | oral | sublingual | other
 
 DetectionMatrix = urine | blood | oral_fluid | hair
@@ -71,6 +71,8 @@ FieldProvenance = missing | user_estimate | label_derived | laboratory_derived |
 ```
 
 `laboratory_derived` is reserved for future schemas. V1 does not ask for laboratory data.
+
+`vape` is a product form covering cartridges, pods, and disposables. It is distinct from `Route = vaping`. V1 does not assign vape a potency, dose, or pharmacokinetic model, and the section 7.3 intensity heuristic does not treat vape as concentrate.
 
 ### 4.2 Per-field provenance
 

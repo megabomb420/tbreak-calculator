@@ -8,7 +8,7 @@ export type Goal = (typeof GOALS)[number];
 export const POST_BREAK_MODES = ['continue_abstinence', 'occasional', 'reduced_regular_use', 'undecided'] as const;
 export type PostBreakMode = (typeof POST_BREAK_MODES)[number];
 
-export const PRODUCT_KINDS = ['flower', 'concentrate', 'edible', 'oil', 'other'] as const;
+export const PRODUCT_KINDS = ['flower', 'concentrate', 'vape', 'edible', 'oil', 'other'] as const;
 export type ProductKind = (typeof PRODUCT_KINDS)[number];
 
 export const ROUTES = ['smoking', 'vaping', 'dabbing', 'oral', 'sublingual', 'other'] as const;
@@ -27,5 +27,5 @@ export const FIELD_PROVENANCES = ['missing', 'user_estimate', 'label_derived', '
 export type FieldProvenance = (typeof FIELD_PROVENANCES)[number];
 
 // Canonical display/definition order used by normalisation for stable output.
-export const PRODUCT_KIND_ORDER: readonly ProductKind[] = ['flower', 'concentrate', 'edible', 'oil', 'other'];
+export const PRODUCT_KIND_ORDER: readonly ProductKind[] = PRODUCT_KINDS;
 export const ROUTE_ORDER: readonly Route[] = ['smoking', 'vaping', 'dabbing', 'oral', 'sublingual', 'other'];
