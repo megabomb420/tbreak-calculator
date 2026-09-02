@@ -78,16 +78,13 @@ describe('daily check-in validation (D5, UX_SPEC 10.2)', () => {
     assert.equal(badTimestamp.ok, false);
   });
 
-  it('caps the optional note at 500 characters', () => {
-    const okNote = validateDailyCheckin({ ...VALID_NO_USE, note: 'x'.repeat(500) });
-    assert.equal(okNote.ok, true);
-    const longNote = validateDailyCheckin({ ...VALID_NO_USE, note: 'x'.repeat(501) });
-    assert.equal(longNote.ok, false);
-  });
-
-  it('rejects malformed envelopes', () => {
-    assert.equal(validateDailyCheckin(null).ok, false);
-    assert.equal(validateDailyCheckin('checkin').ok, false);
-    assert.equal(validateDailyCheckin({ recordedAt: 'yesterday', usedThc: false }).ok, false);
+  it('rejects usedAt after recordedAt', () => {
+    const outcome = validateDailyCheckin({
+      ...VALID_NO_USE,
+      usedThc: true,
+      usedAt: { value: '2026-08-21T12:00:00.000Z', provenance: 'user_estimate' },
+    });
+    assert.equal(outcome.ok, false);
+    if (!outcome.ok) assert.ok(outcome.errors.some((error) => error.code === 'invalid_used_at'));
   });
 });

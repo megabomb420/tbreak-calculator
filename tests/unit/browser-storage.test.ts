@@ -118,4 +118,33 @@ describe('browser storage adapter', () => {
     assert.equal(store.load(), null);
     assert.equal(web.store.get(QUESTIONNAIRE_PROGRESS_KEY), undefined);
   });
+
+  it('does not throw when a later setItem fails after a successful probe', () => {
+    let writes = 0;
+    const web: WebStorageLike = {
+      getItem: () => null,
+      setItem: () => {
+        writes += 1;
+        if (writes > 1) throw new Error('quota');
+      },
+      removeItem: () => {},
+      clear: () => {},
+    };
+    const { adapter, persistent } = createBrowserStorage(() => web);
+    assert.equal(persistent, true);
+    adapter.setItem('k', 'v');
+  });
+
+  it('returns null from getItem when the backend throws', () => {
+    const web: WebStorageLike = {
+      getItem: () => {
+        throw new Error('denied');
+      },
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+    };
+    const adapter = createWebStorageAdapter(web);
+    assert.equal(adapter.getItem('k'), null);
+  });
 });

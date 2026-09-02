@@ -44,7 +44,9 @@ export function validateDailyCheckin(value: unknown): CheckinValidationOutcome {
   }
   const body = value as Record<string, unknown>;
 
-  if (typeof body.recordedAt !== 'string' || parseSubmittedTimestamp(body.recordedAt) === null) {
+  const recordedAt =
+    typeof body.recordedAt === 'string' ? parseSubmittedTimestamp(body.recordedAt) : null;
+  if (typeof body.recordedAt !== 'string' || recordedAt === null) {
     errors.push({ code: 'invalid_recorded_at', path: 'recordedAt', message: 'recordedAt must be a timestamp.' });
   }
   if (typeof body.usedThc !== 'boolean') {
@@ -71,6 +73,15 @@ export function validateDailyCheckin(value: unknown): CheckinValidationOutcome {
         path: 'usedAt',
         message: 'A use-day check-in requires a confirmed usedAt.',
       });
+    } else if (recordedAt !== null) {
+      const usedInstant = parseSubmittedTimestamp(usedAt.value);
+      if (usedInstant !== null && usedInstant > recordedAt) {
+        errors.push({
+          code: 'invalid_used_at',
+          path: 'usedAt',
+          message: 'usedAt cannot be after recordedAt.',
+        });
+      }
     }
   } else if (usedAt !== null && usedAt !== undefined) {
     errors.push({ code: 'used_at_present_without_use', path: 'usedAt', message: 'usedAt is only stored after a use.' });
@@ -92,7 +103,20 @@ export function validateDailyCheckin(value: unknown): CheckinValidationOutcome {
   if (errors.length > 0) {
     return { ok: false, errors };
   }
-  return { ok: true, checkin: body as unknown as DailyCheckin };
+  return {
+    ok: true,
+    checkin: {
+      recordedAt: body.recordedAt as string,
+      craving: (body.craving as number | null) ?? null,
+      sleep: (body.sleep as number | null) ?? null,
+      irritability: (body.irritability as number | null) ?? null,
+      anxiety: (body.anxiety as number | null) ?? null,
+      appetite: (body.appetite as number | null) ?? null,
+      usedThc: body.usedThc as boolean,
+      usedAt: usedThc ? (usedAt as DailyCheckin['usedAt']) : null,
+      note: typeof body.note === 'string' ? body.note : null,
+    },
+  };
 }
 
 /** True when a symptom field holds a real rating (never a stored zero for an

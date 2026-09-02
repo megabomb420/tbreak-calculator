@@ -132,24 +132,24 @@ export function createTracking(state: BreakSessionState, input: NewTrackingInput
   return { ...state, tracking: [track, ...state.tracking] };
 }
 
-/** Activates every `planned` attempt whose start has arrived, anchoring its
- * first segment at the authoritative last use supplied by the caller. */
+/** Activates the current planned attempt once its start has arrived,
+ * anchoring its first segment at the authoritative last use supplied by the
+ * caller. Extra planned rows (injected impossible global state) stay planned
+ * so Today never sprouts a second live timeline. */
 export function activateDuePlans(
   state: BreakSessionState,
   anchorFor: (attempt: StoredAttempt) => Instant | null,
   now: Instant,
 ): BreakSessionState {
-  let changed = false;
-  const attempts = state.attempts.map((stored) => {
-    if (stored.status !== 'planned' || stored.startedAt > now) return stored;
-    const anchor = anchorFor(stored);
-    if (anchor === null) return stored;
-    const result = startBreak(stored, anchor);
-    if (!result.ok) return stored;
-    changed = true;
-    return withStoredAttempt(stored, result.attempt, now);
-  });
-  return changed ? { ...state, attempts } : state;
+  const live = currentLiveAttempt(state.attempts);
+  if (live === null || live.status !== 'planned' || live.startedAt > now) return state;
+  const anchor = anchorFor(live);
+  if (anchor === null) return state;
+  const result = startBreak(live, anchor);
+  if (!result.ok) return state;
+  const index = state.attempts.findIndex((attempt) => attempt.id === live.id);
+  if (index < 0) return state;
+  return replaceAttempt(state, index, withStoredAttempt(live, result.attempt, now));
 }
 
 /** Suspends a finite break when a use is reported but its instant is not yet
@@ -314,23 +314,26 @@ export function cancelPlannedBreak(state: BreakSessionState, id: string): Sessio
 
 // --- selectors --------------------------------------------------------------
 
-/** The current attempt that can own or shade Today, or null. */
+/** The current attempt that can own or shade Today, or null.
+ * Status precedence matches the Today router (interrupted > active >
+ * completed-unack > planned) so array order cannot hide a live clock. Within
+ * a status, newest-first order still wins. */
 export function currentLiveAttempt(attempts: readonly StoredAttempt[]): StoredAttempt | null {
-  for (const stored of attempts) {
-    if (stored.status === 'planned' || stored.status === 'active' || stored.status === 'interrupted_time_needed') {
-      return stored;
-    }
-    if (stored.status === 'completed' && !stored.completionAcknowledged) return stored;
-  }
-  return null;
+  return (
+    firstWith(attempts, (stored) => stored.status === 'interrupted_time_needed') ??
+    firstWith(attempts, (stored) => stored.status === 'active') ??
+    firstWith(attempts, (stored) => stored.status === 'completed' && !stored.completionAcknowledged) ??
+    firstWith(attempts, (stored) => stored.status === 'planned')
+  );
 }
 
-/** The current open-ended tracking record, or null. */
+/** The current open-ended tracking record, or null. Interrupted wins over
+ * tracking so a paused clock cannot be hidden by a newer injected row. */
 export function currentLiveTracking(records: readonly StoredTrack[]): StoredTrack | null {
-  for (const track of records) {
-    if (track.status === 'tracking' || track.status === 'interrupted_time_needed') return track;
-  }
-  return null;
+  return (
+    firstWith(records, (track) => track.status === 'interrupted_time_needed') ??
+    firstWith(records, (track) => track.status === 'tracking')
+  );
 }
 
 /** The most recent planned attempt that has not started, if any. */
@@ -404,6 +407,13 @@ function withStoredTrack(previous: StoredTrack, track: AbstinenceTrack, now: Ins
 
 function isoNow(now: Instant): string {
   return new Date(now).toISOString();
+}
+
+function firstWith<T>(rows: readonly T[], match: (row: T) => boolean): T | null {
+  for (const row of rows) {
+    if (match(row)) return row;
+  }
+  return null;
 }
 
 /** True when Today already has a live plan or tracking run. */

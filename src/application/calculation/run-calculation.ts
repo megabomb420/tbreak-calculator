@@ -20,7 +20,7 @@ export function runCalculation(snapshot: RawAnswerSnapshot, now: Instant): Resul
   }
   const result = calculateTolerance(snapshot.profile, TOLERANCE_POLICY_V1, now);
   if (result.kind === 'not_applicable' && result.withdrawal === null) {
-    const lastUse = snapshot.profile.lastUseAt.value;
+    const lastUse = snapshot.profile.lastUseAt?.value ?? null;
     const instant = lastUse === null ? null : parseSubmittedTimestamp(lastUse);
     if (instant !== null) {
       return presentToleranceResult(

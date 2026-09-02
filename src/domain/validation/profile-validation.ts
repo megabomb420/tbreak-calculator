@@ -238,21 +238,29 @@ export function validateAndNormalizeProfile(
   }
 
   // --- products and routes --------------------------------------------------
-  for (let i = 0; i < input.products.length; i += 1) {
-    if (!(PRODUCT_KINDS as readonly unknown[]).includes(input.products[i])) {
-      errors.push(error('invalid_product', `products[${i}]`));
+  if (!Array.isArray(input.products)) {
+    errors.push(error('invalid_product', 'products'));
+  } else {
+    for (let i = 0; i < input.products.length; i += 1) {
+      if (!(PRODUCT_KINDS as readonly unknown[]).includes(input.products[i])) {
+        errors.push(error('invalid_product', `products[${i}]`));
+      }
+    }
+    if (rangeRequested && useDaysIntensityBand && input.products.length === 0) {
+      errors.push(error('products_required', 'products'));
     }
   }
-  for (let i = 0; i < input.routes.length; i += 1) {
-    if (!(ROUTES as readonly unknown[]).includes(input.routes[i])) {
-      errors.push(error('invalid_route', `routes[${i}]`));
+  if (!Array.isArray(input.routes)) {
+    errors.push(error('invalid_route', 'routes'));
+  } else {
+    for (let i = 0; i < input.routes.length; i += 1) {
+      if (!(ROUTES as readonly unknown[]).includes(input.routes[i])) {
+        errors.push(error('invalid_route', `routes[${i}]`));
+      }
     }
-  }
-  if (rangeRequested && useDaysIntensityBand && input.products.length === 0) {
-    errors.push(error('products_required', 'products'));
-  }
-  if (rangeRequested && useDaysIntensityBand && input.routes.length === 0) {
-    errors.push(error('routes_required', 'routes'));
+    if (rangeRequested && useDaysIntensityBand && input.routes.length === 0) {
+      errors.push(error('routes_required', 'routes'));
+    }
   }
 
   // --- lastUseAt -------------------------------------------------------------
@@ -322,32 +330,41 @@ export function validateAndNormalizeProfile(
   }
 
   // --- previousBreaks (schema shape only; inference is a later slice) -------
-  let previousBreakIndex = 0;
-  for (const previousBreak of input.previousBreaks) {
-    const prefix = `previousBreaks[${previousBreakIndex}]`;
-    if (typeof previousBreak.id !== 'string') {
-      errors.push(error('previous_break_invalid_id', `${prefix}.id`));
+  if (!Array.isArray(input.previousBreaks)) {
+    errors.push(error('previous_break_invalid_id', 'previousBreaks'));
+  } else {
+    let previousBreakIndex = 0;
+    for (const previousBreak of input.previousBreaks) {
+      const prefix = `previousBreaks[${previousBreakIndex}]`;
+      if (previousBreak === null || typeof previousBreak !== 'object') {
+        errors.push(error('previous_break_invalid_id', `${prefix}.id`));
+        previousBreakIndex += 1;
+        continue;
+      }
+      if (typeof previousBreak.id !== 'string') {
+        errors.push(error('previous_break_invalid_id', `${prefix}.id`));
+      }
+      const { durationDays, toleranceReductionScore, endedAt, createdAt } = previousBreak;
+      if (typeof durationDays !== 'number' || !Number.isInteger(durationDays) || durationDays < 1) {
+        errors.push(error('previous_break_duration_days_must_be_positive_integer', `${prefix}.durationDays`));
+      }
+      if (
+        toleranceReductionScore !== null &&
+        (typeof toleranceReductionScore !== 'number' ||
+          !Number.isInteger(toleranceReductionScore) ||
+          toleranceReductionScore < 0 ||
+          toleranceReductionScore > 10)
+      ) {
+        errors.push(error('previous_break_score_must_be_integer_0_to_10_or_null', `${prefix}.toleranceReductionScore`));
+      }
+      if (endedAt !== null && (typeof endedAt !== 'string' || parseSubmittedTimestamp(endedAt) === null)) {
+        errors.push(error('previous_break_invalid_ended_at', `${prefix}.endedAt`));
+      }
+      if (typeof createdAt !== 'string' || parseSubmittedTimestamp(createdAt) === null) {
+        errors.push(error('previous_break_invalid_created_at', `${prefix}.createdAt`));
+      }
+      previousBreakIndex += 1;
     }
-    const { durationDays, toleranceReductionScore, endedAt, createdAt } = previousBreak;
-    if (typeof durationDays !== 'number' || !Number.isInteger(durationDays) || durationDays < 1) {
-      errors.push(error('previous_break_duration_days_must_be_positive_integer', `${prefix}.durationDays`));
-    }
-    if (
-      toleranceReductionScore !== null &&
-      (typeof toleranceReductionScore !== 'number' ||
-        !Number.isInteger(toleranceReductionScore) ||
-        toleranceReductionScore < 0 ||
-        toleranceReductionScore > 10)
-    ) {
-      errors.push(error('previous_break_score_must_be_integer_0_to_10_or_null', `${prefix}.toleranceReductionScore`));
-    }
-    if (endedAt !== null && (typeof endedAt !== 'string' || parseSubmittedTimestamp(endedAt) === null)) {
-      errors.push(error('previous_break_invalid_ended_at', `${prefix}.endedAt`));
-    }
-    if (typeof createdAt !== 'string' || parseSubmittedTimestamp(createdAt) === null) {
-      errors.push(error('previous_break_invalid_created_at', `${prefix}.createdAt`));
-    }
-    previousBreakIndex += 1;
   }
 
   if (errors.length > 0) {

@@ -24,15 +24,20 @@ export function answersFromSnapshot(snapshot: RawAnswerSnapshot): QuestionnaireA
 }
 
 function useFields(profile: UseProfileInput): QuestionnaireAnswers {
+  const useDays = profile.thcUseDaysLast30?.value;
+  const lastUse = profile.lastUseAt?.value;
+  const sessions = profile.sessionsPerUseDay?.value;
+  const products = Array.isArray(profile.products) ? profile.products : [];
+  const routes = Array.isArray(profile.routes) ? profile.routes : [];
   return {
-    ...(profile.thcUseDaysLast30.value !== null ? { thcUseDaysLast30: profile.thcUseDaysLast30.value } : {}),
-    ...(profile.lastUseAt.value !== null
-      ? { lastUseAt: profile.lastUseAt.value }
-      : profile.thcUseDaysLast30.value === 0
+    ...(useDays !== null && useDays !== undefined ? { thcUseDaysLast30: useDays } : {}),
+    ...(lastUse !== null && lastUse !== undefined
+      ? { lastUseAt: lastUse }
+      : useDays === 0
         ? { lastUseSkipped: true as const }
         : {}),
-    ...(profile.sessionsPerUseDay.value !== null ? { sessionsPerUseDay: profile.sessionsPerUseDay.value } : {}),
-    ...(profile.products.length > 0 ? { products: profile.products } : {}),
-    ...(profile.routes.length > 0 ? { routes: profile.routes } : {}),
+    ...(sessions !== null && sessions !== undefined ? { sessionsPerUseDay: sessions } : {}),
+    ...(products.length > 0 ? { products: [...products] } : {}),
+    ...(routes.length > 0 ? { routes: [...routes] } : {}),
   };
 }

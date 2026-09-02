@@ -153,17 +153,22 @@ export function App({ storage, clock = systemClock }: AppProps) {
     checkins: checkinsRecord?.checkins ?? [],
   };
 
-  // Activate any planned break whose start has arrived.
-  useEffect(() => {
-    const current: BreakSessionState = {
-      attempts: attemptsRecord?.attempts ?? [],
-      tracking: trackingRecord?.records ?? [],
-      checkins: checkinsRecord?.checkins ?? [],
+  function readSessionState(): BreakSessionState {
+    return {
+      attempts: attemptsStore.load()?.attempts ?? [],
+      tracking: trackingStore.load()?.records ?? [],
+      checkins: checkinsStore.load()?.checkins ?? [],
     };
-    const anchor = profileAnchor(snapshotRecord);
+  }
+
+  // Activate any planned break whose start has arrived. Re-read stores so a
+  // stale tab cannot resurrect a cancelled plan over a newer write.
+  useEffect(() => {
+    const current = readSessionState();
+    const anchor = profileAnchor(snapshots.load());
     const activated = activateDuePlans(current, () => anchor, now);
     if (activated !== current) {
-      attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...activated.attempts] });
+      persistBreakSession(activated);
       refresh();
     }
   }, [factsEpoch, now, attemptsRecord, trackingRecord, checkinsRecord, snapshotRecord, attemptsStore]);
@@ -222,9 +227,14 @@ export function App({ storage, clock = systemClock }: AppProps) {
   };
 
   function persistBreakSession(next: BreakSessionState): void {
-    attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...next.attempts] });
-    trackingStore.save({ ...emptyTrackingRecordsRecord(), records: [...next.tracking] });
-    checkinsStore.save({ ...emptyCheckinsRecord(), checkins: [...next.checkins] });
+    try {
+      attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...next.attempts] });
+      trackingStore.save({ ...emptyTrackingRecordsRecord(), records: [...next.tracking] });
+      checkinsStore.save({ ...emptyCheckinsRecord(), checkins: [...next.checkins] });
+    } catch {
+      // Quota or a late adapter failure must not crash the shell. Durability
+      // is best-effort until IndexedDB transactions land in step 5.
+    }
   }
 
   function markResult(status: 'open' | 'acknowledged'): void {
@@ -255,7 +265,8 @@ export function App({ storage, clock = systemClock }: AppProps) {
   }
 
   function startPlan(mode: PostBreakMode, startAt: Instant): void {
-    if (currentLiveAttempt(sessionState.attempts) !== null || currentLiveTracking(sessionState.tracking) !== null) {
+    const latest = readSessionState();
+    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null) {
       return;
     }
     const calcId = snapshotRunId();
@@ -264,7 +275,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
     const viewForTarget = toleranceTargetDays(resultModel ?? profileView);
     if (viewForTarget === null) return;
     const nowAt = clock.now();
-    const next = createBreakPlan(sessionState, {
+    const next = createBreakPlan(latest, {
       id: newRecordId('break', nowAt),
       calculationRecordId: calcId,
       targetDurationDays: viewForTarget,
@@ -280,14 +291,15 @@ export function App({ storage, clock = systemClock }: AppProps) {
   }
 
   function startTracking(): void {
-    if (currentLiveAttempt(sessionState.attempts) !== null || currentLiveTracking(sessionState.tracking) !== null) {
+    const latest = readSessionState();
+    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null) {
       return;
     }
     const lastUse = currentAnchor();
     if (lastUse === null) return;
     const calcId = snapshotRunId();
     const nowAt = clock.now();
-    const next = createTracking(sessionState, {
+    const next = createTracking(latest, {
       id: newRecordId('track', nowAt),
       calculationRecordId: calcId,
       startedAt: nowAt,
@@ -314,30 +326,33 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   function handleUseReported(): void {
     const nowAt = clock.now();
-    if (liveAttempt?.status === 'interrupted_time_needed') {
-      const start = currentSegmentAnchor(liveAttempt.segments);
+    const latest = readSessionState();
+    const attempt = currentLiveAttempt(latest.attempts);
+    const tracking = currentLiveTracking(latest.tracking);
+    if (attempt?.status === 'interrupted_time_needed') {
+      const start = currentSegmentAnchor(attempt.segments);
       if (start !== null) setFlow({ kind: 'confirm-use', scope: 'attempt', segmentStart: start });
       return;
     }
-    if (liveTracking?.status === 'interrupted_time_needed') {
-      const start = currentSegmentAnchor(liveTracking.segments);
+    if (tracking?.status === 'interrupted_time_needed') {
+      const start = currentSegmentAnchor(tracking.segments);
       if (start !== null) setFlow({ kind: 'confirm-use', scope: 'tracking', segmentStart: start });
       return;
     }
-    let scope: ConfirmScope = liveAttempt?.status === 'active' ? 'attempt' : 'tracking';
+    let scope: ConfirmScope = attempt?.status === 'active' ? 'attempt' : 'tracking';
     let segmentStart: Instant | null = null;
-    if (liveAttempt?.status === 'active') {
-      const outcome = suspendBreak(sessionState, liveAttempt.id, nowAt);
+    if (attempt?.status === 'active') {
+      const outcome = suspendBreak(latest, attempt.id, nowAt);
       if (outcome.ok) {
         persistBreakSession(outcome.state);
-        segmentStart = currentSegmentAnchor(outcome.state.attempts.find((attempt) => attempt.id === liveAttempt.id)?.segments ?? []);
+        segmentStart = currentSegmentAnchor(outcome.state.attempts.find((row) => row.id === attempt.id)?.segments ?? []);
       }
-    } else if (liveTracking?.status === 'tracking') {
-      const outcome = suspendTracking(sessionState, liveTracking.id, nowAt);
+    } else if (tracking?.status === 'tracking') {
+      const outcome = suspendTracking(latest, tracking.id, nowAt);
       if (outcome.ok) {
         persistBreakSession(outcome.state);
         scope = 'tracking';
-        segmentStart = currentSegmentAnchor(outcome.state.tracking.find((track) => track.id === liveTracking.id)?.segments ?? []);
+        segmentStart = currentSegmentAnchor(outcome.state.tracking.find((row) => row.id === tracking.id)?.segments ?? []);
       }
     }
     if (segmentStart !== null) {
@@ -348,18 +363,22 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   function confirmUse(scope: ConfirmScope, usedAt: Instant, usedAtIso: string): boolean {
     const nowAt = clock.now();
-    const id = scope === 'attempt' ? liveData.interruptedAttempt?.id : liveData.interruptedTracking?.id;
+    const latest = readSessionState();
+    const attempt = currentLiveAttempt(latest.attempts);
+    const tracking = currentLiveTracking(latest.tracking);
+    const id = scope === 'attempt' ? attempt?.id : tracking?.id;
     if (id === undefined) return false;
     const outcome =
       scope === 'attempt'
-        ? confirmBreakUse(sessionState, { id, usedAt, usedAtIso, now: nowAt })
-        : confirmTrackingUse(sessionState, { id, usedAt, usedAtIso, now: nowAt });
+        ? confirmBreakUse(latest, { id, usedAt, usedAtIso, now: nowAt })
+        : confirmTrackingUse(latest, { id, usedAt, usedAtIso, now: nowAt });
     if (!outcome.ok) return false;
     persistBreakSession(outcome.state);
-    if (snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile') {
-      const profile = snapshotRecord.snapshot.profile;
+    const snapshot = snapshots.load();
+    if (snapshot !== null && snapshot.snapshot.kind === 'use_profile') {
+      const profile = snapshot.snapshot.profile;
       snapshots.save({
-        ...snapshotRecord,
+        ...snapshot,
         snapshot: { kind: 'use_profile', profile: { ...profile, lastUseAt: { value: usedAtIso, provenance: 'user_estimate' } } },
         updatedAt: nowAt,
       });
@@ -374,56 +393,58 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   function markComplete(id: string): void {
     const nowAt = clock.now();
-    const outcome = completeBreakPlan(sessionState, id, nowAt, nowAt);
+    const outcome = completeBreakPlan(readSessionState(), id, nowAt, nowAt);
     if (outcome.ok) persistBreakSession(outcome.state);
     setFlow(null);
     refresh();
   }
 
   function acknowledgeCompletion(): void {
-    if (liveData.completed === null) return;
-    const outcome = acknowledgeCompletedBreak(sessionState, liveData.completed.id, clock.now());
+    const completed = currentLiveAttempt(readSessionState().attempts);
+    if (completed === null || completed.status !== 'completed') return;
+    const outcome = acknowledgeCompletedBreak(readSessionState(), completed.id, clock.now());
     if (outcome.ok) persistBreakSession(outcome.state);
     refresh();
   }
 
   function endEarly(id: string): void {
     const nowAt = clock.now();
-    const outcome = endBreakEarly(sessionState, id, nowAt, nowAt);
+    const outcome = endBreakEarly(readSessionState(), id, nowAt, nowAt);
     if (outcome.ok) persistBreakSession(outcome.state);
     setFlow(null);
     refresh();
   }
 
   function cancelPlanned(id: string): void {
-    const outcome = cancelPlannedBreak(sessionState, id);
+    const outcome = cancelPlannedBreak(readSessionState(), id);
     if (outcome.ok) persistBreakSession(outcome.state);
     setFlow(null);
     refresh();
   }
 
   function stopCurrentTracking(): void {
-    if (liveTracking === null) return;
+    const tracking = currentLiveTracking(readSessionState().tracking);
+    if (tracking === null) return;
     const nowAt = clock.now();
-    const outcome = stopTracking(sessionState, liveTracking.id, nowAt, nowAt);
+    const outcome = stopTracking(readSessionState(), tracking.id, nowAt, nowAt);
     if (outcome.ok) persistBreakSession(outcome.state);
     refresh();
   }
 
   function updatePostBreak(id: string, mode: PostBreakMode, plan: PostBreakPlan): void {
-    const outcome = updatePostBreakPlan(sessionState, id, { mode, plan, now: clock.now() });
+    const outcome = updatePostBreakPlan(readSessionState(), id, { mode, plan, now: clock.now() });
     if (outcome.ok) persistBreakSession(outcome.state);
     refresh();
   }
 
   function saveNoUse(): void {
-    persistBreakSession(recordNoUseCheckin(sessionState, clock.now()));
+    persistBreakSession(recordNoUseCheckin(readSessionState(), clock.now()));
     setFlow(null);
     refresh();
   }
 
   function saveSymptoms(symptoms: CheckinSymptoms, note: string | null): void {
-    persistBreakSession(recordSymptomCheckin(sessionState, { now: clock.now(), symptoms, note }));
+    persistBreakSession(recordSymptomCheckin(readSessionState(), { now: clock.now(), symptoms, note }));
     setFlow(null);
     refresh();
   }
@@ -834,9 +855,9 @@ function toleranceTargetDays(view: ResultView | null): number | null {
 
 function profileAnchor(snapshot: QuestionnaireSnapshotRecord | null): Instant | null {
   if (snapshot === null || snapshot.snapshot.kind !== 'use_profile') return null;
-  const iso = snapshot.snapshot.profile.lastUseAt.value;
-  if (iso === null) return null;
-  return parseSubmittedTimestamp(iso);
+  const lastUse = snapshot.snapshot.profile.lastUseAt;
+  if (lastUse === undefined || lastUse === null || typeof lastUse.value !== 'string') return null;
+  return parseSubmittedTimestamp(lastUse.value);
 }
 
 function newRecordId(prefix: string, now: Instant): string {

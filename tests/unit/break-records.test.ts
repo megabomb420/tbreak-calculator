@@ -82,6 +82,38 @@ describe('break attempts record store', () => {
       RangeError,
     );
   });
+
+  it('drops a duplicate-id sibling while keeping the newest row', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      BREAK_ATTEMPTS_KEY,
+      JSON.stringify({
+        schemaVersion: 'break-attempts-v1',
+        attempts: [storedAttempt({ targetDurationDays: 21 }), storedAttempt({ targetDurationDays: 7 })],
+      }),
+    );
+    const loaded = createBreakAttemptsStore(storage).load();
+    assert.equal(loaded?.attempts.length, 1);
+    assert.equal(loaded?.attempts[0]?.targetDurationDays, 21);
+  });
+
+  it('drops an attempt whose segment ended before it started', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      BREAK_ATTEMPTS_KEY,
+      JSON.stringify({
+        schemaVersion: 'break-attempts-v1',
+        attempts: [
+          storedAttempt({
+            id: 'backwards',
+            status: 'ended',
+            segments: [{ startedFromLastUseAt: C0, endedAt: toInstant(C0 - MILLIS_PER_DAY), endReason: 'user_ended' }],
+          }),
+        ],
+      }),
+    );
+    assert.deepEqual(createBreakAttemptsStore(storage).load()?.attempts, []);
+  });
 });
 
 describe('tracking records + check-in record stores', () => {

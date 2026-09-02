@@ -4,10 +4,10 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.3.2** — UX/product hardening on the 0.3.1 break loop. Cutting-down
-limits persist, Today cards match the result the user just saw, and elapsed
-days past a planning target no longer look like a broken counter. Scientific
-engines, bands, and the day formula are unchanged.
+Version **0.3.3** — persistence/state-corruption hardening on the 0.3.2
+break loop. Malformed envelopes, impossible timeline rows, and storage
+failures fail closed without crashing Today. Scientific engines, bands, and
+the day formula are unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -43,7 +43,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.3.2)
+## Capabilities (0.3.3)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -88,11 +88,16 @@ Persistence is **Web Storage only**, through versioned, validated records:
 | `tbreak.reduction-plan.v1` | cutting-down limits (never fed to an engine) |
 
 Corrupt envelopes are dropped and treated as absent; an invalid row is
-isolated from the rows/records that still validate. When Web Storage is
-unavailable the app runs in memory (degraded, not persistent). **Delete
-everything** removes only these `tbreak.*` keys so a shared origin (GitHub
-Pages) is not wiped wholesale. IndexedDB remains reserved for the durable
-record stores of the History slice.
+isolated from the rows/records that still validate. Duplicate ids keep the
+newest row. Impossible segment timing (end before start, overlap) and
+overflowing target durations are dropped rather than rendered. A
+use-profile snapshot missing required fields is treated as absent, not
+passed to an engine. When Web Storage is unavailable — or a later write
+throws after a successful probe — the app stays usable (degraded, not
+durable; no banner until step 5). **Delete everything** removes only these
+`tbreak.*` keys so a shared origin (GitHub Pages) is not wiped wholesale.
+IndexedDB remains reserved for the durable record stores of the History
+slice.
 
 ## Layout
 

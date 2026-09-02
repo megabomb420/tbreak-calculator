@@ -8,7 +8,7 @@
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
 import type { Instant } from '../../domain/schemas/time.ts';
 import type { AbstinenceTrack } from '../../domain/breaks/abstinence-track.ts';
-import { isInstantNumber, isOptionalInstantNumber, isRecord } from './record-codec.ts';
+import { firstById, isInstantNumber, isRecord } from './record-codec.ts';
 import { isValidSegment } from './break-attempt-record.ts';
 
 export const TRACKING_RECORDS_SCHEMA_VERSION = 'tracking-records-v1' as const;
@@ -64,7 +64,7 @@ function readRecord(adapter: StorageAdapter, key: string): TrackingRecordsRecord
     adapter.removeItem(key);
     return null;
   }
-  const records = parsed.records.filter(isValidStoredTrack);
+  const records = firstById(parsed.records.filter(isValidStoredTrack));
   return { schemaVersion: TRACKING_RECORDS_SCHEMA_VERSION, records };
 }
 
@@ -92,6 +92,12 @@ export function isValidStoredTrack(value: unknown): value is StoredTrack {
   } else {
     if (last.endedAt !== null) return false;
     if (value.segments.slice(0, -1).some((segment) => segment.endedAt === null)) return false;
+  }
+  for (let i = 1; i < value.segments.length; i += 1) {
+    const previous = value.segments[i - 1];
+    const current = value.segments[i];
+    if (previous === undefined || current === undefined) return false;
+    if (previous.endedAt !== null && current.startedFromLastUseAt < previous.endedAt) return false;
   }
   return isInstantNumber(value.createdAt) && isInstantNumber(value.updatedAt);
 }

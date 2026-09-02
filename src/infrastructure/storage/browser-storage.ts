@@ -18,15 +18,34 @@ export interface WebStorageLike {
 
 export function createWebStorageAdapter(storage: WebStorageLike): StorageAdapter {
   return {
-    getItem: (key) => storage.getItem(key),
+    getItem: (key) => {
+      try {
+        return storage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
     setItem: (key, value) => {
-      storage.setItem(key, value);
+      try {
+        storage.setItem(key, value);
+      } catch {
+        // Quota / disabled storage after a successful probe must not crash
+        // the shell. Persistence is best-effort; the banner is step 5.
+      }
     },
     removeItem: (key) => {
-      storage.removeItem(key);
+      try {
+        storage.removeItem(key);
+      } catch {
+        // ignore
+      }
     },
     clear: () => {
-      storage.clear();
+      try {
+        storage.clear();
+      } catch {
+        // ignore
+      }
     },
   };
 }

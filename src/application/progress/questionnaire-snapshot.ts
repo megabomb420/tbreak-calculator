@@ -7,7 +7,15 @@
 import type { Instant } from '../../domain/schemas/time.ts';
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
 import type { RawAnswerSnapshot } from '../questionnaire/snapshot.ts';
-import { DETECTION_CONTEXTS, DETECTION_MATRICES, GOALS } from '../../domain/schemas/enums.ts';
+import {
+  DETECTION_CONTEXTS,
+  DETECTION_MATRICES,
+  GOALS,
+  POST_BREAK_MODES,
+  PRODUCT_KINDS,
+  ROUTES,
+} from '../../domain/schemas/enums.ts';
+import { isCoreSourcedValue, isRecord } from './record-codec.ts';
 
 export const QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION = 'questionnaire-snapshot-v1' as const;
 export const QUESTIONNAIRE_SNAPSHOT_KEY = 'tbreak.questionnaire-snapshot.v1';
@@ -93,5 +101,24 @@ function isValidSnapshot(value: unknown): value is RawAnswerSnapshot {
   const profile = record.profile;
   if (typeof profile !== 'object' || profile === null) return false;
   const body = profile as Record<string, unknown>;
-  return (GOALS as readonly unknown[]).includes(body.goal) && typeof body.breakRequested === 'boolean';
+  if (!(GOALS as readonly unknown[]).includes(body.goal)) return false;
+  if (typeof body.breakRequested !== 'boolean') return false;
+  if (body.postBreakMode !== null && !(POST_BREAK_MODES as readonly string[]).includes(body.postBreakMode as string)) {
+    return false;
+  }
+  if (!isCoreSourcedValue(body.thcUseDaysLast30, isIntegerNumber)) return false;
+  if (!isCoreSourcedValue(body.sessionsPerUseDay, isIntegerNumber)) return false;
+  if (!isCoreSourcedValue(body.lastUseAt, (payload) => typeof payload === 'string')) return false;
+  if (!isStringArrayIn(body.products, PRODUCT_KINDS)) return false;
+  if (!isStringArrayIn(body.routes, ROUTES)) return false;
+  return Array.isArray(body.previousBreaks);
+}
+
+function isIntegerNumber(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && Number.isFinite(value);
+}
+
+function isStringArrayIn(value: unknown, allowed: readonly string[]): boolean {
+  if (!Array.isArray(value)) return false;
+  return value.every((item) => typeof item === 'string' && allowed.includes(item));
 }
