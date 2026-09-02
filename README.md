@@ -29,9 +29,10 @@ npm run typecheck
 
 ## Layout
 
-- `src/domain` — pure engines, schemas, validation
-- `src/application` — shell reducer, Today router, questionnaire-progress store
+- `src/domain` — pure engines, schemas, validation, versioned policies
+- `src/application` — Today router, questionnaire engine, calculation coordinator, §14 presentation, Web Storage progress
 - `src/infrastructure` — clock, storage adapters (`localStorage` in the browser)
-- `src/ui` — Preact PWA shell bound to the application layer
+- `src/ui` — Preact PWA: shell, Today, questionnaire, result screens, settings
 
-Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.
+Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.  
+Next-session notes: `HANDOFF.md`.
