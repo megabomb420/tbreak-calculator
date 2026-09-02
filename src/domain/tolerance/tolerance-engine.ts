@@ -3,15 +3,17 @@
 // Deterministic: equal raw input, policy and calculation time produce
 // structurally equal results. The engine validates and normalises its input,
 // routes by goal/breakRequested, selects the base band, applies the single
-// frequency/intensity override, and emits the v1 result contract. Withdrawal
-// display and history insight derivation are later domain slices, so those
-// blocks are emitted as null here.
+// frequency/intensity override, derives the previous-break history insight
+// (7.7) and attaches the elapsed withdrawal display (7.8), then emits the v1
+// result contract. Withdrawal and history never change the range or target.
 
 import { assessIntensity, selectBaseBand, type TolerancePolicyV1 } from '../policies/tolerance-policy-v1.ts';
 import type { UseProfileInput } from '../schemas/profile.ts';
-import type { DriverCode, LimitationCode, ToleranceResult } from '../schemas/result.ts';
+import type { DriverCode, LimitationCode, ToleranceResult, WithdrawalDisplay } from '../schemas/result.ts';
 import type { Instant } from '../schemas/time.ts';
 import { validateAndNormalizeProfile } from '../validation/profile-validation.ts';
+import { deriveHistoryInsight } from './history.ts';
+import { computeWithdrawalDisplay } from './withdrawal.ts';
 
 function emptyResult(kind: ToleranceResult['kind'], policyVersion: string, calculatedAt: Instant): ToleranceResult {
   return {
@@ -55,7 +57,15 @@ export function calculateTolerance(
   }
   const rangeRequested = profile.goal === 'tolerance_reset' || (profile.goal === 'reduction' && profile.breakRequested);
   if (!rangeRequested) {
-    return emptyResult('planning_only', policy.id, calculationTime);
+    // Spec 7.5 step 3: attach the withdrawal display when relevant and stop.
+    // Relevant here for abstinence planning, which anchors to the
+    // authoritative last-use instant; reduction-without-a-break does not
+    // claim an abstinence timeline.
+    const withdrawal =
+      profile.goal === 'abstinence'
+        ? withdrawalForProfile(profile.lastUseAt.value, calculationTime, policy)
+        : null;
+    return { ...emptyResult('planning_only', policy.id, calculationTime), withdrawal };
   }
 
   // Spec 7.5 step 4: zero THC-use days in the window -> not applicable with a
@@ -94,11 +104,23 @@ export function calculateTolerance(
     evidenceConfidence: policy.evidenceConfidence,
     personalisationConfidence: policy.personalisationConfidence,
     uncertaintySummaryCode: policy.uncertaintySummaryCode,
-    withdrawal: null,
+    // Spec 7.5 steps 11-12: history and withdrawal are descriptive; neither
+    // may change the range or target above.
+    historyInsight: deriveHistoryInsight(profile.previousBreaks, recommendedRangeDays),
+    withdrawal: withdrawalForProfile(profile.lastUseAt.value, calculationTime, policy),
     drivers,
-    historyInsight: null,
     limitations,
     policyVersion: policy.id,
     calculatedAt: calculationTime,
   };
+}
+
+function withdrawalForProfile(
+  lastUseAt: Instant | null,
+  calculationTime: Instant,
+  policy: TolerancePolicyV1,
+): WithdrawalDisplay | null {
+  return lastUseAt !== null
+    ? computeWithdrawalDisplay(lastUseAt, calculationTime, policy.withdrawalAnchors)
+    : null;
 }

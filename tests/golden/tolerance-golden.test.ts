@@ -59,8 +59,19 @@ describe('golden tolerance fixtures (boundaries, intensity override, goal routin
       assert.equal(result.recommendationStatus, 'heuristic', golden.name);
       assert.equal(result.uncertaintySummaryCode, 'broad_heuristic_individual_response_varies', golden.name);
       assert.equal(result.policyVersion, 'tolerance-v1', golden.name);
-      assert.equal(result.withdrawal, null, golden.name);
-      assert.equal(result.historyInsight, null, golden.name);
+      // Withdrawal is attached to every range result (spec 7.5 step 12).
+      assert.ok(result.withdrawal !== null && result.withdrawal.breakDay >= 1, golden.name);
+    }
+  });
+
+  it('never lets history mutate a golden range or target', () => {
+    for (const golden of fixture.cases) {
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      if (result.kind !== 'tolerance_result') continue;
+      assert.deepEqual(result.historyInsight, golden.expected.historyInsight, golden.name);
+      assert.equal(result.recommendedRangeDays?.min, golden.expected.recommendedRangeDays?.min, golden.name);
+      assert.equal(result.recommendedRangeDays?.max, golden.expected.recommendedRangeDays?.max, golden.name);
+      assert.equal(result.preferredTargetDays, golden.expected.preferredTargetDays, golden.name);
     }
   });
 

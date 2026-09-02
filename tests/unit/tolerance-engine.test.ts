@@ -3,11 +3,37 @@ import assert from 'node:assert/strict';
 import { TOLERANCE_POLICY_V1, type TolerancePolicyV1 } from '../../src/domain/policies/tolerance-policy-v1.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
+import type { PreviousBreakInput } from '../../src/domain/schemas/profile.ts';
 import type { Instant } from '../../src/domain/schemas/time.ts';
 import { C0, sampleProfile, userValue, absent } from '../helpers.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
 const POLICY = TOLERANCE_POLICY_V1;
+
+/** Withdrawal display for the sample profile (last use 2 h before C0). */
+function withdrawalDisplayAtDay1() {
+  return {
+    breakDay: 1,
+    elapsedHours: 2,
+    anchors: [
+      { anchor: 'onset', status: 'current' },
+      { anchor: 'common_peak', status: 'upcoming' },
+      { anchor: 'substantial_improvement', status: 'upcoming' },
+      { anchor: 'sleep_disturbance', status: null },
+    ],
+  };
+}
+
+function previousBreak(overrides: Partial<PreviousBreakInput> = {}): PreviousBreakInput {
+  return {
+    id: 'b1',
+    durationDays: 14,
+    toleranceReductionScore: 6,
+    endedAt: '2026-06-01T00:00:00Z',
+    createdAt: '2026-05-01T00:00:00Z',
+    ...overrides,
+  };
+}
 
 function resultOf(input: ReturnType<typeof sampleProfile>, at: Instant = C0): ToleranceResult {
   return calculateTolerance(input, POLICY, at);
@@ -60,7 +86,7 @@ describe('Tolerance Engine: goal routing (spec 7.4)', () => {
     assert.deepEqual(result, nullResultFields('planning_only'));
   });
 
-  it('abstinence returns planning_only regardless of use pattern', () => {
+  it('abstinence returns planning_only with a withdrawal display anchored to last use', () => {
     const heavy = sampleProfile({
       goal: 'abstinence',
       breakRequested: false,
@@ -69,7 +95,29 @@ describe('Tolerance Engine: goal routing (spec 7.4)', () => {
       products: ['concentrate'],
       routes: ['dabbing'],
     });
-    assert.deepEqual(resultOf(heavy), nullResultFields('planning_only'));
+    const result = resultOf(heavy);
+    assert.equal(result.kind, 'planning_only');
+    assert.equal(result.recommendedRangeDays, null);
+    assert.deepEqual(result.withdrawal, withdrawalDisplayAtDay1());
+  });
+
+  it('abstinence planning_only carries no withdrawal when there is no last use', () => {
+    const input = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(0),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: absent(),
+    });
+    assert.deepEqual(resultOf(input), nullResultFields('planning_only'));
+  });
+
+  it('reduction without a break does not claim an abstinence timeline', () => {
+    const result = resultOf(sampleProfile({ goal: 'reduction', breakRequested: false }));
+    assert.equal(result.kind, 'planning_only');
+    assert.equal(result.withdrawal, null);
   });
 
   it('detection_information returns not_applicable without running the engine', () => {
@@ -249,9 +297,57 @@ describe('Tolerance Engine: determinism and validation failure', () => {
     assert.equal(result.policyVersion, 'tolerance-v2-fake');
   });
 
-  it('withdrawal and history insight blocks are emitted as null in this slice', () => {
+  it('attaches the elapsed withdrawal display to every tolerance_result', () => {
     const result = resultOf(sampleProfile());
-    assert.equal(result.withdrawal, null);
-    assert.equal(result.historyInsight, null);
+    assert.deepEqual(result.withdrawal, withdrawalDisplayAtDay1());
+  });
+
+  it('history cannot mutate the range, target, drivers or limitations', () => {
+    const withHistory = resultOf(
+      sampleProfile({
+        previousBreaks: [previousBreak(), previousBreak({ id: 'b2', durationDays: 21, toleranceReductionScore: 9 })],
+      }),
+    );
+    const withoutHistory = resultOf(sampleProfile());
+    assert.equal(withHistory.kind, 'tolerance_result');
+    assert.deepEqual(withHistory.recommendedRangeDays, withoutHistory.recommendedRangeDays);
+    assert.equal(withHistory.preferredTargetDays, withoutHistory.preferredTargetDays);
+    assert.deepEqual(withHistory.drivers, withoutHistory.drivers);
+    assert.deepEqual(withHistory.limitations, withoutHistory.limitations);
+    assert.deepEqual(withHistory.withdrawal, withoutHistory.withdrawal);
+    assert.deepEqual(withHistory.historyInsight, {
+      code: 'history_directional_observation',
+      observations: [
+        { durationDays: 14, toleranceReductionScore: 6 },
+        { durationDays: 21, toleranceReductionScore: 9 },
+      ],
+      outsideRecommendedRange: false,
+    });
+  });
+
+  it('derives history only for a tolerance_result with a current range', () => {
+    const history = [previousBreak(), previousBreak({ id: 'b2', durationDays: 21, toleranceReductionScore: 9 })];
+    const toleranceResult = resultOf(sampleProfile({ previousBreaks: history }));
+    assert.equal(toleranceResult.kind, 'tolerance_result');
+    assert.notEqual(toleranceResult.historyInsight, null);
+
+    const planningOnly = resultOf(
+      sampleProfile({ goal: 'abstinence', breakRequested: false, previousBreaks: history }),
+    );
+    assert.equal(planningOnly.kind, 'planning_only');
+    assert.equal(planningOnly.historyInsight, null);
+
+    const notApplicable = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(0),
+        sessionsPerUseDay: absent(),
+        products: [],
+        routes: [],
+        lastUseAt: absent(),
+        previousBreaks: history,
+      }),
+    );
+    assert.equal(notApplicable.kind, 'not_applicable');
+    assert.equal(notApplicable.historyInsight, null);
   });
 });

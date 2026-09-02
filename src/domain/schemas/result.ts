@@ -2,8 +2,8 @@
 //
 // Driver and limitation codes are deterministic, non-scientific message
 // codes owned by the static tolerance policy. Withdrawal display and history
-// insight derivation are later domain slices; their types are declared here
-// so the result contract is complete, and the v1 engine emits null for both.
+// insight are derived by the v1 engine (spec 7.7-7.8); the anchor data for
+// withdrawal lives in the versioned tolerance policy.
 
 import type { Confidence } from './enums.ts';
 import type { Instant } from './time.ts';
@@ -33,13 +33,21 @@ export type WithdrawalAnchorStatus = 'upcoming' | 'current' | 'past';
 
 export interface WithdrawalAnchorState {
   readonly anchor: WithdrawalAnchorCode;
+  /** Position of the anchor relative to breakDay. Null when the anchor has no
+   * numeric day range (the open-ended sleep statement). */
   readonly status: WithdrawalAnchorStatus | null;
 }
 
 export interface WithdrawalDisplay {
   readonly breakDay: number;
   readonly elapsedHours: number;
+  /** Anchor states in fixed policy order; the UI renders them verbatim. */
   readonly anchors: readonly WithdrawalAnchorState[];
+}
+
+export interface HistoryObservation {
+  readonly durationDays: number;
+  readonly toleranceReductionScore: number;
 }
 
 export type HistoryInsightCode =
@@ -49,7 +57,17 @@ export type HistoryInsightCode =
 
 export interface HistoryInsight {
   readonly code: HistoryInsightCode;
-  readonly comparedDurationsDays: readonly [number, number] | null;
+  /**
+   * The two exact observations compared (shortest, then longest eligible
+   * duration) for a directional insight (spec 7.7 rule 8). Null when no
+   * directional comparison was selected.
+   */
+  readonly observations: readonly [HistoryObservation, HistoryObservation] | null;
+  /**
+   * True when either compared duration falls outside the current recommended
+   * range (spec 7.7 rule 9: history_outside_population_range). Never changes
+   * the range or target.
+   */
   readonly outsideRecommendedRange: boolean;
 }
 

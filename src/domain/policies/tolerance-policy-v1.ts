@@ -1,14 +1,15 @@
 // Static versioned v1 tolerance policy (ARCHITECTURE section 5.1,
-// CALCULATOR_SPEC sections 7.2-7.3).
+// CALCULATOR_SPEC sections 7.2-7.3, 7.8).
 //
 // This module owns every numeric boundary and code the v1 Tolerance Engine
 // may emit: the 30-day use-frequency bands, the single frequent-use
-// intensity override, uniform low/low confidence, the uncertainty summary
-// code, and the driver/limitation message codes. A scientific or product
-// rule change here requires a new policy version and new golden fixtures.
+// intensity override, the withdrawal anchors, uniform low/low confidence,
+// the uncertainty summary code, and the driver/limitation message codes. A
+// scientific or product rule change here requires a new policy version and
+// new golden fixtures.
 
 import type { ProductKind, Route } from '../schemas/enums.ts';
-import type { DriverCode, LimitationCode, RecommendedRangeDays } from '../schemas/result.ts';
+import type { DriverCode, LimitationCode, RecommendedRangeDays, WithdrawalAnchorCode } from '../schemas/result.ts';
 
 export const TOLERANCE_POLICY_VERSION = 'tolerance-v1';
 
@@ -40,6 +41,26 @@ export interface ToleranceIntensityRule {
   readonly limitation: LimitationCode;
 }
 
+/**
+ * A fixed withdrawal anchor (CALCULATOR_SPEC 7.8). Closed anchors carry a
+ * numeric [startDay, endDay] range; the open-ended sleep statement carries
+ * none and therefore has no calculated position.
+ */
+export interface WithdrawalAnchor {
+  readonly code: WithdrawalAnchorCode;
+  readonly startDay: number | null;
+  readonly endDay: number | null;
+}
+
+// Fixed source anchors in display order. Typical population patterns, not
+// personal predictions. The sleep anchor has no numeric end date.
+export const TOLERANCE_WITHDRAWAL_ANCHORS: readonly WithdrawalAnchor[] = [
+  { code: 'onset', startDay: 1, endDay: 3 },
+  { code: 'common_peak', startDay: 2, endDay: 6 },
+  { code: 'substantial_improvement', startDay: 4, endDay: 14 },
+  { code: 'sleep_disturbance', startDay: null, endDay: null },
+];
+
 // The single frequency/intensity override (CALCULATOR_SPEC 7.3). Only this
 // rule may change a band; it is labelled heuristic_frequency_intensity_v1.
 export const TOLERANCE_INTENSITY_RULE: ToleranceIntensityRule = {
@@ -58,6 +79,7 @@ export interface TolerancePolicyV1 {
   readonly id: string;
   readonly baseBands: readonly ToleranceBaseBand[];
   readonly intensityRule: ToleranceIntensityRule;
+  readonly withdrawalAnchors: readonly WithdrawalAnchor[];
   readonly evidenceConfidence: 'low';
   readonly personalisationConfidence: 'low';
   readonly recommendationStatus: 'heuristic';
@@ -69,6 +91,7 @@ export const TOLERANCE_POLICY_V1: TolerancePolicyV1 = {
   id: TOLERANCE_POLICY_VERSION,
   baseBands: TOLERANCE_BASE_BANDS,
   intensityRule: TOLERANCE_INTENSITY_RULE,
+  withdrawalAnchors: TOLERANCE_WITHDRAWAL_ANCHORS,
   evidenceConfidence: 'low',
   personalisationConfidence: 'low',
   recommendationStatus: 'heuristic',
