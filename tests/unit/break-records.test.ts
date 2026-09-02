@@ -150,4 +150,32 @@ describe('tracking records + check-in record stores', () => {
     assert.equal(createTrackingRecordsStore(storage).load(), null);
     assert.equal(storage.getItem('tbreak.other.v1'), 'kept');
   });
+
+  it('drops a tracking row whose open segment is not last', () => {
+    const storage = createMemoryStorage();
+    const open = { startedFromLastUseAt: C0, endedAt: null, endReason: null };
+    const closed = {
+      startedFromLastUseAt: toInstant(C0 - MILLIS_PER_DAY),
+      endedAt: C0,
+      endReason: 'used_thc' as const,
+    };
+    storage.setItem(
+      TRACKING_RECORDS_KEY,
+      JSON.stringify({
+        schemaVersion: 'tracking-records-v1',
+        records: [
+          {
+            id: 'track-bad',
+            calculationRecordId: 'calc-1',
+            status: 'tracking',
+            startedAt: C0,
+            segments: [open, closed],
+            createdAt: C0,
+            updatedAt: C0,
+          },
+        ],
+      }),
+    );
+    assert.deepEqual(createTrackingRecordsStore(storage).load()?.records, []);
+  });
 });

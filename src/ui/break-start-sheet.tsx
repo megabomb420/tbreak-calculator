@@ -24,6 +24,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
   const [choice, setChoice] = useState<'now' | 'date'>('now');
   const [picked, setPicked] = useState('');
   const [mode, setMode] = useState<PostBreakMode | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const todayIso = localIsoDate(now);
   const maxIso = localIsoDate((now + FUTURE_WINDOW_DAYS * MILLIS_PER_DAY) as Instant);
@@ -37,7 +38,11 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
     const day = Number(parts[2]);
     if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
     const date = new Date(year, month - 1, day);
-    return toInstant(date.getTime());
+    const instant = toInstant(date.getTime());
+    const todayStart = toInstant(new Date(new Date(now).getFullYear(), new Date(now).getMonth(), new Date(now).getDate()).getTime());
+    const latest = toInstant(todayStart + FUTURE_WINDOW_DAYS * MILLIS_PER_DAY);
+    if (instant < todayStart || instant > latest) return null;
+    return instant;
   }
 
   const start = startAt();
@@ -65,7 +70,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
             <div className="choice-list" role="group" aria-label={BREAK_START.startQuestion}>
               <button
                 type="button"
-                className={choice === 'now' ? 'choice-card selected' : 'choice-card'}
+                className={choice === 'now' ? 'choice-card selected compact' : 'choice-card compact'}
                 data-testid="start-now"
                 onClick={() => setChoice('now')}
               >
@@ -79,7 +84,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
               </button>
               <button
                 type="button"
-                className={choice === 'date' ? 'choice-card selected' : 'choice-card'}
+                className={choice === 'date' ? 'choice-card selected compact' : 'choice-card compact'}
                 data-testid="start-pick-date"
                 onClick={() => setChoice('date')}
               >
@@ -118,7 +123,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
                 <button
                   key={option.id}
                   type="button"
-                  className={mode === option.id ? 'choice-card selected' : 'choice-card'}
+                  className={mode === option.id ? 'choice-card selected compact' : 'choice-card compact'}
                   data-mode={option.id}
                   onClick={() => setMode(option.id)}
                 >
@@ -140,10 +145,13 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
         <button
           type="button"
           className="cta-primary"
-          disabled={mode === null || start === null}
+          disabled={mode === null || start === null || submitted}
           data-testid="start-break"
           onClick={() => {
-            if (mode !== null && start !== null) onStart(mode, start);
+            if (mode !== null && start !== null && !submitted) {
+              setSubmitted(true);
+              onStart(mode, start);
+            }
           }}
         >
           {BREAK_START.startBreak}

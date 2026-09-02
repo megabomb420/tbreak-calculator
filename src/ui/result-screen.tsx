@@ -240,7 +240,7 @@ function ReductionBody({
   readonly onSeeBreakRange: () => void;
 }) {
   const [days, setDays] = useState(3);
-  const [sessions, setSessions] = useState<number | null>(null);
+  const [sessions, setSessions] = useState(1);
   return (
     <div className="stack">
       <header className="result-hero">
@@ -252,33 +252,22 @@ function ReductionBody({
       </header>
       <section className="card">
         <h3 className="card-title">{RESULT.limitsHeading}</h3>
-        <label className="limit-field meta">
-          {RESULT.maxDaysWeek}
-          <input
-            type="number"
-            min={0}
-            max={7}
-            value={days}
-            className="numeric-pad"
-            data-testid="limit-days"
-            onInput={(event) => setDays(Number((event.target as HTMLInputElement).value))}
-          />
-        </label>
-        <label className="limit-field meta">
-          {RESULT.maxSessions}
-          <input
-            type="number"
-            min={1}
-            max={9}
-            value={sessions ?? ''}
-            className="numeric-pad"
-            data-testid="limit-sessions"
-            onInput={(event) => {
-              const raw = (event.target as HTMLInputElement).value;
-              setSessions(raw === '' ? null : Number(raw));
-            }}
-          />
-        </label>
+        <ReductionStepper
+          label={RESULT.maxDaysWeek}
+          value={days}
+          min={0}
+          max={7}
+          testId="limit-days"
+          onChange={setDays}
+        />
+        <ReductionStepper
+          label={RESULT.maxSessions}
+          value={sessions}
+          min={1}
+          max={9}
+          testId="limit-sessions"
+          onChange={setSessions}
+        />
       </section>
       <section className="result-section">
         <p className="body">{RESULT.reductionSoft}</p>
@@ -384,6 +373,39 @@ function ResultActions({
         </button>
       );
   }
+}
+
+function ReductionStepper({
+  label,
+  value,
+  min,
+  max,
+  testId,
+  onChange,
+}: {
+  readonly label: string;
+  readonly value: number;
+  readonly min: number;
+  readonly max: number;
+  readonly testId: string;
+  readonly onChange: (value: number) => void;
+}) {
+  return (
+    <div className="stepper-field meta">
+      <span>{label}</span>
+      <span className="stepper">
+        <button type="button" className="stepper-button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, value - 1))}>
+          −
+        </button>
+        <output className="stepper-value" data-testid={testId}>
+          {value}
+        </output>
+        <button type="button" className="stepper-button" aria-label={`Increase ${label}`} onClick={() => onChange(Math.min(max, value + 1))}>
+          +
+        </button>
+      </span>
+    </div>
+  );
 }
 
 function AnswersCard({

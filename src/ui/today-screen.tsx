@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import type { Goal } from '../domain/schemas/enums.ts';
 import type { TodayView } from '../application/shell/today-state.ts';
 import type { QuestionnaireProgressRecord } from '../application/progress/questionnaire-progress.ts';
@@ -463,7 +464,7 @@ function ConfirmDialog({
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }) {
-  return (
+  const node = (
     <div className="modal-root" data-testid="confirm-dialog">
       <div className="modal-backdrop" onClick={onCancel} />
       <div className="modal-sheet" role="dialog" aria-modal="true" aria-label={title}>
@@ -481,6 +482,8 @@ function ConfirmDialog({
       </div>
     </div>
   );
+  const host = typeof document !== 'undefined' ? document.getElementById('app') : null;
+  return host !== null ? createPortal(node, host) : node;
 }
 
 function ResumeCard({

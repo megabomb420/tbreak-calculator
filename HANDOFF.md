@@ -5,8 +5,8 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.3.0** (Interval visual system; break loop shipped)
-- This file sits on `main` at the commit that landed the break loop (the
+- App version: **0.3.1** (QA hardening of the 0.3.0 break loop)
+- This file sits on `main` at the commit that landed the 0.3.1 QA pass (the
   header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -24,8 +24,8 @@ to make UI easier. Do not commit untracked review files.
 
 ## What is on main
 
-UX_SPEC §16 steps **1–4** plus deploy, iOS layout, vape product, and the
-Interval visual redesign:
+UX_SPEC §16 steps **1–4** plus deploy, iOS layout, vape product, the
+Interval visual redesign, and the **0.3.1 QA hardening** patch:
 
 | Step | Status |
 |---|---|
@@ -46,6 +46,72 @@ Working product behaviour (unchanged from earlier steps):
 3. Completing the questionnaire opens the **result overlay**.
 4. App shell tab bar is in-flow inside a `100svh` column (not `position: fixed`).
 5. Product vs route distinction preserved (`vape` product ≠ `vaping` route).
+
+## What 0.3.1 fixed (QA pass)
+
+Patch on 0.3.0. No new product slice. UX_SPEC §16 step 5 was **not** started.
+Scientific engines, bands, coefficients, and golden fixtures are unchanged.
+
+High:
+
+- Resume **Start over** wiped a live plan/profile. Today resume now only
+  abandons the unfinished draft (`abandonDraft`). Failed-calculation recovery
+  still clears the snapshot + result view but keeps any live plan.
+- **Delete everything** called `adapter.clear()`, which on GitHub Pages shares
+  an origin with other project sites. It now removes only `LOCAL_DATA_KEYS`.
+- Stop-tracking confirm lived inside scrolling `.app-main` and clipped under
+  the in-flow tab bar. The dialog portals to `#app`.
+
+Medium:
+
+- Double-tap **Yes** after interruption called `setFlow(null)` and dropped the
+  confirm-when sheet. Already-interrupted check-ins reopen confirm-use.
+- Double-tap **Start break** could create a second live timeline. Session
+  create + UI guards refuse overlapping live plans/tracking; the sheet also
+  latches `submitted`.
+- Future `usedAt` was accepted. Application confirm ops reject
+  `used_at_in_the_future`; DateControl now clears a previous valid ISO when a
+  later pick is out of window.
+- Break-start relied on HTML `min`/`max` only. Picked dates are validated in
+  JS against today..+14 local days.
+- Completing a plan before the target date was possible through the session
+  API. `completeBreakPlan` now requires `now >= plannedTargetDate`.
+- Tracking decode allowed an open segment that was not last. Invalid rows
+  drop in isolation.
+- Stacked result + break-start overlays. Result unmounts while any `flow` is
+  open; Start this break stays hidden while a live timeline exists.
+- Confirm-use showed the restart copy even when confirm failed.
+- A completed-unacknowledged card plus a draft hid acknowledgement behind
+  the resume card. Resume stays secondary so the completion gate remains.
+- Planned-activation `useEffect` depended on a fresh `sessionState` object
+  every render; it now depends on the stored records.
+
+Low / visual:
+
+- Q2 use-days readout showed `0` when unset; it now shows `—`.
+- Parked symptom sliders needed a sync arm (`armedRef` + pointer/mouse down)
+  so the first touch stores a value and untouched fields stay `null`.
+- Check-in Yes/Save/symptoms double-taps; symptoms wrapped in a form with
+  `enterKeyHint="done"` on the note.
+- Reduction limits used native `type=number`; they are steppers (nominal-THC
+  decimals stay numeric).
+- Stepper wrapped in `<label>` decremented on label tap; label is a `div`.
+- Break-start choice cards left an empty 44px icon column; `.compact` grid.
+- Q5 Vape tile overflow on 402×874; `overflow-wrap: anywhere`.
+- Self-hosted Fraunces/Figtree `.woff`/`.woff2` were missing from the
+  workbox `globPatterns`.
+- Desktop (≥720px) settings/confirm sheets spanned the full `#app` while the
+  shell is 430px; `.modal-root` is now column-constrained too.
+
+Intentionally **not** changed:
+
+- Day formula (`floor((now−lastUseAt)/24h)+1`) — Day 22 of 21 after the
+  target is spec-correct.
+- Planned activation still anchors to the authoritative `lastUseAt`.
+- Q5 flower THC deep-link (`data-testid="nominal-thc-deferred"`) stays copy
+  until step 5/settings.
+- Accidental-Yes undo is a new feature, not a defect.
+- Service-worker update semantics (`skipWaiting: false`, prompt register).
 
 ## What step 4 added
 
@@ -138,7 +204,7 @@ the draft. Keys (all versioned envelopes with strict decode validation):
 Corrupt envelopes are wiped and treated as absent; an invalid row inside an
 envelope is dropped in isolation (valid rows/records survive). Storage
 unavailable → in-memory adapter (degraded, nothing persists). Delete-everything
-clears all keys including the new records.
+removes only the `tbreak.*` keys listed above (not `storage.clear()`).
 
 **IndexedDB is still reserved** (ARCHITECTURE §9) for the durable per-record
 stores in the History slice. The step-4 record envelopes are the migration
@@ -185,7 +251,7 @@ Vape is not mapped onto concentrate intensity (intensity fires only on
 ## Known notes for step 5
 
 - The History tab is still the empty placeholder; per-item deletion is not
-  built (delete-everything covers all keys).
+  built (delete-everything covers all `tbreak.*` keys only).
 - `planned` future attempts activate when the app loads/refreshes after their
   start instant; they are not activated mid-session without an interaction or
   the 60 s clock tick (both refresh state).
@@ -195,9 +261,15 @@ Vape is not mapped onto concentrate intensity (intensity fires only on
   the UI copy + D5 schema note; no engine consumes ratings.
 - Result overlay **Start this break** is hidden while a live plan/tracking
   exists (a second plan over an active one is undefined by the spec); plan
-  detail **Recalculate profile** keeps the current plan intact.
+  detail **Recalculate profile** keeps the current plan intact. Create ops
+  also no-op if a live timeline already exists.
 - A picked start date equal to today activates immediately (start instant ≤
   now), matching §8 semantics.
+- Overlays use `role="dialog" aria-modal="true"` but do not yet apply `inert`
+  / a focus trap on the shell. Full a11y verification is step 5.
+- Storage-unavailable is still a silent in-memory fallback (no banner).
+- PWA update snackbar is not built (`registerType: 'prompt'` is wired).
+- Reviewed first-launch safety copy is still the pending placeholder.
 
 ## Exact next slice
 

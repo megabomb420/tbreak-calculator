@@ -106,10 +106,14 @@ export function liveTimingState(facts: TodayFacts): boolean {
   return false;
 }
 
-/** Resume-card placement (UX_SPEC 3.2). */
+/** Resume-card placement (UX_SPEC 3.2). A completed-unacknowledged card is a
+ * Today gate (UX_SPEC 10.4) and must stay primary even with a draft — hiding
+ * it behind resume makes acknowledgement unreachable. */
 export function resolveResumePlacement(facts: TodayFacts): ResumePlacement {
   if (facts.draft === null) return 'none';
-  return liveTimingState(facts) ? 'secondary' : 'replaces-primary';
+  if (liveTimingState(facts)) return 'secondary';
+  if (facts.attempt?.status === 'completed') return 'secondary';
+  return 'replaces-primary';
 }
 
 export function resolveTodayState(facts: TodayFacts): TodayView {

@@ -59,6 +59,28 @@ describe('break session: plan creation and activation', () => {
     assert.equal(attempt?.completionAcknowledged, false);
   });
 
+  it('refuses a second live plan or tracking run', () => {
+    const first = startNow();
+    const second = createBreakPlan(first, {
+      id: 'attempt-2',
+      calculationRecordId: 'calc-1',
+      targetDurationDays: 14,
+      mode: 'undecided',
+      planStart: C0,
+      now: C0,
+      anchor: ANCHOR,
+    });
+    assert.equal(second.attempts.length, 1);
+    assert.equal(second.attempts[0]?.id, 'attempt-1');
+    const withTracking = createTracking(first, {
+      id: 'track-1',
+      calculationRecordId: 'calc-1',
+      startedAt: C0,
+      anchor: ANCHOR,
+    });
+    assert.equal(withTracking.tracking.length, 0);
+  });
+
   it('creates a planned attempt for a future start with no segments', () => {
     const future = toInstant(C0 + 2 * MILLIS_PER_DAY);
     const state = createBreakPlan(emptySessionState(), {
@@ -149,6 +171,18 @@ describe('break session: interruption, confirmation, restart', () => {
     const before = toInstant(ANCHOR - MILLIS_PER_DAY);
     const outcome = confirmBreakUse(state, { id: 'attempt-1', usedAt: before, usedAtIso: new Date(before).toISOString(), now: C0 });
     assert.deepEqual(outcome, { ok: false, code: 'used_at_before_segment_start' });
+  });
+
+  it('rejects a confirmed usedAt in the future', () => {
+    const state = suspendNow(startNow());
+    const future = toInstant(C0 + MILLIS_PER_DAY);
+    const outcome = confirmBreakUse(state, {
+      id: 'attempt-1',
+      usedAt: future,
+      usedAtIso: new Date(future).toISOString(),
+      now: C0,
+    });
+    assert.deepEqual(outcome, { ok: false, code: 'used_at_in_the_future' });
   });
 
   it('supports a second interruption after a restart with history preserved', () => {
@@ -286,6 +320,7 @@ describe('break session: check-ins and completion', () => {
     const interrupted = suspendNow(startNow());
     assert.deepEqual(completeBreakPlan(interrupted, 'attempt-1', C0, C0), { ok: false, code: 'expected_active' });
     assert.deepEqual(endBreakEarly(interrupted, 'attempt-1', C0, C0), { ok: false, code: 'expected_active' });
+    assert.deepEqual(completeBreakPlan(startNow(), 'attempt-1', C0, C0), { ok: false, code: 'not_at_target_date' });
   });
 
   it('updates the post-break mode and limits from plan detail while planned or active', () => {

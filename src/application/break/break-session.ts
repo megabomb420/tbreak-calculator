@@ -14,6 +14,7 @@ import {
   createBreakAttempt,
   endBreak,
   interruptForUsedAtConfirmation,
+  plannedTargetDate,
   startBreak,
   type BreakAttempt,
 } from '../../domain/breaks/break-attempt.ts';
@@ -48,7 +49,9 @@ export type SessionErrorCode =
   | 'expected_interrupted_time_needed'
   | 'expected_tracking'
   | 'used_at_before_segment_start'
+  | 'used_at_in_the_future'
   | 'end_before_segment_start'
+  | 'not_at_target_date'
   | 'not_editable';
 
 export function emptySessionState(): BreakSessionState {
@@ -86,8 +89,11 @@ export interface CheckinSymptoms {
 const NO_SYMPTOMS: CheckinSymptoms = { craving: null, sleep: null, irritability: null, anxiety: null, appetite: null };
 
 /** Creates a finite break plan: an `active` attempt when the plan starts at
- * or before now, otherwise a `planned` attempt that activates later. */
+ * or before now, otherwise a `planned` attempt that activates later. A second
+ * live plan or tracking run is refused — the spec leaves overlapping live
+ * timelines undefined. */
 export function createBreakPlan(state: BreakSessionState, input: NewBreakPlanInput): BreakSessionState {
+  if (hasLiveTimeline(state)) return state;
   const attempt = createBreakAttempt({
     id: input.id,
     calculationRecordId: input.calculationRecordId,
@@ -112,6 +118,7 @@ export function createBreakPlan(state: BreakSessionState, input: NewBreakPlanInp
 
 /** Starts an open-ended tracking run anchored at the authoritative last use. */
 export function createTracking(state: BreakSessionState, input: NewTrackingInput): BreakSessionState {
+  if (hasLiveTimeline(state)) return state;
   const track: StoredTrack = {
     ...createAbstinenceTrack({
       id: input.id,
@@ -180,6 +187,7 @@ export interface ConfirmUseInput {
 /** Confirms a reported finite-break use and restarts the plan from it,
  * recording the use-day check-in. */
 export function confirmBreakUse(state: BreakSessionState, input: ConfirmUseInput): SessionOutcome<SessionErrorCode> {
+  if (input.usedAt > input.now) return { ok: false, code: 'used_at_in_the_future' };
   const index = state.attempts.findIndex((attempt) => attempt.id === input.id);
   if (index < 0) return { ok: false, code: 'attempt_not_found' };
   const stored = state.attempts[index]!;
@@ -198,6 +206,7 @@ export function confirmBreakUse(state: BreakSessionState, input: ConfirmUseInput
 /** Confirms a reported use on open-ended tracking and restarts the timeline
  * from it (no target exists, so nothing re-anchors to a target date). */
 export function confirmTrackingUse(state: BreakSessionState, input: ConfirmUseInput): SessionOutcome<SessionErrorCode> {
+  if (input.usedAt > input.now) return { ok: false, code: 'used_at_in_the_future' };
   const index = state.tracking.findIndex((track) => track.id === input.id);
   if (index < 0) return { ok: false, code: 'tracking_not_found' };
   const stored = state.tracking[index]!;
@@ -345,6 +354,13 @@ function closeActiveBreak(
   if (index < 0) return { ok: false, code: 'attempt_not_found' };
   const stored = state.attempts[index]!;
   if (stored.status !== 'active') return { ok: false, code: 'expected_active' };
+  if (kind === 'complete') {
+    const openSegment = stored.segments[stored.segments.length - 1];
+    if (openSegment === undefined || openSegment.endedAt !== null) return { ok: false, code: 'expected_active' };
+    if (endedAt < plannedTargetDate(openSegment.startedFromLastUseAt, stored.targetDurationDays)) {
+      return { ok: false, code: 'not_at_target_date' };
+    }
+  }
   const result = kind === 'complete' ? completeBreak(stored, endedAt) : endBreak(stored, endedAt);
   if (!result.ok) {
     return { ok: false, code: result.code === 'end_before_segment_start' ? 'end_before_segment_start' : 'expected_active' };
@@ -388,4 +404,9 @@ function withStoredTrack(previous: StoredTrack, track: AbstinenceTrack, now: Ins
 
 function isoNow(now: Instant): string {
   return new Date(now).toISOString();
+}
+
+/** True when Today already has a live plan or tracking run. */
+function hasLiveTimeline(state: BreakSessionState): boolean {
+  return currentLiveAttempt(state.attempts) !== null || currentLiveTracking(state.tracking) !== null;
 }

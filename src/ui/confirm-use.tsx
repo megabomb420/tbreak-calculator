@@ -12,7 +12,7 @@ export interface ConfirmUseProps {
   /** Lower bound of the valid used-at window (current segment start). */
   readonly segmentStart: Instant;
   readonly now: Instant;
-  readonly onConfirm: (usedAt: Instant, usedAtIso: string) => void;
+  readonly onConfirm: (usedAt: Instant, usedAtIso: string) => boolean;
   readonly onClose: () => void;
   /** Explicit recalculation, never automatic (UX_SPEC 10.3.4). */
   readonly onRecalculate: () => void;
@@ -26,8 +26,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
     if (selectedIso === null) return;
     const parsed = parseSubmittedTimestamp(selectedIso);
     if (parsed === null) return;
-    onConfirm(parsed, selectedIso);
-    setConfirmed(true);
+    if (onConfirm(parsed, selectedIso)) setConfirmed(true);
   }
 
   return (
@@ -68,6 +67,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
               now={now}
               value={selectedIso ?? undefined}
               onChange={setSelectedIso}
+              onInvalid={() => setSelectedIso(null)}
             />
           </div>
         )}

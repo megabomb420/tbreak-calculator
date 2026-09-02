@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { CHECKIN, SYMPTOM_FIELDS } from './break-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
 
@@ -25,6 +25,7 @@ export interface CheckInProps {
 export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, onClose }: CheckInProps) {
   const [screen, setScreen] = useState<'question' | 'symptoms'>('question');
   const [noSelected, setNoSelected] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   return (
     <div
@@ -46,17 +47,28 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
       {screen === 'question' ? (
         <QuestionScreen
           noSelected={noSelected}
+          busy={busy}
           onSelectNo={() => setNoSelected(true)}
-          onYes={onUseReported}
+          onYes={() => {
+            if (busy) return;
+            setBusy(true);
+            onUseReported();
+          }}
           onSave={() => {
-            if (noSelected) onNoUseSave();
+            if (!noSelected || busy) return;
+            setBusy(true);
+            onNoUseSave();
           }}
           onAddSymptoms={() => setScreen('symptoms')}
         />
       ) : (
         <SymptomsScreen
           onBack={() => setScreen('question')}
-          onSave={(symptoms, note) => onSymptomsSave(symptoms, note)}
+          onSave={(symptoms, note) => {
+            if (busy) return;
+            setBusy(true);
+            onSymptomsSave(symptoms, note);
+          }}
         />
       )}
     </div>
@@ -65,12 +77,14 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
 
 function QuestionScreen({
   noSelected,
+  busy,
   onSelectNo,
   onYes,
   onSave,
   onAddSymptoms,
 }: {
   readonly noSelected: boolean;
+  readonly busy: boolean;
   readonly onSelectNo: () => void;
   readonly onYes: () => void;
   readonly onSave: () => void;
@@ -82,12 +96,13 @@ function QuestionScreen({
         <div className="stack">
           <h3 className="card-title">{CHECKIN.question}</h3>
           <div className="two-choice">
-            <button
-              type="button"
-              className={noSelected ? 'choice-card selected' : 'choice-card'}
-              data-testid="checkin-no"
-              onClick={onSelectNo}
-            >
+          <button
+            type="button"
+            className={noSelected ? 'choice-card selected' : 'choice-card'}
+            data-testid="checkin-no"
+            disabled={busy}
+            onClick={onSelectNo}
+          >
               <span className="choice-copy">
                 <span className="choice-title">{CHECKIN.no}</span>
                 <span className="meta">Nothing since your last check-in</span>
@@ -100,6 +115,7 @@ function QuestionScreen({
               type="button"
               className="choice-card"
               data-testid="checkin-yes"
+              disabled={busy}
               onClick={onYes}
             >
               <span className="choice-copy">
@@ -114,7 +130,7 @@ function QuestionScreen({
         <button
           type="button"
           className="cta-primary"
-          disabled={!noSelected}
+          disabled={!noSelected || busy}
           data-testid="checkin-save"
           onClick={onSave}
         >
@@ -142,8 +158,18 @@ function SymptomsScreen({
     setSymptoms((current) => ({ ...current, [field]: value }));
   }
 
+  function submit() {
+    onSave(symptoms, note === '' ? null : note);
+  }
+
   return (
-    <>
+    <form
+      className="checkin-symptoms-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+    >
       <div className="questionnaire-body flow-body">
         <div className="stack">
           <header>
@@ -173,6 +199,7 @@ function SymptomsScreen({
               value={note}
               data-testid="checkin-note"
               aria-label={CHECKIN.noteLabel}
+              enterKeyHint="done"
               onInput={(event) => setNote((event.target as HTMLInputElement).value)}
             />
             <span className="meta">{CHECKIN.noteHelper}</span>
@@ -181,10 +208,9 @@ function SymptomsScreen({
       </div>
       <footer className="questionnaire-footer">
         <button
-          type="button"
+          type="submit"
           className="cta-primary"
           data-testid="symptoms-save"
-          onClick={() => onSave(symptoms, note === '' ? null : note)}
         >
           {CHECKIN.save}
         </button>
@@ -192,7 +218,7 @@ function SymptomsScreen({
           {CHECKIN.backToQuestion}
         </button>
       </footer>
-    </>
+    </form>
   );
 }
 
@@ -211,9 +237,13 @@ function SymptomSlider({
   readonly value: number | null;
   readonly onChange: (value: number) => void;
 }) {
-  const [armed, setArmed] = useState(false);
+  const armedRef = useRef(false);
   const shown = value ?? 0;
   const pct = `${(shown / 10) * 100}%`;
+
+  function arm() {
+    armedRef.current = true;
+  }
 
   return (
     <section
@@ -237,14 +267,16 @@ function SymptomSlider({
           aria-label={label}
           aria-valuemin={0}
           aria-valuemax={10}
-          aria-valuenow={shown}
+          aria-valuenow={value === null ? undefined : shown}
+          aria-valuetext={value === null ? 'Not set' : String(value)}
           className="slider"
-          onFocus={() => setArmed(true)}
-          onPointerDown={() => setArmed(true)}
+          onFocus={arm}
+          onPointerDown={arm}
+          onMouseDown={arm}
           onInput={(event) => {
             // A parked thumb stays null until the user deliberately touches
             // the control; an untouched slider is never stored as 0.
-            if (!armed) return;
+            if (!armedRef.current) return;
             onChange(Number((event.target as HTMLInputElement).value));
           }}
         />

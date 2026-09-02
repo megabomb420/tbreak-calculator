@@ -695,6 +695,13 @@ summary:focus-visible {
   background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
 }
 
+.checkin-symptoms-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .text-back {
   min-height: 44px;
   border: 0;
@@ -857,6 +864,7 @@ summary:focus-visible {
   font-size: 13.5px;
   line-height: 1.3;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .tile svg {
@@ -1275,7 +1283,8 @@ details.card > summary::-webkit-details-marker {
 
 @media (min-width: 720px) {
   .app-shell,
-  .questionnaire-overlay {
+  .questionnaire-overlay,
+  .modal-root {
     max-width: 430px;
     margin: 0 auto;
   }

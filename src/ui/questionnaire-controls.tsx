@@ -166,7 +166,7 @@ export function UseDaysSlider({
     <div className="control-stack">
       <div className="slider-stage">
         <p className="slider-readout" data-testid="use-days-readout" aria-live="polite">
-          {shown}
+          {value === null ? '—' : shown}
         </p>
         <p className="slider-unit">days in the last 30</p>
       </div>
@@ -345,6 +345,7 @@ export function DateControl({
   showStillUse,
   from,
   onChange,
+  onInvalid,
 }: {
   readonly window: DateWindowKind;
   readonly now: Instant;
@@ -353,6 +354,8 @@ export function DateControl({
   /** Lower instant bound for the `since_anchor` window (interruption). */
   readonly from?: Instant;
   readonly onChange: (iso: string) => void;
+  /** Called when a pick falls outside the window so a previous valid value is not reused. */
+  readonly onInvalid?: () => void;
 }) {
   const [chip, setChip] = useState<DateChipId | 'pick' | 'still' | null>(null);
   const [dayPart, setDayPart] = useState<DayPart>('afternoon');
@@ -365,11 +368,13 @@ export function DateControl({
   function applyPicked(nextDate: string, nextPart: DayPart) {
     const iso = resolvePickedDate(nextDate, nextPart, now, window, from);
     if (iso !== null) onChange(iso);
+    else onInvalid?.();
   }
 
   function applyChip(nextChip: DateChipId, nextPart: DayPart) {
     const iso = resolveDateChip(nextChip, nextPart, now, window, from);
     if (iso !== null) onChange(iso);
+    else onInvalid?.();
   }
 
   return (
@@ -398,7 +403,10 @@ export function DateControl({
           type="button"
           className={chipClass(chip === 'pick')}
           data-date-chip="pick"
-          onClick={() => setChip('pick')}
+          onClick={() => {
+            setChip('pick');
+            onInvalid?.();
+          }}
         >
           {QUESTIONNAIRE.pickADate}
         </button>
@@ -411,6 +419,7 @@ export function DateControl({
               setChip('still');
               const iso = resolveDateChip('today', 'morning', now, window, from);
               if (iso !== null) onChange(iso);
+              else onInvalid?.();
             }}
           >
             {QUESTIONNAIRE.stillUseToday}

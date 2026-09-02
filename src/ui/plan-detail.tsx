@@ -294,21 +294,22 @@ function StepperField({
   readonly max: number;
   readonly onChange: (value: number) => void;
 }) {
+  const labelId = `stepper-label-${slug(label)}`;
   return (
-    <label className="stepper-field meta">
-      <span>{label}</span>
+    <div className="stepper-field meta">
+      <span id={labelId}>{label}</span>
       <span className="stepper">
         <button type="button" className="stepper-button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, value - 1))}>
           −
         </button>
-        <output className="stepper-value" data-testid={`stepper-${slug(label)}`}>
+        <output className="stepper-value" data-testid={`stepper-${slug(label)}`} aria-labelledby={labelId}>
           {value}
         </output>
         <button type="button" className="stepper-button" aria-label={`Increase ${label}`} onClick={() => onChange(Math.min(max, value + 1))}>
           +
         </button>
       </span>
-    </label>
+    </div>
   );
 }
 

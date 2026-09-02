@@ -85,7 +85,13 @@ export function isValidStoredTrack(value: unknown): value is StoredTrack {
   if (!isInstantNumber(value.startedAt)) return false;
   if (!Array.isArray(value.segments) || !value.segments.every(isValidSegment)) return false;
   if (value.segments.length < 1) return false;
-  const openSegments = value.segments.filter((segment) => segment.endedAt === null);
-  if (openSegments.length !== (value.status === 'ended' ? 0 : 1)) return false;
+  const last = value.segments[value.segments.length - 1];
+  if (last === undefined) return false;
+  if (value.status === 'ended') {
+    if (value.segments.some((segment) => segment.endedAt === null)) return false;
+  } else {
+    if (last.endedAt !== null) return false;
+    if (value.segments.slice(0, -1).some((segment) => segment.endedAt === null)) return false;
+  }
   return isInstantNumber(value.createdAt) && isInstantNumber(value.updatedAt);
 }

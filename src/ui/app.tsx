@@ -147,13 +147,18 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   // Activate any planned break whose start has arrived.
   useEffect(() => {
+    const current: BreakSessionState = {
+      attempts: attemptsRecord?.attempts ?? [],
+      tracking: trackingRecord?.records ?? [],
+      checkins: checkinsRecord?.checkins ?? [],
+    };
     const anchor = profileAnchor(snapshotRecord);
-    const activated = activateDuePlans(sessionState, () => anchor, now);
-    if (activated !== sessionState) {
+    const activated = activateDuePlans(current, () => anchor, now);
+    if (activated !== current) {
       attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...activated.attempts] });
       refresh();
     }
-  }, [factsEpoch, now, sessionState, snapshotRecord, attemptsStore]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [factsEpoch, now, attemptsRecord, trackingRecord, checkinsRecord, snapshotRecord, attemptsStore]);
 
   const snapshotFacts = todayFactsFromSnapshot(snapshotRecord?.snapshot ?? null);
   const acknowledged = resultRecord?.status === 'acknowledged';
@@ -235,6 +240,9 @@ export function App({ storage, clock = systemClock }: AppProps) {
   }
 
   function startPlan(mode: PostBreakMode, startAt: Instant): void {
+    if (currentLiveAttempt(sessionState.attempts) !== null || currentLiveTracking(sessionState.tracking) !== null) {
+      return;
+    }
     const calcId = snapshotRunId();
     const lastUse = currentAnchor();
     if (calcId === null || lastUse === null) return;
@@ -257,6 +265,9 @@ export function App({ storage, clock = systemClock }: AppProps) {
   }
 
   function startTracking(): void {
+    if (currentLiveAttempt(sessionState.attempts) !== null || currentLiveTracking(sessionState.tracking) !== null) {
+      return;
+    }
     const lastUse = currentAnchor();
     if (lastUse === null) return;
     const calcId = snapshotRunId();
@@ -288,6 +299,16 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   function handleUseReported(): void {
     const nowAt = clock.now();
+    if (liveAttempt?.status === 'interrupted_time_needed') {
+      const start = currentSegmentAnchor(liveAttempt.segments);
+      if (start !== null) setFlow({ kind: 'confirm-use', scope: 'attempt', segmentStart: start });
+      return;
+    }
+    if (liveTracking?.status === 'interrupted_time_needed') {
+      const start = currentSegmentAnchor(liveTracking.segments);
+      if (start !== null) setFlow({ kind: 'confirm-use', scope: 'tracking', segmentStart: start });
+      return;
+    }
     let scope: ConfirmScope = liveAttempt?.status === 'active' ? 'attempt' : 'tracking';
     let segmentStart: Instant | null = null;
     if (liveAttempt?.status === 'active') {
@@ -306,21 +327,19 @@ export function App({ storage, clock = systemClock }: AppProps) {
     }
     if (segmentStart !== null) {
       setFlow({ kind: 'confirm-use', scope, segmentStart });
-    } else {
-      setFlow(null);
     }
     refresh();
   }
 
-  function confirmUse(scope: ConfirmScope, usedAt: Instant, usedAtIso: string): void {
+  function confirmUse(scope: ConfirmScope, usedAt: Instant, usedAtIso: string): boolean {
     const nowAt = clock.now();
     const id = scope === 'attempt' ? liveData.interruptedAttempt?.id : liveData.interruptedTracking?.id;
-    if (id === undefined) return;
+    if (id === undefined) return false;
     const outcome =
       scope === 'attempt'
         ? confirmBreakUse(sessionState, { id, usedAt, usedAtIso, now: nowAt })
         : confirmTrackingUse(sessionState, { id, usedAt, usedAtIso, now: nowAt });
-    if (!outcome.ok) return;
+    if (!outcome.ok) return false;
     persistBreakSession(outcome.state);
     if (snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile') {
       const profile = snapshotRecord.snapshot.profile;
@@ -331,6 +350,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
       });
     }
     refresh();
+    return true;
   }
 
   function openPlanDetail(): void {
@@ -439,13 +459,19 @@ export function App({ storage, clock = systemClock }: AppProps) {
     refresh();
   }
 
-  function startOver() {
+  /** Abandon an unfinished questionnaire without touching a saved profile or live plan. */
+  function abandonDraft() {
+    progress.clear();
+    setSession(null);
+    setLastUseWarning(false);
+    refresh();
+  }
+
+  /** Recovery for a snapshot that cannot produce a result. Keeps any live plan. */
+  function resetFailedCalculation() {
     progress.clear();
     snapshots.clear();
     resultViews.clear();
-    attemptsStore.clear();
-    trackingStore.clear();
-    checkinsStore.clear();
     setSession(null);
     setLastUseWarning(false);
     setFlow(null);
@@ -579,7 +605,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
             draft={facts.draft}
             live={liveData}
             profile={profileData}
-            onStartOver={startOver}
+            onStartOver={abandonDraft}
             onGetStarted={openStart}
             onSelectGoal={openGoal}
             onResume={openResume}
@@ -622,7 +648,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
           onSkip={skipOptionalLastUse}
         />
       ) : null}
-      {resultModel !== null ? (
+      {resultModel !== null && flow === null ? (
         <ResultScreen
           view={resultModel}
           onAcknowledge={acknowledgeResult}
@@ -631,7 +657,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
           onCheckAnotherTest={checkAnotherTest}
           onBreakRecommendation={breakRecommendation}
           onDetectionBasics={() => openGoal('detection_information')}
-          onStartOver={startOver}
+          onStartOver={resetFailedCalculation}
           onStartBreak={canStartPlan ? openBreakStart : undefined}
           onStartTracking={canStartPlan ? startTracking : undefined}
           trackingAvailable={resultModel.kind === 'baseline_low' ? anchor !== null : true}
@@ -709,7 +735,7 @@ function FlowRenderer({
   readonly onCheckInNo: () => void;
   readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onUseReported: () => void;
-  readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => void;
+  readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
   readonly onMarkComplete: (id: string) => void;
   readonly onEndEarly: (id: string) => void;
   readonly onCancelPlanned: (id: string) => void;

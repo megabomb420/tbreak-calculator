@@ -152,6 +152,20 @@ describe('break start sheet', () => {
     expect(attempt?.segments[0]?.startedFromLastUseAt).toBe(AT);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
   });
+
+  it('rejects a picked start date outside today..+14 days', () => {
+    const storage = createMemoryStorage();
+    completeToleranceFlow(storage);
+    fireEvent.click(screen.getByRole('button', { name: RESULT.startThisBreak }));
+    const sheet = screen.getByTestId('break-start-sheet');
+    fireEvent.click(within(sheet).getByRole('button', { name: /Pick a date/ }));
+    const yesterday = localIsoDate(toInstant(AT - DAY_MS));
+    fireEvent.input(screen.getByTestId('break-start-date'), { target: { value: yesterday } });
+    fireEvent.click(within(sheet).getByRole('button', { name: /Not sure yet/ }));
+    expect((screen.getByTestId('start-break') as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(sheet).getByRole('button', { name: BREAK_START.startBreak }));
+    expect(attemptsOf(storage)).toHaveLength(0);
+  });
 });
 
 describe('plan detail', () => {
@@ -233,7 +247,7 @@ describe('daily check-in', () => {
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
     // Set one slider deliberately; the others must stay untouched.
     const craving = screen.getByRole('slider', { name: 'Craving' });
-    fireEvent.focus(craving);
+    fireEvent.pointerDown(craving);
     fireEvent.input(craving, { target: { value: '6' } });
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
     fireEvent.input(screen.getByTestId('checkin-note'), { target: { value: 'steady so far' } });
@@ -260,6 +274,21 @@ describe('daily check-in', () => {
     expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
     // No check-in is recorded until the use is confirmed.
     expect(checkinsOf(storage)).toHaveLength(0);
+  });
+
+  it('a repeated Yes after interruption reopens confirm-when instead of closing the flow', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('checkin-cta'));
+    fireEvent.click(screen.getByTestId('checkin-yes'));
+    expect(screen.getByTestId('confirm-use')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('attempt');
+    expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
   });
 });
 

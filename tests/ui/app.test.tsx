@@ -304,6 +304,24 @@ describe('questionnaire resume placement', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-resume')).toBe('secondary');
   });
 
+  it('keeps a completed-unacknowledged card primary when a draft exists', () => {
+    const storage = createMemoryStorage();
+    saveDraft(storage, 2);
+    acknowledgeProfile(storage, toleranceProfile());
+    seedAttempt(
+      storage,
+      storedAttempt({
+        status: 'completed',
+        segments: [{ startedFromLastUseAt: ANCHOR_MS as Instant, endedAt: AT, endReason: 'completed' }],
+      }),
+    );
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
+    expect(screen.getByTestId('today-view').getAttribute('data-resume')).toBe('secondary');
+    expect(screen.getByTestId('state-completed-break')).toBeTruthy();
+    expect(screen.getByTestId('resume-card')).toBeTruthy();
+  });
+
   it('Start over clears the draft and restores the primary shell', () => {
     const storage = createMemoryStorage();
     saveDraft(storage, 3);
@@ -313,6 +331,20 @@ describe('questionnaire resume placement', () => {
     expect(view.getAttribute('data-primary')).toBe('first-launch');
     expect(screen.queryByTestId('resume-card')).toBeNull();
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
+  });
+
+  it('Start over on a resume card keeps a live break and saved profile', () => {
+    const storage = createMemoryStorage();
+    saveDraft(storage, 2);
+    acknowledgeProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    expect(screen.queryByTestId('resume-card')).toBeNull();
+    expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
+    expect(createBreakAttemptsStore(storage).load()?.attempts[0]?.status).toBe('active');
+    expect(createQuestionnaireSnapshotStore(storage).load()).not.toBeNull();
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
   });
 });
 

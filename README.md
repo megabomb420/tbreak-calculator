@@ -4,9 +4,10 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.3.0** — the break loop (§8/§10): real break plans, open-ended
-abstinence tracking, use-first daily check-ins, and interruption/restart on
-the Interval visual system (dusk navy, parchment type).
+Version **0.3.1** — QA hardening on top of the 0.3.0 break loop (§8/§10):
+real break plans, open-ended abstinence tracking, use-first daily check-ins,
+and interruption/restart on the Interval visual system (dusk navy, parchment
+type).
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -42,7 +43,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.3.0)
+## Capabilities (0.3.1)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -85,8 +86,10 @@ Persistence is **Web Storage only**, through versioned, validated records:
 
 Corrupt envelopes are dropped and treated as absent; an invalid row is
 isolated from the rows/records that still validate. When Web Storage is
-unavailable the app runs in memory (degraded, not persistent). IndexedDB
-remains reserved for the durable record stores of the History slice.
+unavailable the app runs in memory (degraded, not persistent). **Delete
+everything** removes only these `tbreak.*` keys so a shared origin (GitHub
+Pages) is not wiped wholesale. IndexedDB remains reserved for the durable
+record stores of the History slice.
 
 ## Layout
 

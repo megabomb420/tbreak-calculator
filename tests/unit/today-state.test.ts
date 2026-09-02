@@ -142,13 +142,18 @@ describe('Today router: questionnaire resume placement (UX_SPEC 3.2)', () => {
       facts({ detectionOnly: true, draft: DRAFT }), // detection-only
       facts({ hasProfile: true, draft: DRAFT }), // profile-no-break
       facts({ attempt: attempt('planned'), draft: DRAFT }), // planned attempt
-      facts({ attempt: attempt('completed'), draft: DRAFT }), // completed-break (not live timing)
       facts({ tracking: tracking('ended'), draft: DRAFT }), // ended tracking
     ];
     for (const input of cases) {
       const view = resolveTodayState(input);
       assert.equal(view.resume, 'replaces-primary', view.primary);
     }
+  });
+
+  it('keeps a completed-unacknowledged card primary so acknowledgement stays reachable', () => {
+    const view = resolveTodayState(facts({ attempt: attempt('completed'), draft: DRAFT }));
+    assert.equal(view.primary, 'completed-break');
+    assert.equal(view.resume, 'secondary');
   });
 
   it('is deterministic for equal facts', () => {

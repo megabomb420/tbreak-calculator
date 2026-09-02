@@ -133,6 +133,16 @@ describe('delete everything returns to first launch (UX_SPEC 13.3)', () => {
     assert.equal(resolveTodayState(emptyTodayFacts()).primary, 'first-launch');
     assert.equal(resolveTodayState(emptyTodayFacts()).resume, 'none');
   });
+
+  it('delete everything removes only tbreak keys', () => {
+    const adapter: StorageAdapter = createMemoryStorage();
+    adapter.setItem('other.app.key', 'keep-me');
+    const store = createQuestionnaireProgressStore(adapter);
+    store.save(record(3));
+    deleteAllLocalData(adapter);
+    assert.equal(store.load(), null);
+    assert.equal(adapter.getItem('other.app.key'), 'keep-me');
+  });
 });
 
 describe('progress store wiring into the Today router (UX_SPEC 3.2 resume)', () => {
