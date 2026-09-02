@@ -1,0 +1,203 @@
+{
+  "description": "Golden fixtures for the qualitative v1 Detection Engine (CALCULATOR_SPEC 8). Results are qualitative_only with no numeric range, cutoff, confidence or clear date; roadside adds the verified-jurisdiction warning and no Irish/generic threshold claim.",
+  "cases": [
+    {
+      "name": "urine_general",
+      "request": { "matrix": "urine", "context": "general" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "urine",
+        "context": "general",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["urine_frequency_chronicity_elapsed_and_cutoff_relevant"],
+        "uncertaintyCodes": ["urine_no_numeric_window_or_baseline_without_enabled_rules"],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "urine_workplace",
+      "request": { "matrix": "urine", "context": "workplace" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "urine",
+        "context": "workplace",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["urine_frequency_chronicity_elapsed_and_cutoff_relevant"],
+        "uncertaintyCodes": [
+          "urine_no_numeric_window_or_baseline_without_enabled_rules",
+          "workplace_cutoff_and_policy_unknown"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "urine_roadside",
+      "request": { "matrix": "urine", "context": "roadside" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "urine",
+        "context": "roadside",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["urine_frequency_chronicity_elapsed_and_cutoff_relevant"],
+        "uncertaintyCodes": [
+          "urine_no_numeric_window_or_baseline_without_enabled_rules",
+          "roadside_requires_verified_jurisdiction_rules"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "blood_general",
+      "request": { "matrix": "blood", "context": "general" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "blood",
+        "context": "general",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["blood_no_universal_clearance_window", "blood_trace_presence_not_impairment"],
+        "uncertaintyCodes": ["blood_very_low_detectable_persists_with_sensitive_methods"],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "blood_roadside",
+      "request": { "matrix": "blood", "context": "roadside" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "blood",
+        "context": "roadside",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["blood_no_universal_clearance_window", "blood_trace_presence_not_impairment"],
+        "uncertaintyCodes": [
+          "blood_very_low_detectable_persists_with_sensitive_methods",
+          "roadside_requires_verified_jurisdiction_rules"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "oral_fluid_general",
+      "request": { "matrix": "oral_fluid", "context": "general" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "oral_fluid",
+        "context": "general",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["oral_fluid_shorter_scale_than_urine_cutoff_technology_dependent"],
+        "uncertaintyCodes": ["oral_fluid_unknown_test_characteristics_prevent_numeric_estimate"],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "oral_fluid_roadside_no_generic_threshold_claim",
+      "request": { "matrix": "oral_fluid", "context": "roadside" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "oral_fluid",
+        "context": "roadside",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["oral_fluid_shorter_scale_than_urine_cutoff_technology_dependent"],
+        "uncertaintyCodes": [
+          "oral_fluid_unknown_test_characteristics_prevent_numeric_estimate",
+          "roadside_requires_verified_jurisdiction_rules"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "hair_general",
+      "request": { "matrix": "hair", "context": "general" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "hair",
+        "context": "general",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["hair_retrospective_exposure_matrix"],
+        "uncertaintyCodes": ["hair_never_a_day_level_clearance_date"],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "hair_workplace",
+      "request": { "matrix": "hair", "context": "workplace" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "hair",
+        "context": "workplace",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["hair_retrospective_exposure_matrix"],
+        "uncertaintyCodes": [
+          "hair_never_a_day_level_clearance_date",
+          "workplace_cutoff_and_policy_unknown"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "hair_roadside",
+      "request": { "matrix": "hair", "context": "roadside" },
+      "expected": {
+        "kind": "qualitative_only",
+        "matrix": "hair",
+        "context": "roadside",
+        "numericEstimateAvailable": false,
+        "interpretationCodes": ["hair_retrospective_exposure_matrix"],
+        "uncertaintyCodes": [
+          "hair_never_a_day_level_clearance_date",
+          "roadside_requires_verified_jurisdiction_rules"
+        ],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "invalid_matrix_validation_error",
+      "request": { "matrix": "sweat", "context": "general" },
+      "expected": {
+        "kind": "validation_error",
+        "matrix": null,
+        "context": null,
+        "numericEstimateAvailable": false,
+        "interpretationCodes": [],
+        "uncertaintyCodes": [],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    },
+    {
+      "name": "invalid_context_validation_error",
+      "request": { "matrix": "urine", "context": "home" },
+      "expected": {
+        "kind": "validation_error",
+        "matrix": null,
+        "context": null,
+        "numericEstimateAvailable": false,
+        "interpretationCodes": [],
+        "uncertaintyCodes": [],
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "policyVersion": "detection-copy-v1"
+      }
+    }
+  ]
+}

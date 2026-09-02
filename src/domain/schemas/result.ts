@@ -1,11 +1,13 @@
-// Structured result contracts (CALCULATOR_SPEC section 7.1).
+// Structured result contracts (CALCULATOR_SPEC sections 7.1, 8.1 and 6).
 //
 // Driver and limitation codes are deterministic, non-scientific message
 // codes owned by the static tolerance policy. Withdrawal display and history
 // insight are derived by the v1 engine (spec 7.7-7.8); the anchor data for
-// withdrawal lives in the versioned tolerance policy.
+// withdrawal lives in the versioned tolerance policy. Detection and nominal
+// THC have their own result types; tolerance, detection and impairment stay
+// explicitly separate.
 
-import type { Confidence } from './enums.ts';
+import type { Confidence, DetectionContext, DetectionMatrix } from './enums.ts';
 import type { Instant } from './time.ts';
 
 export type ToleranceResultKind = 'tolerance_result' | 'planning_only' | 'not_applicable' | 'validation_error';
@@ -86,3 +88,43 @@ export interface ToleranceResult {
   readonly policyVersion: string;
   readonly calculatedAt: Instant;
 }
+
+// --- Qualitative Detection Engine result (CALCULATOR_SPEC section 8.1) -----
+
+export type DetectionResultKind = 'qualitative_only' | 'validation_error';
+
+export interface DetectionResult {
+  readonly kind: DetectionResultKind;
+  /** Validated matrix, or null on a validation_error result. */
+  readonly matrix: DetectionMatrix | null;
+  /** Validated context, or null on a validation_error result. */
+  readonly context: DetectionContext | null;
+  readonly numericEstimateAvailable: false;
+  /** Deterministic static copy codes selected by the detection policy. */
+  readonly interpretationCodes: readonly string[];
+  /** Unknowns and warnings, including context-specific jurisdiction/cutoff codes. */
+  readonly uncertaintyCodes: readonly string[];
+  readonly evidenceConfidence: null;
+  readonly personalisationConfidence: null;
+  readonly policyVersion: string;
+}
+
+// --- Nominal flower THC result (CALCULATOR_SPEC section 6) ------------------
+
+export type NominalThcResultKind = 'nominal_thc' | 'validation_error';
+
+/**
+ * The only amount label v1 can emit for flower. THC contained in plant
+ * material is `nominal_thc`; it is never represented as an absorbed,
+ * delivered or bioavailable dose. Future exposure estimates must use their
+ * own result types and labels, never this one.
+ */
+export type ThcAmountLabel = 'nominal_thc';
+
+export interface NominalThcResult {
+  readonly kind: NominalThcResultKind;
+  readonly label: ThcAmountLabel | null;
+  readonly nominalThcMg: number | null;
+  readonly policyVersion: string;
+}
+

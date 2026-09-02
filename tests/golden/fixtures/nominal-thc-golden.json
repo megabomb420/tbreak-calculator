@@ -1,0 +1,109 @@
+{
+  "description": "Golden fixtures for the nominal flower THC calculator (CALCULATOR_SPEC 6). nominal_thc_mg = grams x 1000 x potency fraction; every result is labelled nominal_thc and never absorbed/delivered THC.",
+  "cases": [
+    {
+      "name": "half_gram_at_20_percent_100_mg",
+      "input": {
+        "flowerGrams": { "value": 0.5, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 20, "provenance": "label_derived" }
+      },
+      "expected": {
+        "kind": "nominal_thc",
+        "label": "nominal_thc",
+        "nominalThcMg": 100,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "two_grams_at_15_percent_300_mg",
+      "input": {
+        "flowerGrams": { "value": 2, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 15, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "nominal_thc",
+        "label": "nominal_thc",
+        "nominalThcMg": 300,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "three_point_five_grams_at_22_percent_770_mg",
+      "input": {
+        "flowerGrams": { "value": 3.5, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 22, "provenance": "label_derived" }
+      },
+      "expected": {
+        "kind": "nominal_thc",
+        "label": "nominal_thc",
+        "nominalThcMg": 770,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "quarter_gram_at_12_point_5_percent_31_point_25_mg",
+      "input": {
+        "flowerGrams": { "value": 0.25, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 12.5, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "nominal_thc",
+        "label": "nominal_thc",
+        "nominalThcMg": 31.25,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "one_gram_at_100_percent_1000_mg",
+      "input": {
+        "flowerGrams": { "value": 1, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 100, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "nominal_thc",
+        "label": "nominal_thc",
+        "nominalThcMg": 1000,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "missing_flower_grams_validation_error",
+      "input": {
+        "flowerGrams": { "value": null, "provenance": "missing" },
+        "thcPotencyPercent": { "value": 20, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "validation_error",
+        "label": null,
+        "nominalThcMg": null,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "zero_flower_grams_validation_error",
+      "input": {
+        "flowerGrams": { "value": 0, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 20, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "validation_error",
+        "label": null,
+        "nominalThcMg": null,
+        "policyVersion": "nominal-thc-v1"
+      }
+    },
+    {
+      "name": "potency_above_100_validation_error",
+      "input": {
+        "flowerGrams": { "value": 0.5, "provenance": "user_estimate" },
+        "thcPotencyPercent": { "value": 120, "provenance": "user_estimate" }
+      },
+      "expected": {
+        "kind": "validation_error",
+        "label": null,
+        "nominalThcMg": null,
+        "policyVersion": "nominal-thc-v1"
+      }
+    }
+  ]
+}
