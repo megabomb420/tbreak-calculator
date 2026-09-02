@@ -11,12 +11,20 @@ npm install
 npm run dev
 ```
 
-Then open the printed local URL. Production:
+Then open the printed local URL (dev is served at `/`). Production:
 
 ```bash
 npm run build
 npm run preview
 ```
+
+The production build uses base `/tbreak-calculator/` for GitHub Pages. Preview is at `http://localhost:4173/tbreak-calculator/`.
+
+## Deploy
+
+GitHub Pages via Actions on `main`:
+
+https://megabomb420.github.io/tbreak-calculator/
 
 ## Check
 
