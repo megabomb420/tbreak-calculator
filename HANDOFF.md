@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- Current HEAD when this was written: `09fbda2` — this handoff. Product still `df39525`.
+- Last product commit: `df39525` — `fix: add vape product option and iOS first-paint bottom layout`. This file sits on `main` after that.
 
 Authoritative docs:
 
