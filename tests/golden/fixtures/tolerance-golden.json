@@ -1,0 +1,500 @@
+{
+  "description": "Golden fixtures for the v1 Tolerance Engine (CALCULATOR_SPEC 7). Reference instant C0 = 2026-08-20T00:00:00.000Z (epoch ms 1787184000000). Equality is structural domain equality: kind, range, target, confidence, uncertainty code, drivers, limitations, policyVersion, calculatedAt.",
+  "calculatedAtMs": 1787184000000,
+  "lastUseIso": "2026-08-19T22:00:00Z",
+  "cases": [
+    {
+      "name": "use_days_0_low_baseline_not_applicable",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 0, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": null, "provenance": "missing" },
+        "products": [],
+        "routes": [],
+        "lastUseAt": { "value": null, "provenance": "missing" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "not_applicable",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": null,
+        "drivers": ["baseline_tolerance_likely_low"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_1_very_infrequent_2_to_7",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 1, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 2, "max": 7 },
+        "preferredTargetDays": 7,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["very_infrequent_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_3_very_infrequent_2_to_7",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 3, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 2, "max": 7 },
+        "preferredTargetDays": 7,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["very_infrequent_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_4_regular_7_to_14",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 4, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 7, "max": 14 },
+        "preferredTargetDays": 14,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["regular_nondaily_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_15_regular_7_to_14",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 15, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 7, "max": 14 },
+        "preferredTargetDays": 14,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["regular_nondaily_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_16_frequent_14_to_21",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 16, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 14, "max": 21 },
+        "preferredTargetDays": 21,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_25_frequent_14_to_21",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 25, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 14, "max": 21 },
+        "preferredTargetDays": 21,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_26_near_daily_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 26, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["near_daily_or_daily_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_30_near_daily_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 30, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["near_daily_or_daily_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_16_multiple_sessions_override_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 16, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 2, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use", "multiple_sessions_per_day"],
+        "historyInsight": null,
+        "limitations": ["heuristic_frequency_intensity_v1"],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_20_concentrate_override_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["concentrate"],
+        "routes": ["vaping"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use", "concentrate_product_use"],
+        "historyInsight": null,
+        "limitations": ["heuristic_frequency_intensity_v1"],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_25_dabbing_override_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 25, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["dabbing"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use", "dabbing_route_use"],
+        "historyInsight": null,
+        "limitations": ["heuristic_frequency_intensity_v1"],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_15_intensity_inputs_no_override_7_to_14",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 15, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 4, "provenance": "user_estimate" },
+        "products": ["concentrate"],
+        "routes": ["dabbing"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 7, "max": 14 },
+        "preferredTargetDays": 14,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["regular_nondaily_use"],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_20_all_intensity_drivers_override_21_to_28",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 3, "provenance": "user_estimate" },
+        "products": ["flower", "concentrate", "flower"],
+        "routes": ["smoking", "dabbing", "dabbing"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "withdrawal": null,
+        "drivers": ["frequent_use", "multiple_sessions_per_day", "concentrate_product_use", "dabbing_route_use"],
+        "historyInsight": null,
+        "limitations": ["heuristic_frequency_intensity_v1"],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "goal_reduction_no_break_planning_only",
+      "profile": {
+        "goal": "reduction",
+        "breakRequested": false,
+        "postBreakMode": "undecided",
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "planning_only",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": null,
+        "drivers": [],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "goal_abstinence_planning_only_no_range",
+      "profile": {
+        "goal": "abstinence",
+        "breakRequested": false,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 28, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 2, "provenance": "user_estimate" },
+        "products": ["concentrate"],
+        "routes": ["dabbing"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "planning_only",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": null,
+        "drivers": [],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "goal_detection_information_not_applicable",
+      "profile": {
+        "goal": "detection_information",
+        "breakRequested": false,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": null, "provenance": "missing" },
+        "sessionsPerUseDay": { "value": null, "provenance": "missing" },
+        "products": [],
+        "routes": [],
+        "lastUseAt": { "value": null, "provenance": "missing" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "not_applicable",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": null,
+        "drivers": [],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    }
+  ]
+}
