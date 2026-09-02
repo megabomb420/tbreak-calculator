@@ -3,16 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Deterministic T-Break calculator domain core. No UI, no persistence, no runtime AI.",
+  "description": "Local-first T-Break calculator PWA. Deterministic domain core; browser shell.",
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test \"tests/**/*.test.ts\""
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
+    "test": "node --test \"tests/unit/**/*.test.ts\" \"tests/golden/**/*.test.ts\" && vitest run",
+    "test:ui": "vitest run"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@testing-library/preact": "^3.2.4",
     "@types/node": "^24.0.0",
-    "typescript": "^5.8.0"
+    "happy-dom": "^20.13.2",
+    "typescript": "^5.8.0",
+    "vite": "^8.2.2",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
   }
 }

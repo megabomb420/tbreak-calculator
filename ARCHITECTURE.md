@@ -48,11 +48,11 @@ The deferred features receive clean interfaces only when implementation begins. 
 ## 3. Dependency structure
 
 ```text
-UI
-  questionnaire | results | break plan | check-ins | history | settings
+UI (Preact)
+  shell | today | history | settings
        |
 Application services
-  calculation coordinator | break coordinator | history service
+  shell controller | Today state router | questionnaire-progress store
        |
 Domain core
   schemas | validation | tolerance | qualitative detection | nominal THC
@@ -61,10 +61,18 @@ Static versioned policies
   tolerance-policy-v1 | detection-copy-policy-v1
 
 Infrastructure adapters
-  IndexedDB | explicit clock | service worker
+  Web Storage (transient draft) | explicit clock | service worker
 ```
 
 Dependencies point toward the domain core. The domain core has no UI, browser storage, network, model SDK, analytics, or implicit clock imports.
+
+**Frontend toolchain (resolved):** Vite + Preact.
+
+- The domain and application layers stay framework-independent TypeScript modules.
+- Preact is a small, mature component runtime so questionnaire and result screens can land as ordinary components later without a second migration.
+- Vite provides the development server, production build, and (via `vite-plugin-pwa`) the installable offline app shell.
+- There is no extra client state library: the UI dispatches `shellReducer` actions and renders `resolveTodayState` output. It does not reimplement Today precedence.
+- The transient questionnaire draft uses Web Storage (`localStorage`) through `StorageAdapter`. IndexedDB is reserved for the durable record stores in section 9 and is not introduced for a single JSON draft.
 
 Suggested source layout:
 
@@ -78,23 +86,18 @@ src/
     nominal-thc/
     policies/
   application/
-    calculation/
-    breaks/
-    history/
-  infrastructure/
-    indexeddb/
-    clock/
-  ui/
-    questionnaire/
-    results/
-    break-plan/
-    check-ins/
-    history/
+    progress/
     settings/
+    shell/
+  infrastructure/
+    storage/
+    clock.ts
+  ui/
+    shell, today, history, settings
 tests/
   unit/
   golden/
-  integration/
+  ui/
 ```
 
 There is no v1 `deepseek`, `telemetry`, `import-export`, `evidence-registry`, or detection-pack directory.
@@ -243,7 +246,14 @@ This is a plan restart, not a claim that biological recovery returned to zero.
 
 ## 9. Local persistence
 
-Use IndexedDB behind repository interfaces. Minimal logical stores are:
+Use IndexedDB behind repository interfaces for durable records (profiles,
+calculations, break attempts, check-ins, previous breaks, post-break plans,
+settings). The v1 **transient questionnaire draft** is a single versioned JSON
+string and is stored through the Web Storage-shaped `StorageAdapter`
+(`localStorage` in the browser, in-memory in tests). IndexedDB is not used for
+that draft.
+
+Minimal logical stores (IndexedDB, later slice) are:
 
 ```text
 profiles
@@ -375,6 +385,8 @@ Future numeric detection rules and AI schemas receive separate version lines whe
 
 The recommended first implementation slice is steps 1–2 limited to domain code and tests. It builds no screens and no deferred infrastructure.
 
+UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persistence, (2) questionnaire engine, (3) result screens, (4) break loop, (5) history and offline hardening. The browser/PWA shell in `src/ui` is step 1 of that sequence.
+
 ## 16. Decision status
 
 ### Resolved for implementation
@@ -387,8 +399,9 @@ The recommended first implementation slice is steps 1–2 limited to domain code
 - elapsed withdrawal and interruption restart mechanics;
 - outside-range/mixed previous-history behaviour;
 - strict v1 input minimisation;
-- qualitative-only detection; and
-- minimal local-only architecture.
+- qualitative-only detection;
+- minimal local-only architecture; and
+- Vite + Preact PWA shell with Web Storage for the transient draft.
 
 ### Blocks public release, not domain implementation
 
