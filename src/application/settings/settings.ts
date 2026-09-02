@@ -13,6 +13,7 @@ import { RESULT_VIEW_KEY } from '../progress/result-view.ts';
 import { BREAK_ATTEMPTS_KEY } from '../progress/break-attempt-record.ts';
 import { TRACKING_RECORDS_KEY } from '../progress/tracking-record.ts';
 import { CHECKINS_KEY } from '../progress/checkin-store.ts';
+import { REDUCTION_PLAN_KEY } from '../progress/reduction-plan.ts';
 
 export const SETTINGS_MENU = ['install-help', 'offline-note', 'delete-everything'] as const;
 export type SettingsMenuId = (typeof SETTINGS_MENU)[number];
@@ -26,6 +27,7 @@ export const LOCAL_DATA_KEYS = [
   BREAK_ATTEMPTS_KEY,
   TRACKING_RECORDS_KEY,
   CHECKINS_KEY,
+  REDUCTION_PLAN_KEY,
 ] as const;
 
 /** Wipes all local data stored through the key-value adapter. After this the

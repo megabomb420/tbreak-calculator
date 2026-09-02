@@ -183,6 +183,9 @@ export function UseDaysSlider({
           aria-label="Days you used THC in the last 30 days"
           data-testid="use-days-slider"
           className="slider"
+          onPointerDown={() => {
+            if (value === null) onChange(0);
+          }}
           onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
         />
       </div>

@@ -70,6 +70,7 @@ export const BREAK_OPTIONS = [
 ] as const;
 
 export const USE_DAY_PRESETS = [
+  { label: 'None (0)', value: 0 },
   { label: 'Rarely (1–3)', value: 2 },
   { label: 'Weekends (≈8)', value: 8 },
   { label: 'Most days (25)', value: 25 },

@@ -190,6 +190,19 @@ describe('plan detail', () => {
     expect(screen.getByText('Your tolerance may be lower than before the break.')).toBeTruthy();
   });
 
+  it('keeps a post-break mode change if the user leaves without tapping Save', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    fireEvent.click(within(screen.getByTestId('plan-detail')).getByRole('button', { name: /Regular use, but less than before/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Today' }));
+    expect(attemptsOf(storage)[0]?.postBreakMode).toBe('reduced_regular_use');
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('plan-detail').querySelector('[data-mode="reduced_regular_use"]')?.className).toMatch(/selected/);
+  });
+
   it('End break early confirms and ends the plan neutrally', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
@@ -215,6 +228,21 @@ describe('plan detail', () => {
     expect(screen.queryByTestId('plan-detail')).toBeNull();
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
     expect(attemptsOf(storage)[0]?.status).toBe('completed');
+  });
+
+  it('presents elapsed days past the target without a broken Day N of M fraction', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    const longAnchor = toInstant(AT - 28 * DAY_MS);
+    seedAttempt(storage, storedAttempt({
+      targetDurationDays: 21,
+      segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }],
+    }));
+    renderApp(storage);
+    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 29 · 21-day plan');
+    expect(screen.getByTestId('mark-complete-cta')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('plan-ring').getAttribute('aria-label')).toMatch(/past the 21-day planning target/);
   });
 });
 

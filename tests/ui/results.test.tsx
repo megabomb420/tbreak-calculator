@@ -101,6 +101,25 @@ describe('result screens from engine output', () => {
     expect(screen.getByTestId('limit-days')).toBeTruthy();
   });
 
+  it('persists reduction limits and shows them on Today', () => {
+    const storage = createMemoryStorage();
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Not now/ }));
+    fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    expect(screen.getByTestId('limit-days').textContent).toBe('3');
+    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
+    expect(screen.getByTestId('limit-days').textContent).toBe('5');
+    fireEvent.click(screen.getByRole('button', { name: RESULT.done }));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
+    expect(screen.getByTestId('reduction-limits').textContent).toMatch(/Up to 5 use days a week/);
+    fireEvent.click(screen.getByTestId('view-result'));
+    expect(screen.getByTestId('limit-days').textContent).toBe('5');
+  });
+
   it('treats a corrupt snapshot as absent and recovers to first-launch', () => {
     const storage = createMemoryStorage();
     storage.setItem(QUESTIONNAIRE_SNAPSHOT_KEY, '{not-json');

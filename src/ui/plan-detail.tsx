@@ -181,8 +181,14 @@ function PostBreakCard({
   const [savedMode, setSavedMode] = useState<PostBreakMode>(mode ?? draft.mode);
   const dirty = savedMode !== draft.mode || JSON.stringify(attempt.postBreakPlan) !== JSON.stringify(draft);
 
+  function persist(next: PostBreakPlan) {
+    setDraft(next);
+    onUpdate(next.mode, next);
+    setSavedMode(next.mode);
+  }
+
   function changeMode(nextMode: PostBreakMode) {
-    setDraft(defaultPostBreakPlan(nextMode));
+    persist(defaultPostBreakPlan(nextMode));
   }
 
   const returnMode = draft.mode !== 'continue_abstinence';
@@ -218,7 +224,7 @@ function PostBreakCard({
           value={draft.maxUseDaysPerWeek}
           min={MIN_USE_DAYS_PER_WEEK}
           max={MAX_USE_DAYS_PER_WEEK}
-          onChange={(value) => setDraft({ mode: 'occasional', maxUseDaysPerWeek: value })}
+          onChange={(value) => persist({ mode: 'occasional', maxUseDaysPerWeek: value })}
         />
       ) : null}
       {draft.mode === 'reduced_regular_use' ? (
@@ -228,26 +234,26 @@ function PostBreakCard({
             value={draft.maxUseDaysPerWeek}
             min={MIN_USE_DAYS_PER_WEEK}
             max={MAX_USE_DAYS_PER_WEEK}
-            onChange={(value) => setDraft({ ...draft, mode: 'reduced_regular_use', maxUseDaysPerWeek: value })}
+            onChange={(value) => persist({ ...draft, mode: 'reduced_regular_use', maxUseDaysPerWeek: value })}
           />
           <StepperField
             label={POST_BREAK_SETTINGS.maxSessions}
             value={draft.maxSessionsPerUseDay}
             min={MIN_SESSIONS_PER_USE_DAY}
             max={MAX_SESSIONS_PER_USE_DAY}
-            onChange={(value) => setDraft({ ...draft, mode: 'reduced_regular_use', maxSessionsPerUseDay: value })}
+            onChange={(value) => persist({ ...draft, mode: 'reduced_regular_use', maxSessionsPerUseDay: value })}
           />
           <ChipGroup
             label={POST_BREAK_SETTINGS.potencyStrategy}
             options={POTENCY_STRATEGY_OPTIONS.map((option) => ({ id: option.id, title: option.title }))}
             value={draft.potencyStrategy}
-            onChange={(value) => setDraft({ ...draft, mode: 'reduced_regular_use', potencyStrategy: value as PotencyStrategy })}
+            onChange={(value) => persist({ ...draft, mode: 'reduced_regular_use', potencyStrategy: value as PotencyStrategy })}
           />
           <ChipGroup
             label={POST_BREAK_SETTINGS.quantityStrategy}
             options={QUANTITY_STRATEGY_OPTIONS.map((option) => ({ id: option.id, title: option.title }))}
             value={draft.quantityStrategy}
-            onChange={(value) => setDraft({ ...draft, mode: 'reduced_regular_use', quantityStrategy: value as QuantityStrategy })}
+            onChange={(value) => persist({ ...draft, mode: 'reduced_regular_use', quantityStrategy: value as QuantityStrategy })}
           />
         </div>
       ) : null}

@@ -74,6 +74,17 @@ describe('plan presentation', () => {
     assert.equal(on?.atOrPastTargetDate, true);
   });
 
+  it('does not write a broken Day N of M fraction once elapsed day passes the target', () => {
+    const later = toInstant(ANCHOR + 25 * MILLIS_PER_DAY);
+    const view = activeBreakView(activeAttempt(), later);
+    assert.ok(view !== null);
+    assert.equal(view?.day, 26);
+    assert.equal(view?.targetDays, 21);
+    assert.equal(view?.pastTarget, true);
+    assert.equal(view?.dayOfLabel, 'Day 26 · 21-day plan');
+    assert.equal(view?.atOrPastTargetDate, true);
+  });
+
   it('presents a scheduled plan without a live day count', () => {
     const planned = createBreakAttempt({
       id: 'attempt-2',

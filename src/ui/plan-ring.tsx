@@ -18,7 +18,10 @@ export function PlanRing({ day, targetDays, size = 148 }: PlanRingProps) {
   const circumference = 2 * Math.PI * radius;
   const fraction = Math.min(Math.max(day / targetDays, 0), 1);
   const offset = circumference * (1 - fraction);
-  const label = `Day ${day} of ${targetDays}, plan progress`;
+  const pastTarget = day > targetDays;
+  const label = pastTarget
+    ? `Day ${day}, past the ${targetDays}-day planning target`
+    : `Day ${day} of ${targetDays}, plan progress`;
 
   return (
     <div className="plan-ring" data-testid="plan-ring" role="img" aria-label={label} style={{ width: size, height: size }}>
@@ -48,7 +51,7 @@ export function PlanRing({ day, targetDays, size = 148 }: PlanRingProps) {
         <span className="plan-ring-day" data-testid="plan-ring-day">
           Day {day}
         </span>
-        <span className="plan-ring-of">of {targetDays}</span>
+        <span className="plan-ring-of">{pastTarget ? 'past target' : `of ${targetDays}`}</span>
       </span>
       <span className="plan-ring-label">{'Plan progress'}</span>
     </div>

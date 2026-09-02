@@ -59,7 +59,10 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
             setBusy(true);
             onNoUseSave();
           }}
-          onAddSymptoms={() => setScreen('symptoms')}
+          onAddSymptoms={() => {
+            setNoSelected(true);
+            setScreen('symptoms');
+          }}
         />
       ) : (
         <SymptomsScreen
@@ -105,7 +108,7 @@ function QuestionScreen({
           >
               <span className="choice-copy">
                 <span className="choice-title">{CHECKIN.no}</span>
-                <span className="meta">Nothing since your last check-in</span>
+                <span className="meta">{CHECKIN.noHelper}</span>
               </span>
               <span className="choice-check">
                 <CheckIcon size={16} />
@@ -120,7 +123,7 @@ function QuestionScreen({
             >
               <span className="choice-copy">
                 <span className="choice-title">{CHECKIN.yes}</span>
-                <span className="meta">You used since your last check-in</span>
+                <span className="meta">{CHECKIN.yesHelper}</span>
               </span>
             </button>
           </div>

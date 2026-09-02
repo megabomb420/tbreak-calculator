@@ -9,7 +9,7 @@ import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../appl
 import type { ResultView, WithdrawalView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
-import { WITHDRAWAL_STOP_LABELS, planForTarget } from './result-copy.ts';
+import { RESULT, WITHDRAWAL_STOP_LABELS, planForTarget, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
@@ -29,6 +29,8 @@ export interface TodayProfileData {
   /** A scheduled (planned) break whose card replaces Start-this-break. */
   readonly scheduled: StoredAttempt | null;
   readonly plannedView: PlannedBreakView | null;
+  /** Persisted cutting-down limits (UX_SPEC 9.4). */
+  readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
 }
 
 export interface TodayScreenProps {
@@ -363,7 +365,7 @@ function AbstinenceSummary(props: TodayScreenProps) {
     <article className="today-plan-card" data-testid="state-profile-no-break">
       <p className="eyebrow">Plan</p>
       <h2 className="card-title">Staying off THC — your plan.</h2>
-      <p className="meta">No range, no target date, no completion state.</p>
+      <p className="meta">{RESULT.abstinenceTodayBody}</p>
       <button type="button" className="cta-primary" data-testid="today-start-tracking" onClick={props.onStartTracking}>
         {PROFILE_NO_BREAK.startTracking}
       </button>
@@ -400,14 +402,38 @@ function BaselineSummary(props: TodayScreenProps) {
 }
 
 function ReductionSummary(props: TodayScreenProps) {
+  const plan = props.profile.reductionPlan;
   return (
     <article className="today-plan-card" data-testid="state-profile-no-break">
       <p className="eyebrow">Cutting down</p>
       <h2 className="card-title">Cutting down — without a full break.</h2>
-      <button type="button" className="cta-secondary" data-testid="today-see-break-range" onClick={props.onSeeBreakRange}>
-        {PROFILE_NO_BREAK.seeBreakRange}
-      </button>
-      <SecondaryLinks {...props} showRecalculate showViewResult />
+      {plan !== null ? (
+        <ul className="driver-list" data-testid="reduction-limits">
+          <li className="driver-item">
+            <span className="driver-mark" aria-hidden="true" />
+            <span>{reductionDaysLine(plan.maxUseDaysPerWeek)}</span>
+          </li>
+          <li className="driver-item">
+            <span className="driver-mark" aria-hidden="true" />
+            <span>{reductionSessionsLine(plan.maxSessionsPerUseDay)}</span>
+          </li>
+        </ul>
+      ) : (
+        <p className="meta">{RESULT.reductionBody}</p>
+      )}
+      {props.onViewResult ? (
+        <button type="button" className="cta-primary" data-testid="view-result" onClick={props.onViewResult}>
+          {PROFILE_NO_BREAK.viewResult}
+        </button>
+      ) : null}
+      <div className="footer-links">
+        <button type="button" className="text-back" data-testid="today-see-break-range" onClick={props.onSeeBreakRange}>
+          {PROFILE_NO_BREAK.seeBreakRange}
+        </button>
+        <button type="button" className="text-back" data-testid="today-recalculate" onClick={props.onRecalculate}>
+          {PROFILE_NO_BREAK.recalculate}
+        </button>
+      </div>
     </article>
   );
 }
@@ -501,6 +527,7 @@ function ResumeCard({
     <article className="deferred-shell resume-card" data-testid="resume-card" data-resume-placement={placement}>
       <p className="micro-label">Unfinished</p>
       <h2 className="card-title">{resumeTitle(answeredSteps)}</h2>
+      {placement === 'secondary' ? <p className="meta">{RESUME.draftOnly}</p> : null}
       <div className="cta-row">
         <button type="button" className="cta-primary" onClick={onResume}>
           {RESUME.resume}

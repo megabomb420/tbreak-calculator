@@ -47,6 +47,12 @@ import {
   type StoredTrack,
 } from '../application/progress/tracking-record.ts';
 import { createCheckinsStore, emptyCheckinsRecord } from '../application/progress/checkin-store.ts';
+import {
+  createReductionPlanStore,
+  DEFAULT_REDUCTION_DAYS_PER_WEEK,
+  DEFAULT_REDUCTION_SESSIONS,
+  REDUCTION_PLAN_SCHEMA_VERSION,
+} from '../application/progress/reduction-plan.ts';
 import { deleteAllLocalData } from '../application/settings/settings.ts';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
 import { todayFactsFromSnapshot } from '../application/shell/today-facts-from-snapshot.ts';
@@ -106,6 +112,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
   const attemptsStore = useMemo(() => createBreakAttemptsStore(storage), [storage]);
   const trackingStore = useMemo(() => createTrackingRecordsStore(storage), [storage]);
   const checkinsStore = useMemo(() => createCheckinsStore(storage), [storage]);
+  const reductionPlanStore = useMemo(() => createReductionPlanStore(storage), [storage]);
   const [factsEpoch, setFactsEpoch] = useState(0);
   const [session, setSession] = useState<QuestionnaireSession | null>(null);
   const [lastUseWarning, setLastUseWarning] = useState(false);
@@ -138,6 +145,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
   const attemptsRecord = useMemo(() => attemptsStore.load(), [attemptsStore, factsEpoch]);
   const trackingRecord = useMemo(() => trackingStore.load(), [trackingStore, factsEpoch]);
   const checkinsRecord = useMemo(() => checkinsStore.load(), [checkinsStore, factsEpoch]);
+  const reductionPlan = useMemo(() => reductionPlanStore.load(), [reductionPlanStore, factsEpoch]);
 
   const sessionState: BreakSessionState = {
     attempts: attemptsRecord?.attempts ?? [],
@@ -204,6 +212,13 @@ export function App({ storage, clock = systemClock }: AppProps) {
     resultView: profileView,
     scheduled,
     plannedView: scheduled !== null ? plannedBreakView(scheduled, anchor) : null,
+    reductionPlan:
+      reductionPlan === null
+        ? { maxUseDaysPerWeek: DEFAULT_REDUCTION_DAYS_PER_WEEK, maxSessionsPerUseDay: DEFAULT_REDUCTION_SESSIONS }
+        : {
+            maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
+            maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
+          },
   };
 
   function persistBreakSession(next: BreakSessionState): void {
@@ -661,6 +676,23 @@ export function App({ storage, clock = systemClock }: AppProps) {
           onStartBreak={canStartPlan ? openBreakStart : undefined}
           onStartTracking={canStartPlan ? startTracking : undefined}
           trackingAvailable={resultModel.kind === 'baseline_low' ? anchor !== null : true}
+          reductionPlan={
+            reductionPlan === null
+              ? null
+              : {
+                  maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
+                  maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
+                }
+          }
+          onReductionPlanChange={(plan) => {
+            reductionPlanStore.save({
+              schemaVersion: REDUCTION_PLAN_SCHEMA_VERSION,
+              maxUseDaysPerWeek: plan.maxUseDaysPerWeek,
+              maxSessionsPerUseDay: plan.maxSessionsPerUseDay,
+              updatedAt: clock.now(),
+            });
+            refresh();
+          }}
         />
       ) : null}
       {flow !== null ? (

@@ -76,7 +76,9 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
               >
                 <span className="choice-copy">
                   <span className="choice-title">{BREAK_START.startNow}</span>
-                  <span className="meta">Your plan starts immediately</span>
+                  <span className="meta">
+                    {breakDayAtStart > 1 ? BREAK_START.startNowHelperClockRunning : BREAK_START.startNowHelper}
+                  </span>
                 </span>
                 <span className="choice-check">
                   <CheckIcon size={16} />
@@ -112,7 +114,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
             ) : null}
             {breakDayAtStart > 1 ? (
               <p className="clock-note" data-testid="clock-note">
-                {clockAlreadyRunningNote(breakDayAtStart)}
+                {clockAlreadyRunningNote(breakDayAtStart, targetDays)}
               </p>
             ) : null}
           </section>

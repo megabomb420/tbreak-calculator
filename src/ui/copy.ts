@@ -50,10 +50,12 @@ export const SETTINGS = {
 export const OPEN_SETTINGS = 'Settings';
 
 export function resumeTitle(answeredSteps: number): string {
-  return `Finish your calculation — ${answeredSteps} answers saved`;
+  const noun = answeredSteps === 1 ? 'answer' : 'answers';
+  return `Finish your calculation — ${answeredSteps} ${noun} saved`;
 }
 
 export const RESUME = {
   resume: 'Resume',
   startOver: 'Start over',
+  draftOnly: 'This only discards the unfinished calculation — your current break stays.',
 } as const;

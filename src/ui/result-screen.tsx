@@ -11,6 +11,10 @@ import {
   recommendedBreakTitle,
   RESULT,
 } from './result-copy.ts';
+import {
+  DEFAULT_REDUCTION_DAYS_PER_WEEK,
+  DEFAULT_REDUCTION_SESSIONS,
+} from '../application/progress/reduction-plan.ts';
 import { CloseIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
@@ -30,6 +34,11 @@ export interface ResultScreenProps {
   readonly onStartTracking?: () => void;
   /** False hides baseline Keep tracking (no last-use anchor stored). */
   readonly trackingAvailable?: boolean;
+  readonly reductionPlan?: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
+  readonly onReductionPlanChange?: (plan: {
+    readonly maxUseDaysPerWeek: number;
+    readonly maxSessionsPerUseDay: number;
+  }) => void;
 }
 
 export function ResultScreen({
@@ -44,6 +53,8 @@ export function ResultScreen({
   onStartBreak,
   onStartTracking,
   trackingAvailable = true,
+  reductionPlan = null,
+  onReductionPlanChange,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
 
@@ -69,6 +80,8 @@ export function ResultScreen({
           onOpenNominalThc={() => setThcOpen(true)}
           onBreakRecommendation={onBreakRecommendation}
           onDetectionBasics={onDetectionBasics}
+          reductionPlan={reductionPlan}
+          onReductionPlanChange={onReductionPlanChange}
         />
       </div>
       <footer className="questionnaire-footer">
@@ -95,6 +108,8 @@ function ResultBody({
   onOpenNominalThc,
   onBreakRecommendation,
   onDetectionBasics,
+  reductionPlan,
+  onReductionPlanChange,
 }: {
   readonly view: ResultView;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
@@ -102,6 +117,11 @@ function ResultBody({
   readonly onOpenNominalThc: () => void;
   readonly onBreakRecommendation: () => void;
   readonly onDetectionBasics: () => void;
+  readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
+  readonly onReductionPlanChange?: (plan: {
+    readonly maxUseDaysPerWeek: number;
+    readonly maxSessionsPerUseDay: number;
+  }) => void;
 }) {
   switch (view.kind) {
     case 'tolerance_result': {
@@ -144,7 +164,7 @@ function ResultBody({
               <p className="body">{view.history}</p>
             </section>
           ) : (
-            <p className="meta">Taken a tolerance break before? You can add it later from History.</p>
+            <p className="meta">{RESULT.historyPrompt}</p>
           )}
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
@@ -172,6 +192,8 @@ function ResultBody({
           answers={view.answers}
           onEditStep={onEditStep}
           onSeeBreakRange={onSeeBreakRange}
+          reductionPlan={reductionPlan}
+          onReductionPlanChange={onReductionPlanChange}
         />
       );
     case 'baseline_low':
@@ -234,13 +256,27 @@ function ReductionBody({
   answers,
   onEditStep,
   onSeeBreakRange,
+  reductionPlan,
+  onReductionPlanChange,
 }: {
   readonly answers: readonly AnswerRow[];
   readonly onEditStep: (step: QuestionnaireStepId) => void;
   readonly onSeeBreakRange: () => void;
+  readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
+  readonly onReductionPlanChange?: (plan: {
+    readonly maxUseDaysPerWeek: number;
+    readonly maxSessionsPerUseDay: number;
+  }) => void;
 }) {
-  const [days, setDays] = useState(3);
-  const [sessions, setSessions] = useState(1);
+  const [days, setDays] = useState(reductionPlan?.maxUseDaysPerWeek ?? DEFAULT_REDUCTION_DAYS_PER_WEEK);
+  const [sessions, setSessions] = useState(reductionPlan?.maxSessionsPerUseDay ?? DEFAULT_REDUCTION_SESSIONS);
+
+  function commit(nextDays: number, nextSessions: number) {
+    setDays(nextDays);
+    setSessions(nextSessions);
+    onReductionPlanChange?.({ maxUseDaysPerWeek: nextDays, maxSessionsPerUseDay: nextSessions });
+  }
+
   return (
     <div className="stack">
       <header className="result-hero">
@@ -258,7 +294,7 @@ function ReductionBody({
           min={0}
           max={7}
           testId="limit-days"
-          onChange={setDays}
+          onChange={(value) => commit(value, sessions)}
         />
         <ReductionStepper
           label={RESULT.maxSessions}
@@ -266,7 +302,7 @@ function ReductionBody({
           min={1}
           max={9}
           testId="limit-sessions"
-          onChange={setSessions}
+          onChange={(value) => commit(days, value)}
         />
       </section>
       <section className="result-section">
@@ -333,7 +369,7 @@ function ResultActions({
       );
     case 'reduction_planning':
       return (
-        <button type="button" className="cta-secondary" onClick={onAcknowledge}>
+        <button type="button" className="cta-primary" onClick={onAcknowledge}>
           {RESULT.done}
         </button>
       );

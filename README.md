@@ -4,10 +4,10 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.3.1** — QA hardening on top of the 0.3.0 break loop (§8/§10):
-real break plans, open-ended abstinence tracking, use-first daily check-ins,
-and interruption/restart on the Interval visual system (dusk navy, parchment
-type).
+Version **0.3.2** — UX/product hardening on the 0.3.1 break loop. Cutting-down
+limits persist, Today cards match the result the user just saw, and elapsed
+days past a planning target no longer look like a broken counter. Scientific
+engines, bands, and the day formula are unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -43,10 +43,12 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.3.1)
+## Capabilities (0.3.2)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
+- **Reduction plan:** user-defined weekly limits persist on device and show on
+  Today. "See your break range" stays a secondary cross-sell, not the only action.
 - **Break start sheet**: Start now or pick a date (today + 14 days) and a
   post-break mode; creates a real `planned`/`active` break attempt anchored to
   the authoritative last use (`targetDurationDays` = the result's
@@ -83,6 +85,7 @@ Persistence is **Web Storage only**, through versioned, validated records:
 | `tbreak.break-attempts.v1` | stored break attempts (segments, post-break plan, ack) |
 | `tbreak.tracking-records.v1` | stored open-ended tracking records |
 | `tbreak.checkins.v1` | stored daily check-ins (chronological) |
+| `tbreak.reduction-plan.v1` | cutting-down limits (never fed to an engine) |
 
 Corrupt envelopes are dropped and treated as absent; an invalid row is
 isolated from the rows/records that still validate. When Web Storage is

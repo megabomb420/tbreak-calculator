@@ -122,6 +122,15 @@ describe('step controls and keyboard', () => {
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q3');
   });
 
+  it('offers a None (0) chip so baseline-low is reachable without dragging a parked slider', () => {
+    openQ1();
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'None (0)' }));
+    expect(screen.getByTestId('use-days-readout').textContent).toBe('0');
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q3-opt');
+  });
+
   it('goes Back to the previous shown step', () => {
     openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));

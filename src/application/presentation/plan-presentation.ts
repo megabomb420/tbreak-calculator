@@ -24,6 +24,8 @@ export interface ActiveBreakView {
   readonly targetDate: Instant;
   /** True when now is on/after the plan target date (completion eligible). */
   readonly atOrPastTargetDate: boolean;
+  /** True when the abstinence day is past the finite planning target. */
+  readonly pastTarget: boolean;
   readonly phase: PlanPhaseKey;
   readonly phaseCopy: string;
   readonly withdrawal: WithdrawalView | null;
@@ -62,9 +64,10 @@ export function activeBreakView(attempt: BreakAttempt, now: Instant): ActiveBrea
     status: 'active',
     day,
     targetDays: attempt.targetDurationDays,
-    dayOfLabel: `Day ${day} of ${attempt.targetDurationDays}`,
+    dayOfLabel: planDayOfLabel(day, attempt.targetDurationDays),
     targetDate,
     atOrPastTargetDate: now >= targetDate,
+    pastTarget: day > attempt.targetDurationDays,
     phase: phaseKeyForDay(day),
     phaseCopy: phaseFocusCopy(day),
     withdrawal: presentWithdrawal(computeWithdrawalDisplay(anchor, now, TOLERANCE_POLICY_V1.withdrawalAnchors)),
@@ -88,4 +91,11 @@ export function trackingDayView(track: AbstinenceTrack, now: Instant): TrackingD
   if (anchor === null) return null;
   const day = abstinenceDayAt(now, anchor);
   return { day, phase: phaseKeyForDay(day), phaseCopy: phaseFocusCopy(day) };
+}
+
+/** User-facing day/target line. After the target the elapsed day is still
+ * shown (the formula is unchanged) but it is not written as a broken fraction. */
+export function planDayOfLabel(day: number, targetDays: number): string {
+  if (day > targetDays) return `Day ${day} · ${targetDays}-day plan`;
+  return `Day ${day} of ${targetDays}`;
 }

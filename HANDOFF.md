@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.3.1** (QA hardening of the 0.3.0 break loop)
+- App version: **0.3.2** (UX/product hardening of the 0.3.1 break loop)
 - This file sits on `main` at the commit that landed the 0.3.1 QA pass (the
   header intentionally carries no self-referential SHA).
 
@@ -25,7 +25,8 @@ to make UI easier. Do not commit untracked review files.
 ## What is on main
 
 UX_SPEC §16 steps **1–4** plus deploy, iOS layout, vape product, the
-Interval visual redesign, and the **0.3.1 QA hardening** patch:
+Interval visual redesign, the **0.3.1 QA hardening** patch, and the **0.3.2
+UX/product** patch:
 
 | Step | Status |
 |---|---|
@@ -46,6 +47,57 @@ Working product behaviour (unchanged from earlier steps):
 3. Completing the questionnaire opens the **result overlay**.
 4. App shell tab bar is in-flow inside a `100svh` column (not `position: fixed`).
 5. Product vs route distinction preserved (`vape` product ≠ `vaping` route).
+
+## What 0.3.2 fixed (UX / product pass)
+
+Patch on 0.3.1. No new product slice. UX_SPEC §16 step 5 was **not** started.
+Scientific engines, bands, coefficients, golden fixtures, and the
+`breakDay` formula are unchanged.
+
+High:
+
+- Reduction limits lived in component state only, so they reset on close and
+  Today showed none of the plan the user just set. Limits now persist in
+  `tbreak.reduction-plan.v1` (included in delete-everything) and render on
+  the Today cutting-down card. **See your break range** is a text link, not
+  the only button. Result **Done** is the primary CTA.
+- Abstinence Today leaked designer notes: "No range, no target date, no
+  completion state." Replaced with human copy: there's no end date to chase.
+
+Medium:
+
+- Day N of M with N > M (spec-correct elapsed time) looked like a broken
+  counter. Past-target labels are now `Day N · M-day plan`; the plan ring
+  says "past target". The formula is unchanged.
+- Break-start **Now** said "Your plan starts immediately" next to the clock
+  note that the target counts from last use. Now-helper copy when the clock
+  already runs: "Commit now — the day count still runs from your last use."
+  Clock note when already past the target explains they can mark complete
+  as soon as they start.
+- Post-break mode/limits were discarded on Back unless Save was tapped.
+  Changes now persist as they are made.
+- First check-in helpers talked about a last check-in that never happened.
+  Helpers are now "I haven't used" / "I used THC". The mandated question is
+  unchanged.
+- **Start over** beside a live break sounded like it would wipe the plan.
+  Secondary resume cards explain it only discards the unfinished calculation.
+- "Add how you're feeling" could log a no-use check-in without answering
+  No/Yes. Opening symptoms now selects No.
+- History prompt on the tolerance result sent people to an empty History tab.
+  Copy no longer names History (add-past-break remains step 5).
+- Q2 had no honest way to pick 0 days from a parked slider. **None (0)** chip
+  plus a first-touch commit of 0.
+
+Low:
+
+- Resume grammar: "1 answers saved" → "1 answer saved".
+
+Intentionally **not** changed:
+
+- Accidental-Yes undo (not in current specs).
+- History contents, IndexedDB, per-item delete, storage banner, PWA snackbar,
+  first-launch safety copy, focus trap — all step 5.
+- Day formula, planned-activation anchoring, Q5 flower THC deep-link.
 
 ## What 0.3.1 fixed (QA pass)
 
@@ -200,6 +252,7 @@ the draft. Keys (all versioned envelopes with strict decode validation):
   plan, completion acknowledgement, timestamps)
 - `tbreak.tracking-records.v1` — stored open-ended tracking records
 - `tbreak.checkins.v1` — stored daily check-ins (chronological)
+- `tbreak.reduction-plan.v1` — user-defined cutting-down limits (never an engine input)
 
 Corrupt envelopes are wiped and treated as absent; an invalid row inside an
 envelope is dropped in isolation (valid rows/records survive). Storage

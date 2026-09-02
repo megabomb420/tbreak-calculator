@@ -14,6 +14,8 @@ export const RESULT = {
   answersHeading: 'Your answers',
   whyHeading: 'Why this result',
   historyHeading: 'Your history',
+  historyPrompt:
+    'Taken a tolerance break before? You can add a past break later — it never changes this range.',
   detectionBasics: 'Separate topic: drug-test detection basics →',
   breakRecommendation: 'Tolerance is a separate topic → get a break recommendation',
   nominalThc: 'Estimate nominal THC in flower →',
@@ -25,6 +27,8 @@ export const RESULT = {
     'Set your own weekly limit, favour lower potency, avoid rapid repeat dosing, and remember that edibles take longer to take effect.',
   reductionSoft:
     'A full break resets tolerance faster than cutting down — see your break range.',
+  abstinenceTodayBody:
+    "There's no end date to chase — start tracking if you want a daily check-in.",
   unavailableTitle: 'This calculation is unavailable.',
   unavailableBody: 'The saved answers could not produce a result. You can start the questionnaire again.',
   startOver: 'Start over',
@@ -35,6 +39,14 @@ export const RESULT = {
   maxDaysWeek: 'Max use days per week',
   maxSessions: 'Max sessions on a use day (optional)',
 } as const;
+
+export function reductionDaysLine(days: number): string {
+  return days === 1 ? 'Up to 1 use day a week' : `Up to ${days} use days a week`;
+}
+
+export function reductionSessionsLine(sessions: number): string {
+  return sessions === 1 ? 'Up to 1 session on a use day' : `Up to ${sessions} sessions on a use day`;
+}
 
 export const WITHDRAWAL_STOP_LABELS = {
   onset: 'Onset (≈ days 1–3)',

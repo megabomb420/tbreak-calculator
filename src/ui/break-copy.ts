@@ -11,6 +11,8 @@ export const BREAK_START = {
   title: 'Start your break',
   startQuestion: 'When do you want to start?',
   startNow: 'Now',
+  startNowHelper: 'Your plan starts immediately',
+  startNowHelperClockRunning: 'Commit now — the day count still runs from your last use',
   startPick: 'Pick a date',
   modeQuestion: "After this break, what's your plan?",
   helper: 'Nothing is locked in — you can change this in the plan later.',
@@ -26,8 +28,12 @@ export const POST_BREAK_MODE_COPY: ReadonlyArray<{ id: PostBreakMode; title: str
 ];
 
 /** Clock note shown in the sheet when the abstinence clock already runs
- * (UX_SPEC 2/8): the plan begins at "Day N of target". */
-export function clockAlreadyRunningNote(day: number): string {
+ * (UX_SPEC 2/8): the plan begins at "Day N of target". When N is already
+ * past the planning target, say so plainly so Day N of M does not look broken. */
+export function clockAlreadyRunningNote(day: number, targetDays?: number): string {
+  if (targetDays !== undefined && day > targetDays) {
+    return `Your clock is already at day ${day} — that's past the ${targetDays}-day planning target. You can mark the plan complete as soon as you start.`;
+  }
   return `Your clock is already at day ${day} — your target date counts from your last use.`;
 }
 
@@ -97,7 +103,9 @@ export const CHECKIN = {
   title: 'Check-in',
   question: 'Any THC since your last check-in?',
   no: 'No',
+  noHelper: "I haven't used",
   yes: 'Yes',
+  yesHelper: 'I used THC',
   save: 'Save',
   addSymptoms: "Add how you're feeling",
   symptomsTitle: 'How are you feeling?',
