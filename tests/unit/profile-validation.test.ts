@@ -228,11 +228,11 @@ describe('profile validation: goal routing rules (spec 5.9-5.14)', () => {
     ]);
   });
 
-  it('requires use days for every goal except detection_information', () => {
-    for (const goal of ['tolerance_reset', 'reduction', 'abstinence'] as const) {
+  it('requires use days for tolerance_reset and reduction only (UX_SPEC D2)', () => {
+    for (const goal of ['tolerance_reset', 'reduction'] as const) {
       const input = sampleProfile({
         goal,
-        breakRequested: goal !== 'abstinence',
+        breakRequested: true,
         thcUseDaysLast30: absent(),
         sessionsPerUseDay: absent(),
         products: [],
@@ -241,6 +241,174 @@ describe('profile validation: goal routing rules (spec 5.9-5.14)', () => {
       });
       expectCodes(input, ['thc_use_days_required']);
     }
+    // Abstinence does not require use days; it requires the authoritative
+    // last-use timestamp instead.
+    const abstinence = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: absent(),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: absent(),
+    });
+    expectCodes(abstinence, ['last_use_required_for_abstinence']);
+  });
+});
+
+describe('profile validation: UX D1 - intensity fields required only at 16+ use days', () => {
+  it('does not require sessions, products or routes below 16 use days on a range route', () => {
+    for (const useDays of [1, 10, 15]) {
+      const input = sampleProfile({
+        thcUseDaysLast30: userValue(useDays),
+        sessionsPerUseDay: absent(),
+        products: [],
+        routes: [],
+      });
+      expectValid(input);
+    }
+  });
+
+  it('still requires sessions, products and routes at 16 use days', () => {
+    const input = sampleProfile({
+      thcUseDaysLast30: userValue(16),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+    });
+    expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+  });
+
+  it('still requires them at the top of the band (30 use days)', () => {
+    const input = sampleProfile({
+      thcUseDaysLast30: userValue(30),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+    });
+    expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+  });
+
+  it('keeps the zero-day sessions prohibition across goals', () => {
+    const zero = sampleProfile({
+      thcUseDaysLast30: userValue(0),
+      lastUseAt: userValue('2026-07-20T00:00:00Z'),
+    });
+    expectCodes(zero, ['sessions_forbidden_when_zero_use_days']);
+  });
+});
+
+describe('profile validation: UX D2 - abstinence requires lastUseAt, not use days', () => {
+  it('accepts an abstinence profile with only the authoritative last use', () => {
+    const input = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: absent(),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: userValue('2026-08-19T22:00:00Z'),
+    });
+    expectValid(input);
+  });
+
+  it('requires lastUseAt for abstinence even when use days are absent', () => {
+    const input = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: absent(),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: absent(),
+    });
+    expectCodes(input, ['last_use_required_for_abstinence']);
+  });
+
+  it('applies the 30-day consistency rules to abstinence only when use days are present', () => {
+    // Use days 0 present with a recent last use is contradictory.
+    const zeroRecent = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(0),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: userValue('2026-08-19T22:00:00Z'),
+    });
+    expectCodes(zeroRecent, ['last_use_must_not_be_within_30_days_when_zero_use_days']);
+
+    // Use days 0 present with an older last use is fine.
+    const zeroOld = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(0),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: userValue('2026-07-10T00:00:00Z'),
+    });
+    expectValid(zeroOld);
+
+    // Use days 20 present with a stale last use is contradictory.
+    const positiveStale = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(20),
+      lastUseAt: userValue('2026-07-10T00:00:00Z'),
+    });
+    expectCodes(positiveStale, ['last_use_must_be_within_30_days_when_use_days_positive']);
+  });
+});
+
+describe('profile validation: UX D3 - reduction without a requested break needs no lastUseAt', () => {
+  it('accepts a reduction-no-break profile with use days only', () => {
+    const input = sampleProfile({
+      goal: 'reduction',
+      breakRequested: false,
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: absent(),
+    });
+    expectValid(input);
+  });
+
+  it('does not enforce the 30-day window against a supplied lastUseAt on that route', () => {
+    const stale = sampleProfile({
+      goal: 'reduction',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(20),
+      lastUseAt: userValue('2026-06-01T00:00:00Z'),
+    });
+    expectValid(stale);
+
+    const recent = sampleProfile({
+      goal: 'reduction',
+      breakRequested: false,
+      thcUseDaysLast30: userValue(20),
+      lastUseAt: userValue('2026-08-19T22:00:00Z'),
+    });
+    expectValid(recent);
+  });
+
+  it('still rejects a future lastUseAt when one is supplied on that route', () => {
+    const future = sampleProfile({
+      goal: 'reduction',
+      breakRequested: false,
+      lastUseAt: userValue('2026-08-20T01:00:00Z'),
+    });
+    expectCodes(future, ['last_use_in_future']);
+  });
+
+  it('keeps the lastUseAt requirement on routes that consume it', () => {
+    expectCodes(sampleProfile({ lastUseAt: absent() }), ['last_use_required_when_use_days_positive']);
+    const reductionBreak = sampleProfile({
+      goal: 'reduction',
+      breakRequested: true,
+      lastUseAt: absent(),
+    });
+    expectCodes(reductionBreak, ['last_use_required_when_use_days_positive']);
   });
 });
 

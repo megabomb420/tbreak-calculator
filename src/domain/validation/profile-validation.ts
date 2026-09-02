@@ -23,7 +23,10 @@ import type { PreviousBreakInput, UseProfileInput, ValidatedPreviousBreak, Valid
 import { missingValue, sourcedValueInvariantError, type SourcedValue } from '../schemas/sourced-value.ts';
 import { parseSubmittedTimestamp, THIRTY_DAY_WINDOW_MS, toInstant, type Instant } from '../schemas/time.ts';
 
-export const GOALS_REQUIRING_USE_DAYS: readonly Goal[] = ['tolerance_reset', 'reduction', 'abstinence'];
+// Goals whose questionnaire collects THC-use days and whose tolerance path
+// requires them. Abstinence deliberately collects no use days (UX_SPEC D2);
+// detection information collects no use profile at all.
+export const GOALS_REQUIRING_USE_DAYS: readonly Goal[] = ['tolerance_reset', 'reduction'];
 
 /** Provenance values accepted on v1 core profile fields. */
 const CORE_FIELD_PROVENANCES: readonly FieldProvenance[] = ['missing', 'user_estimate'];
@@ -50,6 +53,7 @@ export type ValidationErrorCode =
   | 'invalid_route'
   | 'invalid_timestamp'
   | 'last_use_required_when_use_days_positive'
+  | 'last_use_required_for_abstinence'
   | 'last_use_in_future'
   | 'last_use_must_be_within_30_days_when_use_days_positive'
   | 'last_use_must_not_be_within_30_days_when_zero_use_days'
@@ -77,18 +81,20 @@ const MESSAGES: Record<ValidationErrorCode, string> = {
   invalid_post_break_mode: 'postBreakMode must be null or one of: continue_abstinence, occasional, reduced_regular_use, undecided.',
   thc_use_days_required: 'THC-use days in the last 30 is required for this goal.',
   thc_use_days_must_be_integer_0_to_30: 'thcUseDaysLast30 must be an integer between 0 and 30.',
-  sessions_required: 'sessionsPerUseDay is required when thcUseDaysLast30 is positive.',
+  sessions_required: 'sessionsPerUseDay is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
   sessions_must_be_positive_number: 'sessionsPerUseDay must be a positive number.',
   sessions_forbidden_when_zero_use_days: 'sessionsPerUseDay must be missing when thcUseDaysLast30 is 0.',
-  products_required: 'At least one product is required when thcUseDaysLast30 is positive.',
-  routes_required: 'At least one route is required when thcUseDaysLast30 is positive.',
+  products_required: 'At least one product is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
+  routes_required: 'At least one route is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
   invalid_product: 'Unknown product kind.',
   invalid_route: 'Unknown route.',
   invalid_timestamp: 'Timestamp must be an ISO-8601 string with an explicit timezone (Z or +HH:MM).',
-  last_use_required_when_use_days_positive: 'lastUseAt is required when thcUseDaysLast30 is positive.',
+  last_use_required_when_use_days_positive:
+    'lastUseAt is required when thcUseDaysLast30 is positive on a route that consumes it.',
+  last_use_required_for_abstinence: 'goal abstinence requires the authoritative lastUseAt.',
   last_use_in_future: 'lastUseAt must not be in the future.',
   last_use_must_be_within_30_days_when_use_days_positive:
-    'lastUseAt must be within the last 30 x 24 hours when thcUseDaysLast30 is positive.',
+    'lastUseAt must be within the last 30 x 24 hours when thcUseDaysLast30 is positive on a route that consumes it.',
   last_use_must_not_be_within_30_days_when_zero_use_days:
     'lastUseAt within the last 30 x 24 hours contradicts thcUseDaysLast30 = 0.',
   tolerance_reset_requires_break_requested_true: 'goal tolerance_reset requires breakRequested = true.',
@@ -189,6 +195,16 @@ export function validateAndNormalizeProfile(
     errors.push(error('invalid_post_break_mode', 'postBreakMode'));
   }
 
+  // Route flags. `rangeRequested` routes run the Tolerance Engine's band
+  // selection (which alone reads sessions/products/routes and lastUseAt);
+  // `consumesLastUseAt` routes anchor withdrawal/abstinence timing to the
+  // authoritative last-use instant. Reduction without a requested break and
+  // detection information consume neither intensity fields nor a timestamp
+  // (UX_SPEC D1/D2/D3).
+  const breakRequestedTrue = breakRequestedKnown && input.breakRequested === true;
+  const rangeRequested = goal === 'tolerance_reset' || (goal === 'reduction' && breakRequestedTrue);
+  const consumesLastUseAt = rangeRequested || goal === 'abstinence';
+
   // --- thcUseDaysLast30 ----------------------------------------------------
   const useDaysField = readCoreSourcedField(errors, 'thcUseDaysLast30', input.thcUseDaysLast30);
   let useDays: number | null = null; // set only when present and valid
@@ -199,11 +215,14 @@ export function validateAndNormalizeProfile(
     } else {
       useDays = value;
     }
-  } else if (useDaysField.clean && goal !== 'detection_information') {
+  } else if (useDaysField.clean && goal !== undefined && GOALS_REQUIRING_USE_DAYS.includes(goal)) {
     errors.push(error('thc_use_days_required', 'thcUseDaysLast30'));
   }
   const useDaysPositive = useDays !== null && useDays > 0;
   const useDaysZero = useDays === 0;
+  // Only the 16-30 band can trigger the intensity rule, so only it is required
+  // to supply the intensity fields on range-requested routes (spec 5.7).
+  const useDaysIntensityBand = useDays !== null && useDays >= 16;
 
   // --- sessionsPerUseDay ---------------------------------------------------
   const sessionsField = readCoreSourcedField(errors, 'sessionsPerUseDay', input.sessionsPerUseDay);
@@ -214,7 +233,7 @@ export function validateAndNormalizeProfile(
     } else if (useDaysZero) {
       errors.push(error('sessions_forbidden_when_zero_use_days', 'sessionsPerUseDay'));
     }
-  } else if (sessionsField.clean && useDaysPositive) {
+  } else if (sessionsField.clean && rangeRequested && useDaysIntensityBand) {
     errors.push(error('sessions_required', 'sessionsPerUseDay'));
   }
 
@@ -229,10 +248,10 @@ export function validateAndNormalizeProfile(
       errors.push(error('invalid_route', `routes[${i}]`));
     }
   }
-  if (useDaysPositive && input.products.length === 0) {
+  if (rangeRequested && useDaysIntensityBand && input.products.length === 0) {
     errors.push(error('products_required', 'products'));
   }
-  if (useDaysPositive && input.routes.length === 0) {
+  if (rangeRequested && useDaysIntensityBand && input.routes.length === 0) {
     errors.push(error('routes_required', 'routes'));
   }
 
@@ -253,14 +272,21 @@ export function validateAndNormalizeProfile(
         if (elapsed < 0) {
           errors.push(error('last_use_in_future', 'lastUseAt'));
         } else if (useDaysZero && elapsed <= THIRTY_DAY_WINDOW_MS) {
+          // Spec 5.5: contradictory whenever both fields are present.
           errors.push(error('last_use_must_not_be_within_30_days_when_zero_use_days', 'lastUseAt'));
-        } else if (useDaysPositive && elapsed > THIRTY_DAY_WINDOW_MS) {
+        } else if (useDaysPositive && consumesLastUseAt && elapsed > THIRTY_DAY_WINDOW_MS) {
+          // Spec 5.6: window-consistency applies only where the timestamp is consumed.
           errors.push(error('last_use_must_be_within_30_days_when_use_days_positive', 'lastUseAt'));
         }
       }
     }
-  } else if (lastUseField.clean && useDaysPositive) {
-    errors.push(error('last_use_required_when_use_days_positive', 'lastUseAt'));
+  } else if (lastUseField.clean) {
+    if (goal === 'abstinence') {
+      // Spec 5.17 (UX_SPEC D2): abstinence requires the authoritative last use.
+      errors.push(error('last_use_required_for_abstinence', 'lastUseAt'));
+    } else if (rangeRequested && useDaysPositive) {
+      errors.push(error('last_use_required_when_use_days_positive', 'lastUseAt'));
+    }
   }
 
   // --- goal / breakRequested / postBreakMode rules (spec 5.9-5.14) ----------

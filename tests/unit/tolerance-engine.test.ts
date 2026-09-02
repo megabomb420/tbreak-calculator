@@ -101,23 +101,72 @@ describe('Tolerance Engine: goal routing (spec 7.4)', () => {
     assert.deepEqual(result.withdrawal, withdrawalDisplayAtDay1());
   });
 
-  it('abstinence planning_only carries no withdrawal when there is no last use', () => {
+  it('abstinence planning output is anchored to the authoritative last use (UX D2)', () => {
+    // Abstinence without a last use is now invalid input, so the engine
+    // returns validation_error instead of planning output without a timeline.
     const input = sampleProfile({
       goal: 'abstinence',
       breakRequested: false,
-      thcUseDaysLast30: userValue(0),
+      thcUseDaysLast30: absent(),
       sessionsPerUseDay: absent(),
       products: [],
       routes: [],
       lastUseAt: absent(),
     });
-    assert.deepEqual(resultOf(input), nullResultFields('planning_only'));
+    assert.equal(resultOf(input).kind, 'validation_error');
+
+    // A valid abstinence profile (last use only) always carries a withdrawal
+    // display because the timeline is anchored to the required last use.
+    const minimal = sampleProfile({
+      goal: 'abstinence',
+      breakRequested: false,
+      thcUseDaysLast30: absent(),
+      sessionsPerUseDay: absent(),
+      products: [],
+      routes: [],
+      lastUseAt: userValue('2026-08-19T22:00:00Z'),
+    });
+    const planning = resultOf(minimal);
+    assert.equal(planning.kind, 'planning_only');
+    assert.equal(planning.recommendedRangeDays, null);
+    assert.deepEqual(planning.withdrawal, withdrawalDisplayAtDay1());
   });
 
   it('reduction without a break does not claim an abstinence timeline', () => {
     const result = resultOf(sampleProfile({ goal: 'reduction', breakRequested: false }));
     assert.equal(result.kind, 'planning_only');
     assert.equal(result.withdrawal, null);
+  });
+
+  it('reduction without a break needs no last use to produce planning output (UX D3)', () => {
+    const result = resultOf(
+      sampleProfile({
+        goal: 'reduction',
+        breakRequested: false,
+        sessionsPerUseDay: absent(),
+        products: [],
+        routes: [],
+        lastUseAt: absent(),
+      }),
+    );
+    assert.deepEqual(result, nullResultFields('planning_only'));
+  });
+
+  it('below 16 use days a range route needs no intensity fields (UX D1)', () => {
+    for (const useDays of [1, 10, 15]) {
+      const result = resultOf(
+        sampleProfile({
+          thcUseDaysLast30: userValue(useDays),
+          sessionsPerUseDay: absent(),
+          products: [],
+          routes: [],
+        }),
+      );
+      assert.equal(result.kind, 'tolerance_result', `use days ${useDays}`);
+      assert.deepEqual(result.recommendedRangeDays, useDays <= 3 ? { min: 2, max: 7 } : { min: 7, max: 14 });
+      assert.equal(result.drivers.length, 1);
+      assert.equal(result.limitations.length, 0);
+    }
   });
 
   it('detection_information returns not_applicable without running the engine', () => {

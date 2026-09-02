@@ -977,6 +977,111 @@
         "policyVersion": "tolerance-v1",
         "calculatedAt": 1787184000000
       }
+    },
+    {
+      "name": "use_days_10_no_intensity_fields_regular_7_to_14",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 10, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": null, "provenance": "missing" },
+        "products": [],
+        "routes": [],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 7, "max": 14 },
+        "preferredTargetDays": 14,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "historyInsight": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": ["regular_nondaily_use"],
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "goal_abstinence_last_use_only_planning_only",
+      "profile": {
+        "goal": "abstinence",
+        "breakRequested": false,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": null, "provenance": "missing" },
+        "sessionsPerUseDay": { "value": null, "provenance": "missing" },
+        "products": [],
+        "routes": [],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "planning_only",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": [],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "goal_reduction_no_break_use_days_only_planning_only",
+      "profile": {
+        "goal": "reduction",
+        "breakRequested": false,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": null, "provenance": "missing" },
+        "products": [],
+        "routes": [],
+        "lastUseAt": { "value": null, "provenance": "missing" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "planning_only",
+        "recommendedRangeDays": null,
+        "preferredTargetDays": null,
+        "recommendationStatus": null,
+        "evidenceConfidence": null,
+        "personalisationConfidence": null,
+        "uncertaintySummaryCode": null,
+        "withdrawal": null,
+        "drivers": [],
+        "historyInsight": null,
+        "limitations": [],
+        "policyVersion": "tolerance-v1",
+        "calculatedAt": 1787184000000
+      }
     }
   ]
 }

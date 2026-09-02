@@ -170,16 +170,17 @@ The questionnaire is declarative and branches only to fields that affect an enab
 ```text
 goal
   |-- tolerance reset
-  |     -> use days -> sessions -> products/routes -> authoritative last use
-  |     -> optional previous breaks -> post-break mode
+  |     -> use days -> authoritative last use
+  |        (sessions, products and routes only when use days are 16-30)
   |
   |-- reduction
   |     -> explicit breakRequested
-  |     -> if true: tolerance path
-  |     -> if false: reduction planning without a break range
+  |     -> if true: tolerance path (identical to tolerance reset)
+  |     -> if false: use days -> reduction planning, no last use collected
   |
   |-- abstinence
-  |     -> use profile + authoritative last use
+  |     -> authoritative last use only (no use days, sessions, products
+  |        or routes; none of them change the abstinence output)
   |     -> withdrawal/abstinence planning
   |     -> postBreakMode fixed to continue_abstinence
   |

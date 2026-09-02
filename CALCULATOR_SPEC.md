@@ -163,9 +163,9 @@ Validation occurs before calculation.
 2. Elapsed time uses exact UTC instants and 24-hour periods, not calendar-date subtraction.
 3. A future `lastUseAt` is invalid.
 4. The 30-day window includes elapsed ages from zero through exactly 30 × 24 hours.
-5. If `thcUseDaysLast30 = 0` and `lastUseAt` is within that window, input is contradictory.
-6. If `thcUseDaysLast30 > 0`, `lastUseAt` is required and MUST be within that window. A timestamp older than 30 × 24 hours is contradictory.
-7. If `thcUseDaysLast30 > 0`, `sessionsPerUseDay`, at least one product, and at least one route are required.
+5. If `thcUseDaysLast30 = 0` and `lastUseAt` is within that window, input is contradictory. This applies whenever both fields are present, regardless of goal.
+6. When `thcUseDaysLast30 > 0` on a route that consumes `lastUseAt` (`tolerance_reset`, `reduction` with `breakRequested = true`, or `abstinence` reporting use days), `lastUseAt` is required and MUST be within that window. A timestamp older than 30 × 24 hours is contradictory on those routes. Routes that do not consume the timestamp never require it.
+7. When `thcUseDaysLast30 >= 16` and a tolerance range is requested (`tolerance_reset`, or `reduction` with `breakRequested = true`), `sessionsPerUseDay`, at least one product, and at least one route are required, because only that band can trigger the v1 frequency/intensity rule. For `thcUseDaysLast30` in 1–15 these fields are optional; when present they must still be valid.
 8. If `thcUseDaysLast30 = 0`, `sessionsPerUseDay` MUST be missing. Products and routes MAY be omitted because they cannot affect the current recommendation.
 9. `goal = tolerance_reset` requires `breakRequested = true`.
 10. `goal = detection_information` requires `breakRequested = false`.
@@ -175,6 +175,8 @@ Validation occurs before calculation.
 14. `goal = detection_information` requires `postBreakMode` to be missing. Other goals collect it only when it affects an enabled plan; `undecided` is a valid explicit answer.
 15. Free text MUST NOT be parsed into scientific numeric fields.
 16. Invalid or contradictory core input returns `validation_error` and no recommendation.
+17. `goal = abstinence` requires the authoritative `lastUseAt`. `thcUseDaysLast30` is not required for abstinence; the 30-day consistency rules (5–6) apply to abstinence only when use days are present.
+18. `goal = reduction` without a requested break neither requires nor collects `lastUseAt`; rule 6 does not apply to that route.
 
 Raw questionnaire state MAY be retained transiently for error correction. Persistent calculation records store only the validated fields needed to reproduce or explain the result.
 
