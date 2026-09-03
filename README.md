@@ -4,6 +4,8 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
+Version **0.7.2** — PWA polish. Settings → About now shows live PWA update state from the existing service-worker updater (Up to date / Update available with Update-now / Checking / offline-unavailable), the header gear icon uses a corrected symmetric 8-tooth path, and the Break Outlook roadmap groups consecutive days with equivalent guidance into readable ranges (`Days 4–6` instead of three identical chips) while keeping the exact per-day model. No science, engine, target policy, history, persistence, or viewport change.
+
 Version **0.7.1** — questionnaire order + Q6 layout. `currentPatternDuration` is now the **first use-profile question** (before use-days, sessions, products/routes) on every route that uses it, and the Q6 option rows are compact full-width cards (title on top, helper below). No science, engine bands, target policy, history, outlook, or viewport change beyond 0.7.0.
 
 Version **0.7.0** — `currentPatternDuration` is no longer decorative. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged, evidence-supported recommended range (recently established patterns target the lower end; established or missing ones the upper end). Recommended ranges, engines' bands, History/IndexedDB, Interval, and the iOS 26 viewport-fill contract are unchanged; there is still no duration-to-days formula. Old historical results stay frozen.
@@ -42,7 +44,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.7.1)
+## Capabilities (0.7.2)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -65,11 +67,18 @@ the UI component tests.
   planning-context note says which answers shaped the target without claiming
   higher scientific certainty.
 - **Your break outlook:** every planned day from Day 1 through the
-  2 / 7 / 14 / 21 / 28 target is inspectable before Start this break (day-chip
-  strip + inspector, not 28 giant cards). Overlapping evidence windows are
-  preserved. Result previews the journey; Today shows only now; Plan Detail
-  shows the running journey. Same BreakOutlookV1 source (content
-  break-outlook-v2).
+  2 / 7 / 14 / 21 / 28 target is inspectable before Start this break (grouped
+  chip strip + inspector, not 28 giant cards). Overlapping evidence windows are
+  preserved. Consecutive days with equivalent guidance collapse into labelled
+  ranges (`Days 4–6`); milestone and check-in days stay individual and the
+  exact per-day model is untouched. Result previews the journey; Today shows
+  only now; Plan Detail shows the running journey. Same BreakOutlookV1 source
+  (content break-outlook-v2).
+- **Settings → About update state**: live PWA freshness from the same
+  service-worker updater that drives the snackbar — “Up to date” only after a
+  completed check found nothing newer, “Update available” with an Update-now
+  action, “Checking for updates…”, or an honest offline/unavailable line. The
+  displayed app version is unchanged.
 - **Reduction plan:** user-defined weekly limits persist on device and show on
   Today. "See your break range" stays a secondary cross-sell, not the only action.
 - **Break start sheet**: Start now or pick a date (today + 14 days) and a

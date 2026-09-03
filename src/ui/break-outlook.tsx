@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'preact/hooks';
-import type { BreakOutlookView, OutlookDayView } from '../application/presentation/break-outlook.ts';
+import type { BreakOutlookView, OutlookDayView, OutlookSegmentView } from '../application/presentation/break-outlook.ts';
+import { segmentContainsDay, segmentForDay } from '../application/presentation/break-outlook.ts';
 import { windowById } from '../domain/guidance/evidence-guidance-v1.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { RESULT } from './result-copy.ts';
@@ -17,11 +18,21 @@ export function BreakOutlook({
   const defaultDay = useMemo(() => defaultSelectedDay(view), [view]);
   const [internalDay, setInternalDay] = useState(defaultDay);
   const selected = selectedDay ?? internalDay;
-  const dayView = view.days.find((row) => row.day === selected) ?? view.days[0] ?? null;
+  const segment = segmentForDay(view.segments, selected) ?? view.segments[0] ?? null;
+  const dayView = view.days.find((row) => row.day === selected) ?? segment?.representative ?? view.days[0] ?? null;
 
   function select(day: number) {
     if (onSelectDay !== undefined) onSelectDay(day);
     else setInternalDay(day);
+  }
+
+  function selectSegment(next: OutlookSegmentView) {
+    // Pick the exact day inside the group: the current day when this group
+    // contains it, otherwise the group's first day. The exact-day model is
+    // never replaced by a coarse phase.
+    const pick =
+      view.currentDay !== null && segmentContainsDay(next, view.currentDay) ? view.currentDay : next.startDay;
+    select(pick);
   }
 
   return (
@@ -33,9 +44,9 @@ export function BreakOutlook({
           {view.personalisationNote}
         </p>
       ) : null}
-      <OutlookDayStrip days={view.days} selected={selected} onSelect={select} />
-      {view.days.length > 10 ? <p className="meta outlook-swipe">{RESULT.outlookSwipe}</p> : null}
-      {dayView !== null ? <OutlookInspector day={dayView} /> : null}
+      <OutlookSegmentStrip view={view} selected={selected} onSelect={selectSegment} />
+      {view.segments.length > 10 ? <p className="meta outlook-swipe">{RESULT.outlookSwipe}</p> : null}
+      {dayView !== null && segment !== null ? <OutlookInspector day={dayView} segment={segment} view={view} /> : null}
       <BreakRoadmap
         compact
         stages={view.windows}
@@ -49,40 +60,81 @@ export function BreakOutlook({
   );
 }
 
-function OutlookDayStrip({
-  days,
+function OutlookSegmentStrip({
+  view,
   selected,
   onSelect,
 }: {
-  readonly days: readonly OutlookDayView[];
+  readonly view: BreakOutlookView;
   readonly selected: number;
-  readonly onSelect: (day: number) => void;
+  readonly onSelect: (segment: OutlookSegmentView) => void;
 }) {
   return (
-    <div className="outlook-strip" role="listbox" aria-label="Planned days" data-testid="outlook-day-strip">
-      {days.map((day) => (
-        <button
-          key={day.day}
-          type="button"
-          role="option"
-          aria-selected={day.day === selected}
-          className={`outlook-chip is-${day.status}${day.day === selected ? ' is-selected' : ''}`}
-          data-testid={`outlook-day-${day.day}`}
-          data-status={day.status}
-          onClick={() => onSelect(day.day)}
-        >
-          <span className="outlook-chip-num">{day.day}</span>
-          <span className="outlook-chip-label">Day</span>
-        </button>
-      ))}
+    <div
+      className="outlook-strip"
+      role="listbox"
+      aria-label="Planned days"
+      data-testid="outlook-day-strip"
+    >
+      {view.segments.map((segment) => {
+        const isSelected = segmentContainsDay(segment, selected);
+        const multi = segment.startDay !== segment.endDay;
+        return (
+          <button
+            key={`${segment.startDay}-${segment.endDay}`}
+            type="button"
+            role="option"
+            aria-selected={isSelected}
+            aria-label={segment.label}
+            className={`outlook-chip is-${segment.status}${isSelected ? ' is-selected' : ''}`}
+            data-testid={`outlook-seg-${segment.startDay}-${segment.endDay}`}
+            data-status={segment.status}
+            data-start={segment.startDay}
+            data-end={segment.endDay}
+            onClick={() => onSelect(segment)}
+          >
+            <span className="outlook-chip-num">
+              {multi ? `${segment.startDay}–${segment.endDay}` : segment.startDay}
+            </span>
+            <span className="outlook-chip-label">{multi ? 'Days' : 'Day'}</span>
+            {segment.status === 'current' ? (
+              <span className="outlook-chip-now" data-testid={`outlook-now-${segment.startDay}-${segment.endDay}`}>
+                {view.currentDay !== null ? `Today ${view.currentDay}` : 'Now'}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function OutlookInspector({ day }: { readonly day: OutlookDayView }) {
+function OutlookInspector({
+  day,
+  segment,
+  view,
+}: {
+  readonly day: OutlookDayView;
+  readonly segment: OutlookSegmentView;
+  readonly view: BreakOutlookView;
+}) {
+  const currentInside =
+    view.currentDay !== null && segmentContainsDay(segment, view.currentDay) ? view.currentDay : null;
+  const multi = segment.startDay !== segment.endDay;
   return (
-    <article className="outlook-inspector" data-testid="outlook-inspector" data-day={String(day.day)} data-window={day.primaryWindowId}>
-      <p className="eyebrow">{`Day ${day.day} \u00b7 ${day.stageLabel}`}</p>
+    <article
+      className="outlook-inspector"
+      data-testid="outlook-inspector"
+      data-day={String(day.day)}
+      data-segment={`${segment.startDay}-${segment.endDay}`}
+      data-window={day.primaryWindowId}
+    >
+      <p className="eyebrow">{`${segment.label} \u00b7 ${day.stageLabel}`}</p>
+      {currentInside !== null && multi ? (
+        <p className="meta" data-testid="outlook-today-line">
+          {`Today: Day ${currentInside}`}
+        </p>
+      ) : null}
       <h4 className="guidance-headline">{day.headline}</h4>
       {day.windowIds.length > 1 ? (
         <p className="meta" data-testid="outlook-overlap">

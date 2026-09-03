@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.7.1** (questionnaire order: duration first on consuming routes; compact Q6 option rows — on top of 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
+- App version: **0.7.2** (PWA polish: live Settings update state, corrected gear icon, grouped Break Outlook roadmap — on top of 0.7.1's duration-first questionnaire and 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.7.1 revision note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.7.2 revision note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v2 target rule in §4.3, §7.3, §7.5, §7.6; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`)
 - `ARCHITECTURE.md`
@@ -25,26 +25,57 @@ to make UI easier. Do not commit untracked review files.
 ## What is on main
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
-visual redesign, the **0.3.1–0.6.1** patches, and the **0.7.0–0.7.1**
-calculator/questionnaire revisions.
+visual redesign, the **0.3.1–0.6.1** patches, and the **0.7.0–0.7.2**
+calculator/questionnaire/PWA-polish revisions.
 
 | Step | Status |
 |---|---|
 | 1. Shell + Today router + draft persistence | done |
 | 2. Declarative questionnaire engine + §5.1 flow | done (Q6 added in 0.6.0; moved first in 0.7.1) |
-| 3. Result screens + §14 template layer | done (outlook replaces “First weeks”) |
+| 3. Result screens + §14 template layer | done (outlook replaces “First weeks”; grouped roadmap in 0.7.2) |
 | 4. Break loop (§8, §10): break start, Today states, plan detail, use-first check-in, interruption, completion | done |
 | 5. History + contextual flows + IndexedDB | done (0.4.0) |
 | 0.4.2 iOS 26 Liquid Glass viewport fill | done |
 | 0.5.0 evidence-guided T-break companion | done |
 | 0.6.0 current-pattern duration + full break outlook | done |
 | 0.7.0 duration-aware planning target (tolerance-v2) | done |
-| 0.7.1 duration asked first on consuming routes + compact Q6 rows | **done** |
+| 0.7.1 duration asked first on consuming routes + compact Q6 rows | done |
+| 0.7.2 Settings update state + gear icon + grouped Break Outlook | **done** |
 | 6. Runtime AI / DeepSeek | **not started** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.7.2 added (PWA polish; no science change)
+
+1. **Settings → About update state.** `src/ui/main.tsx` keeps the single
+   `registerSW` updater that drives the snackbar and now also tracks honest
+   freshness: `checking` → after a completed `registration.update()` with no
+   newer worker → `current` (“Up to date”); an update found (own `updatefound`
+   or the plugin's `onNeedRefresh`) → `available`; offline → `offline`;
+   no service-worker context / register error / dev-server no-op timeout →
+   `unavailable`. Settings renders the state compactly under the unchanged
+   version line and, when available, an “Update now” button that calls the same
+   `updateServiceWorker` reload used by the snackbar. “Up to date” is never
+   shown just because no event fired.
+2. **Gear icon fix.** The old gear path rendered with uneven teeth; replaced
+   with a fully symmetric 8-tooth path (tips at radius 9.4, roots at 6.8, hub
+   circle r 2.4) generated to stay proportional inside the 24 viewBox, plus CSS
+   hardening on `.icon-button` (`flex: 0 0 auto`, `line-height: 0`,
+   `aspect-ratio: 1`, `display: block` on the svg) so no axis can squash.
+3. **Grouped Break Outlook roadmap.** Presentation transform only:
+   `groupOutlookDays` (in `src/application/presentation/break-outlook.ts`)
+   collapses consecutive days whose full user-facing presentation is identical
+   (windows, stage, headline, may-notice, can-help, what-matters, next-stage,
+   milestone, tone, check-in) into segments labelled `Day N` / `Days N–M`.
+   `BreakOutlookView.segments` is derived from the exact `days` array, which
+   remains authoritative; milestone/check-in days stay individual. The strip in
+   Result / Plan Detail / Tracking renders segments; a segment containing the
+   exact current day is marked current and the inspector shows a
+   “Today: Day N” line. A 28-day typical journey renders as Day 1 / Days 2–3 /
+   Days 4–6 / Day 7 / Days 8–13 / Day 14 / Days 15–20 / Day 21 / Days 22–27 /
+   Day 28.
 
 ## What 0.7.1 added (flow + layout only)
 

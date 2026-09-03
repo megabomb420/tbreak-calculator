@@ -11,7 +11,14 @@ import {
   type DurablePersistence,
 } from '../persistence/durable.ts';
 
-export const APP_VERSION = '0.7.1';
+export const APP_VERSION = '0.7.2';
+
+/**
+ * PWA update freshness for Settings. `current` is only ever produced by a
+ * completed service-worker update check that found nothing newer;
+ * `offline`/`unavailable` never claim the app is current.
+ */
+export type PwaUpdateStatus = 'checking' | 'current' | 'available' | 'offline' | 'unavailable';
 
 export const SETTINGS_MENU = ['install-help', 'offline-note', 'app-info', 'delete-everything'] as const;
 export type SettingsMenuId = (typeof SETTINGS_MENU)[number];

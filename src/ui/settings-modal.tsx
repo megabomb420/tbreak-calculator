@@ -1,5 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
-import { APP_VERSION, SETTINGS_MENU, type SettingsMenuId } from '../application/settings/settings.ts';
+import {
+  APP_VERSION,
+  SETTINGS_MENU,
+  type PwaUpdateStatus,
+  type SettingsMenuId,
+} from '../application/settings/settings.ts';
 import { SETTINGS } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
@@ -9,11 +14,22 @@ const HOLD_MS = 3000;
 export interface SettingsModalProps {
   readonly open: boolean;
   readonly persistent?: boolean;
+  /** PWA freshness from the single existing updater; `undefined` hides the block. */
+  readonly updateStatus?: PwaUpdateStatus;
+  /** Applies the available update through the same mechanism as the snackbar. */
+  readonly onUpdateNow?: () => void;
   readonly onClose: () => void;
   readonly onDeleteEverything: () => void;
 }
 
-export function SettingsModal({ open, persistent = true, onClose, onDeleteEverything }: SettingsModalProps) {
+export function SettingsModal({
+  open,
+  persistent = true,
+  updateStatus,
+  onUpdateNow,
+  onClose,
+  onDeleteEverything,
+}: SettingsModalProps) {
   const titleId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(open, rootRef, onClose);
@@ -53,7 +69,14 @@ export function SettingsModal({ open, persistent = true, onClose, onDeleteEveryt
         </header>
         <div className="modal-body">
           {SETTINGS_MENU.map((id) => (
-            <SettingsEntry key={id} id={id} persistent={persistent} onDeleteEverything={onDeleteEverything} />
+            <SettingsEntry
+              key={id}
+              id={id}
+              persistent={persistent}
+              updateStatus={id === 'app-info' ? updateStatus : undefined}
+              onUpdateNow={id === 'app-info' ? onUpdateNow : undefined}
+              onDeleteEverything={onDeleteEverything}
+            />
           ))}
         </div>
       </div>
@@ -64,10 +87,14 @@ export function SettingsModal({ open, persistent = true, onClose, onDeleteEveryt
 function SettingsEntry({
   id,
   persistent,
+  updateStatus,
+  onUpdateNow,
   onDeleteEverything,
 }: {
   readonly id: SettingsMenuId;
   readonly persistent: boolean;
+  readonly updateStatus?: PwaUpdateStatus;
+  readonly onUpdateNow?: () => void;
   readonly onDeleteEverything: () => void;
 }) {
   switch (id) {
@@ -95,6 +122,7 @@ function SettingsEntry({
           <h3 className="settings-entry-title">{SETTINGS.appInfoTitle}</h3>
           <p className="body">{SETTINGS.appInfoVersion}</p>
           <p className="meta">Version {APP_VERSION}</p>
+          {updateStatus !== undefined ? <UpdateStatus status={updateStatus} onUpdateNow={onUpdateNow} /> : null}
         </section>
       );
     case 'delete-everything':
@@ -108,6 +136,39 @@ function SettingsEntry({
         </section>
       );
   }
+}
+
+/** Compact PWA freshness under About. The state comes from the same updater
+ * that drives the snackbar; Update-now reuses its reload mechanism. */
+function UpdateStatus({
+  status,
+  onUpdateNow,
+}: {
+  readonly status: PwaUpdateStatus;
+  readonly onUpdateNow?: () => void;
+}) {
+  const line =
+    status === 'current'
+      ? SETTINGS.updateCurrent
+      : status === 'available'
+        ? SETTINGS.updateAvailable
+        : status === 'offline'
+          ? SETTINGS.updateOffline
+          : status === 'unavailable'
+            ? SETTINGS.updateUnavailable
+            : SETTINGS.updateChecking;
+  return (
+    <div className="update-status" data-testid="settings-update-state" data-update-status={status}>
+      <p className="meta" data-testid="settings-update-line">
+        {line}
+      </p>
+      {status === 'available' && onUpdateNow !== undefined ? (
+        <button type="button" className="cta-secondary update-now" data-testid="settings-update-now" onClick={onUpdateNow}>
+          {SETTINGS.updateNow}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function HoldToDelete({ onConfirm }: { readonly onConfirm: () => void }) {

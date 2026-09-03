@@ -202,9 +202,13 @@ describe('plan detail', () => {
     expect(detail).toBeTruthy();
     expect(screen.getByTestId('plan-ring-day').textContent).toBe('Day 4');
     expect(screen.getByTestId('break-outlook')).toBeTruthy();
-    expect(screen.getByTestId('outlook-day-21')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-22')).toBeNull();
-    expect(screen.getByTestId('outlook-day-4').getAttribute('data-status')).toBe('current');
+    // 21-day target ends at a single Day 21 (nothing beyond it)…
+    expect(screen.getByTestId('outlook-seg-21-21')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-seg-22-22')).toBeNull();
+    // …and the exact current day (4) is highlighted inside its grouped
+    // segment (Days 4–6) with an explicit Today line.
+    expect(screen.getByTestId('outlook-seg-4-6').getAttribute('data-status')).toBe('current');
+    expect(screen.getByTestId('outlook-today-line').textContent).toBe('Today: Day 4');
     expect(screen.getByTestId('target-date')).toBeTruthy();
     expect(screen.getByTestId('phase-focus')).toBeTruthy();
     expect(screen.getByTestId('post-break-card')).toBeTruthy();

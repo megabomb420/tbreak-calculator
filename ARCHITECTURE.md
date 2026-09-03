@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.7.1  
+Version: 0.7.2  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -31,9 +31,9 @@ Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/i
 - branching questionnaire;
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
-- BreakOutlookV1 day-by-day presentation over those windows (Result / Today / Plan Detail);
+- BreakOutlookV1 day-by-day presentation over those windows (Result / Today / Plan Detail), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
 - IndexedDB persistence and complete local deletion; and
-- PWA shell/offline support.
+- PWA shell/offline support, with the single service-worker update state (snackbar + Settings About) driven from `registerSW` in `src/ui/main.tsx`;
 
 ### Defer beyond v1
 

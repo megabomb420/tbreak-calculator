@@ -38,6 +38,7 @@ import {
 import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../application/progress/result-view.ts';
 import { type StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import { type StoredTrack } from '../application/progress/tracking-record.ts';
+import { type PwaUpdateStatus } from '../application/settings/settings.ts';
 import {
   DEFAULT_REDUCTION_DAYS_PER_WEEK,
   DEFAULT_REDUCTION_SESSIONS,
@@ -120,6 +121,10 @@ export interface AppProps {
   readonly updateReady?: boolean;
   readonly onReloadUpdate?: () => void;
   readonly onDismissUpdate?: () => void;
+  /** PWA freshness shown in Settings About (from the same updater). */
+  readonly updateStatus?: PwaUpdateStatus;
+  /** Applies an available update from Settings (same mechanism as snackbar). */
+  readonly onUpdateNow?: () => void;
 }
 
 export function App({
@@ -130,6 +135,8 @@ export function App({
   updateReady = false,
   onReloadUpdate,
   onDismissUpdate,
+  updateStatus,
+  onUpdateNow,
 }: AppProps) {
   const [shell, dispatch] = useReducer(shellReducer, INITIAL_SHELL_STATE);
   const progress = useMemo(() => createQuestionnaireProgressStore(storage), [storage]);
@@ -929,6 +936,8 @@ export function App({
       <SettingsModal
         open={shell.settingsOpen}
         persistent={persistent}
+        updateStatus={updateStatus}
+        onUpdateNow={() => onUpdateNow?.()}
         onClose={() => dispatch({ type: 'close_settings' })}
         onDeleteEverything={() => {
           deleteAllLocalData(storage, durable);

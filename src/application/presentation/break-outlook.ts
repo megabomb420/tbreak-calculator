@@ -54,6 +54,18 @@ export interface OutlookDayView {
   readonly tone: ExposureTone;
 }
 
+export interface OutlookSegmentView {
+  readonly startDay: number;
+  readonly endDay: number;
+  /** Human label: "Day 1" or "Days 4–6". */
+  readonly label: string;
+  readonly status: OutlookDayStatus;
+  /** The exact members of this group (consecutive days with equivalent
+   * guidance). `representative` content is identical across the members. */
+  readonly members: readonly OutlookDayView[];
+  readonly representative: OutlookDayView;
+}
+
 export interface BreakOutlookView {
   readonly version: BreakOutlook['version'];
   readonly targetDays: number | null;
@@ -63,6 +75,10 @@ export interface BreakOutlookView {
   readonly personalisationNote: string | null;
   readonly populationNote: string;
   readonly days: readonly OutlookDayView[];
+  /** Presentation grouping of `days` — consecutive days whose user-facing
+   * guidance is equivalent collapse into one labelled range. Exact per-day
+   * data stays authoritative in `days`; this is derived, never replaces it. */
+  readonly segments: readonly OutlookSegmentView[];
   readonly windows: readonly RoadmapStageView[];
 }
 
@@ -94,6 +110,7 @@ export function presentBreakOutlook(input: {
       checkin: checkinForDay(input.checkins ?? [], input.lastUseAt ?? null, day.day),
     }),
   );
+  const segments = groupOutlookDays(days);
   const spanEnd = outlook.days.length;
   const windowIds = windowIdsOverlappingSpan(1, spanEnd, { openEnded: input.openEnded });
   const windows = presentOutlookWindows({
@@ -111,8 +128,102 @@ export function presentBreakOutlook(input: {
     personalisationNote: outlook.personalisationNote,
     populationNote: POPULATION_OUTLOOK_NOTE,
     days,
+    segments,
     windows,
   };
+}
+
+export function outlookRangeLabel(startDay: number, endDay: number): string {
+  return startDay === endDay ? `Day ${startDay}` : `Days ${startDay}–${endDay}`;
+}
+
+export function segmentContainsDay(segment: OutlookSegmentView, day: number): boolean {
+  return day >= segment.startDay && day <= segment.endDay;
+}
+
+export function segmentForDay(
+  segments: readonly OutlookSegmentView[],
+  day: number,
+): OutlookSegmentView | null {
+  return segments.find((segment) => segmentContainsDay(segment, day)) ?? null;
+}
+
+/**
+ * Grouping is a pure presentation transform over the exact per-day outlook.
+ * Two consecutive days merge only when every meaningful user-facing field is
+ * identical: evidence window membership, stage, headline, what-you-may-notice,
+ * practical guidance, what-matters, next-stage context, milestone content,
+ * exposure tone, and any stored check-in note. Day number and past/current/
+ * future status never block a merge (a multi-day segment can contain the exact
+ * current day), but a milestone day or a check-in day with unique content
+ * always starts its own segment.
+ */
+export function outlookDaysEquivalent(a: OutlookDayView, b: OutlookDayView): boolean {
+  return outlookDayGroupingKey(a) === outlookDayGroupingKey(b);
+}
+
+function outlookDayGroupingKey(day: OutlookDayView): string {
+  return [
+    day.primaryWindowId,
+    day.windowIds.join('\u0000'),
+    day.stageLabel,
+    day.headline,
+    day.mayNotice.join('\u0000'),
+    day.canHelp.join('\u0000'),
+    day.whatMatters,
+    day.comesNext ?? '',
+    day.milestoneTitle ?? '',
+    day.milestoneBody ?? '',
+    day.tone,
+    checkinGroupingKey(day.checkin),
+  ].join('\u0001');
+}
+
+function checkinGroupingKey(checkin: CheckinDayNote | null): string {
+  if (checkin === null || !checkin.hasAnyRating) return '';
+  return [
+    String(checkin.craving ?? ''),
+    String(checkin.sleep ?? ''),
+    String(checkin.irritability ?? ''),
+    String(checkin.anxiety ?? ''),
+    String(checkin.appetite ?? ''),
+  ].join('/');
+}
+
+function segmentStatus(members: readonly OutlookDayView[]): OutlookDayStatus {
+  const statuses = new Set(members.map((member) => member.status));
+  if (statuses.has('current')) return 'current';
+  if (statuses.has('preview')) return 'preview';
+  if (statuses.has('past')) return 'past';
+  return 'future';
+}
+
+export function groupOutlookDays(days: readonly OutlookDayView[]): readonly OutlookSegmentView[] {
+  const segments: OutlookSegmentView[] = [];
+  for (const day of days) {
+    const last = segments[segments.length - 1];
+    if (last !== undefined && outlookDaysEquivalent(last.representative, day)) {
+      const members = [...last.members, day];
+      segments[segments.length - 1] = {
+        startDay: last.startDay,
+        endDay: day.day,
+        label: outlookRangeLabel(last.startDay, day.day),
+        status: segmentStatus(members),
+        members,
+        representative: last.representative,
+      };
+    } else {
+      segments.push({
+        startDay: day.day,
+        endDay: day.day,
+        label: outlookRangeLabel(day.day, day.day),
+        status: day.status,
+        members: [day],
+        representative: day,
+      });
+    }
+  }
+  return segments;
 }
 
 export function presentOutlookForProfile(input: {

@@ -50,8 +50,12 @@ describe('result screens from engine output', () => {
     expect(result.textContent ?? '').not.toMatch(/reset complete/i);
     expect(screen.getByTestId('break-outlook')).toBeTruthy();
     expect(screen.getByTestId('outlook-day-strip')).toBeTruthy();
-    expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-8')).toBeNull();
+    // Consecutive equivalent days are grouped: 7-day target = Day 1 / Days
+    // 2–3 / Days 4–6 / Day 7.
+    expect(screen.getByTestId('outlook-seg-2-3')).toBeTruthy();
+    expect(screen.getByTestId('outlook-seg-4-6')).toBeTruthy();
+    expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
     expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
     expect(result.textContent ?? '').toMatch(/lower end of the same 7–14 day evidence range/);
     expect(screen.getByTestId('cb1-note')).toBeTruthy();
@@ -68,10 +72,10 @@ describe('result screens from engine output', () => {
     let flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    // Recent pattern: lower anchor of the 2–7 evidence range.
+    // Recent pattern: lower anchor of the 2–7 evidence range (target 2).
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('2');
-    expect(screen.getByTestId('outlook-day-2')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-3')).toBeNull();
+    expect(screen.getByTestId('outlook-seg-2-2')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-seg-3-3')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/weeks rather than years/);
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/lower end/);
     rare.unmount();
@@ -87,8 +91,8 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
-    expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-8')).toBeNull();
+    expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/upper end of the same 2–7 day evidence range/);
   });
 
@@ -110,8 +114,14 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('28');
-    expect(screen.getByTestId('outlook-day-28')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-29')).toBeNull();
+    // The 28-day journey is grouped into meaningful consecutive ranges; the
+    // final milestone day stays a single Day 28 and nothing extends beyond it.
+    expect(screen.getByTestId('outlook-seg-2-3')).toBeTruthy();
+    expect(screen.getByTestId('outlook-seg-4-6')).toBeTruthy();
+    expect(screen.getByTestId('outlook-seg-8-13')).toBeTruthy();
+    expect(screen.getByTestId('outlook-seg-28-28')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-seg-29-29')).toBeNull();
+    expect(screen.queryByTestId('outlook-seg-3-3')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/many years/);
   });
 

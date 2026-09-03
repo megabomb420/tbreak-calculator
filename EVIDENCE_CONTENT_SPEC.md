@@ -163,7 +163,7 @@ Tone is copy-only. It MUST NOT change `recommendedRangeDays` or `preferredTarget
 | lighter | 1–3 use-days, no concentrate/dabbing, and short or missing duration |
 | typical | everything else, including long-established infrequent use |
 
-Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey.
+Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey. Since 0.7.2 the roadmap presented by Result and Plan Detail groups consecutive days with equivalent guidance into labelled ranges (`Days N–M`); the exact per-day content behind that grouping is unchanged and the grouping itself is a presentation transform with no effect on any day's content, windows, milestones, or tone.
 
 Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v2 target rule — the planning target inside the unchanged recommended range. The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
