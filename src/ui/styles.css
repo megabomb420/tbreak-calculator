@@ -2863,65 +2863,10 @@ select,
 
 .today-screen {
   position: relative;
-  isolation: isolate;
   min-height: calc(100% - var(--space-4));
 }
 
-.today-screen > *:not(.interval-field) { position: relative; z-index: 1; }
-
-.interval-field {
-  --phase-a: var(--accent);
-  --phase-b: var(--accent-strong);
-  position: absolute;
-  z-index: 0;
-  top: -58px;
-  left: calc(var(--gutter) * -1);
-  right: calc(var(--gutter) * -1);
-  height: 360px;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: .72;
-  background:
-    radial-gradient(60% 48% at 74% 18%, color-mix(in oklab, var(--phase-a) 18%, transparent), transparent 72%),
-    radial-gradient(48% 55% at 8% 46%, color-mix(in oklab, var(--phase-b) 9%, transparent), transparent 75%);
-  mask-image: linear-gradient(#000 0 65%, transparent 100%);
-}
-
-.today-screen[data-phase='peak'] .interval-field { --phase-a: var(--warn); --phase-b: var(--accent); }
-.today-screen[data-phase='settling'] .interval-field,
-.today-screen[data-phase='middle'] .interval-field { --phase-a: #839fa7; --phase-b: #8da08c; }
-.today-screen[data-phase='approaching'] .interval-field,
-.today-screen[data-phase='reached'] .interval-field,
-.today-screen[data-phase='complete'] .interval-field { --phase-a: var(--ok); --phase-b: var(--accent-strong); opacity: .84; }
-.today-screen[data-phase='paused'] .interval-field { --phase-a: var(--warn); --phase-b: var(--fg-faint); opacity: .5; }
-.today-screen[data-phase='reduction'] .interval-field { --phase-a: var(--accent); --phase-b: #837f9d; }
-
-.interval-field-orbit {
-  position: absolute;
-  border: 1px solid color-mix(in oklab, var(--phase-a) 30%, transparent);
-  border-radius: 50%;
-  animation: interval-drift 18s ease-in-out infinite alternate;
-}
-
-.orbit-one { width: 250px; height: 250px; right: -70px; top: -54px; }
-.orbit-two { width: 150px; height: 150px; right: 18px; top: -4px; animation-duration: 24s; animation-direction: alternate-reverse; }
-
-.interval-field-pause {
-  position: absolute;
-  right: 76px;
-  top: 52px;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: 1px solid color-mix(in oklab, var(--phase-b) 42%, transparent);
-  border-radius: 12px;
-  transform: rotate(8deg);
-}
-
-.interval-field-pause i { width: 3px; height: 12px; border-radius: 3px; background: color-mix(in oklab, var(--phase-b) 75%, transparent); }
+.today-screen > * { position: relative; }
 
 .today-live-card {
   gap: 0;
@@ -2979,11 +2924,6 @@ select,
   to { opacity: 1; transform: none; }
 }
 
-@keyframes interval-drift {
-  from { transform: translate3d(-8px, -3px, 0) rotate(-3deg); }
-  to { transform: translate3d(10px, 8px, 0) rotate(4deg); }
-}
-
 @media (min-width: 720px) {
   .app-shell,
   .questionnaire-overlay,
@@ -3015,8 +2955,7 @@ select,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .result-lens-panel,
-  .interval-field-orbit {
+  .result-lens-panel {
     animation: none;
   }
   .result-mode-option,
@@ -3048,13 +2987,6 @@ select,
 .plan-hero .today-state-note {
   width: 100%;
   margin: 0;
-}
-
-/* Beyond-the-plan ambience: calm teal, distinct from the target-reached glow. */
-.today-screen[data-phase='extended'] .interval-field {
-  --phase-a: var(--ok);
-  --phase-b: #8da08c;
-  opacity: 0.8;
 }
 
 /* Density: the active/tracking Today card should surface the state fast.
@@ -3099,4 +3031,71 @@ select,
 .checkin-focus-line {
   color: var(--accent-strong);
   font-weight: 600;
+}
+
+/* 0.11.1 — Today visual polish: clean editorial surface -------------------- */
+
+/* The completed Today card presents its return plan as open text with a light
+   rule instead of a nested panel, so the state reads as one transition. */
+.today-plan-card.completed > .post-break-summary {
+  gap: var(--space-1);
+  padding: var(--space-3) 0 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-top: 1px solid var(--hairline);
+}
+
+.today-plan-card.completed > .post-break-summary .post-break-summary {
+  gap: var(--space-1);
+}
+
+/* Today guidance is grouped by typography and light rules, not stacked dark
+   rectangles: the milestone is an editorial line, "what matters today" is a
+   restrained left-rule callout, and supporting sections stay plain text. */
+.today-screen .today-plan-card .guidance-milestone {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.today-screen .today-plan-card .guidance-milestone .guidance-milestone-title {
+  color: var(--fg);
+}
+
+.today-screen .today-plan-card .guidance-primary {
+  padding: 0 0 0 var(--space-3);
+  border-radius: 0;
+  background: transparent;
+  border-left: 2px solid color-mix(in oklab, var(--accent-strong) 50%, transparent);
+}
+
+.today-screen .today-plan-card .guidance-primary .body {
+  color: var(--fg);
+}
+
+.today-screen .today-now {
+  padding-top: var(--space-4);
+}
+
+/* The Today guidance headline is a supporting editorial voice, not a second
+   hero; the day/target line already leads the state. */
+.today-screen .today-plan-card .today-now .guidance-headline {
+  font-size: clamp(1.15rem, 5.4vw, 1.45rem);
+  color: var(--fg);
+}
+
+/* Phase state note: keep one restrained, clearly secondary surface. */
+.today-screen .today-state-note {
+  font-size: 0.8125rem;
+  padding: var(--space-3) var(--space-3);
+}
+
+/* Open-ended tracking card: same guidance rhythm as the active-break card. */
+.today-plan-card.tracking > .today-guidance {
+  margin: 0 var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-2);
+  border-top: 1px solid var(--hairline);
 }

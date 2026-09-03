@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.11.0** (product-experience completion pass over the primary journey; presentation only — tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.11.1** (Today visual-polish release — page-level decorative background removed, Today guidance de-carded; presentation only, tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.11.1 note covers the Today visual-polish release — page background removed, Today guidance de-carded; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, and the **0.11.0** product-experience completion pass.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, and the **0.11.1** Today visual-polish release.
 
 | Step | Status |
 |---|---|
@@ -51,10 +51,37 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.10.0 unified results, actionable plan, phase-aware Today, support focus | **done** |
 | 0.10.1 Today profile-no-break reuses the shared result lens | **done** |
 | 0.11.0 Today phase-system completion + Plan Detail/check-in alignment | **done** |
+| 0.11.1 Today visual polish (page background removed, guidance de-carded) | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.11.1 added (Today visual polish; no science change)
+
+A Today-only presentation release — no tolerance-v3, Recovery Outlook v2,
+Reduction, Detection, History semantics, persistence, tab or viewport change;
+`sources/` unchanged.
+
+- **Page-level decorative background removed.** The full-height
+  `.interval-field` orbit artwork behind Today content (and its phase color
+  groups, orbit elements and `interval-drift` keyframes) is deleted. Today now
+  sits on the clean product surface; the only remaining interval geometry is
+  contained inside components (result lens), `aria-hidden` /
+  `pointer-events: none`.
+- **Today guidance de-carded.** The guidance milestone is an editorial line
+  (no filled chip), "what matters today" is a restrained left-rule callout
+  instead of a dark rectangle, the compact guidance headline is a supporting
+  voice under the day/target hero, and guidance sections group by typography
+  and light rules. Completed-break Today shows its return plan as open text
+  with a light rule (nested panel removed). Open-ended tracking now uses the
+  same guidance rhythm (`border-top` + insets) as the active-break card.
+- Measured at 430×932: active-break card ~721 → ~669px, completed card
+  ~830 → ~720px; extended/beyond-plan and saved-result cards fit the viewport;
+  no horizontal overflow at 320/430/1280; primary CTAs stay visible/reachable.
+- Regression tests: `tests/ui/today-phases.test.tsx` adds an assertion that
+  Today renders no `.interval-field` / `.interval-field-orbit` element while
+  `data-phase` and the active card + Check-in action remain.
 
 ## What 0.11.0 added (product-experience completion; no science change)
 

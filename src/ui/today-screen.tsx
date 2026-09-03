@@ -100,7 +100,6 @@ export function TodayScreen(props: TodayScreenProps) {
       data-resume={view.resume}
       data-phase={phase}
     >
-      <AmbientIntervalField phase={phase} />
       {view.resume === 'replaces-primary' ? (
         resume
       ) : (
@@ -382,16 +381,6 @@ function TrackingCard(props: TodayScreenProps) {
         />
       ) : null}
     </article>
-  );
-}
-
-function AmbientIntervalField({ phase }: { readonly phase: string }) {
-  return (
-    <div className="interval-field" data-phase={phase} aria-hidden="true">
-      <span className="interval-field-orbit orbit-one" />
-      <span className="interval-field-orbit orbit-two" />
-      <span className="interval-field-pause"><i /><i /></span>
-    </div>
   );
 }
 

@@ -5,6 +5,15 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.11.1** — Today visual polish. The decorative orbit/interval
+wallpaper behind Today is gone, so every Today state reads on the clean
+product surface. Today guidance is de-carded: milestones are editorial lines,
+"what matters today" is a restrained left-rule callout, the compact headline
+steps below the day/target hero, completed-break's return plan is open text,
+and open-ended tracking matches the active-break rhythm. Presentation only —
+no science, tolerance-v3, Recovery Outlook, Reduction, History, persistence,
+tabs or viewport change.
+
 Version **0.11.0** — product-experience completion. The finite break on Today
 now distinguishes the **target-reached** day from **beyond the plan**, with a
 phase-aware eyebrow (first days → common peak → settling in → past the peak →

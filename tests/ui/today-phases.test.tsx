@@ -126,6 +126,21 @@ describe('Today phase states (0.11)', () => {
     expect(screen.getByTestId('confirm-when-cta')).toBeTruthy();
   });
 
+  it('renders Today without the page-level decorative interval background (0.11.1)', () => {
+    const storage = createMemoryStorage();
+    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
+    seedAttempt(storage, activeAttempt());
+    renderApp(storage);
+    // No page-level orbit wallpaper behind the Today content; the phase state
+    // attribute that drives card copy is still present.
+    expect(screen.getByTestId('today-view').getAttribute('data-phase')).toBe('reached');
+    expect(document.querySelector('.interval-field')).toBeNull();
+    expect(document.querySelector('.interval-field-orbit')).toBeNull();
+    // The active card and its primary action still render.
+    expect(screen.getByTestId('state-active-break')).toBeTruthy();
+    expect(screen.getByTestId('checkin-cta')).toBeTruthy();
+  });
+
   it('adds the support-focus line and leads with the matching symptom slider on the check-in', () => {
     const storage = createMemoryStorage();
     const snapshot: RawAnswerSnapshot = {
