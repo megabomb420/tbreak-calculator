@@ -1,11 +1,13 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.8.0  
+Version: 0.9.0  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
 **0.8.0 note:** the tolerance policy line is **`tolerance-v3`** (`src/domain/policies/tolerance-policy-v3.ts`): multi-factor exposure classification (frequency + intensity + chronicity) bounded at most one adjacent evidence tier, unchanged 2–7 / 7–14 / 14–21 / 21–28 outer bounds, deterministic target anchor inside the final range with a bounded in-range history override. Active reduction (cut-down) tracking adds a pure reduction domain (`src/domain/reduction/reduction-engine.ts` + `reduction-plan-lifecycle.ts`), the `reduction-records-v2` application store (`src/application/progress/reduction-record.ts`), the durable `reductionRecords` family in both the web and IndexedDB backends, adaptive tolerance recalculation (`src/application/calculation/adaptive-recalc.ts`), the UI sheets `log-use.tsx`, `reduction-start-sheet.tsx`, and `reduction-refresh-sheet.tsx`, and the new Today state `reduction-active`. Sections 5.1 and 9 reflect the policy and durable-store lists.
+
+**0.9.0 note:** Recovery Intelligence adds a deterministic recovery-outlook presentation boundary with no AI or network dependency and no tolerance-v3 engine change: `src/domain/recovery/recovery-outlook.ts` (version `tolerance-recovery-outlook-v1`) interprets a frozen tolerance result, `src/domain/checkins/checkin-summary.ts` derives conservative check-in facts, and `src/application/presentation/recovery-checkin-facts.ts` / `reduction-trajectory.ts` map them to a live break context and the reduction card. The result UI adds an accessible **"Your plan" | "Predicted reset"** segmented control (`src/ui/result-screen.tsx` + `src/ui/predicted-reset.tsx`; copy `src/ui/recovery-copy.ts`); the reset mode and frozen-history outlook are derived from record data only and never re-run an engine. Persistence additions: the durable `break-outcome-marks-v1` envelope family (`breakOutcomes` in both the web and IndexedDB backends; key `tbreak.break-outcome-marks.v1`) with per-attempt marks `captured | skipped` (`src/application/progress/break-outcome.ts`, eligibility in `src/domain/recovery/outcome-capture.ts`), plus an optional `sourceAttemptId` on previous-break records linking a captured outcome to its attempt.
 
 ## 1. Architecture objective
 
@@ -34,6 +36,7 @@ Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/i
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
 - BreakOutlookV1 day-by-day presentation over those windows (Result / Today / Plan Detail), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
+- versioned recovery-outlook interpretation over frozen tolerance results (`tolerance-recovery-outlook-v1`): biological-reference wording, time milestones, capped factual personal history, recorded check-in facts, and post-break outcome marks (`break-outcome-marks-v1`) — deterministic, local, and offline;
 - IndexedDB persistence and complete local deletion; and
 - PWA shell/offline support, with the single service-worker update state (snackbar + Settings About) driven from `registerSW` in `src/ui/main.tsx`;
 
@@ -284,10 +287,15 @@ that draft.
 **Current slice note (0.4.0):** durable records persist through IndexedDB
 per-record stores (`calculations`, `breakAttempts`, `trackingRecords`,
 `checkins`, `previousBreaks`, `postBreakPlans`, `profiles`, `reductionPlans`,
-`reductionRecords`). `reductionPlans` holds legacy reduction-plan-v1 limit
+`reductionRecords`, `breakOutcomes`). `reductionPlans` holds legacy reduction-plan-v1 limit
 rows (still readable; copied into a plan baseline and cleared when a
 `reduction-records-v2` plan starts from one); `reductionRecords` holds the v2
-active-reduction tracker plans. The questionnaire draft and result-overlay
+active-reduction tracker plans; `breakOutcomes` (0.9.0) holds outcome marks for
+the `break-outcome-marks-v1` envelope (`tbreak.break-outcome-marks.v1`),
+exactly one `captured | skipped` mark per attempt. Previous-break rows may
+carry an optional `sourceAttemptId` linking a captured outcome to the attempt
+that produced it; hand-entered and legacy rows omit it and stay valid. The
+questionnaire draft and result-overlay
 flag remain on Web Storage. v0.3.x envelopes are migrated once,
 idempotently, and left in place if a family fails. The repository interface
 and record shapes are the boundary.
@@ -302,6 +310,7 @@ checkins
 previousBreaks
 postBreakPlans
 reductionRecords
+breakOutcomes
 settings
 ```
 
@@ -335,6 +344,8 @@ Why: frequent use + multiple sessions/high-potency concentrate route
 ```
 
 The card MUST NOT say reset complete, 100% reset, detoxed, or safe to resume the previous exposure. The recommended range stays the only evidence-claiming number; the planning target is a labelled heuristic choice inside it.
+
+Tolerance results may also be shown in a versioned recovery-outlook mode (**“Predicted reset”**, `tolerance-recovery-outlook-v1`), selected by an accessible **“Your plan” | “Predicted reset”** segmented control (default “Your plan”). The reset mode and the frozen-history outlook are presentation derived from the stored record’s data only — they never re-run an engine and never change the stored result.
 
 ### 10.2 Withdrawal and progress
 
@@ -440,6 +451,7 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 - outside-range/mixed previous-history behaviour;
 - tolerance-v3 multi-factor bounded exposure classification and the in-range history target override;
 - active reduction tracking (`reduction-records-v2`) with the derived 3–7-day pause/review rule, plus adaptive recalculation that freezes new calculation records;
+- the deterministic recovery-outlook presentation boundary (`tolerance-recovery-outlook-v1`), post-break outcome capture (`break-outcome-marks-v1`, offered once per completed break after a real return to THC, never for continued abstinence), and the frozen-record reduction trajectory (0.9.0);
 - strict v1 input minimisation;
 - qualitative-only detection;
 - minimal local-only architecture; and

@@ -1,12 +1,13 @@
 # T-Break Calculator Specification
 
 Status: implementation-ready core specification; release requirements remain in section 14  
-Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.8.0)  
+Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.9.0)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
 Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
 Release note (0.8.0): two changes land on main. (1) **tolerance-v3** replaces tolerance-v2 as the engine for new calculations: exposure classification is no longer a single-variable frequency lookup. Frequency (use days in 30) picks the base tier; intensity (sessions per use day ≥ 2, concentrates, dabbing) and chronicity (how long the current pattern has been typical) may move the classification at most ONE adjacent evidence tier; the broad evidence ranges 2–7 / 7–14 / 14–21 / 21–28 are unchanged and remain the outer bounds (never above 28). Sessions/products/routes are collected from 4 use-days up (not only ≥ 16), and clean in-range previous-break history may raise the planning target to the user's own best observed anchor — never the range. The result hero leads with the planning target and states the evidence range beneath it. (2) **Active reduction (cut-down) tracking** (`reduction-records-v2`) records exact THC-use events, derives plan state (rolling use-days, sessions, breach days, review rule), and replaces manual-only review with the transparent “two breach days in a rolling 7-day window → consider a 3–7 day pause and review” product rule. Details: sections 7.3, 7.5, 7.7 and 10.  
+Release note (0.9.0): Recovery Intelligence adds a deterministic, **non-engine recovery-outlook interpretation layer** (`tolerance-recovery-outlook-v1`, section 7.11) derived from frozen tolerance results, the stored profile, previous-break observations, and recorded check-in facts. It never re-runs an engine and never changes numeric output. **tolerance-v3 numeric behaviour is UNCHANGED** — there is no new tolerance policy version, no reset/detox percentages, and no exact or guaranteed reset dates anywhere in the new feature.  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
-Scope: deterministic v3 Tolerance Engine, active reduction (cut-down) tracking, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, and future scientific extension boundaries
+Scope: deterministic v3 Tolerance Engine, active reduction (cut-down) tracking, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, a versioned non-engine recovery-outlook interpretation (`tolerance-recovery-outlook-v1`, section 7.11), and future scientific extension boundaries — runtime AI stays excluded (unchanged)
 
 ## 1. Authority and normative language
 
@@ -37,6 +38,7 @@ The following are prohibited:
 - translating detectable THC into impairment; and
 - translating feeling sober into a negative-test prediction; and
 - a “one dab/vape = +N break days” penalty — tolerance-plan adjustments after logged use come only from re-running the full engine on an updated profile.
+- a “100% reset” or “fully reset” claim, and any reset/detox percentage anywhere in the recovery-outlook feature (section 7.11) — that layer emits time markers and research wording, never a percentage.
 
 Tolerance output MUST NOT change detection output, and detection output MUST NOT change tolerance output.
 
@@ -141,7 +143,10 @@ PreviousBreak
   toleranceReductionScore: integer 0..10 or null
   endedAt: timestamp or null
   createdAt: timestamp
+  sourceAttemptId: string or null (optional)
 ```
+
+`sourceAttemptId` (0.9.0) optionally links a PreviousBreak to the break attempt it was captured from (post-break outcome capture). Hand-entered records omit it; old records without it stay valid. Capture stores the existing `toleranceReductionScore` field as a 0–10 subjective magnitude — anchors 0 = no noticeable reduction / 10 = very large reduction — never a percentage-reset score. Capture eligibility is deterministic and per-attempt: exactly one `captured | skipped` mark per completed break, offered only after an actual return-to-THC event (never for continued abstinence), persisted in the durable `break-outcome-marks-v1` envelope.
 
 ```text
 DailyCheckin
@@ -471,6 +476,21 @@ Frozen historical calculation records MUST NOT be rewritten. Outlook is presenta
 Driver codes `current_pattern_*`, `preferred_target_*`, and `pattern_duration_context_only` are presentation-layer codes. They MUST NOT be emitted by the Tolerance Engine and MUST NOT appear in golden fixtures. The engine-level metadata for target selection is the v3 limitation-code set of section 7.1 — `heuristic_frequency_intensity_v3`, `heuristic_chronicity_range_v3`, `heuristic_duration_target_within_range_v3`, and `heuristic_history_target_within_range_v3` — which MAY appear in result metadata and golden fixtures.
 
 Frozen tolerance-v1/v2 records (stored range and target verbatim; duration stored but contextual, or anchor-only under v2) keep their stored numeric output when displayed under tolerance-v3. Their duration copy remains the historical contextual sentence; the presentation never invents a recent→lower-target claim for a stored upper target and never recomputes a stored range.
+
+### 7.11 Recovery outlook (non-engine) — tolerance-recovery-outlook-v1
+
+The recovery outlook (0.9.0 "Recovery Intelligence") is a deterministic, versioned **interpretation layer over frozen data**, not a second tolerance engine and not a new tolerance policy version. `buildToleranceRecoveryOutlook({ profile, result, previousBreaks? })` (`src/domain/recovery/recovery-outlook.ts`) consumes only the frozen `tolerance_result`, the stored profile, and optional clean previous-break observations; it returns null for any non-tolerance result and is derived at display time from stored data. Recorded check-in facts are derived separately (`src/domain/checkins/checkin-summary.ts`) and rendered as an optional block beside the outlook. The outlook MUST NOT change `recommendedRangeDays` or `preferredTargetDays`, MUST NOT re-run or replace tolerance-v3 (numeric behaviour is unchanged), and MUST NOT emit reset/detox percentages, a personalised biological reset day, or an exact reset date.
+
+Permitted internal terminology: **recovery outlook** and **biological reference**. The biological reference is approximately Day 28 (four weeks) — the strongest human CB1 PET reference used by the app (evidence ids `pet_dsouza`, `pet_hirvonen`; content in `EVIDENCE_CONTENT_SPEC.md` and the disclosure copy). It is a source-backed **population reference, NOT a guaranteed individual reset**. Milestones are TIME positions since last use — day 0 (last use), day 2 (early-recovery reference), the plan target, the top of the evidence range, and day 28 (four-week reference) — deduplicated by day and captioned as time, never as a percentage of recovery.
+
+Rules:
+
+- no reset/detox percentages anywhere, and no invented further reset percentage after day 28;
+- wording keys: `light_or_regular | heavy_target_below_reference | heavy_reaches_reference`. Wording may be profile-sensitive (context flags `lightOrRegular`, `planReachesReference`, `rangeUpperAtReference`) but MUST NOT create any new profile-to-recovery timing numbers: a light/regular user is never told they need 28 days, and wording never changes a day value computed by the tolerance engine;
+- personal history is factual scored observations (duration days + 0–10 score), capped at three, shown separate from population research; `8/10` is never rendered as `80%`;
+- recorded check-in facts are factual only — null is never zero, and sparse data omits the block rather than padding it (`src/domain/checkins/checkin-summary.ts`);
+- when tolerance-v3 raised the target from clean in-range history (`heuristic_history_target_within_range_v3`, section 7.7), the outlook mirrors that as `historyRaisedTarget` so the UI can say so in plain language;
+- frozen history renders the same stored result plus an outlook derived from record data only (no engine re-run); legacy tolerance-v1/v2 records keep a "historical context" treatment and are never reinterpreted under v3 wording rules.
 
 ## 8. Qualitative Detection Engine
 

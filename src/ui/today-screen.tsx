@@ -17,6 +17,7 @@ import { formatLocalDay } from './format.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
 import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
+import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
 
@@ -64,6 +65,8 @@ export interface TodayScreenProps {
   readonly onStopTracking: () => void;
   /** Active cut-down plan feedback line (shown on the reduction card). */
   readonly reductionFeedback: string | null;
+  /** Deterministic frozen-record trajectory for the live reduction plan. */
+  readonly reductionTrajectory?: ReductionTrajectoryView | null;
   readonly onOpenReductionStart: () => void;
   readonly onLogUse: () => void;
   readonly onOpenReductionRefresh: () => void;
@@ -382,6 +385,11 @@ const REDUCTION_CARD = {
   concentrateLogged:
     'A concentrate was logged \u2014 your plan says avoid concentrates.',
   refreshRecommendation: 'Update your break recommendation',
+  trajectoryMoved: 'Your tracked pattern has moved.',
+  trajectoryStarted: 'Started reduction: {0}/30 use days \u00b7 plan target {1} days',
+  trajectoryCurrent: 'Current tracked: {0}/30 use days \u00b7 plan target {1} days',
+  trajectorySameBand:
+    'Your tracked profile is currently in the same planning band.',
 } as const;
 
 function reductionStateDaysLine(rolling: number, cap: number): string {
@@ -404,6 +412,31 @@ function reductionStateSessionsLine(sessions: number, cap: number): string {
   return REDUCTION_CARD.sessionLimitCopy
     .replace('{0}', String(sessions))
     .replace('{1}', String(cap));
+}
+
+function ReductionTrajectoryLine({ view }: { readonly view: ReductionTrajectoryView }) {
+  if (!view.moved) {
+    return (
+      <p className="meta" data-testid="reduction-trajectory" data-state="same-band">
+        {REDUCTION_CARD.trajectorySameBand}
+      </p>
+    );
+  }
+  return (
+    <section className="reduction-trajectory" data-testid="reduction-trajectory" data-state="moved">
+      <p className="body">{REDUCTION_CARD.trajectoryMoved}</p>
+      <p className="meta">
+        {REDUCTION_CARD.trajectoryStarted
+          .replace('{0}', String(view.baselineUseDays))
+          .replace('{1}', String(view.baselineTargetDays))}
+      </p>
+      <p className="meta">
+        {REDUCTION_CARD.trajectoryCurrent
+          .replace('{0}', String(view.currentUseDays))
+          .replace('{1}', String(view.currentTargetDays))}
+      </p>
+    </section>
+  );
 }
 
 function ReductionActiveCard(props: TodayScreenProps) {
@@ -454,6 +487,9 @@ function ReductionActiveCard(props: TodayScreenProps) {
               <p className="meta">{REDUCTION_CARD.concentrateLogged}</p>
             ) : null}
           </div>
+          {props.reductionTrajectory !== null && props.reductionTrajectory !== undefined ? (
+            <ReductionTrajectoryLine view={props.reductionTrajectory} />
+          ) : null}
         </>
       )}
       <div className="today-actions">

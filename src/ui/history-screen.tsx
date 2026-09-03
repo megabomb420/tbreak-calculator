@@ -185,6 +185,7 @@ function HistoryDetail({
         <ResultScreen
           view={view}
           historical
+          outlookRecord={record}
           onAcknowledge={onBack}
           onEditStep={(step) => onRecalculate(record, step)}
           onSeeBreakRange={() => onRecalculate(record)}

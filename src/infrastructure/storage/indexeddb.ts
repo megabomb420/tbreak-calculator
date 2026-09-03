@@ -40,6 +40,11 @@ import {
   isValidReductionPlan,
 } from '../../application/progress/reduction-record.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
+import {
+  createBreakOutcomeStore,
+  isValidOutcomeMark,
+  type OutcomeMark,
+} from '../../application/progress/break-outcome.ts';
 import { validateDailyCheckin } from '../../domain/validation/checkin-validation.ts';
 import { checkinRecordId } from '../../application/persistence/ids.ts';
 import type { ReductionPlanRecord } from '../../application/progress/reduction-plan.ts';
@@ -63,6 +68,7 @@ export const STORES = [
   'postBreakPlans',
   'reductionPlans',
   'reductionRecords',
+  'breakOutcomes',
   'profiles',
   'settings',
   'corruptRecords',
@@ -331,6 +337,22 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     ...postBreakPlans.corrupt,
     ...reductionRecords.corrupt,
   ];
+  const outcomeRows = await backend.getAll('breakOutcomes');
+  const outcomeMarks: OutcomeMark[] = [];
+  for (const [index, row] of outcomeRows.entries()) {
+    const payload = isRecord(row) && 'payload' in row ? row.payload : row;
+    if (isValidOutcomeMark(payload)) {
+      outcomeMarks.push(payload);
+      continue;
+    }
+    const id = isRecord(row) && typeof row.id === 'string' && row.id !== '' ? row.id : `breakOutcomes-corrupt-${index}`;
+    corrupt.push({ id, kind: 'corrupt', reason: 'invalid-record' });
+    try {
+      await backend.put('corruptRecords', { id, kind: 'corrupt', payload: row });
+    } catch {
+      // Isolation is best-effort.
+    }
+  }
   for (const [index, row] of checkinRows.entries()) {
     const payload = isRecord(row) && 'payload' in row ? row.payload : row;
     const outcome = validateDailyCheckin(payload);
@@ -366,6 +388,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     checkins,
     reductionPlan,
     reductionRecords: reductionRecords.records as ReductionPlan[],
+    outcomeMarks,
     snapshot,
     calculations: calculations.records,
     previousBreaks: previousBreaks.records,
@@ -446,6 +469,18 @@ export function createIndexedDbDurable(backend: IndexedDbBackend, initial: Durab
           ops.clear('reductionRecords');
           for (const record of snapshot.reductionRecords) {
             ops.put('reductionRecords', wrap(record.id, record));
+          }
+        });
+      });
+    },
+    saveOutcomeMarks(marks) {
+      cache = { ...cache, outcomeMarks: [...marks] };
+      const snapshot = cache;
+      enqueue(async () => {
+        await backend.write(['breakOutcomes'], (ops) => {
+          ops.clear('breakOutcomes');
+          for (const mark of snapshot.outcomeMarks) {
+            ops.put('breakOutcomes', wrap(mark.attemptId, mark));
           }
         });
       });
@@ -637,6 +672,21 @@ export function migrateWebStorageIntoDurable(
       merged.push(plan);
     }
     durable.saveReductionRecords(merged);
+  });
+
+  run('breakOutcomes', () => {
+    const loaded = createBreakOutcomeStore(adapter).load();
+    if (loaded.marks.length === 0) return;
+    const existing = new Set(durable.load().outcomeMarks.map((item) => item.attemptId));
+    const merged = [...durable.load().outcomeMarks];
+    for (const mark of loaded.marks) {
+      if (existing.has(mark.attemptId)) {
+        skippedExisting += 1;
+        continue;
+      }
+      merged.push(mark);
+    }
+    durable.saveOutcomeMarks(merged);
   });
 
   run('snapshot', () => {

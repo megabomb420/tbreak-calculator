@@ -1,5 +1,7 @@
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 import type { CalculationRecord } from '../persistence/calculation-record.ts';
+import { buildToleranceRecoveryOutlook } from '../../domain/recovery/recovery-outlook.ts';
+import type { ToleranceRecoveryOutlookV1 } from '../../domain/recovery/recovery-outlook.ts';
 import {
   presentDetectionResult,
   presentToleranceResult,
@@ -25,4 +27,26 @@ export function presentCalculationRecord(record: CalculationRecord): ResultView 
   }
   const profile = record.snapshot.kind === 'use_profile' ? record.snapshot.profile : EMPTY_PROFILE;
   return presentToleranceResult(record.result.value, profile);
+}
+
+/**
+ * Recovery outlook strictly from a frozen record: the stored ToleranceResult,
+ * the stored profile and the previous breaks already embedded in that frozen
+ * snapshot profile. Never re-runs an engine and never merges later history,
+ * so the panel reproduces what was frozen. Returns null when the record is
+ * absent, is not a tolerance result, or lacks the fields the builder needs.
+ */
+export function recoveryOutlookFromRecord(
+  record: CalculationRecord | null,
+): ToleranceRecoveryOutlookV1 | null {
+  if (record === null) return null;
+  if (record.result.type !== 'tolerance') return null;
+  const result = record.result.value;
+  if (result.kind !== 'tolerance_result') return null;
+  if (record.snapshot.kind !== 'use_profile') return null;
+  return buildToleranceRecoveryOutlook({
+    profile: record.snapshot.profile,
+    result,
+    previousBreaks: record.snapshot.profile.previousBreaks,
+  });
 }

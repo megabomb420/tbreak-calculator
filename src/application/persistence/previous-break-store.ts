@@ -52,6 +52,7 @@ export function toPreviousBreakInput(record: StoredPreviousBreak): PreviousBreak
     toleranceReductionScore: record.toleranceReductionScore,
     endedAt: record.endedAt,
     createdAt: record.createdAt,
+    ...(record.sourceAttemptId !== undefined ? { sourceAttemptId: record.sourceAttemptId } : {}),
   };
 }
 
@@ -67,6 +68,9 @@ export function isValidStoredPreviousBreak(value: unknown): value is StoredPrevi
   }
   if (!isOptionalIsoTimestamp(value.endedAt)) return false;
   if (!isIsoTimestamp(value.createdAt)) return false;
+  if (value.sourceAttemptId !== undefined && (typeof value.sourceAttemptId !== 'string' || value.sourceAttemptId === '')) {
+    return false;
+  }
   return isInstantNumber(value.updatedAt);
 }
 

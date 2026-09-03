@@ -37,6 +37,12 @@ import {
 } from '../progress/reduction-record.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 import {
+  createBreakOutcomeStore,
+  emptyBreakOutcomeEnvelope,
+  BREAK_OUTCOME_KEY,
+  type OutcomeMark,
+} from '../progress/break-outcome.ts';
+import {
   createQuestionnaireSnapshotStore,
   QUESTIONNAIRE_SNAPSHOT_KEY,
   type QuestionnaireSnapshotRecord,
@@ -82,6 +88,7 @@ export const LOCAL_DATA_KEYS = [
   CALCULATION_RECORDS_KEY,
   PREVIOUS_BREAKS_KEY,
   POST_BREAK_PLANS_KEY,
+  BREAK_OUTCOME_KEY,
   MIGRATION_MARKER_KEY,
 ] as const;
 
@@ -96,6 +103,7 @@ export const MIGRATED_WEB_STORAGE_KEYS = [
   CALCULATION_RECORDS_KEY,
   PREVIOUS_BREAKS_KEY,
   POST_BREAK_PLANS_KEY,
+  BREAK_OUTCOME_KEY,
 ] as const;
 
 export type HistoryRecordKind =
@@ -119,6 +127,7 @@ export interface DurableSnapshot {
   readonly checkins: readonly DailyCheckin[];
   readonly reductionPlan: ReductionPlanRecord | null;
   readonly reductionRecords: readonly ReductionPlan[];
+  readonly outcomeMarks: readonly OutcomeMark[];
   readonly snapshot: QuestionnaireSnapshotRecord | null;
   readonly calculations: readonly CalculationRecord[];
   readonly previousBreaks: readonly StoredPreviousBreak[];
@@ -135,6 +144,7 @@ export interface DurablePersistence {
   saveCheckins(checkins: readonly DailyCheckin[]): void;
   saveReductionPlan(plan: ReductionPlanRecord | null): void;
   saveReductionRecords(records: readonly ReductionPlan[]): void;
+  saveOutcomeMarks(marks: readonly OutcomeMark[]): void;
   saveSnapshot(record: QuestionnaireSnapshotRecord | null): void;
   putCalculation(record: CalculationRecord): void;
   deleteCalculation(id: string): void;
@@ -156,6 +166,7 @@ export function emptyDurableSnapshot(): DurableSnapshot {
     checkins: [],
     reductionPlan: null,
     reductionRecords: [],
+    outcomeMarks: [],
     snapshot: null,
     calculations: [],
     previousBreaks: [],
@@ -173,6 +184,7 @@ export function createWebBackedDurable(
   const checkinsStore = createCheckinsStore(adapter);
   const reductionStore = createReductionPlanStore(adapter);
   const reductionRecordsStore = createReductionRecordsStore(adapter);
+  const outcomeStore = createBreakOutcomeStore(adapter);
   const snapshots = createQuestionnaireSnapshotStore(adapter);
   const calculationsStore = createCalculationRecordsStore(adapter);
   const previousBreaksStore = createPreviousBreaksStore(adapter);
@@ -198,6 +210,7 @@ export function createWebBackedDurable(
       checkins: checkins?.checkins ?? [],
       reductionPlan: reductionStore.load(),
       reductionRecords: reductionRecordsStore.load().plans,
+      outcomeMarks: outcomeStore.load().marks,
       snapshot,
       calculations: calculations.records,
       previousBreaks: previousBreaks.records,
@@ -226,6 +239,9 @@ export function createWebBackedDurable(
     },
     saveReductionRecords(records) {
       reductionRecordsStore.save({ ...emptyReductionRecords(), plans: [...records] });
+    },
+    saveOutcomeMarks(marks) {
+      outcomeStore.save({ ...emptyBreakOutcomeEnvelope(), marks: [...marks] });
     },
     saveSnapshot(record) {
       if (record === null) snapshots.clear();

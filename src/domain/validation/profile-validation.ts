@@ -69,6 +69,7 @@ export type ValidationErrorCode =
   | 'previous_break_score_must_be_integer_0_to_10_or_null'
   | 'previous_break_invalid_ended_at'
   | 'previous_break_invalid_created_at'
+  | 'previous_break_invalid_source_attempt_id'
   | 'invalid_current_pattern_duration';
 
 const MESSAGES: Record<ValidationErrorCode, string> = {
@@ -112,6 +113,8 @@ const MESSAGES: Record<ValidationErrorCode, string> = {
     'Previous break toleranceReductionScore must be an integer between 0 and 10, or null.',
   previous_break_invalid_ended_at: 'Previous break endedAt must be null or an ISO-8601 timestamp with timezone.',
   previous_break_invalid_created_at: 'Previous break createdAt must be an ISO-8601 timestamp with timezone.',
+  previous_break_invalid_source_attempt_id:
+    'Previous break sourceAttemptId must be a string when present, or absent.',
   invalid_current_pattern_duration:
     'currentPatternDuration must be missing or one of: under_1_month, 1_to_6_months, 6_to_24_months, 2_to_5_years, 5_plus_years.',
 };
@@ -372,7 +375,7 @@ export function validateAndNormalizeProfile(
       if (typeof previousBreak.id !== 'string') {
         errors.push(error('previous_break_invalid_id', `${prefix}.id`));
       }
-      const { durationDays, toleranceReductionScore, endedAt, createdAt } = previousBreak;
+      const { durationDays, toleranceReductionScore, endedAt, createdAt, sourceAttemptId } = previousBreak;
       if (typeof durationDays !== 'number' || !Number.isInteger(durationDays) || durationDays < 1) {
         errors.push(error('previous_break_duration_days_must_be_positive_integer', `${prefix}.durationDays`));
       }
@@ -390,6 +393,9 @@ export function validateAndNormalizeProfile(
       }
       if (typeof createdAt !== 'string' || parseSubmittedTimestamp(createdAt) === null) {
         errors.push(error('previous_break_invalid_created_at', `${prefix}.createdAt`));
+      }
+      if (sourceAttemptId !== undefined && (typeof sourceAttemptId !== 'string' || sourceAttemptId === '')) {
+        errors.push(error('previous_break_invalid_source_attempt_id', `${prefix}.sourceAttemptId`));
       }
       previousBreakIndex += 1;
     }
@@ -410,6 +416,9 @@ export function validateAndNormalizeProfile(
     toleranceReductionScore: previousBreak.toleranceReductionScore,
     endedAt: previousBreak.endedAt === null ? null : toInstant(parseSubmittedTimestamp(previousBreak.endedAt)!),
     createdAt: toInstant(parseSubmittedTimestamp(previousBreak.createdAt)!),
+    ...(previousBreak.sourceAttemptId !== undefined
+      ? { sourceAttemptId: previousBreak.sourceAttemptId }
+      : {}),
   }));
 
   let postBreakMode = input.postBreakMode;

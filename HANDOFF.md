@@ -5,14 +5,14 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.8.1** (interaction polish: app-like touch/selection behaviour on top of 0.8.0's tolerance-v3 exposure classification + active reduction tracking)
+- App version: **0.9.0** (“Recovery Intelligence”: plan vs predicted-reset separation + post-break outcome capture + reduction trajectory; on top of 0.8.1 interaction polish and 0.8.0’s tolerance-v3 exposure classification + active reduction tracking)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
-- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1; Q6 routing/order in §4.3)
-- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; 0.8.0 note covers tone from 4 use-days up)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
+- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; recovery-outlook content version `tolerance-recovery-outlook-v1` in §13; 0.8.0 note covers tone from 4 use-days up)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
 
@@ -26,8 +26,8 @@ to make UI easier. Do not commit untracked review files.
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
-calculator/questionnaire/PWA-polish revisions, and the **0.8.0**
-tolerance-v3 + active-reduction revision.
+calculator/questionnaire/PWA-polish revisions, the **0.8.0**
+tolerance-v3 + active-reduction revision, and the **0.9.0** Recovery Intelligence revision.
 
 | Step | Status |
 |---|---|
@@ -44,11 +44,71 @@ tolerance-v3 + active-reduction revision.
 | 0.7.2 Settings update state + gear icon + grouped Break Outlook | **done** |
 | 0.8.0 tolerance-v3 exposure classification + active reduction tracking (reduction-records-v2) | done |
 | 0.8.1 interaction polish (selection/touch/callout/tap/overscroll) | **done** |
+| 0.9.0 Recovery Intelligence: plan/predicted-reset result, frozen-history outlook, outcome capture, reduction trajectory | done |
 | 6. Runtime AI / DeepSeek | **not started** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.9.0 added (“Recovery Intelligence”)
+
+Deterministic presentation and capture over frozen data; no engine change and
+no new tolerance policy version — tolerance-v3 numeric behaviour is unchanged.
+
+- **Recovery outlook model** (`src/domain/recovery/recovery-outlook.ts`,
+  version string `tolerance-recovery-outlook-v1`).
+  `buildToleranceRecoveryOutlook({ profile, result, previousBreaks? })` is a
+  pure, non-engine interpretation of a frozen `tolerance_result` (returns null
+  for non-tolerance results). It mirrors the plan target and evidence range
+  (never altering them), the biological reference (approximately Day 28 /
+  four weeks, `biologicalReferenceDays = 28`), wording keys
+  `light_or_regular | heavy_target_below_reference | heavy_reaches_reference`,
+  TIME milestones (day 0 last use, day 2 early-recovery reference, plan target,
+  top of the evidence range, day 28 four-week reference; deduplicated by day —
+  markers, never recovery percentages), a personal-history cap of three factual
+  scored observations shown separately from research, `historyRaisedTarget`
+  mirroring the v3 `heuristic_history_target_within_range_v3` limitation, and
+  evidence ids `pet_dsouza` + `pet_hirvonen`. No percentages, no exact or
+  guaranteed reset date, nothing invented after day 28.
+- **Result UI.** Tolerance results show an accessible two-option segmented
+  control **“Your plan” | “Predicted reset”** (default “Your plan”; tablist
+  semantics in `src/ui/result-screen.tsx`). “Predicted reset”
+  (`src/ui/predicted-reset.tsx`) renders, in one hierarchy: disclaimer
+  (“evidence-informed estimate, not a guaranteed day of complete tolerance
+  reset”) → planning target → evidence range → biological reference (“around
+  four weeks (Day 28)”) → profile wording by wording key → TIME timeline with a
+  “not a percentage of recovery” caption → optional recorded check-in facts →
+  optional personal history (separate from research) → “Why four weeks?”
+  evidence disclosure (D’Souza/Hirvonen points + “What this does NOT mean”).
+  User copy: `src/ui/recovery-copy.ts`.
+- **Frozen history.** History opens the same frozen result plus an outlook
+  derived from the record’s data only (no engine re-run). Legacy tolerance-v1/v2
+  records show a “Predicted reset (historical context)” label and are never
+  reinterpreted as v3.
+- **Post-break outcome capture.** After a completed break and an actual
+  return-to-THC event — never for continued abstinence — the app offers ONE
+  0–10 subjective tolerance-reduction score (anchors 0 = no noticeable
+  reduction / 10 = very large reduction; never “100% reset”), saved or skipped.
+  Eligibility/domain: `src/domain/recovery/outcome-capture.ts` +
+  `src/application/progress/break-outcome.ts`; UI `src/ui/outcome-capture.tsx`.
+  Exactly one mark per attempt (`captured | skipped`) via the durable
+  `break-outcome-marks-v1` family (`breakOutcomes`; key
+  `tbreak.break-outcome-marks.v1`). A captured score is stored on the linked
+  PreviousBreak via a new optional `sourceAttemptId` and stays editable later
+  through the existing PreviousBreak history edit. Hand-entered records lack
+  `sourceAttemptId`; old records stay valid.
+- **Check-in facts** (`src/domain/checkins/checkin-summary.ts` →
+  `src/application/presentation/recovery-checkin-facts.ts`): pure factual facts
+  only — highest-craving day; sleep first→later. Null is never zero; sparse
+  data omits the block.
+- **Reduction trajectory.** The active-reduction card may show a deterministic
+  “Your tracked pattern has moved.” line (baseline vs current use-days, plan
+  target, and range from actual frozen records) or a neutral “same planning
+  band” line — only when full-coverage adaptive recalculation produced a newer
+  frozen tolerance record (`src/application/presentation/reduction-trajectory.ts`).
+  Never fabricated.
+- **Today stays focused** — no science dashboard.
 
 ## What 0.8.0 added
 ## What 0.8.1 added (interaction polish; no science/engine change)
@@ -345,6 +405,16 @@ PDF’s overlapping windows. That discrepancy is intentional.
   effect is the tolerance-v3 in-range planning-target override: clean,
   directional history with both compared durations inside the current range,
   raise-only, never above 28, no interpolation/regression.
+- Recovery outlook (`tolerance-recovery-outlook-v1`) is a non-engine
+  presentation layer over frozen records: engine numbers unchanged; milestones
+  are TIME markers; no reset/detox percentages, no exact reset date, no
+  invented reset percentage after day 28; population research and the user's
+  own history stay separate (personal observations are factual — never blended
+  into research, never converted to a percentage).
+- Post-break outcome capture is offered at most once per completed break
+  (`break-outcome-marks-v1` marks `captured | skipped`) and only after an actual
+  return to THC, never for continued abstinence; scores stay 0–10 subjective on
+  the linked PreviousBreak (`sourceAttemptId`), never a percentage.
 - Interval visual system; in-flow tab bar; no accidental UI redesign in 0.7.0.
 - Auth / database OFF. Local-first IndexedDB + Web Storage draft.
 - No invented science, percentages, safe doses, numeric detection, or
@@ -356,6 +426,12 @@ PDF’s overlapping windows. That discrepancy is intentional.
 ## What not to do next
 
 - Do not start UX_SPEC §16 step 6 / runtime AI unless explicitly asked.
+- Do not turn the recovery outlook into a numeric engine: no reset/detox
+  percentages, no exact reset date, no personalised biological reset day, and
+  no invented reset percentage after day 28 — it stays a deterministic
+  presentation layer (`tolerance-recovery-outlook-v1`).
+- Do not add a numeric Detection Engine or a runtime AI interpretation layer
+  yet.
 - Do not add age, sex, BMI, hydration, exercise, liver/kidney, medications, or
   “fast metabolism”.
 - Do not reintroduce a duration × days formula, a “one dab/vape = +N days”

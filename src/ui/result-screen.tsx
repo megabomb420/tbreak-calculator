@@ -1,8 +1,13 @@
 import { useRef, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 import type { AnswerRow, ResultView } from '../application/presentation/result-presentation.ts';
 import type { QuestionnaireStepId } from '../application/questionnaire/engine.ts';
 import { calculateNominalFlowerThc } from '../domain/nominal-thc/nominal-thc-engine.ts';
 import { NOMINAL_THC_POLICY_V1 } from '../domain/policies/nominal-thc-policy-v1.ts';
+import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
+import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
+import type { ToleranceRecoveryOutlookV1 } from '../domain/recovery/recovery-outlook.ts';
+import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
 import {
   aroundDay,
   daysSince,
@@ -23,6 +28,8 @@ import { BreakOutlook } from './break-outlook.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
 import { presentCb1Education } from '../application/presentation/break-guidance.ts';
+import { PredictedResetPanel } from './predicted-reset.tsx';
+import { RESET_MODE } from './recovery-copy.ts';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -45,6 +52,11 @@ export interface ResultScreenProps {
     readonly maxSessionsPerUseDay: number;
   }) => void;
   readonly historical?: boolean;
+  /** The frozen calculation this result came from, when one exists. Drives the
+   * Predicted-reset panel from frozen data only (never re-runs an engine). */
+  readonly outlookRecord?: CalculationRecord | null;
+  /** Personal check-in facts for the live result (predicted-reset only). */
+  readonly checkinFacts?: RecoveryCheckinFactsView | null;
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
   readonly onRecalculate?: () => void;
@@ -66,6 +78,8 @@ export function ResultScreen({
   reductionPlan = null,
   onReductionPlanChange,
   historical = false,
+  outlookRecord = null,
+  checkinFacts = null,
   onAddPastBreak,
   onRecalculateWithHistory,
   onRecalculate,
@@ -102,6 +116,9 @@ export function ResultScreen({
           onDetectionBasics={onDetectionBasics}
           reductionPlan={reductionPlan}
           onReductionPlanChange={onReductionPlanChange}
+          historical={historical}
+          outlookRecord={outlookRecord}
+          checkinFacts={checkinFacts}
           onAddPastBreak={historical ? undefined : onAddPastBreak}
           onRecalculateWithHistory={historical ? undefined : onRecalculateWithHistory}
         />
@@ -135,6 +152,9 @@ function ResultBody({
   onDetectionBasics,
   reductionPlan,
   onReductionPlanChange,
+  historical,
+  outlookRecord,
+  checkinFacts,
   onAddPastBreak,
   onRecalculateWithHistory,
 }: {
@@ -149,15 +169,31 @@ function ResultBody({
     readonly maxUseDaysPerWeek: number;
     readonly maxSessionsPerUseDay: number;
   }) => void;
+  readonly historical: boolean;
+  readonly outlookRecord: CalculationRecord | null;
+  readonly checkinFacts: RecoveryCheckinFactsView | null;
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
 }) {
+  // Predicted-reset segment: default is the actionable plan. The mode resets
+  // to "plan" whenever the underlying record changes so a reused component
+  // never carries a stale selection across records.
+  const [resetMode, setResetMode] = useState(false);
+  const outlook: ToleranceRecoveryOutlookV1 | null = recoveryOutlookFromRecord(outlookRecord);
+  const [modeRecordId, setModeRecordId] = useState<string | null>(outlookRecord?.id ?? null);
+  const recordId = outlookRecord?.id ?? null;
+  if (recordId !== modeRecordId) {
+    setModeRecordId(recordId);
+    setResetMode(false);
+  }
+  const legacyReset = historical && outlookRecord !== null && outlookRecord.policyVersion !== 'tolerance-v3';
+
   switch (view.kind) {
     case 'tolerance_result': {
       // The actionable planning target leads; the broad evidence range stays
       // visible directly underneath so a target inside a shared range is never
       // buried. The target is a planning choice, not a predicted reset date.
-      return (
+      const planBody = (
         <div className="stack">
           <header className="result-hero">
             <p className="eyebrow">Your plan</p>
@@ -200,6 +236,26 @@ function ResultBody({
           />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
+        </div>
+      );
+      if (outlook === null) return planBody;
+      const resetBody = (
+        <div className="stack">
+          <h2 id="result-title" className="sr-only">
+            {RESET_MODE.reset}
+          </h2>
+          <PredictedResetPanel
+            outlook={outlook}
+            historical={historical}
+            contextLabel={legacyReset ? RESET_MODE.historicalContext : null}
+            checkinFacts={checkinFacts}
+          />
+        </div>
+      );
+      return (
+        <div className="stack">
+          <ResultModeControl resetMode={resetMode} onChange={setResetMode} />
+          {resetMode ? resetBody : planBody}
         </div>
       );
     }
@@ -293,6 +349,80 @@ function ResultBody({
         </header>
       );
   }
+}
+
+function ResultModeControl({
+  resetMode,
+  onChange,
+}: {
+  readonly resetMode: boolean;
+  readonly onChange: (reset: boolean) => void;
+}) {
+  const planRef = useRef<HTMLButtonElement>(null);
+  const resetRef = useRef<HTMLButtonElement>(null);
+
+  function select(id: 'plan' | 'reset'): void {
+    onChange(id === 'reset');
+    const button = id === 'plan' ? planRef.current : resetRef.current;
+    button?.focus();
+  }
+
+  function keyActivate(
+    event: JSX.TargetedKeyboardEvent<HTMLButtonElement>,
+    id: 'plan' | 'reset',
+  ): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      select(id);
+    }
+  }
+
+  return (
+    <div
+      className="result-mode"
+      role="tablist"
+      aria-label="Result view"
+      data-testid="result-mode"
+      onKeyDown={(event) => {
+        let next: 'plan' | 'reset' | null = null;
+        if (event.key === 'ArrowRight') next = 'reset';
+        else if (event.key === 'ArrowLeft') next = 'plan';
+        else if (event.key === 'Home') next = 'plan';
+        else if (event.key === 'End') next = 'reset';
+        if (next !== null) {
+          event.preventDefault();
+          select(next);
+        }
+      }}
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={!resetMode}
+        tabIndex={resetMode ? -1 : 0}
+        className={resetMode ? 'result-mode-option' : 'result-mode-option selected'}
+        data-testid="result-mode-plan"
+        ref={planRef}
+        onClick={() => onChange(false)}
+        onKeyDown={(event) => keyActivate(event, 'plan')}
+      >
+        {RESET_MODE.plan}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={resetMode}
+        tabIndex={resetMode ? 0 : -1}
+        className={resetMode ? 'result-mode-option selected' : 'result-mode-option'}
+        data-testid="result-mode-reset"
+        ref={resetRef}
+        onClick={() => onChange(true)}
+        onKeyDown={(event) => keyActivate(event, 'reset')}
+      >
+        {RESET_MODE.reset}
+      </button>
+    </div>
+  );
 }
 
 function Cb1ContextNote() {

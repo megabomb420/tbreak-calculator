@@ -1,7 +1,8 @@
 # Evidence content specification
 
-Status: **evidence-guidance-v1** + **break-outlook-v2**  
-App version: 0.8.0  
+Status: **evidence-guidance-v1** + **break-outlook-v2** + **tolerance-recovery-outlook-v1** (0.9.0)  
+App version: 0.9.0  
+Revision note (0.9.0): this layer gains the recovery-outlook content (new section 13, content version `tolerance-recovery-outlook-v1`) used by the tolerance result’s “Predicted reset” mode and by frozen-history outlook derivation. Interpretation model: `src/domain/recovery/recovery-outlook.ts`; user copy: `src/ui/recovery-copy.ts`; check-in facts: `src/domain/checkins/checkin-summary.ts` → `src/application/presentation/recovery-checkin-facts.ts`. The recovery outlook adds no engine numbers — it presents the deterministic plan target and evidence range inside the source-backed biological frame of section 13. The tolerance policy line, `evidence-guidance-v1`, and `break-outlook-v2` are unchanged.  
 Revision note (0.8.0): no content-version bump — the science copy did not change, only which profiles receive the heavier/lighter tone. BreakOutlook tone and the personalisation note now consume the tolerance-v3 exposure signals (sessions per use day ≥ 2, concentrates, dabbing) from **4 use-days up**; the old ≥ 16 use-day gate is gone. Tone still applies ≥ 16 use-days with a long-established pattern and ≥ 26 use-days, exactly as the tone table in §12 says. The personalisation notes no longer claim that duration “does not change the recommended day range”: under tolerance-v3 a frequent (16–25 use-days) long-established pattern may move the range one bounded band to 21–28 (`CALCULATOR_SPEC.md` §7.3), and this copy layer must not contradict the calculator. Window copy, tone tiers, day roadmap, and content-version strings (`evidence-guidance-v1`, `break-outlook-v2`) are unchanged. This file carries no active-reduction content: the tracker (`reduction-records-v2`) and its copy live in `CALCULATOR_SPEC.md` §10.1 and the presentation templates, not in this guidance layer.  
 Revision note (0.7.0): the tolerance-v2 target rule lives in the Tolerance Engine, not this layer (see `CALCULATOR_SPEC.md` §7.3). This file's outlook content version moved to `break-outlook-v2` because the exposure-tone personalisation note now distinguishes recently established heavy patterns from long-established ones. Window copy, tone tiers, and the day roadmap are otherwise unchanged.  
 Authoritative research source: *THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA* (project research PDF).  
@@ -13,8 +14,9 @@ Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs compa
 
 Module: `src/domain/guidance/evidence-guidance-v1.ts`  
 Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v2`; BreakOutlookV1 architecture unchanged)  
-Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`  
-Version strings: `evidence-guidance-v1`, `break-outlook-v2`
+Recovery outlook (0.9.0): `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outlook-v1`; section 13); user copy `src/ui/recovery-copy.ts`  
+Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`; recovery check-in facts `src/application/presentation/recovery-checkin-facts.ts` over `src/domain/checkins/checkin-summary.ts`  
+Version strings: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v1`
 
 ## 2. Source distinctions (preserved)
 
@@ -168,6 +170,33 @@ Result, Today, and Plan Detail MUST reuse this module. Result shows the full spa
 
 Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v3 rules — the planning target inside the recommended range, plus the recommended range itself only in the single bounded case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years moves one band to 21–28). The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
-## 13. Change control
+## 13. Recovery outlook content (0.9.0)
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Content version: `tolerance-recovery-outlook-v1`. This block governs the copy and interpretation of the tolerance result’s “Predicted reset” mode and of frozen-history outlook derivation. It adds no engine numbers: the planning target, evidence range, and every milestone day come from the frozen result and fixed constants, and the layer emits time markers and research wording only. It never changes `recommendedRangeDays` or `preferredTargetDays`.
+
+### Evidence-kind provenance separation
+
+Each block is labelled and rendered separately; the kinds are never blended:
+
+| Kind | Meaning |
+|---|---|
+| RESEARCH reference | Population PET anchors below — never a personal prediction |
+| YOUR HISTORY | The user’s own scored previous-break observations — factual, capped at three, separate from the research (`8/10` is never shown as `80%`) |
+| recorded check-in facts | Highest-craving day and sleep first→later from stored check-ins (null is never zero; sparse data omits the block) |
+
+### Source-backed PET anchors (concise form, mirroring `src/ui/recovery-copy.ts`)
+
+- **D’Souza et al. (PET):** 11 cannabis-dependent men were scanned; baseline CB1 availability was about 15% lower than controls, and the between-group difference was no longer statistically visible after about 2 days of monitored abstinence, with no group difference seen after about 28 days. Small study; receptor availability is not a direct measure of subjective tolerance.
+- **Hirvonen et al. (PET):** chronic daily users showed regional CB1 downregulation that returned toward control levels after about four weeks of monitored abstinence.
+
+Limitations MUST be stated beside the reference: around four weeks is **not a 100% reset**; PET receptor availability ≠ subjective THC tolerance; and the samples are small and skew chronic/heavy, so the four-week reference is not evidence that a light/regular user needs a 28-day break.
+
+### Profile-sensitive wording boundaries
+
+Wording keys `light_or_regular | heavy_target_below_reference | heavy_reaches_reference` choose phrasing from the user’s tolerance-v3 exposure context (flags `lightOrRegular`, `planReachesReference`, `rangeUpperAtReference`). Wording MUST NOT invent numbers: light/regular users are never told they need 28 days, and heavy users may see stronger-relevance wording only when their planning target reaches the four-week reference. Milestones are TIME positions since last use (day 0, day 2, plan target, range upper, day 28); there is no invented reset percentage after day 28.
+
+Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outlook-v1`); user copy `src/ui/recovery-copy.ts`.
+
+## 14. Change control
+
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v1` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.

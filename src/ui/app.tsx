@@ -57,7 +57,11 @@ import {
 import { createdAtIso, PreviousBreakSheet, type PreviousBreakDraft } from './previous-break-sheet.tsx';
 import { newRecordId } from '../application/persistence/ids.ts';
 import { toPreviousBreakInput } from '../application/persistence/previous-break-store.ts';
+import type { StoredPreviousBreak } from '../application/persistence/previous-break-store.ts';
 import { findPreviousBreak } from '../application/history/history-model.ts';
+import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
+import { checkinRowsForBreakContext } from '../application/presentation/recovery-checkin-facts.ts';
+import { reductionTrajectory } from '../application/presentation/reduction-trajectory.ts';
 import { StorageBanner } from './storage-banner.tsx';
 import { InstallHint, UpdateSnackbar, isStandaloneDisplay } from './pwa-ui.tsx';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
@@ -109,6 +113,7 @@ import { RESULT } from './result-copy.ts';
 import { SettingsModal } from './settings-modal.tsx';
 import { Shell } from './shell.tsx';
 import { LogUseSheet } from './log-use.tsx';
+import { OutcomeCapture } from './outcome-capture.tsx';
 import { ReductionRefreshSheet } from './reduction-refresh-sheet.tsx';
 import { ReductionStartSheet } from './reduction-start-sheet.tsx';
 import { TodayScreen, type TodayLiveData, type TodayProfileData } from './today-screen.tsx';
@@ -182,6 +187,9 @@ export function App({
   const [now, setNow] = useState<Instant>(() => clock.now());
   const [installHintDismissed, setInstallHintDismissed] = useState(false);
   const [reductionFeedback, setReductionFeedback] = useState<string | null>(null);
+  /** Completed break awaiting the one-time 0-10 outcome rating after a return
+   * to THC. Null unless a return use was just logged for an eligible attempt. */
+  const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -236,6 +244,44 @@ export function App({
       tracking: loaded.tracking,
       checkins: loaded.checkins,
     };
+  }
+
+  /** Predicted-reset panel source for the live result: the frozen record of
+   * the current snapshot run (never a re-run of the engine). */
+  const liveOutlookRecord = useMemo(() => {
+    const runId = snapshotRecord?.runId;
+    if (runId === undefined) return null;
+    return durableSnap.calculations.find((record) => record.id === runId) ?? null;
+  }, [snapshotRecord, durableSnap.calculations]);
+
+  /** Personal check-in rows for the live result's Predicted-reset view, when
+   * a clean active/completed break context exists. */
+  const checkinFacts = useMemo(() => {
+    const rows = checkinRowsForBreakContext({
+      checkins: checkinsRecord,
+      attempts: attemptsRecord,
+      now,
+    });
+    return rows === null ? null : { rows };
+  }, [checkinsRecord, attemptsRecord, now]);
+
+  /** Frozen-record trajectory for the active reduction plan card. */
+  const trajectoryView = useMemo(
+    () =>
+      liveReductionPlan === null
+        ? null
+        : reductionTrajectory(durableSnap.calculations, liveReductionPlan.startedAt),
+    [durableSnap.calculations, liveReductionPlan],
+  );
+
+  /** After a confirmed return use, surface the one-time outcome capture for
+   * the newest eligible completed attempt without a mark, if any. */
+  function offerOutcomeAfterReturn(returnedAt: Instant): void {
+    const loaded = durable.load();
+    const pending = pendingOutcomeForReturn(loaded.attempts, loaded.outcomeMarks, {
+      returnedAt,
+    });
+    if (pending !== null) setOutcomeAttempt(pending);
   }
 
   // Activate any planned break whose start has arrived. Re-read stores so a
@@ -494,6 +540,8 @@ export function App({
       }
     }
     refresh();
+    // A confirmed return to THC is when a completed break becomes ratable.
+    offerOutcomeAfterReturn(usedAt);
     return true;
   }
 
@@ -686,7 +734,55 @@ export function App({
     upsertReductionPlan(updated);
     runAdaptiveRecalc(updated);
     refresh();
+    // A logged THC use on the reduction tracker is a return after the break:
+    // offer the one-time outcome rating for an eligible completed break.
+    offerOutcomeAfterReturn(usedAt);
     return true;
+  }
+
+  /** Persists the outcome score as a linked PreviousBreak and marks the
+   * attempt captured. Guards: one mark per attempt, ever. */
+  function saveOutcomeScore(attempt: StoredAttempt, score: number): void {
+    const nowAt = clock.now();
+    const current = durable.load();
+    if (current.outcomeMarks.some((mark) => mark.attemptId === attempt.id)) {
+      setOutcomeAttempt(null);
+      return;
+    }
+    const endedSegment = attempt.segments[attempt.segments.length - 1];
+    const endedAt = endedSegment !== undefined && endedSegment.endedAt !== null ? endedSegment.endedAt : attempt.updatedAt;
+    const record: StoredPreviousBreak = {
+      id: newRecordId('pb', nowAt),
+      durationDays: attempt.targetDurationDays,
+      toleranceReductionScore: score,
+      endedAt: new Date(endedAt).toISOString(),
+      createdAt: new Date(nowAt).toISOString(),
+      updatedAt: nowAt,
+      sourceAttemptId: attempt.id,
+    };
+    durable.putPreviousBreak(record);
+    durable.saveOutcomeMarks([
+      ...current.outcomeMarks,
+      { attemptId: attempt.id, status: 'captured', updatedAt: nowAt },
+    ]);
+    setOutcomeAttempt(null);
+    refresh();
+  }
+
+  /** Marks the attempt skipped so the app never asks again. */
+  function skipOutcome(attempt: StoredAttempt): void {
+    const nowAt = clock.now();
+    const current = durable.load();
+    if (current.outcomeMarks.some((mark) => mark.attemptId === attempt.id)) {
+      setOutcomeAttempt(null);
+      return;
+    }
+    durable.saveOutcomeMarks([
+      ...current.outcomeMarks,
+      { attemptId: attempt.id, status: 'skipped', updatedAt: nowAt },
+    ]);
+    setOutcomeAttempt(null);
+    refresh();
   }
 
   /** Latest tolerance_result profile for an adaptive comparison, or null. */
@@ -1104,6 +1200,7 @@ export function App({
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
             reductionFeedback={reductionFeedback}
+            reductionTrajectory={trajectoryView}
             onOpenReductionStart={() => setFlow({ kind: 'reduction-start' })}
             onLogUse={openLogUse}
             onOpenReductionRefresh={() => setFlow({ kind: 'reduction-refresh' })}
@@ -1155,6 +1252,8 @@ export function App({
           onStartBreak={canStartPlan ? openBreakStart : undefined}
           onStartTracking={canStartPlan ? startTracking : undefined}
           trackingAvailable={resultModel.kind === 'baseline_low' ? anchor !== null : true}
+          outlookRecord={liveOutlookRecord}
+          checkinFacts={checkinFacts}
           reductionPlan={
             reductionPlan === null
               ? null
@@ -1233,6 +1332,14 @@ export function App({
                 }
           }
           onClose={() => setFlow(null)}
+        />
+      ) : null}
+      {outcomeAttempt !== null ? (
+        <OutcomeCapture
+          attempt={outcomeAttempt}
+          onSave={saveOutcomeScore}
+          onSkip={skipOutcome}
+          onClose={() => setOutcomeAttempt(null)}
         />
       ) : null}
       <SettingsModal

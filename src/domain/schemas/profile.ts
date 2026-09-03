@@ -46,6 +46,9 @@ export interface PreviousBreakInput {
   readonly toleranceReductionScore: number | null;
   readonly endedAt: string | null;
   readonly createdAt: string;
+  /** Optional link to the break attempt this observation was captured from
+   * (post-break outcome capture, 0.9.0). Absent on hand-entered records. */
+  readonly sourceAttemptId?: string;
 }
 
 export interface ValidatedPreviousBreak {
@@ -54,6 +57,7 @@ export interface ValidatedPreviousBreak {
   readonly toleranceReductionScore: number | null;
   readonly endedAt: Instant | null;
   readonly createdAt: Instant;
+  readonly sourceAttemptId?: string;
 }
 
 export interface DailyCheckin {

@@ -4,6 +4,8 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
+Version **0.9.0** — Recovery Intelligence. Tolerance results now separate **your plan** from an evidence-informed **“Predicted reset”** view: a segmented control keeps the plan-first reading screen and adds a deterministic, non-engine recovery outlook (`tolerance-recovery-outlook-v1`) built on the four-week biological reference from PET studies — explicitly “not a 100% reset” — with TIME milestones, your own scored break history kept separate from research, optional recorded check-in facts, and a “Why four weeks?” evidence disclosure. A completed break can be scored once after you actually return to THC (0–10 tolerance reduction, never a reset percentage), and the active-reduction card can show a deterministic “Your tracked pattern has moved.” trajectory when a newer frozen result exists. No engine numbers changed; no percentages or exact reset dates were added.
+
 Version **0.8.1** — interaction polish: app-like touch and selection behaviour (controls and chrome text are not accidentally selectable and suppress iOS long-press callouts, tap flash is removed, tappables use `touch-action: manipulation`, scroll panes contain overscroll, icons are not draggable) while editable fields and long evidence copy stay selectable and keyboard focus-visible states are preserved. The iOS 26 viewport-fill contract and the iOS 26 / Liquid Glass layout are unchanged; no visual redesign.
 
 Version **0.8.0** — tolerance policy v3 + active reduction tracking. The calculator is no longer a single-variable frequency lookup: exposure is classified over frequency (use days in 30) plus intensity (sessions ≥ 2, concentrates, dabbing) and chronicity, bounded to at most one adjacent evidence tier inside the unchanged 2–7 / 7–14 / 14–21 / 21–28 ranges (never above 28). The planning target is chosen inside the final range, and a clean, directional, fully in-range previous-break history can raise that target to the user's own best observed anchor — never the range. A new active reduction tracker logs THC-use events against user-set limits (max use-days in a rolling 7-day window, max sessions per use day, optional strategy), derives the rolling plan state, and flags two distinct breach days in the window with the transparent product rule "consider a 3–7 day pause and review". Old historical results stay frozen; recalculation from tracked use re-runs the engine and freezes a new result.
@@ -48,7 +50,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.8.0)
+## Capabilities (0.9.0)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -76,6 +78,27 @@ the UI component tests.
   “Plan for N days” with “Evidence range: min–max days” as the meta line
   beneath it and the rail marking the target inside the evidence bounds — the
   target is a planning choice inside the range, never a second, tighter range.
+- **“Your plan” | “Predicted reset” (0.9.0):** an accessible segmented control
+  on tolerance results defaults to the plan-first screen and adds the versioned
+  recovery outlook (`tolerance-recovery-outlook-v1`): disclaimer → planning
+  target → evidence range → biological reference (“around four weeks (Day 28)”,
+  explicitly not a 100% reset) → profile wording → a TIME timeline captioned
+  “not a percentage of recovery” → optional recorded check-in facts → your own
+  scored history (separate from research) → a “Why four weeks?” evidence
+  disclosure (D’Souza/Hirvonen PET points + “What this does NOT mean”). Frozen
+  history derives the same outlook from stored data only; legacy v1/v2 records
+  carry a “historical context” label.
+- **Post-break outcome capture (0.9.0):** after a completed break ends with a
+  real return to THC, you can rate the tolerance reduction 0–10 (anchors 0 = no
+  noticeable reduction / 10 = very large reduction) or skip — never after
+  continued abstinence, never twice for the same break. The score is stored on
+  the linked past-break record (`sourceAttemptId`) and stays editable in
+  History.
+- **Reduction trajectory (0.9.0):** when full-coverage adaptive recalculation
+  from tracked use froze a newer tolerance result, the reduction card can show
+  “Your tracked pattern has moved.” (baseline vs current use-days / plan target)
+  or a neutral “same planning band” line — always from actual frozen records,
+  never fabricated.
 - **Why this result** names frequency, sessions, concentrate/dabbing, how
   long the current pattern has been typical, and — when duration or history
   moved the target — which anchor the planner chose and why. A short
@@ -177,6 +200,7 @@ and a persistent banner says it cannot be saved.
 | IndexedDB `profiles` | latest completed questionnaire snapshot |
 | IndexedDB `reductionPlans` | legacy reduction-plan-v1 cutting-down limits (never fed to an engine; readable, migrate into a v2 plan baseline when one starts) |
 | IndexedDB `reductionRecords` | active reduction tracker (`reduction-records-v2`): limits, strategy, baseline, THC-use events, status |
+| IndexedDB `breakOutcomes` | post-break outcome marks (`break-outcome-marks-v1`): `captured`/`skipped`, once per completed break after a real return to THC |
 | `tbreak.questionnaire-progress.v1` | unfinished draft (Web Storage) |
 | `tbreak.result-view.v1` | result overlay `open` / `acknowledged` (Web Storage) |
 
