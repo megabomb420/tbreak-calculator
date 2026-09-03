@@ -34,20 +34,14 @@ export function TodayGuidance({
           </p>
         </div>
       ) : null}
-      {notice.length > 0 ? (
+      {notice.length > 0 && !compact ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.mayNotice}</h3>
-          {compact ? (
-            <p className="body guidance-notice-line" data-testid="guidance-notice">
-              {notice.join(' · ')}
-            </p>
-          ) : (
-            <ul className="guidance-list" data-testid="guidance-notice">
-              {notice.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          )}
+          <ul className="guidance-list" data-testid="guidance-notice">
+            {notice.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </div>
       ) : null}
       {help.length > 0 && !compact ? (

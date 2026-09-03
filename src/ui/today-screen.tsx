@@ -9,7 +9,7 @@ import type { StoredTrack } from '../application/progress/tracking-record.ts';
 import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../application/presentation/plan-presentation.ts';
 import type { ResultView, WithdrawalView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
-import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
+import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, WITHDRAWAL_STOP_LABELS, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
@@ -211,16 +211,20 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const active = props.live.active;
   if (active === null) return null;
   const { attempt, view } = active;
+  const phaseRaw = view.pastTarget ? 'extended' : phaseForDay(view.day, view.targetDays);
+  const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
+  const stateNote = phase === 'reached' ? PLAN_STATE_NOTES.reached(view.targetDays) : phase === 'extended' ? PLAN_STATE_NOTES.extended(view.day, view.targetDays) : null;
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
       <button
         type="button"
         className="today-plan-main today-phase-hero"
         data-testid="open-plan-detail"
+        aria-label={`${ACTIVE_BREAK_CARD.eyebrow} — ${view.dayOfLabel}. Open plan detail.`}
         onClick={props.onOpenPlanDetail}
       >
         <span className="today-hero-copy">
-          <span className="eyebrow">{ACTIVE_BREAK_CARD.eyebrow}</span>
+          <span className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</span>
           <span className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</span>
           <span className="meta" data-testid="target-date-line">
             {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
@@ -232,6 +236,11 @@ function ActiveBreakCard(props: TodayScreenProps) {
         </span>
         {view.withdrawal !== null ? <WithdrawalPosition view={view.withdrawal} /> : null}
       </button>
+      {stateNote !== null ? (
+        <p className={phase === 'reached' ? 'today-state-note is-reached' : 'today-state-note is-extended'} data-testid="plan-target-note" data-state={phase}>
+          {stateNote}
+        </p>
+      ) : null}
       <section className="today-now" aria-label="Today’s guidance">
         <TodayGuidance
           compact
@@ -286,6 +295,7 @@ function InterruptedCard(props: TodayScreenProps) {
         {INTERRUPTED_CARD.pausedLabel}
       </p>
       <p className="body">{body}</p>
+      <p className="meta">{INTERRUPTED_CARD.preserved}</p>
       <button type="button" className="cta-primary" data-testid="confirm-when-cta" onClick={props.onConfirmWhen}>
         {INTERRUPTED_CARD.confirmWhen}
       </button>
@@ -303,7 +313,7 @@ function CompletedBreakCard(props: TodayScreenProps) {
       <h2 className="plan-day-title" data-testid="completed-title">
         {completedBreakTitle(completed.targetDurationDays)}
       </h2>
-      <p className="meta">Your earlier segments and check-ins stay in your history.</p>
+      <p className="meta">{COMPLETED_CARD.historyMeta}</p>
       {plan !== null ? (
         <section className="post-break-summary">
           <h3 className="card-title">{COMPLETED_CARD.postBreakHeading}</h3>
@@ -400,13 +410,19 @@ function todayPhase(props: TodayScreenProps): string {
     }
     case 'active-break': {
       const live = props.live.active;
-      return live === null ? 'ready' : phaseForDay(live.view.day, live.view.targetDays);
+      if (live === null) return 'ready';
+      const { day, targetDays } = live.view;
+      // Past the finite planning target is its own state ("extended"), so the
+      // target-reached moment is not visually identical to day 29 of a 21-day
+      // plan. Exactly-on-target stays "reached".
+      return live.view.pastTarget ? 'extended' : phaseForDay(day, targetDays);
     }
   }
 }
 
 function phaseForDay(day: number, target: number | null): string {
-  if (target !== null && day >= target) return 'reached';
+  if (target !== null && day === target) return 'reached';
+  if (target !== null && day > target) return 'extended';
   if (target !== null && day >= Math.max(7, target - 3)) return 'approaching';
   if (day <= 3) return 'onset';
   if (day <= 6) return 'peak';

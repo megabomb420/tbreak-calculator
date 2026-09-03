@@ -2,6 +2,8 @@ import { useRef, useState } from 'preact/hooks';
 import { CHECKIN, SYMPTOM_FIELDS } from './break-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import { supportFocusCopy } from './companion-copy.ts';
 
 export interface SymptomValues {
   readonly craving: number | null;
@@ -13,6 +15,14 @@ export interface SymptomValues {
 
 const EMPTY_SYMPTOMS: SymptomValues = { craving: null, sleep: null, irritability: null, anxiety: null, appetite: null };
 
+/** Unambiguous symptom-field match for a support focus. Only reorders the
+ * sliders when the focus maps directly onto one of the five fields. */
+const FOCUS_LEADING_FIELD: Partial<Record<SupportFocus, (typeof SYMPTOM_FIELDS)[number]['id']>> = {
+  sleep: 'sleep',
+  cravings: 'craving',
+  appetite: 'appetite',
+};
+
 export interface CheckInProps {
   /** Abstinence day shown in the header ("Check-in — Day N"). */
   readonly day: number;
@@ -21,9 +31,11 @@ export interface CheckInProps {
   readonly onUseReported: () => void;
   readonly onSymptomsSave: (symptoms: SymptomValues, note: string | null) => void;
   readonly onClose: () => void;
+  /** Companion personalisation (Q7); presentation only, never stored here. */
+  readonly supportFocus?: SupportFocus | null;
 }
 
-export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, onClose }: CheckInProps) {
+export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, onClose, supportFocus = null }: CheckInProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onClose);
   const [screen, setScreen] = useState<'question' | 'symptoms'>('question');
@@ -70,6 +82,7 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
         />
       ) : (
         <SymptomsScreen
+          focus={supportFocus}
           onBack={() => setScreen('question')}
           onSave={(symptoms, note) => {
             if (busy) return;
@@ -152,14 +165,24 @@ function QuestionScreen({
 }
 
 function SymptomsScreen({
+  focus,
   onBack,
   onSave,
 }: {
+  readonly focus: SupportFocus | null;
   readonly onBack: () => void;
   readonly onSave: (symptoms: SymptomValues, note: string | null) => void;
 }) {
   const [symptoms, setSymptoms] = useState<SymptomValues>(EMPTY_SYMPTOMS);
   const [note, setNote] = useState('');
+  const leading = focus === null ? null : FOCUS_LEADING_FIELD[focus] ?? null;
+  const orderedFields =
+    leading === null
+      ? SYMPTOM_FIELDS
+      : [
+          SYMPTOM_FIELDS.find((field) => field.id === leading)!,
+          ...SYMPTOM_FIELDS.filter((field) => field.id !== leading),
+        ];
 
   function setField(field: keyof SymptomValues, value: number | null) {
     setSymptoms((current) => ({ ...current, [field]: value }));
@@ -183,11 +206,16 @@ function SymptomsScreen({
             <h3 className="title" style={{ fontSize: '1.5rem' }}>
               {CHECKIN.symptomsTitle}
             </h3>
+            {focus !== null && focus !== 'not_sure' ? (
+              <p className="meta checkin-focus-line" data-testid="checkin-focus-line">
+                {`Your focus · ${supportFocusCopy(focus).shortLabel} — ${supportFocusCopy(focus).todayAction}`}
+              </p>
+            ) : null}
             <p className="meta" data-testid="symptoms-helper">
               {`(${CHECKIN.symptomsHelper})`}
             </p>
           </header>
-          {SYMPTOM_FIELDS.map((field) => (
+          {orderedFields.map((field) => (
             <SymptomSlider
               key={field.id}
               id={field.id}

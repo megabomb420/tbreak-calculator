@@ -5,6 +5,18 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.11.0** — product-experience completion. The finite break on Today
+now distinguishes the **target-reached** day from **beyond the plan**, with a
+phase-aware eyebrow (first days → common peak → settling in → past the peak →
+nearing the target → reached → beyond), a calm state note at each of those two
+moments, and matching ambience; the compact Today guidance leads with the
+milestone, what matters today, and what comes next. Interrupted and completed
+states state plainly that nothing is lost, Plan Detail shows the day-counter
+anchor and the same reached/beyond note, and the check-in symptom sheet
+surfaces the support-focus line and leads with its matching slider. All
+presentation-only: tolerance-v3, Recovery Outlook, Reduction, History,
+persistence, tabs and the viewport contract are unchanged.
+
 Version **0.10.1** — Today consistency patch. The saved tolerance result on
 Today (`profile-no-break`) now reuses the same shared result lens as the live
 **Your plan** screen: it leads with the actionable planning target (e.g.

@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.10.1** (Today `profile-no-break` consistency patch — the saved tolerance result reuses the shared result lens; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.11.0** (product-experience completion pass over the primary journey; presentation only — tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, and the **0.10.1** Today profile-no-break consistency patch.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, and the **0.11.0** product-experience completion pass.
 
 | Step | Status |
 |---|---|
@@ -50,10 +50,45 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.9.2 Recovery Outlook v2 profile-sensitive recovery windows | **done** |
 | 0.10.0 unified results, actionable plan, phase-aware Today, support focus | **done** |
 | 0.10.1 Today profile-no-break reuses the shared result lens | **done** |
+| 0.11.0 Today phase-system completion + Plan Detail/check-in alignment | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.11.0 added (product-experience completion; no science change)
+
+Presentation-only completion of the 0.10 journey (no tolerance-v3, Recovery
+Outlook v2, Reduction, Detection, History semantics, persistence, tab or
+viewport change; `sources/` unchanged):
+
+- **Today finite-break phase system finished.** `reached` (exactly the plan
+  target day) and `extended` (days past the target) are now distinct states
+  with their own phase eyebrow (`Plan target reached` / `Beyond the plan`),
+  calm state note, and ambient colour, instead of one shared "reached" look.
+  Active-break Today adds a phase-aware eyebrow (first days / common peak /
+  settling in / past the peak / nearing the target) and the compact Today
+  guidance focuses on the milestone + what-matters-today + what-comes-next;
+  the "may notice" list moved to Plan Detail, cutting the Today card height
+  on a 430px screen from ~800px to ~720px (and ~810px → ~660px on heavier
+  profiles). State notes never claim a full reset or extra measured recovery:
+  “reaching the target is not proof that tolerance has fully reset” and “the
+  app does not estimate further recovery beyond the plan”.
+- **Interrupted Today** now says plainly that nothing is lost (segments,
+  check-ins and progress stay in History) — calm and non-punitive, no framing
+  change to the domain semantics.
+- **Completed-break Today** presents the return plan in one soft panel and
+  states that segments/check-ins/outcome stay in History.
+- **Plan Detail (active)** adds a “Day counter runs from <last-use date>”
+  fact (UX_SPEC §2 clock semantics made visible) and the same reached /
+  beyond-plan note at the top; everything else unchanged.
+- **Check-in symptoms** shows the Q7 support-focus line (“Your focus · Sleep
+  — …”) and leads with the matching slider when the focus maps directly onto
+  a symptom (sleep / craving / appetite). Companion personalisation remains
+  presentation-only and never enters scientific policy.
+- Regression tests: `tests/ui/today-phases.test.tsx` covers reached vs
+  extended (phase, eyebrow, note text), the interrupted preserved note, and
+  the support-focus check-in line + slider order.
 
 ## What 0.10.1 added (Today profile-no-break consistency; no science change)
 

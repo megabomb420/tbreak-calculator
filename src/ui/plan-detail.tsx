@@ -17,7 +17,7 @@ import type { ActiveBreakView, PlannedBreakView } from '../application/presentat
 import { activeBreakView, plannedBreakView } from '../application/presentation/plan-presentation.ts';
 import { formatLocalDay } from './format.ts';
 import { PlanRing } from './plan-ring.tsx';
-import { PLAN_DETAIL, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS, POTENCY_STRATEGY_OPTIONS, QUANTITY_STRATEGY_OPTIONS, PLANNED_CARD, GUIDANCE_CHROME } from './break-copy.ts';
+import { PLAN_DETAIL, PLAN_STATE_NOTES, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS, POTENCY_STRATEGY_OPTIONS, QUANTITY_STRATEGY_OPTIONS, PLANNED_CARD, GUIDANCE_CHROME } from './break-copy.ts';
 import { BackIcon, CloseIcon, MoreIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { TodayGuidance } from './today-guidance.tsx';
@@ -27,6 +27,7 @@ import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { presentBreakGuidance, presentCb1Education, presentPostBreakGuidance } from '../application/presentation/break-guidance.ts';
 import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
+import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import type { BreakOutlookView } from '../application/presentation/break-outlook.ts';
 import type { SupportFocus } from '../application/questionnaire/companion.ts';
@@ -109,7 +110,13 @@ export function PlanDetail(props: PlanDetailProps) {
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
         {active !== null ? (
-          <ActivePlanContent active={active} guidance={bundle} outlook={outlook} supportFocus={props.supportFocus ?? null} />
+          <ActivePlanContent
+            active={active}
+            guidance={bundle}
+            outlook={outlook}
+            supportFocus={props.supportFocus ?? null}
+            clockStart={currentSegmentAnchor(attempt.segments)}
+          />
         ) : planned !== null ? (
           <PlannedPlanContent planned={planned} outlook={outlook} />
         ) : null}
@@ -184,12 +191,19 @@ function ActivePlanContent({
   guidance,
   outlook,
   supportFocus,
+  clockStart,
 }: {
   readonly active: ActiveBreakView;
   readonly guidance: ReturnType<typeof presentBreakGuidance>;
   readonly outlook: BreakOutlookView;
   readonly supportFocus: SupportFocus | null;
+  readonly clockStart: Instant | null;
 }) {
+  const stateNote = active.pastTarget
+    ? PLAN_STATE_NOTES.extended(active.day, active.targetDays)
+    : active.atOrPastTargetDate
+      ? PLAN_STATE_NOTES.reached(active.targetDays)
+      : null;
   return (
     <section className="plan-hero" data-testid="active-plan-content">
       <PlanRing day={active.day} targetDays={active.targetDays} />
@@ -198,7 +212,18 @@ function ActivePlanContent({
           <dt className="meta">{PLAN_DETAIL.targetDateLabel}</dt>
           <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
         </div>
+        {clockStart !== null ? (
+          <div className="plan-fact">
+            <dt className="meta">{PLAN_DETAIL.clockStartLabel}</dt>
+            <dd data-testid="clock-start">{formatLocalDay(clockStart)}</dd>
+          </div>
+        ) : null}
       </dl>
+      {stateNote !== null ? (
+        <p className={active.pastTarget ? 'today-state-note is-extended' : 'today-state-note is-reached'} data-testid="plan-detail-target-note" data-state={active.pastTarget ? 'extended' : 'reached'}>
+          {stateNote}
+        </p>
+      ) : null}
       <section className="plan-focus-card" data-testid="plan-focus-card">
         <p className="micro-label">Your focus · {supportFocusCopy(supportFocus).shortLabel}</p>
         <p className="body">{supportFocusCopy(supportFocus).planLead}</p>

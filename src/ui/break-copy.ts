@@ -44,6 +44,7 @@ export const PLAN_DETAIL = {
   back: 'Back to Today',
   progressLabel: 'Plan progress',
   targetDateLabel: 'Target date',
+  clockStartLabel: 'Day counter runs from',
   phaseHeading: 'Phase focus',
   postBreakHeading: 'After this break',
   settingsHelper: BREAK_START.helper,
@@ -160,6 +161,27 @@ export const ACTIVE_BREAK_CARD = {
   viewPlan: 'Plan detail',
   withdrawalHeading: 'Typical patterns',
   phaseHeading: 'Phase focus',
+  /** Phase-aware eyebrow on the Today active-break card. These are product
+   * labels for the same windows the guidance uses — never recovery claims. */
+  phaseEyebrow: {
+    onset: 'Your break · first days',
+    peak: 'Your break · common peak',
+    settling: 'Your break · settling in',
+    middle: 'Your break · past the peak',
+    approaching: 'Your break · nearing the target',
+    reached: 'Plan target reached',
+    extended: 'Beyond the plan',
+  } as const,
+} as const;
+
+/** State notes for the reached / beyond-plan moments (Today + Plan Detail).
+ * Restrained product copy: reaching the target is not a proven full reset and
+ * no extra-recovery estimate is implied beyond the plan. */
+export const PLAN_STATE_NOTES = {
+  reached: (targetDays: number) =>
+    `You've reached your ${targetDays}-day planning target. Marking the break complete is your call — reaching the target is not proof that tolerance has fully reset.`,
+  extended: (day: number, targetDays: number) =>
+    `You're on day ${day}, past your ${targetDays}-day plan. Continuing is your choice — the app does not estimate further recovery beyond the plan.`,
 } as const;
 
 export const INTERRUPTED_CARD = {
@@ -169,12 +191,14 @@ export const INTERRUPTED_CARD = {
   trackingBody: 'You marked that you used THC. Confirm when, so your timeline can restart.',
   confirmWhen: 'Confirm when',
   pausedLabel: 'Timing paused',
+  preserved: 'Nothing is lost — your progress and check-ins stay in your history.',
 } as const;
 
 export const COMPLETED_CARD = {
   done: 'Done',
   completeLabel: 'Break complete',
   postBreakHeading: 'What next',
+  historyMeta: 'Your segments, check-ins and this outcome stay in your history.',
 } as const;
 
 export function completedBreakTitle(days: number): string {

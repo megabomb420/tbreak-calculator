@@ -3024,3 +3024,79 @@ select,
     transition: none;
   }
 }
+
+/* 0.11.0 — product-experience pass: completed Today states + density ------- */
+
+/* Target-reached / beyond-plan state note (Today active card + Plan Detail). */
+.today-state-note {
+  margin: var(--space-1) var(--space-5) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--ok) 36%, transparent);
+  background: color-mix(in oklab, var(--ok) 9%, var(--bg-card));
+  color: var(--fg);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.today-state-note.is-extended {
+  border-color: color-mix(in oklab, var(--accent) 36%, transparent);
+  background: color-mix(in oklab, var(--accent) 9%, var(--bg-card));
+}
+
+.plan-hero .today-state-note {
+  width: 100%;
+  margin: 0;
+}
+
+/* Beyond-the-plan ambience: calm teal, distinct from the target-reached glow. */
+.today-screen[data-phase='extended'] .interval-field {
+  --phase-a: var(--ok);
+  --phase-b: #8da08c;
+  opacity: 0.8;
+}
+
+/* Density: the active/tracking Today card should surface the state fast.
+   The "may notice" list already lives in Plan Detail (compact guidance). */
+.today-live-card .today-now {
+  padding-top: var(--space-4);
+}
+
+.today-live-card .today-now .guidance-block + .guidance-block {
+  margin-top: var(--space-1);
+}
+
+.today-live-card .today-actions {
+  padding-top: var(--space-2);
+}
+
+/* Interrupted card: calm, non-punitive, clearly recoverable. */
+.today-plan-card.interrupted .body + .meta {
+  color: var(--fg-muted);
+}
+
+/* Completed card: meaningful transition without a wall of nested boxes. */
+.today-plan-card.completed > .post-break-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-border);
+}
+
+.today-plan-card.completed > .post-break-summary .card-title {
+  margin-bottom: var(--space-1);
+}
+
+.today-plan-card.completed > .post-break-summary .guidance-chips {
+  margin-top: var(--space-1);
+}
+
+/* Check-in focus line (support focus · symptom sheet). */
+.checkin-focus-line {
+  color: var(--accent-strong);
+  font-weight: 600;
+}

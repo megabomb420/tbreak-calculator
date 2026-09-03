@@ -1493,6 +1493,7 @@ function FlowRenderer({
       return checkInDay !== null ? (
         <CheckInFlow
           day={checkInDay}
+          supportFocus={supportFocus}
           onNoUseSave={onCheckInNo}
           onUseReported={onUseReported}
           onSymptomsSave={onCheckInSymptoms}
