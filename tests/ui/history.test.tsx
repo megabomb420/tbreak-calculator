@@ -32,6 +32,13 @@ function completeTolerance10Days(storage: StorageAdapter) {
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  // Tolerance-v3 reads intensity from 4 use-days up: answer sessions + products.
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: '1' }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  const q5 = screen.getByTestId('questionnaire-flow');
+  fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
+  fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
+  fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
 }
 
 describe('history tab and previous-break flow', () => {
@@ -61,7 +68,11 @@ describe('history tab and previous-break flow', () => {
     expect(screen.queryByTestId('previous-break-sheet')).toBeNull();
     expect(screen.getByTestId('result-recalculate-history')).toBeTruthy();
     fireEvent.click(screen.getByTestId('result-recalculate-history'));
-    expect(screen.getByTestId('history-card').textContent).toMatch(/history never changes the recommended range/i);
+    // The in-range 14-day observation raises the planning target; history
+    // still never widens or narrows the evidence range itself.
+    expect(screen.getByTestId('history-card').textContent).toMatch(
+      /used that observed anchor as the planning target\. History never widens or narrows the evidence range/i,
+    );
   });
 
   it('adds a past break from History and supports per-item delete', () => {

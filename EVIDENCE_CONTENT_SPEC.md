@@ -1,7 +1,8 @@
 # Evidence content specification
 
 Status: **evidence-guidance-v1** + **break-outlook-v2**  
-App version: 0.7.0  
+App version: 0.8.0  
+Revision note (0.8.0): no content-version bump — the science copy did not change, only which profiles receive the heavier/lighter tone. BreakOutlook tone and the personalisation note now consume the tolerance-v3 exposure signals (sessions per use day ≥ 2, concentrates, dabbing) from **4 use-days up**; the old ≥ 16 use-day gate is gone. Tone still applies ≥ 16 use-days with a long-established pattern and ≥ 26 use-days, exactly as the tone table in §12 says. The personalisation notes no longer claim that duration “does not change the recommended day range”: under tolerance-v3 a frequent (16–25 use-days) long-established pattern may move the range one bounded band to 21–28 (`CALCULATOR_SPEC.md` §7.3), and this copy layer must not contradict the calculator. Window copy, tone tiers, day roadmap, and content-version strings (`evidence-guidance-v1`, `break-outlook-v2`) are unchanged. This file carries no active-reduction content: the tracker (`reduction-records-v2`) and its copy live in `CALCULATOR_SPEC.md` §10.1 and the presentation templates, not in this guidance layer.  
 Revision note (0.7.0): the tolerance-v2 target rule lives in the Tolerance Engine, not this layer (see `CALCULATOR_SPEC.md` §7.3). This file's outlook content version moved to `break-outlook-v2` because the exposure-tone personalisation note now distinguishes recently established heavy patterns from long-established ones. Window copy, tone tiers, and the day roadmap are otherwise unchanged.  
 Authoritative research source: *THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA* (project research PDF).  
 Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs companion **guidance copy and product interpretation**, not bands, coefficients, or day formulae.
@@ -159,13 +160,13 @@ Tone is copy-only. It MUST NOT change `recommendedRangeDays` or `preferredTarget
 
 | Tone | When |
 |---|---|
-| heavier | intensity heuristic applies, or ≥16 use-days with a long-established pattern (2–5 years / 5+ years), or ≥26 use-days |
+| heavier | intensity signals apply at ≥ 4 use-days (sessions ≥ 2, concentrates, or dabbing), or ≥16 use-days with a long-established pattern (2–5 years / 5+ years), or ≥26 use-days |
 | lighter | 1–3 use-days, no concentrate/dabbing, and short or missing duration |
 | typical | everything else, including long-established infrequent use |
 
 Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey. Since 0.7.2 the roadmap presented by Result and Plan Detail groups consecutive days with equivalent guidance into labelled ranges (`Days N–M`); the exact per-day content behind that grouping is unchanged and the grouping itself is a presentation transform with no effect on any day's content, windows, milestones, or tone.
 
-Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v2 target rule — the planning target inside the unchanged recommended range. The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
+Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v3 rules — the planning target inside the recommended range, plus the recommended range itself only in the single bounded case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years moves one band to 21–28). The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
 ## 13. Change control
 

@@ -35,6 +35,11 @@ import {
 } from '../../application/persistence/post-break-plan-store.ts';
 import { isValidStoredAttempt, type StoredAttempt } from '../../application/progress/break-attempt-record.ts';
 import { isValidStoredTrack, type StoredTrack } from '../../application/progress/tracking-record.ts';
+import {
+  createReductionRecordsStore,
+  isValidReductionPlan,
+} from '../../application/progress/reduction-record.ts';
+import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 import { validateDailyCheckin } from '../../domain/validation/checkin-validation.ts';
 import { checkinRecordId } from '../../application/persistence/ids.ts';
 import type { ReductionPlanRecord } from '../../application/progress/reduction-plan.ts';
@@ -57,6 +62,7 @@ export const STORES = [
   'previousBreaks',
   'postBreakPlans',
   'reductionPlans',
+  'reductionRecords',
   'profiles',
   'settings',
   'corruptRecords',
@@ -301,6 +307,8 @@ function storeForKind(kind: HistoryRecordKind): StoreName | null {
       return 'checkins';
     case 'previous-break':
       return 'previousBreaks';
+    case 'reduction':
+      return 'reductionRecords';
     case 'corrupt':
       return 'corruptRecords';
   }
@@ -312,6 +320,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
   const previousBreaks = await loadStore(backend, 'previousBreaks', isValidStoredPreviousBreak, 'previous-break');
   const calculations = await loadStore(backend, 'calculations', isValidCalculationRecord, 'calculation');
   const postBreakPlans = await loadStore(backend, 'postBreakPlans', isValidStoredPostBreakPlan, 'attempt');
+  const reductionRecords = await loadStore(backend, 'reductionRecords', isValidReductionPlan, 'reduction');
   const checkinRows = await backend.getAll('checkins');
   const checkins: DailyCheckin[] = [];
   const corrupt: CorruptHistoryRow[] = [
@@ -320,6 +329,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     ...previousBreaks.corrupt,
     ...calculations.corrupt,
     ...postBreakPlans.corrupt,
+    ...reductionRecords.corrupt,
   ];
   for (const [index, row] of checkinRows.entries()) {
     const payload = isRecord(row) && 'payload' in row ? row.payload : row;
@@ -355,6 +365,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     tracking: tracking.records,
     checkins,
     reductionPlan,
+    reductionRecords: reductionRecords.records as ReductionPlan[],
     snapshot,
     calculations: calculations.records,
     previousBreaks: previousBreaks.records,
@@ -427,6 +438,24 @@ export function createIndexedDbDurable(backend: IndexedDbBackend, initial: Durab
         });
       });
     },
+    saveReductionRecords(records) {
+      cache = { ...cache, reductionRecords: [...records] };
+      const snapshot = cache;
+      enqueue(async () => {
+        await backend.write(['reductionRecords'], (ops) => {
+          ops.clear('reductionRecords');
+          for (const record of snapshot.reductionRecords) {
+            ops.put('reductionRecords', wrap(record.id, record));
+          }
+        });
+      });
+    },
+    deleteReductionPlan(id) {
+      cache = { ...cache, reductionRecords: cache.reductionRecords.filter((item) => item.id !== id) };
+      enqueue(async () => {
+        await backend.delete('reductionRecords', id);
+      });
+    },
     saveSnapshot(record) {
       cache = { ...cache, snapshot: record };
       enqueue(async () => {
@@ -484,6 +513,7 @@ export function createIndexedDbDurable(backend: IndexedDbBackend, initial: Durab
         attempts: cache.attempts.filter((item) => item.id !== id),
         tracking: cache.tracking.filter((item) => item.id !== id),
         previousBreaks: cache.previousBreaks.filter((item) => item.id !== id),
+        reductionRecords: cache.reductionRecords.filter((item) => item.id !== id),
         checkins: cache.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id),
       };
       enqueue(async () => {
@@ -592,6 +622,21 @@ export function migrateWebStorageIntoDurable(
       return;
     }
     durable.saveReductionPlan(loaded);
+  });
+
+  run('reductionRecords', () => {
+    const loaded = createReductionRecordsStore(adapter).load();
+    if (loaded.plans.length === 0) return;
+    const existing = new Set(durable.load().reductionRecords.map((item) => item.id));
+    const merged = [...durable.load().reductionRecords];
+    for (const plan of loaded.plans) {
+      if (existing.has(plan.id)) {
+        skippedExisting += 1;
+        continue;
+      }
+      merged.push(plan);
+    }
+    durable.saveReductionRecords(merged);
   });
 
   run('snapshot', () => {

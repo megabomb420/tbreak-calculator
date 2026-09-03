@@ -1,11 +1,12 @@
 # T-Break Calculator Specification
 
 Status: implementation-ready core specification; release requirements remain in section 14  
-Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v2** (app 0.7.1)  
+Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.8.0)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
 Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
+Release note (0.8.0): two changes land on main. (1) **tolerance-v3** replaces tolerance-v2 as the engine for new calculations: exposure classification is no longer a single-variable frequency lookup. Frequency (use days in 30) picks the base tier; intensity (sessions per use day ≥ 2, concentrates, dabbing) and chronicity (how long the current pattern has been typical) may move the classification at most ONE adjacent evidence tier; the broad evidence ranges 2–7 / 7–14 / 14–21 / 21–28 are unchanged and remain the outer bounds (never above 28). Sessions/products/routes are collected from 4 use-days up (not only ≥ 16), and clean in-range previous-break history may raise the planning target to the user's own best observed anchor — never the range. The result hero leads with the planning target and states the evidence range beneath it. (2) **Active reduction (cut-down) tracking** (`reduction-records-v2`) records exact THC-use events, derives plan state (rolling use-days, sessions, breach days, review rule), and replaces manual-only review with the transparent “two breach days in a rolling 7-day window → consider a 3–7 day pause and review” product rule. Details: sections 7.3, 7.5, 7.7 and 10.  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
-Scope: deterministic v2 Tolerance Engine, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, and future scientific extension boundaries
+Scope: deterministic v3 Tolerance Engine, active reduction (cut-down) tracking, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, and future scientific extension boundaries
 
 ## 1. Authority and normative language
 
@@ -34,7 +35,8 @@ The following are prohibited:
 - a metabolism or alleged-detox multiplier;
 - a numerical probability or invented statistical confidence interval;
 - translating detectable THC into impairment; and
-- translating feeling sober into a negative-test prediction.
+- translating feeling sober into a negative-test prediction; and
+- a “one dab/vape = +N break days” penalty — tolerance-plan adjustments after logged use come only from re-running the full engine on an updated profile.
 
 Tolerance output MUST NOT change detection output, and detection output MUST NOT change tolerance output.
 
@@ -71,12 +73,22 @@ Confidence = low | moderate | high
 
 CurrentPatternDurationBand = under_1_month | 1_to_6_months | 6_to_24_months | 2_to_5_years | 5_plus_years
 
+ReductionPlanStatus = active | review_recommended | paused | ended
+ReductionOrigin = direct | post_break
+
+ThcStrategy
+  avoidConcentrates: boolean
+  lowerPotency: boolean
+  lowerAmount: boolean
+
 FieldProvenance = missing | user_estimate | label_derived | laboratory_derived | derived
 ```
 
 `laboratory_derived` is reserved for future schemas. V1 does not ask for laboratory data.
 
 `CurrentPatternDurationBand` values are **product UX categories**, not scientifically validated medical cut-points. They describe how long the *current* use pattern has been typical, not lifetime cannabis use.
+
+`ReductionPlanStatus`, `ReductionOrigin`, and the `ThcStrategy` flags are product precommitment categories used by the active reduction tracker (section 10), not medical states. `review_recommended` is a deterministic product-rule status derived from two distinct breach days inside the rolling 7-day window; it is a pause-and-review signal, never a biological reset claim.
 
 `vape` is a product form covering cartridges, pods, and disposables. It is distinct from `Route = vaping`. V1 does not assign vape a potency, dose, or pharmacokinetic model, and the section 7.3 intensity heuristic does not treat vape as concentrate.
 
@@ -116,9 +128,9 @@ UseProfile
 
 `UseProfile.lastUseAt` is the single authoritative last-use timestamp for every engine, timeline, and active break plan. Detection and break objects MUST reference it; they MUST NOT store an independent competing value.
 
-`currentPatternDuration` is optional on input. Legacy profiles without the field remain valid and MUST normalise it to `missing`. When present it MUST be one of the five product bands. It describes how long the *current* use pattern has been typical, never lifetime use. It is collected as exposure context for Why-this-result copy, break-outlook wording, and — since tolerance-v2 — for the deterministic **preferred-target anchor selection** inside the already-selected evidence range (section 7.3). It MUST NOT add, subtract, or multiply recommended days as a formula, and it MUST NOT move `recommendedRangeDays` (the broad evidence range). Product amount and numeric potency remain outside core intake and are collected only in the optional nominal-flower branch in section 6.
+`currentPatternDuration` is optional on input. Legacy profiles without the field remain valid and MUST normalise it to `missing`. When present it MUST be one of the five product bands. It describes how long the *current* use pattern has been typical, never lifetime use. It is collected as exposure context for Why-this-result copy, break-outlook wording, for the deterministic **preferred-target anchor selection** inside the already-selected evidence range (section 7.3), and — for an already-frequent (`16–25` use days) pattern that is long-established (`2_to_5_years` or `5_plus_years`) — for the one bounded v3 range move to 21–28 (section 7.3). It MUST NOT add, subtract, or multiply recommended days as a formula, and outside that single bounded v3 case it MUST NOT move `recommendedRangeDays` (the broad evidence range). Product amount and numeric potency remain outside core intake and are collected only in the optional nominal-flower branch in section 6.
 
-Routing (product, not a numeric rule): Q6 is the first use-profile question after the goal/route choice — after Q1 on `tolerance_reset` and abstinence, and after Q2R = Yes on reduction-with-a-break. Use-days (Q2), sessions (Q4), and products/routes (Q5) follow it in flow order. Q6 is skipped on reduction-no-break and on detection. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion may store a duration band that the baseline-low result ignores. New calculations on those collecting routes SHOULD store a band; missing remains valid. Sessions/products/routes remain required only at `thcUseDaysLast30 ≥ 16` on range-requested routes (validation rule 7): below 16 use-days neither the range rule nor the target heuristic reads them, so they are not collected there. In particular, a 4–15 use-day profile that also involves multiple concentrate sessions stays within its frequency band (7–14 days for 4–15 use-days) — the frequency band, not the isolated concentrate detail, is the evidence-conservative driver at that frequency, and the rationale says so.
+Routing (product, not a numeric rule): Q6 is the first use-profile question after the goal/route choice — after Q1 on `tolerance_reset` and abstinence, and after Q2R = Yes on reduction-with-a-break. Use-days (Q2), sessions (Q4), and products/routes (Q5) follow it in flow order. Q6 is skipped on reduction-no-break and on detection. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion may store a duration band that the baseline-low result ignores. New calculations on those collecting routes SHOULD store a band; missing remains valid. Sessions/products/routes are REQUIRED on range-requested routes from `thcUseDaysLast30 >= 4` (validation rule 7), because the v3 classification reads intensity signals at that boundary and they can change the classification: a 4–15 use-day profile that also involves multiple sessions per use day, concentrates, or dabbing moves exactly one adjacent tier, from 7–14 to 14–21 (section 7.3), and a 16–25 use-day profile can move to 21–28. They are optional at 1–3 use-days (when present they must still be valid) and MUST NOT be required at 0 use-days (sessions are forbidden at 0, rule 8).
 
 ### 4.4 Previous break and check-in
 
@@ -205,7 +217,7 @@ Validation occurs before calculation.
 4. The 30-day window includes elapsed ages from zero through exactly 30 × 24 hours.
 5. If `thcUseDaysLast30 = 0` and `lastUseAt` is within that window, input is contradictory. This applies whenever both fields are present, regardless of goal.
 6. When `thcUseDaysLast30 > 0` on a route that consumes `lastUseAt` (`tolerance_reset`, `reduction` with `breakRequested = true`, or `abstinence` reporting use days), `lastUseAt` is required and MUST be within that window. A timestamp older than 30 × 24 hours is contradictory on those routes. Routes that do not consume the timestamp never require it.
-7. When `thcUseDaysLast30 >= 16` and a tolerance range is requested (`tolerance_reset`, or `reduction` with `breakRequested = true`), `sessionsPerUseDay`, at least one product, and at least one route are required, because only that band can trigger the v1 frequency/intensity rule. For `thcUseDaysLast30` in 1–15 these fields are optional; when present they must still be valid.
+7. When `thcUseDaysLast30 >= 4` and a tolerance range is requested (`tolerance_reset`, or `reduction` with `breakRequested = true`), `sessionsPerUseDay`, at least one product, and at least one route are required, because the v3 exposure classification reads intensity signals at that boundary and they can change the classification (sections 7.3 and 4.3). For `thcUseDaysLast30` in 1–3 these fields are optional; when present they must still be valid. At 0 they are never required (rule 8).
 8. If `thcUseDaysLast30 = 0`, `sessionsPerUseDay` MUST be missing. Products and routes MAY be omitted because they cannot affect the current recommendation.
 9. `goal = tolerance_reset` requires `breakRequested = true`.
 10. `goal = detection_information` requires `breakRequested = false`.
@@ -258,6 +270,8 @@ ToleranceResult
 
 The range is a planning heuristic. `preferredTargetDays` is a planning target inside that range, never a biological completion date.
 
+Under tolerance-v3 `limitations` may carry: `heuristic_frequency_intensity_v3` (intensity moved the tier), `heuristic_chronicity_range_v3` (a long-established pattern moved the tier), `heuristic_duration_target_within_range_v3` (the target anchor sits below the range maximum), and `heuristic_history_target_within_range_v3` (clean in-range history raised the planning target).
+
 ### 7.2 Source anchors
 
 The source supplies these broad product heuristics:
@@ -272,9 +286,9 @@ The source supplies these broad product heuristics:
 
 The source does not define use-day boundaries, a heavy-concentrate quantity, or precedence when profile descriptions overlap.
 
-### 7.3 Resolved v2 classification policy
+### 7.3 Resolved v3 classification policy
 
-The following is an explicit **product heuristic**, not a validated clinical equation. The broad ranges are unchanged from tolerance-v1:
+The following is an explicit **product heuristic**, not a validated clinical equation. The broad evidence ranges are unchanged from tolerance-v1/v2:
 
 | THC-use days in last 30 | Base profile | Base range |
 |---:|---|---:|
@@ -284,27 +298,31 @@ The following is an explicit **product heuristic**, not a validated clinical equ
 | 16–25 | frequent | 14–21 days |
 | 26–30 | near-daily/daily | 21–28 days |
 
-The source table contains profile anchors, not executable precedence rules. V2 resolves the overlap as follows:
+The source table contains profile anchors, not executable precedence rules. V3 classifies exposure over the three planning drivers the source lists — frequency (use days in the last 30), intensity (sessions per use day ≥ 2, concentrates, dabbing), and chronicity (how long the current pattern has been typical). Frequency selects the base tier; intensity and chronicity may move the classification at most ONE adjacent evidence tier above the base, and never above 21–28:
 
-- the 1–3-day very-infrequent band always remains 2–7 days; isolated concentrate use is not treated as a heavy pattern;
-- when `thcUseDaysLast30 >= 16` and either `sessionsPerUseDay >= 2`, `ProductKind = concentrate`, or `Route = dabbing`, the range becomes 21–28 days; and
-- otherwise the base range applies.
+- **Tier 1 — very infrequent (1–3 use days, base 2–7) never moves.** Isolated concentrate/dabbing use at this frequency is not treated as a heavy pattern.
+- **Tier 2 — regular non-daily (4–15 use days, base 7–14) moves to tier 3 (14–21) only when intensity is high** (`sessionsPerUseDay >= 2`, `ProductKind = concentrate`, or `Route = dabbing`).
+- **Tier 3 — frequent (16–25 use days, base 14–21) moves to tier 4 (21–28) when intensity is high OR the pattern is long-established** (`2_to_5_years` or `5_plus_years`). Chronicity moves the range in this one bounded case only: a long-established duration never moves any other band.
+- **Tier 4 — near-daily/daily (26–30 use days, base 21–28) stays 21–28.** The strongest broad anchor is never exceeded because use has lasted years.
 
-The `>= 16` boundary and treating any reported concentrate/dabbing in that frequent-use group as a conservative proxy for high-potency exposure are product choices. They ensure frequent multi-session or concentrate use cannot receive both 14–21 and 21–28 recommendations. The rule MUST be labelled `heuristic_frequency_intensity_v1` in result metadata.
+Movement is at most one adjacent evidence tier and never above 28 days. Missing duration never counts as long-established. When intensity moved the tier, the result MUST be labelled `heuristic_frequency_intensity_v3`; when a long-established pattern moved it, `heuristic_chronicity_range_v3`. The classification rules are labelled product choices; they guarantee one unambiguous 21–28 result for qualifying frequent/heavy profiles and keep every recommendation inside one of the four unchanged broad evidence ranges.
 
-**Inputs that affect the broad range (v2):** only `thcUseDaysLast30` band selection and the frequency/intensity override above. `currentPatternDuration`, amount, numeric potency, demographics, hydration, exercise, perceived metabolism, and previous-break history MUST NOT move `recommendedRangeDays`.
+**Inputs that affect the broad range (v3):** only the `thcUseDaysLast30` frequency band and the bounded intensity/chronicity classification above. Amount, numeric potency, demographics, hydration, exercise, perceived metabolism, and previous-break history MUST NOT move `recommendedRangeDays`.
 
-#### Preferred-target selection (tolerance-v2 product heuristic)
+#### Preferred-target selection (tolerance-v3 product heuristic)
 
-`recommendedRangeDays` is the broad evidence-supported planning interval. `preferredTargetDays` is a more personalised **planning choice inside that interval**. Since tolerance-v2 the deterministic target procedure is:
+`recommendedRangeDays` is the broad evidence-supported planning interval. `preferredTargetDays` is a more personalised **planning choice inside that interval**. The deterministic target procedure is:
 
-1. After the range is selected (steps 5–6 of section 7.5), read `currentPatternDuration`.
-2. A **recently established** pattern — `under_1_month` or `1_to_6_months` — selects the range's **lower anchor** (`range.min`): “the planner selects a lower point inside the same broad evidence range”.
-3. An **established** pattern — `6_to_24_months`, `2_to_5_years`, or `5_plus_years` — selects the range's **upper anchor** (`range.max`).
-4. A **missing** duration (legacy profile) selects the upper anchor — the exact tolerance-v1 default, so nothing is invented for a missing field and a legacy recalculation is unchanged.
-5. The choice MUST be labelled `heuristic_duration_target_within_range_v2` in result metadata whenever the target sits below the range maximum.
+1. After the final range is selected (steps 5–6 of section 7.5), read the chronicity class of `currentPatternDuration`: `recent` = `under_1_month`, `1_to_6_months`; `medium` = `6_to_24_months`; `long` = `2_to_5_years`, `5_plus_years`; missing duration = no class.
+2. A **recently established** pattern (`recent`) selects the range's **lower anchor** (`range.min`).
+3. A **medium or long-established** pattern, or a **missing** duration (legacy profile), selects the range's **upper anchor** (`range.max`) — the tolerance-v1/v2 default, so nothing is invented for a missing field and a legacy recalculation is unchanged.
+4. The anchor choice MUST be labelled `heuristic_duration_target_within_range_v3` in result metadata whenever the target sits below the range maximum.
 
-The five duration bands are product UX tiers used to choose between the two evidence anchors; they are not medical cut-points. This is not a duration-to-days equation. The calculator MUST NOT implement rules such as “20 years = +7 days”, “duration × 1.2”, a BMI/metabolism multiplier, or a recovery percentage. Duration MAY change driver copy, the target rationale, uncertainty explanation, and break-outlook tone. Tests MUST prove that two profiles that differ only in `currentPatternDuration` emit the same `recommendedRangeDays`, MAY emit a different `preferredTargetDays` only as one of the two anchors of that same range, and never exceed the range because of a long duration.
+#### Bounded previous-break override (tolerance-v3)
+
+A clean, directional, fully in-range previous-break history may **raise** the planning target to the user's own best observed anchor — never the range. The override (section 7.7, limitation code `heuristic_history_target_within_range_v3`) applies only when the directional comparison has no inversion, the shortest AND the longest compared durations are BOTH inside the current `recommendedRangeDays`, and the longest observation scored higher; the target is then raised to that observed duration when it exceeds the anchor selected above. The override never moves the range, never lowers the target, never interpolates, regresses, or extrapolates, and never exceeds 28 days.
+
+The five duration bands are product UX tiers used to choose between the two evidence anchors; they are not medical cut-points. None of this is a duration-to-days equation. The calculator MUST NOT implement rules such as “20 years = +7 days”, “duration × 1.2”, “concentrate = +N days”, a BMI/metabolism multiplier, a weighted pseudo-scientific score, or a recovery percentage. Duration MAY change driver copy, the target rationale, uncertainty explanation, and break-outlook tone. Tests MUST prove that two profiles that differ only in `currentPatternDuration` emit the same `recommendedRangeDays` except for the single bounded v3 case (16–25 use days + long-established → 21–28), MAY emit a different `preferredTargetDays` only as one of the two anchors of that same range or as an interior observed in-range history value under the override, and never exceed the range or 28 days because of a long duration.
 
 ### 7.4 Goal routing
 
@@ -321,42 +339,48 @@ The five duration bands are product UX tiers used to choose between the two evid
 2. Apply goal routing from section 7.4.
 3. If no tolerance range is requested, attach withdrawal display when relevant and stop.
 4. If thcUseDaysLast30 = 0 -> not_applicable with low-baseline-tolerance explanation.
-5. Select the base range from section 7.3.
-6. Apply the single frequency/intensity rule from section 7.3.
-7. Select preferredTargetDays by the section 7.3 target procedure
-   (lower anchor for a recently established pattern; upper anchor for an
-   established or missing duration). Add limitation code
-   heuristic_duration_target_within_range_v2 when the target is below range.max.
+5. Select the base frequency tier and its base range from section 7.3.
+6. Apply the bounded v3 classification from section 7.3: intensity and/or a
+   long-established pattern may move the tier at most one adjacent step; read
+   the final recommendedRangeDays from the resolved tier.
+7. Select the anchor planning target inside the final range by the section 7.3
+   target procedure (lower anchor for a recently established pattern; upper
+   anchor for a medium/long-established or missing duration), then apply the
+   bounded previous-break override (a clean directional in-range history may
+   raise the target to the longest observed in-range duration). Add limitation
+   codes heuristic_duration_target_within_range_v3 and
+   heuristic_history_target_within_range_v3 when they apply.
 8. Set evidenceConfidence = low and personalisationConfidence = low.
 9. Set uncertaintySummaryCode = broad_heuristic_individual_response_varies.
 10. Add deterministic drivers and limitations.
-11. Derive the history insight without changing the range or target.
+11. Derive the descriptive history insight from section 7.7; it never changes
+    the range, and its only numeric effect is the step-7 in-range target override.
 12. Attach withdrawal display anchored to the authoritative lastUseAt.
 13. Validate each output block. A failed optional history block is omitted and logged
     locally; a failed core range block invalidates the result.
 ```
 
-No scoring, weighting, multiplier, interpolation, or unlisted override is allowed.
+No scoring, weighting, multiplier, interpolation, regression, extrapolation, or unlisted override is allowed. The only numeric effect of previous-break history is the step-7 bounded in-range target override of section 7.3.
 
 ### 7.6 Confidence and user-facing uncertainty
 
-All v2 tolerance ranges emit `low` for both evidence and personalisation confidence. This is deliberately uniform because the range mapping is provisional and not individually calibrated. No questionnaire boundary changes a confidence label.
+All v3 tolerance ranges emit `low` for both evidence and personalisation confidence. This is deliberately uniform because the range mapping is provisional and not individually calibrated. No questionnaire boundary changes a confidence label.
 
-The v2 UI MUST NOT show two confidence badges. It shows one plain-language line derived from `uncertaintySummaryCode`, for example:
+The v3 UI MUST NOT show two confidence badges. It shows one plain-language line derived from `uncertaintySummaryCode`, for example:
 
 > Limited certainty: this is a broad product heuristic, and individual response varies.
 
-The two structured fields remain separate for future evidence work because the source distinguishes evidence strength from personal fit. V2 does not pretend either has been calibrated.
+The two structured fields remain separate for future evidence work because the source distinguishes evidence strength from personal fit. V3 does not pretend either has been calibrated.
 
-Profile completeness is a different axis and MUST NOT be converted into a numeric confidence. The result may show a deterministic plain-language **planning-context** note describing which profile fields were collected (frequency; frequency + duration; or frequency + duration + sessions/products/routes). Fuller context can shape the planning target inside the range; it never raises the structured confidence labels or implies statistical certainty.
+Profile completeness is a different axis and MUST NOT be converted into a numeric confidence. The result may show a deterministic plain-language **planning-context** note describing which profile fields were collected (frequency; frequency + duration; or frequency + duration + sessions/products/routes). Fuller exposure context shapes the recommendation inside the evidence bounds — it may move the classification within the bounded v3 rules and choose the planning target inside the range — but it never raises the structured confidence labels or implies statistical certainty.
 
-The source’s example card uses `Moderate`, but it supplies no grading rubric that would justify when that label changes. V2 therefore preserves the source’s qualitative confidence concept while deliberately choosing the more cautious uniform `low` policy.
+The source’s example card uses `Moderate`, but it supplies no grading rubric that would justify when that label changes. V3 therefore preserves the source’s qualitative confidence concept while deliberately choosing the more cautious uniform `low` policy.
 
 ### 7.7 Previous-break history
 
-History is descriptive and MUST NOT change the numeric range or target.
+History insight is descriptive, and history MUST NOT change the numeric range. Under the v3 rule a clean, directional, fully in-range history MAY additionally **raise the planning target** to the user's own best observed anchor inside the range (section 7.3); out-of-range or mixed history stays descriptive and never moves the range or the target.
 
-Deterministic v1 rule:
+Deterministic v3 rule:
 
 1. Eligible records have both an integer duration and a 0–10 tolerance-reduction score.
 2. If multiple records share a duration, use the most recent by `endedAt`; if absent, use `createdAt`.
@@ -366,12 +390,16 @@ Deterministic v1 rule:
 6. If any inversion exists, emit only `history_mixed_no_directional_claim`.
 7. If no inversion exists and all scores are equal, emit `history_no_additional_benefit_observed`.
 8. If no inversion exists and at least one longer duration has a higher score, compare the shortest eligible duration with the longest eligible duration. Report those two exact observations only. Do not say the benefit occurred continuously “between” them.
-9. If either duration in that selected comparison falls outside the current recommended range, add `history_outside_population_range` and state that the personal observation sits outside the current broad heuristic. Do not suppress it and do not alter the target.
+9. If either duration in that selected comparison falls outside the current recommended range, add `history_outside_population_range` and state that the personal observation sits outside the current broad heuristic. Do not suppress it; the history stays descriptive and never moves the range or the target.
 10. Do not interpolate, average an optimum, regress, extrapolate, or attach probability.
+
+**In-range planning-target override (v3, limitation code `heuristic_history_target_within_range_v3`):** when the insight is `history_directional_observation` (rule 8) AND both compared durations sit inside the current `recommendedRangeDays` (no `history_outside_population_range`), the longest observed duration becomes a candidate planning target. It RAISES the target only when it exceeds the anchor selected by the duration rule (section 7.3), which can place the target at an interior point of the range — the user's own best observed break. The override never moves the range, never lowers a target, never interpolates, regresses, or extrapolates an “ideal” value, and never exceeds 28 days.
 
 Directional history insight is generated only for a `tolerance_result` with a current range. Other goal routes may show the saved history records but do not compare them with a recommendation.
 
-Allowed: “In your previous breaks, you reported a higher tolerance reduction at 21 days than at 14 days. That observation sits outside today’s broad heuristic range and does not change the calculator target.”
+Allowed (out-of-range or mixed history, descriptive only): “In your previous breaks, you reported a higher tolerance reduction at 21 days than at 14 days. That observation sits outside today’s broad heuristic range and does not change the calculator target.”
+
+Allowed (clean in-range history, target override): “In your previous breaks, you reported a higher tolerance reduction at 10 days than at 7 days. Your 10-day observation sits inside the current 7–14 day range, so the planner used that observed anchor as the planning target. History never widens or narrows the evidence range.”
 
 Prohibited: “Your ideal break is 18.7 days with 84% confidence.”
 
@@ -440,9 +468,9 @@ Rules:
 
 Frozen historical calculation records MUST NOT be rewritten. Outlook is presentation derived from the stored profile and the stored target; the stored range, target, drivers, and policy version stay immutable.
 
-Driver codes `current_pattern_*`, `preferred_target_*`, and `pattern_duration_context_only` are presentation-layer codes. They MUST NOT be emitted by the Tolerance Engine and MUST NOT appear in golden fixtures. The engine-level metadata for the target choice is the limitation code `heuristic_duration_target_within_range_v2` (section 7.3), which MAY appear in result metadata and golden fixtures.
+Driver codes `current_pattern_*`, `preferred_target_*`, and `pattern_duration_context_only` are presentation-layer codes. They MUST NOT be emitted by the Tolerance Engine and MUST NOT appear in golden fixtures. The engine-level metadata for target selection is the v3 limitation-code set of section 7.1 — `heuristic_frequency_intensity_v3`, `heuristic_chronicity_range_v3`, `heuristic_duration_target_within_range_v3`, and `heuristic_history_target_within_range_v3` — which MAY appear in result metadata and golden fixtures.
 
-Frozen tolerance-v1 records (target at the range maximum, duration stored but contextual only) keep their stored numeric output when displayed under tolerance-v2. Their duration copy remains the historical contextual sentence; the presentation never invents a recent→lower-target claim for a stored upper target.
+Frozen tolerance-v1/v2 records (stored range and target verbatim; duration stored but contextual, or anchor-only under v2) keep their stored numeric output when displayed under tolerance-v3. Their duration copy remains the historical contextual sentence; the presentation never invents a recent→lower-target claim for a stored upper target and never recomputes a stored range.
 
 ## 8. Qualitative Detection Engine
 
@@ -517,7 +545,21 @@ Post-break guidance remains in v1 because the source defines it as core. It MUST
 - `reduced_regular_use`: the user defines their own maximum use days per week, sessions per use day, potency strategy, and quantity strategy.
 - `undecided`: show qualitative options without choosing limits.
 
-The product MUST favour lower-potency return where practical, discourage immediate concentrate return and rapid repeat dosing, and distinguish delayed-onset oral THC. V1 has no automatic “repeatedly exceeded” threshold. The user may manually review or pause the plan at any time.
+The product MUST favour lower-potency return where practical, discourage immediate concentrate return and rapid repeat dosing, and distinguish delayed-onset oral THC.
+
+### 10.1 Active reduction (cut-down) tracking
+
+Active reduction tracking is a behavioural precommitment product, not a medical protocol and not a biological claim. Persisted schema: `reduction-records-v2`; pure domain rules live in `src/domain/reduction/`; see `ARCHITECTURE.md` sections 5 and 9 for the policy/durable placement. Semantics:
+
+- **User limits.** A reduction plan stores `ReductionLimits` — a maximum number of THC-use days in a rolling 7-day window and a maximum number of sessions per use day — plus optional `ThcStrategy` flags (`avoidConcentrates`, `lowerPotency`, `lowerAmount`). They are the user's own precommitments, never engine science. If the app suggests starting limits, the suggestion is a **labelled product heuristic** derived from the user's current pattern (roughly half the current weekly use-day rate, clamped to 1–7 days, never harsher than the user's own pattern without consent), always editable, and MUST NOT be described as a “safe THC amount”.
+- **Events equal sessions.** Each logged THC-use event stores a UTC instant plus one product and one route. Events are grouped by the user's **local calendar day** (UTC instant plus the user's current UTC offset, so instants never duplicate or disappear across a timezone change). Several events on one day raise that day's session count but never the use-day count; a new local day with at least one event raises the use-day count.
+- **Derived plan state.** From events, limits, the current UTC offset, and `now`, the engine derives: rolling use-days over the last 7 local calendar days ending today, today's sessions, whether each limit is exceeded, the strategy-exceeded flag (concentrate logged while the plan says avoid concentrates), and the set of breach days. Same events + same clock ⇒ same state.
+- **Review rule (explicit product rule, never a biological reset claim).** A day whose sessions exceed the session cap, or that pushes the rolling use-day count over the weekly cap, is one breach day. Two **distinct** breach days inside the rolling 7-day window set the plan to `review_recommended` and trigger the copy: “consider a 3–7 day pause and review”. The state is derived and reversible: when breach days age out of the window the plan returns to `active` automatically. `paused` and `ended` are user-controlled.
+- **Logging use in reduction mode is NOT a T-break interruption.** It updates the reduction tracker only; it does not suspend timing, re-anchor, or restart a break attempt (section 7.9 does not apply).
+- **Post-break occasional/reduced modes use the same tracker.** When an `occasional` or `reduced_regular_use` post-break plan is active after a break completes, the tracker starts with `origin = post_break`; a direct cut-down plan uses `origin = direct`. Both use the same `reduction-records-v2` semantics.
+- **Adaptive tolerance recalculation.** The tracker never converts “one dab/vape = +N break days”. When real logged use changes the exposure pattern, the app re-runs the full tolerance-v3 engine on an observed profile and **freezes a NEW `CalculationRecord`**; the previous record stays immutable in History. If tracked history does not yet span 30 days, the observed 30-day use-day count is only a lower bound, so the app asks the user for a minimal prefilled refresh instead of fabricating a 30-day profile. Zero observed use days with full 30-day coverage yields the baseline-low outcome.
+
+Break attempts themselves retain manual review and pause at any time: they have no automatic repeated-exceedance threshold — the automatic review rule above lives in reduction tracking only.
 
 ## 11. Future DeepSeek interpretation boundary
 
@@ -535,11 +577,11 @@ Automated tests MUST prove:
 2. both directions of 30-day consistency validation reject contradictions;
 3. age, sex, BMI, hydration, exercise, sauna, fasting, perceived metabolism, amount, and unsupported potency cannot change a tolerance range or a planning target;
 4. boundaries 0/1, 3/4, 15/16, 25/26, and 30 produce the specified base bands;
-5. the frequency/intensity rule produces one unambiguous 21–28 result for qualifying frequent users;
-6. every v2 tolerance result uses low/low structured confidence and the same uncertainty summary;
-7. the preferred target is a deterministic anchor inside the selected range — lower anchor only for a recently established pattern, upper anchor otherwise (including missing duration) — and never exceeds 28 days;
-8. two profiles differing only in `currentPatternDuration` emit the same `recommendedRangeDays`; they MAY emit a different `preferredTargetDays`, and no duration band ever widens a range or acts as a “days added” formula;
-9. history cannot mutate the range or target, and inversion/outside-range cases follow section 7.7;
+5. the bounded v3 classification produces one unambiguous 21–28 result for qualifying frequent/heavy users, moves a tier at most one adjacent step (4–15 use days + intensity → 14–21; 16–25 use days + intensity or long-established → 21–28), and never exceeds 28 days;
+6. every v3 tolerance result uses low/low structured confidence and the same uncertainty summary;
+7. the preferred target is a deterministic anchor inside the selected range — lower anchor only for a recently established pattern, upper anchor otherwise (including missing duration) — and may be raised to an interior observed in-range history value under the section 7.3/7.7 override; it never exceeds 28 days;
+8. two profiles differing only in `currentPatternDuration` emit the same `recommendedRangeDays` except for the single bounded v3 case (16–25 use days + long-established pattern → 21–28); they MAY emit a different `preferredTargetDays`, and no duration band ever acts as a “days added” formula or widens a range beyond that one case;
+9. history cannot move the range; a clean directional in-range history may raise the planning target under the section 7.3/7.7 override, and inversion/outside-range cases stay descriptive;
 10. withdrawal status follows elapsed time and permits overlapping current anchors;
 11. interruption suspends timing until `usedAt` is confirmed, then restarts the plan without deleting history;
 12. detection always emits qualitative-only, null confidence, and no numeric range;
@@ -547,27 +589,29 @@ Automated tests MUST prove:
 14. hair never emits a clear date;
 15. nominal THC is labelled nominal and never absorbed;
 16. no result contains reset/detox percentages, individual half-lives, alleged-detox bonuses, or guaranteed dates; and
-17. a frozen tolerance-v1 historical record renders its stored range and target verbatim and is never recomputed under tolerance-v2.
+17. a frozen historical record (tolerance-v1/v2) renders its stored range and target verbatim and is never recomputed under tolerance-v3.
 
 Golden fixtures freeze `calculatedAt`; equality is domain-structural rather than byte-serialization equality.
 
 ## 13. Resolved pre-implementation decisions
 
 - **Source audit — resolved:** the synced source is present and the heuristic bands match it.
-- **Tolerance thresholds — resolved for v2:** 1–3 / 4–15 / 16–25 / 26–30 are accepted as versioned product heuristics, not scientific cut points.
-- **Intensity overlap — resolved for v2:** the explicit frequent-use rule in section 7.3 is the only range override; it yields 21–28.
-- **Target selection — resolved for tolerance-v2:** the preferred target is an anchor inside the unchanged evidence range. Recently established patterns (`under_1_month`, `1_to_6_months`) choose the lower anchor; established (`6_to_24_months`, `2_to_5_years`, `5_plus_years`) and missing durations choose the upper anchor. It is a product heuristic (`heuristic_duration_target_within_range_v2`), not a duration-to-days formula or a biological reset claim.
-- **Questionnaire routing — resolved for 0.7.0:** unchanged from 0.6.0. Q6 stays on all range-requested routes and abstinence; Q4/Q5 stay at `thcUseDaysLast30 >= 16`. Below 16 use-days, sessions/products/routes affect neither the range rule nor the target heuristic, so they are not collected there (a 4–15 use-day concentrate/multi-session profile remains in its frequency band and the rationale says the frequency band is the driver).
-- **Confidence — resolved for v2:** both structured confidence fields are uniformly low; UI shows one plain-language uncertainty statement plus a deterministic planning-context note (never a numeric confidence).
+- **Tolerance thresholds — resolved for v3:** 1–3 / 4–15 / 16–25 / 26–30 are accepted as versioned product heuristics, not scientific cut points; the base bands are unchanged from tolerance-v1/v2.
+- **Exposure classification — resolved for tolerance-v3:** classification is bounded over frequency + intensity + chronicity (section 7.3). Tier 1 (1–3 use days) never moves; tier 2 (4–15) moves to 14–21 only when intensity is high; tier 3 (16–25) moves to 21–28 when intensity is high or the pattern is long-established; tier 4 (26–30) stays 21–28. Movement is at most one adjacent tier, labelled `heuristic_frequency_intensity_v3` or `heuristic_chronicity_range_v3`, and never exceeds 28 days.
+- **Target selection — resolved for tolerance-v3:** the preferred target is an anchor inside the selected evidence range. Recently established patterns (`under_1_month`, `1_to_6_months`) choose the lower anchor; medium/long-established (`6_to_24_months`, `2_to_5_years`, `5_plus_years`) and missing durations choose the upper anchor. It is a product heuristic (`heuristic_duration_target_within_range_v3`), not a duration-to-days formula or a biological reset claim.
+- **Questionnaire routing — resolved for 0.8.0:** Q6 stays on all range-requested routes and abstinence. Q4/Q5 move from `thcUseDaysLast30 >= 16` to `>= 4` on range-requested routes because the v3 classification reads intensity at that boundary; they are optional at 1–3 use-days and never required at 0. A 4–15 use-day concentrate/multi-session profile is now classified one adjacent band up (14–21), and the rationale says intensity moved the band.
+- **Confidence — resolved for v3:** both structured confidence fields are uniformly low; UI shows one plain-language uncertainty statement plus a deterministic planning-context note (never a numeric confidence).
 - **Goal semantics — resolved:** `breakRequested` controls reduction routing; abstinence has no finite break range.
 - **Post-break type — resolved:** `PostBreakMode` is defined and abstinence does not route to return-to-use planning.
 - **Last use — resolved:** one authoritative `UseProfile.lastUseAt`.
 - **Provenance — resolved:** per-field `SourcedValue<T>`.
-- **Pattern duration — resolved for tolerance-v2:** collected on range-requested routes; drives target-anchor selection and rationale, never the range; missing stays valid and maps to the upper anchor. Amount and potency — resolved for v2:** still not collected for tolerance; flower amount/potency appear only in the nominal calculator.
-- **Previous history — resolved for v2:** explicit pairwise/inversion/outside-range rules; descriptive only, never a numeric effect on range or target.
+- **Pattern duration — resolved for tolerance-v3:** collected on range-requested routes; drives target-anchor selection and rationale; moves the range only in the single bounded v3 case (16–25 use days + long-established → 21–28); missing stays valid and maps to the upper anchor. Amount and potency — resolved for v3:** still not collected for tolerance; flower amount/potency appear only in the nominal calculator.
+- **Previous history — resolved for tolerance-v3:** explicit pairwise/inversion/outside-range rules stay descriptive; a clean directional in-range history additionally raises the planning target to the observed anchor under `heuristic_history_target_within_range_v3`; history never moves the range.
 - **Withdrawal and interruption — resolved:** elapsed-time positioning and plan-restart mechanics are explicit.
 - **Detection input minimisation — resolved:** v1 collects only matrix and copy-affecting context.
-- **Repeated plan exceedance — resolved for v1:** no automatic threshold; manual review only.
+- **Repeated plan exceedance — resolved for 0.8.0:** active reduction tracking derives `review_recommended` from two distinct breach days inside the rolling 7-day window and shows the “consider a 3–7 day pause and review” product rule (section 10.1); the state auto-returns to `active` when the breach days age out. Break attempts themselves keep manual review only.
+- **Reduction records — resolved for 0.8.0:** `reduction-records-v2` is the persisted envelope for active reduction plans (statuses `active` / `review_recommended` / `paused` / `ended`, origins `direct` / `post_break`). Legacy `reduction-plan-v1` limit rows stay readable and migrate into a new plan's baseline when a v2 plan starts from them.
+- **Adaptive recalculation — resolved for 0.8.0:** logged use never adds “+N days”. The app re-runs the full tolerance-v3 engine on an observed profile and freezes a NEW `CalculationRecord` (old records immutable); with under 30 days of tracked coverage it asks for a minimal refresh instead of fabricating a 30-day profile.
 - **Architecture scope — resolved:** numeric packs, AI runtime, telemetry, and export/import are deferred.
 
 ## 14. Remaining blockers and deferred features
@@ -588,7 +632,8 @@ These do not block implementation of schemas and pure deterministic engines.
 - runtime DeepSeek integration and its legal/privacy review;
 - formal evidence-grading recalibration;
 - cloud sync, telemetry, and export/import;
-- any range or target effect from amount, potency, or previous-break history; and
-- any range effect from current-pattern duration (the duration role stays limited to the preferred-target anchor heuristic of section 7.3).
+- any range or target effect from amount or numeric potency;
+- any range effect from previous-break history beyond the bounded in-range planning-target override of sections 7.3/7.7; and
+- any range effect from current-pattern duration beyond the single bounded v3 case of section 7.3 (16–25 use days + long-established pattern → 21–28); the duration role otherwise stays limited to the preferred-target anchor heuristic of section 7.3.
 
 Numeric detection is required before the product can claim to estimate broad X–Y detection windows. Until then the feature MUST be described as qualitative detection information.

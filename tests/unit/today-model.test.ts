@@ -56,7 +56,13 @@ function trackState(status: 'tracking' | 'interrupted_time_needed' | 'ended'): B
 }
 
 function build(session: BreakSessionState, snapshotFacts: Partial<Pick<TodayFacts, 'hasAnyData' | 'hasProfile' | 'detectionOnly'>> = { hasAnyData: true, hasProfile: true }) {
-  return buildTodayFacts({ snapshotFacts, attempts: session.attempts, tracking: session.tracking, draft: null });
+  return buildTodayFacts({
+    snapshotFacts,
+    attempts: session.attempts,
+    tracking: session.tracking,
+    reductionPlans: [],
+    draft: null,
+  });
 }
 
 describe('Today facts from records', () => {
@@ -106,6 +112,7 @@ describe('Today facts from records', () => {
       snapshotFacts: { hasAnyData: true, detectionOnly: true },
       attempts: [],
       tracking: [],
+      reductionPlans: [],
       draft,
     });
     assert.equal(facts.detectionOnly, true);
@@ -114,11 +121,12 @@ describe('Today facts from records', () => {
   });
 
   it('produces an empty first-launch fact set when nothing is stored', () => {
-    const facts = buildTodayFacts({ snapshotFacts: {}, attempts: [], tracking: [], draft: null });
+    const facts = buildTodayFacts({ snapshotFacts: {}, attempts: [], tracking: [], reductionPlans: [], draft: null });
     assert.deepEqual(facts, {
       hasAnyData: false,
       attempt: null,
       tracking: null,
+      reduction: null,
       hasProfile: false,
       detectionOnly: false,
       draft: null,

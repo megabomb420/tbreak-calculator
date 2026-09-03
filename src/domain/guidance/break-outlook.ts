@@ -11,7 +11,10 @@
 
 import type { CurrentPatternDurationBand, ProductKind, Route } from '../schemas/enums.ts';
 import type { UseProfileInput } from '../schemas/profile.ts';
-import { assessIntensity, TOLERANCE_POLICY_V2 } from '../policies/tolerance-policy-v2.ts';
+import {
+  hasIntensitySignal,
+  intensitySignalsFor,
+} from '../policies/tolerance-policy-v3.ts';
 import {
   milestonesForDay,
   primaryWindowForDay,
@@ -97,11 +100,13 @@ export function exposureTone(context: ExposureContext): ExposureTone {
   const shortPattern = duration === 'under_1_month' || duration === '1_to_6_months';
   const concentrateOrDab =
     context.products.includes('concentrate') || context.routes.includes('dabbing');
+  // Tolerance-v3 intensity signals (multiple sessions, concentrates, dabbing)
+  // shape the exposure profile from 4 use-days upward, so the outlook tone
+  // uses the same signals rather than the old >= 16 use-day gate.
   const intensity =
-    days !== null
-      ? assessIntensity(TOLERANCE_POLICY_V2, days, context.sessionsPerUseDay, context.products, context.routes)
-          .applies
-      : false;
+    days !== null &&
+    days >= 4 &&
+    hasIntensitySignal(intensitySignalsFor(context.sessionsPerUseDay, context.products, context.routes));
 
   if (intensity || (days !== null && days >= 16 && longEstablished) || (days !== null && days >= 26)) {
     return 'heavier';
@@ -114,24 +119,24 @@ export function exposureTone(context: ExposureContext): ExposureTone {
 
 export function personalisationNote(context: ExposureContext, tone: ExposureTone): string | null {
   if (tone === 'lighter') {
-    return 'A lighter or infrequent pattern is less often associated with severe withdrawal. You may notice little. How long this pattern has lasted is useful context and does not change the recommended day range.';
+    return 'A lighter or infrequent pattern is less often associated with severe withdrawal. You may notice little.';
   }
   if (tone === 'heavier') {
     const recent =
       context.currentPatternDuration === 'under_1_month' || context.currentPatternDuration === '1_to_6_months';
     if (recent) {
-      return 'A high-frequency or high-intensity pattern can make stronger withdrawal or longer sleep disturbance more plausible, even when the pattern is recent. This is not a personal prediction, and it does not change the recommended day range.';
+      return 'A high-frequency or high-intensity pattern can make stronger withdrawal or longer sleep disturbance more plausible, even when the pattern is recent. This is not a personal prediction.';
     }
-    return 'A frequent, multiple-session, concentrate, or long-established pattern can make stronger withdrawal or longer sleep disturbance more plausible. This is not a personal prediction, and it does not change the recommended day range.';
+    return 'A frequent, multiple-session, concentrate, or long-established pattern can make stronger withdrawal or longer sleep disturbance more plausible. This is not a personal prediction.';
   }
   if (context.currentPatternDuration === '2_to_5_years' || context.currentPatternDuration === '5_plus_years') {
-    return 'This current pattern has been typical for years. That is useful context. It does not change the recommended day range.';
+    return 'This current pattern has been typical for years. The planner treats a long-established pattern as heavier exposure context, not as a biological prediction.';
   }
   if (context.currentPatternDuration === '6_to_24_months') {
-    return 'This current pattern has been typical for about 1–2 years. That is useful context. It does not change the recommended day range.';
+    return 'This current pattern has been typical for about 1–2 years. That context shapes the plan but is not a biological prediction.';
   }
   if (context.currentPatternDuration === '1_to_6_months' || context.currentPatternDuration === 'under_1_month') {
-    return 'This current pattern is relatively recent. That is useful context. It does not change the recommended day range.';
+    return 'This current pattern is relatively recent. That context shapes the plan but is not a biological prediction.';
   }
   return null;
 }

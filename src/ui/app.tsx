@@ -26,7 +26,7 @@ import {
 } from '../application/break/break-session.ts';
 import type { PostBreakPlan } from '../application/break/post-break-plan.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
-import { buildTodayFacts } from '../application/break/today-model.ts';
+import { buildTodayFacts, currentLiveReductionPlan } from '../application/break/today-model.ts';
 import {
   createQuestionnaireProgressStore,
   QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
@@ -40,8 +40,6 @@ import { type StoredAttempt } from '../application/progress/break-attempt-record
 import { type StoredTrack } from '../application/progress/tracking-record.ts';
 import { type PwaUpdateStatus } from '../application/settings/settings.ts';
 import {
-  DEFAULT_REDUCTION_DAYS_PER_WEEK,
-  DEFAULT_REDUCTION_SESSIONS,
   REDUCTION_PLAN_SCHEMA_VERSION,
 } from '../application/progress/reduction-plan.ts';
 import {
@@ -72,8 +70,28 @@ import {
   trackingDayView,
 } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
+import { decideTrackingRecalculation } from '../application/calculation/adaptive-recalc.ts';
 import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
-import type { Goal, PostBreakMode } from '../domain/schemas/enums.ts';
+import {
+  endPlan as endReductionPlan,
+  logUseEvent as appendReductionUseEvent,
+  pausePlan as pauseReductionPlan,
+  recommitPlan as recommitReductionPlan,
+  resumePlan as resumeReductionPlan,
+  startReductionPlan as createReductionPlan,
+} from '../domain/reduction/reduction-plan-lifecycle.ts';
+import {
+  derivePlanState,
+  observedPattern,
+  type ReductionBaseline,
+  type ReductionLimits,
+  type ReductionPlan,
+  type ThcStrategy,
+  type UseEvent,
+} from '../domain/reduction/reduction-engine.ts';
+import type { CurrentPatternDurationBand, Goal, PostBreakMode, ProductKind, Route } from '../domain/schemas/enums.ts';
+import type { UseProfileInput } from '../domain/schemas/profile.ts';
+import type { RawAnswerSnapshot } from '../application/questionnaire/snapshot.ts';
 import { parseSubmittedTimestamp, type Instant } from '../domain/schemas/time.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { systemClock, type Clock } from '../infrastructure/clock.ts';
@@ -87,8 +105,12 @@ import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { HistoryScreen } from './history-screen.tsx';
 import { QuestionnaireFlow } from './questionnaire-flow.tsx';
 import { ResultScreen } from './result-screen.tsx';
+import { RESULT } from './result-copy.ts';
 import { SettingsModal } from './settings-modal.tsx';
 import { Shell } from './shell.tsx';
+import { LogUseSheet } from './log-use.tsx';
+import { ReductionRefreshSheet } from './reduction-refresh-sheet.tsx';
+import { ReductionStartSheet } from './reduction-start-sheet.tsx';
 import { TodayScreen, type TodayLiveData, type TodayProfileData } from './today-screen.tsx';
 import {
   applyAnswer,
@@ -111,7 +133,10 @@ export type Flow =
   | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
   | { readonly kind: 'previous-break'; readonly editId: string | null }
-  | { readonly kind: 'detox-evidence' };
+  | { readonly kind: 'detox-evidence' }
+  | { readonly kind: 'reduction-start' }
+  | { readonly kind: 'log-use' }
+  | { readonly kind: 'reduction-refresh' };
 
 export interface AppProps {
   readonly storage: StorageAdapter;
@@ -156,6 +181,7 @@ export function App({
   const [flow, setFlow] = useState<Flow | null>(null);
   const [now, setNow] = useState<Instant>(() => clock.now());
   const [installHintDismissed, setInstallHintDismissed] = useState(false);
+  const [reductionFeedback, setReductionFeedback] = useState<string | null>(null);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -194,6 +220,8 @@ export function App({
   const trackingRecord = durableSnap.tracking;
   const checkinsRecord = durableSnap.checkins;
   const reductionPlan = durableSnap.reductionPlan;
+  const reductionRecords = durableSnap.reductionRecords;
+  const liveReductionPlan = currentLiveReductionPlan(reductionRecords);
 
   const sessionState: BreakSessionState = {
     attempts: attemptsRecord,
@@ -228,6 +256,7 @@ export function App({
     snapshotFacts: acknowledged ? snapshotFacts : {},
     attempts: sessionState.attempts,
     tracking: sessionState.tracking,
+    reductionPlans: reductionRecords,
     draft,
   });
   const view = resolveTodayState(facts);
@@ -251,6 +280,20 @@ export function App({
   const scheduled = liveAttempt?.status === 'planned' ? liveAttempt : null;
   const anchor = profileAnchor(snapshotRecord);
   const activeView = liveAttempt !== null && liveAttempt.status === 'active' ? activeBreakView(liveAttempt, now) : null;
+  const utcOffsetMinutes = -new Date().getTimezoneOffset();
+  const reductionView =
+    liveReductionPlan !== null
+      ? {
+          plan: liveReductionPlan,
+          state: derivePlanState(
+            liveReductionPlan.events,
+            liveReductionPlan.limits,
+            liveReductionPlan.strategy,
+            now,
+            utcOffsetMinutes,
+          ),
+        }
+      : null;
 
   const liveData: TodayLiveData = {
     active: activeView !== null ? { attempt: liveAttempt!, view: activeView } : null,
@@ -261,6 +304,7 @@ export function App({
       liveTracking !== null && liveTracking.status === 'tracking'
         ? { track: liveTracking, view: trackingDayView(liveTracking, now) }
         : null,
+    reduction: reductionView,
     checkins: sessionState.checkins,
     exposure:
       snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
@@ -272,12 +316,17 @@ export function App({
     scheduled,
     plannedView: scheduled !== null ? plannedBreakView(scheduled, anchor) : null,
     reductionPlan:
-      reductionPlan === null
-        ? { maxUseDaysPerWeek: DEFAULT_REDUCTION_DAYS_PER_WEEK, maxSessionsPerUseDay: DEFAULT_REDUCTION_SESSIONS }
-        : {
-            maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
-            maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
-          },
+      liveReductionPlan !== null
+        ? {
+            maxUseDaysPerWeek: liveReductionPlan.limits.maxUseDaysPerWeek,
+            maxSessionsPerUseDay: liveReductionPlan.limits.maxSessionsPerUseDay,
+          }
+        : reductionPlan === null
+          ? null
+          : {
+              maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
+              maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
+            },
   };
 
   function persistBreakSession(next: BreakSessionState): void {
@@ -469,6 +518,243 @@ export function App({
     if (completed === null || completed.status !== 'completed') return;
     const outcome = acknowledgeCompletedBreak(readSessionState(), completed.id, clock.now());
     if (outcome.ok) persistBreakSession(outcome.state);
+    // Post-break continuity: when the finished break chose occasional or
+    // reduced-regular use, hand the user over to the same active reduction
+    // tracker (limits from the post-break plan) instead of dropping them back
+    // on an empty profile card.
+    const finished = completed;
+    const plan = finished.postBreakPlan;
+    if (plan !== null && (plan.mode === 'occasional' || plan.mode === 'reduced_regular_use')) {
+      if (currentLiveReductionPlan(durable.load().reductionRecords) === null) {
+        const baseline = reductionBaselineFromProfile();
+        if (baseline !== null) {
+          const nowAt = clock.now();
+          const created = createReductionPlan({
+            id: newRecordId('reduction', nowAt),
+            origin: 'post_break',
+            limits: {
+              maxUseDaysPerWeek: plan.maxUseDaysPerWeek,
+              maxSessionsPerUseDay: plan.mode === 'occasional' ? 1 : plan.maxSessionsPerUseDay,
+            },
+            strategy: reductionStrategyFromProfile(),
+            baseline,
+            now: nowAt,
+            utcOffsetMinutes: -new Date().getTimezoneOffset(),
+          });
+          upsertReductionPlan(created);
+        }
+      }
+    }
+    refresh();
+  }
+
+  // --- Active reduction plan -------------------------------------------------
+
+  function reductionBaselineFromProfile(): ReductionBaseline | null {
+    const snapshot = durable.load().snapshot;
+    if (snapshot === null || snapshot.snapshot.kind !== 'use_profile') return null;
+    const profile = snapshot.snapshot.profile;
+    const useDays = profile.thcUseDaysLast30?.value ?? 0;
+    return {
+      thcUseDaysLast30: useDays,
+      sessionsPerUseDay: profile.sessionsPerUseDay?.value ?? null,
+      products: [...profile.products],
+      routes: [...profile.routes],
+      currentPatternDuration: profile.currentPatternDuration?.value ?? null,
+    };
+  }
+
+  function reductionStrategyFromProfile(): ThcStrategy {
+    return { avoidConcentrates: false, lowerPotency: false, lowerAmount: false };
+  }
+
+  function upsertReductionPlan(plan: ReductionPlan): void {
+    const current = durable.load().reductionRecords;
+    try {
+      durable.saveReductionRecords([plan, ...current.filter((item) => item.id !== plan.id)]);
+    } catch {
+      // Quota or adapter failure must not crash the shell.
+    }
+  }
+
+  /** Starts an active reduction plan (origin `direct`) from the saved profile. */
+  function startReductionFromProfile(
+    limits: ReductionLimits,
+    strategy: ThcStrategy,
+  ): boolean {
+    if (liveReductionPlan !== null) return false;
+    const baseline = reductionBaselineFromProfile();
+    if (baseline === null) return false;
+    const nowAt = clock.now();
+    const plan = createReductionPlan({
+      id: newRecordId('reduction', nowAt),
+      origin: 'direct',
+      limits,
+      strategy,
+      baseline,
+      now: nowAt,
+      utcOffsetMinutes: -new Date().getTimezoneOffset(),
+    });
+    upsertReductionPlan(plan);
+    // A v1 limit-only record is superseded by the real plan.
+    try {
+      durable.saveReductionPlan(null);
+    } catch {
+      // Best-effort cleanup.
+    }
+    markResult('acknowledged');
+    setFlow(null);
+    refresh();
+    return true;
+  }
+
+  /** Recommits limits/strategy on the live plan (used by the edit sheet). */
+  function recommitLiveReduction(limits: ReductionLimits, strategy: ThcStrategy): boolean {
+    const live = currentLiveReductionPlan(durable.load().reductionRecords);
+    if (live === null || live.status === 'ended') return false;
+    const updated = recommitReductionPlan({
+      plan: live,
+      limits,
+      strategy,
+      now: clock.now(),
+      utcOffsetMinutes: -new Date().getTimezoneOffset(),
+    });
+    upsertReductionPlan(updated);
+    setFlow(null);
+    refresh();
+    return true;
+  }
+
+  /** Opens the reduction start/edit sheet: creates when no live plan exists,
+   * otherwise the sheet commits the edited limits/strategy. */
+  function openRecommitReduction(): void {
+    setFlow({ kind: 'reduction-start' });
+  }
+
+  /** Opens the quick THC-use log sheet for the live plan. */
+  function openLogUse(): void {
+    setReductionFeedback(null);
+    setFlow({ kind: 'log-use' });
+  }
+
+  function pauseLiveReduction(): void {
+    const live = currentLiveReductionPlan(durable.load().reductionRecords);
+    if (live === null) return;
+    upsertReductionPlan(pauseReductionPlan(live, clock.now()));
+    refresh();
+  }
+
+  function resumeLiveReduction(): void {
+    const live = currentLiveReductionPlan(durable.load().reductionRecords);
+    if (live === null) return;
+    upsertReductionPlan(
+      resumeReductionPlan(live, clock.now(), -new Date().getTimezoneOffset()),
+    );
+    refresh();
+  }
+
+  function endLiveReduction(): void {
+    const live = currentLiveReductionPlan(durable.load().reductionRecords);
+    if (live === null) return;
+    upsertReductionPlan(endReductionPlan(live, clock.now()));
+    refresh();
+  }
+
+  function logReductionUseEvent(
+    planId: string,
+    usedAt: Instant,
+    product: ProductKind,
+    route: Route,
+  ): boolean {
+    const plans = durable.load().reductionRecords;
+    const plan = plans.find((item) => item.id === planId);
+    if (plan === undefined || plan.status === 'ended') return false;
+    const nowAt = clock.now();
+    const event: UseEvent = {
+      id: newRecordId('use', nowAt),
+      usedAt,
+      product,
+      route,
+      createdAt: nowAt,
+    };
+    const updated = appendReductionUseEvent({
+      plan,
+      event,
+      now: nowAt,
+      utcOffsetMinutes: -new Date().getTimezoneOffset(),
+    });
+    upsertReductionPlan(updated);
+    runAdaptiveRecalc(updated);
+    refresh();
+    return true;
+  }
+
+  /** Latest tolerance_result profile for an adaptive comparison, or null. */
+  function latestToleranceProfile(): UseProfileInput | null {
+    for (const record of durable.load().calculations) {
+      if (record.result.type === 'tolerance' && record.result.value.kind === 'tolerance_result') {
+        if (record.snapshot.kind === 'use_profile') return record.snapshot.profile;
+      }
+    }
+    return null;
+  }
+
+  function runAdaptiveRecalc(plan: ReductionPlan): void {
+    const latestProfile = latestToleranceProfile();
+    if (latestProfile === null) return;
+    const decision = decideTrackingRecalculation({
+      latestProfile,
+      baseline: plan.baseline,
+      events: plan.events,
+      now: clock.now(),
+      utcOffsetMinutes: -new Date().getTimezoneOffset(),
+    });
+    if (decision.mode !== 'recalculated' || decision.profile === null) return;
+    const nowAt = clock.now();
+    const snapshot: RawAnswerSnapshot = { kind: 'use_profile', profile: decision.profile };
+    try {
+      const frozen = freezeCalculation(newRecordId('calc', nowAt), snapshot, nowAt);
+      durable.putCalculation(frozen);
+      setReductionFeedback(RESULT.reductionRecalculated);
+    } catch {
+      // A failing adaptive record must not break the log flow.
+    }
+  }
+
+  /** Manual pattern refresh from the reduction plan: rebuilds a NEW calculation
+   * from the user's updated answers (never fabricating a 30-day profile) and
+   * leaves the questionnaire snapshot untouched. */
+  function refreshReductionRecommendation(answers: {
+    readonly thcUseDaysLast30: number;
+    readonly currentPatternDuration: string | null;
+  }): void {
+    const latestProfile = latestToleranceProfile();
+    if (latestProfile === null) {
+      setFlow(null);
+      return;
+    }
+    const nowAt = clock.now();
+    const profile: UseProfileInput = {
+      ...latestProfile,
+      thcUseDaysLast30: { value: answers.thcUseDaysLast30, provenance: 'user_estimate' },
+      currentPatternDuration:
+        answers.currentPatternDuration === null
+          ? undefined
+          : {
+              value: answers.currentPatternDuration as CurrentPatternDurationBand,
+              provenance: 'user_estimate',
+            },
+      lastUseAt: latestProfile.lastUseAt,
+    };
+    try {
+      const snapshot: RawAnswerSnapshot = { kind: 'use_profile', profile };
+      const frozen = freezeCalculation(newRecordId('calc', nowAt), snapshot, nowAt);
+      durable.putCalculation(frozen);
+    } catch {
+      // A failing refresh record must not crash the shell.
+    }
+    setReductionFeedback(RESULT.reductionRefreshed);
+    setFlow(null);
     refresh();
   }
 
@@ -817,6 +1103,14 @@ export function App({
             onMarkComplete={markComplete}
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
+            reductionFeedback={reductionFeedback}
+            onOpenReductionStart={() => setFlow({ kind: 'reduction-start' })}
+            onLogUse={openLogUse}
+            onOpenReductionRefresh={() => setFlow({ kind: 'reduction-refresh' })}
+            onPauseReduction={pauseLiveReduction}
+            onResumeReduction={resumeLiveReduction}
+            onEndReduction={endLiveReduction}
+            onRecommitReduction={openRecommitReduction}
           />
         ) : (
           <HistoryScreen
@@ -914,6 +1208,14 @@ export function App({
               ? snapshotRecord.snapshot.profile
               : null
           }
+          reductionPlan={liveReductionPlan}
+          utcOffsetMinutes={utcOffsetMinutes}
+          onStartReduction={startReductionFromProfile}
+          onCommitReduction={recommitLiveReduction}
+          onLogReductionUse={(planId, usedAt, product, route) =>
+            logReductionUseEvent(planId, usedAt, product, route)
+          }
+          onRefreshReduction={refreshReductionRecommendation}
         />
       ) : null}
       {flow?.kind === 'previous-break' ? (
@@ -984,6 +1286,12 @@ function FlowRenderer({
   checkins,
   preparation,
   profile,
+  reductionPlan,
+  utcOffsetMinutes,
+  onStartReduction,
+  onCommitReduction,
+  onLogReductionUse,
+  onRefreshReduction,
 }: {
   readonly flow: Flow;
   readonly targetDays: number;
@@ -1009,6 +1317,15 @@ function FlowRenderer({
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;
+  readonly reductionPlan: ReductionPlan | null;
+  readonly utcOffsetMinutes: number;
+  readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
+  readonly onCommitReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
+  readonly onLogReductionUse: (planId: string, usedAt: Instant, product: ProductKind, route: Route) => boolean;
+  readonly onRefreshReduction: (answers: {
+    readonly thcUseDaysLast30: number;
+    readonly currentPatternDuration: string | null;
+  }) => void;
 }) {
   switch (flow.kind) {
     case 'break-start':
@@ -1078,6 +1395,38 @@ function FlowRenderer({
       return <DetoxEvidencePanel onClose={onClose} />;
     case 'previous-break':
       return null;
+    case 'reduction-start':
+      return (
+        <ReductionStartSheet
+          now={now}
+          profile={profile}
+          existing={reductionPlan}
+          onStart={onStartReduction}
+          onCommit={onCommitReduction}
+          onClose={onClose}
+        />
+      );
+    case 'log-use':
+      return reductionPlan !== null ? (
+        <LogUseSheet
+          plan={reductionPlan}
+          now={now}
+          onLog={(usedAt, product, route) =>
+            onLogReductionUse(reductionPlan.id, usedAt, product, route)
+          }
+          onClose={onClose}
+        />
+      ) : null;
+    case 'reduction-refresh':
+      return reductionPlan !== null ? (
+        <ReductionRefreshSheet
+          now={now}
+          observed={observedPattern(reductionPlan.events, now, utcOffsetMinutes)}
+          baseline={reductionPlan.baseline}
+          onRefresh={onRefreshReduction}
+          onClose={onClose}
+        />
+      ) : null;
   }
 }
 

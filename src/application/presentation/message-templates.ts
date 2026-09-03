@@ -13,11 +13,25 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   current_pattern_6_to_24_months: 'This current pattern has been typical for about 1–2 years',
   current_pattern_2_to_5_years: 'This current pattern has been typical for a few years',
   current_pattern_5_plus_years: 'This current pattern has been typical for many years',
-  // Duration moved the planning target inside the range (tolerance-v2 product
-  // heuristic). The range itself is unchanged; the target is a planning choice,
-  // not a biological reset date. `pattern_duration_context_only` only appears
-  // on frozen historical records produced before the v2 target rule, where the
-  // stored target is the top of the range and duration was contextual only.
+  // tolerance-v3 exposure drivers. `long_established_chronic_use` is emitted
+  // only when a long-established pattern raises the exposure classification.
+  long_established_chronic_use:
+    'A pattern established for years is treated as chronic exposure',
+  // Range-lift lines are derived from the v3 limitation codes (metadata only,
+  // never shown raw) and explain why the broad evidence range sits one band
+  // above what frequency alone suggests.
+  range_lifted_by_intensity:
+    'Multiple sessions, concentrates, or dabbing push the exposure profile above what frequency alone suggests, so the broad evidence range is {min}–{max} days.',
+  range_lifted_by_chronicity:
+    'Because this level of use has been established for years, the planner uses the upper evidence band for chronic use: {min}–{max} days.',
+  history_target_override_tail:
+    'Your {long}-day observation sits inside the current {min}–{max} day range, so the planner used that observed anchor as the planning target. History never widens or narrows the evidence range.',
+  // Duration moved the planning target inside the range (tolerance-v2/v3
+  // product heuristic). The range itself is unchanged; the target is a planning
+  // choice, not a biological reset date. `pattern_duration_context_only` only
+  // appears on frozen historical records produced before the v2 target rule,
+  // where the stored target is the top of the range and duration was
+  // contextual only.
   preferred_target_recent_lower_end:
     'Your current pattern is recent, so the planner selects {target} days — the lower end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date.',
   preferred_target_established_upper_end:

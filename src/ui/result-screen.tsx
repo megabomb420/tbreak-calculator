@@ -6,9 +6,9 @@ import { NOMINAL_THC_POLICY_V1 } from '../domain/policies/nominal-thc-policy-v1.
 import {
   aroundDay,
   daysSince,
+  evidenceRangeLine,
   NOMINAL_THC,
-  planForTarget,
-  recommendedBreakTitle,
+  planHeroLabel,
   RESULT,
 } from './result-copy.ts';
 import {
@@ -154,20 +154,20 @@ function ResultBody({
 }) {
   switch (view.kind) {
     case 'tolerance_result': {
-      const title = recommendedBreakTitle(view.rangeDays.min, view.rangeDays.max);
+      // The actionable planning target leads; the broad evidence range stays
+      // visible directly underneath so a target inside a shared range is never
+      // buried. The target is a planning choice, not a predicted reset date.
       return (
         <div className="stack">
           <header className="result-hero">
-            <p className="eyebrow">Recommended break</p>
-            <h2 id="result-title" className="hero-range" aria-label={title}>
+            <p className="eyebrow">Your plan</p>
+            <h2 id="result-title" className="hero-range" aria-label={planHeroLabel(view.preferredTargetDays)}>
               <span className="hero-range-visual" aria-hidden="true">
-                <span className="hero-num">
-                  {view.rangeDays.min}–{view.rangeDays.max}
-                </span>
+                <span className="hero-num">{view.preferredTargetDays}</span>
                 <span className="hero-unit">days</span>
               </span>
             </h2>
-            <p className="meta">{planForTarget(view.preferredTargetDays, view.rangeDays)}</p>
+            <p className="meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
             <RangeBand
               min={view.rangeDays.min}
               max={view.rangeDays.max}

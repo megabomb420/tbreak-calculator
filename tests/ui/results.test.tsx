@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { FIRST_LAUNCH } from '../../src/ui/copy.ts';
 import { QUESTIONNAIRE } from '../../src/ui/questionnaire-copy.ts';
-import { RESULT, recommendedBreakTitle } from '../../src/ui/result-copy.ts';
+import { RESULT } from '../../src/ui/result-copy.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
@@ -32,6 +32,13 @@ function completeTolerance10Days(storage: StorageAdapter) {
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  // Tolerance-v3 reads intensity from 4 use-days up: answer sessions + products.
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: '1' }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  const q5 = screen.getByTestId('questionnaire-flow');
+  fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
+  fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
+  fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
   return rendered;
 }
 
@@ -40,11 +47,12 @@ describe('result screens from engine output', () => {
     completeTolerance10Days(createMemoryStorage());
     const result = screen.getByTestId('result-screen');
     expect(result.getAttribute('data-kind')).toBe('tolerance_result');
-    expect(screen.getByRole('heading', { name: recommendedBreakTitle(7, 14) })).toBeTruthy();
-    // 10 use days + "1–6 months" is a recently established regular pattern:
-    // the planner targets the lower anchor (7) of the same 7–14 range.
-    expect(result.textContent ?? '').toMatch(/Plan for 7 days/);
-    expect(result.textContent ?? '').toMatch(/the lower end of your range/);
+    // The actionable planning target leads the hero; the broad evidence range
+    // is stated directly underneath so the two are never conflated.
+    expect(screen.getByRole('heading', { name: 'Plan for 7 days' })).toBeTruthy();
+    expect(result.textContent ?? '').toMatch(/Evidence range: 7–14 days/);
+    // 10 use days + "1–6 months" + a single flower session is a recently
+    // established regular pattern: the planner targets the lower anchor (7).
     expect(result.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
     expect(result.textContent ?? '').not.toMatch(/100%/);
     expect(result.textContent ?? '').not.toMatch(/reset complete/i);

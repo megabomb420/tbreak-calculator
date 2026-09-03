@@ -18,6 +18,7 @@ import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
 import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
+import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
 
 export interface TodayLiveData {
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
@@ -25,6 +26,7 @@ export interface TodayLiveData {
   readonly interruptedTracking: StoredTrack | null;
   readonly completed: StoredAttempt | null;
   readonly tracking: { readonly track: StoredTrack; readonly view: TrackingDayView | null } | null;
+  readonly reduction: { readonly plan: ReductionPlan; readonly state: ReductionPlanState } | null;
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
 }
@@ -60,6 +62,15 @@ export interface TodayScreenProps {
   readonly onMarkComplete: (id: string) => void;
   readonly onAcknowledgeComplete: () => void;
   readonly onStopTracking: () => void;
+  /** Active cut-down plan feedback line (shown on the reduction card). */
+  readonly reductionFeedback: string | null;
+  readonly onOpenReductionStart: () => void;
+  readonly onLogUse: () => void;
+  readonly onOpenReductionRefresh: () => void;
+  readonly onPauseReduction: () => void;
+  readonly onResumeReduction: () => void;
+  readonly onEndReduction: () => void;
+  readonly onRecommitReduction: () => void;
 }
 
 export function TodayScreen(props: TodayScreenProps) {
@@ -107,6 +118,8 @@ function PrimaryStateCard(props: TodayScreenProps) {
       return <CompletedBreakCard {...props} />;
     case 'abstinence-tracking':
       return <TrackingCard {...props} />;
+    case 'reduction-active':
+      return <ReductionActiveCard {...props} />;
     case 'profile-no-break':
       return <ProfileNoBreakCard {...props} />;
     case 'detection-only':
@@ -343,6 +356,166 @@ function TrackingCard(props: TodayScreenProps) {
   );
 }
 
+// --- Active reduction (cut-down) plan --------------------------------------
+
+const REDUCTION_CARD = {
+  eyebrow: 'Cutting down',
+  title: 'Your cut-down plan',
+  pausedNote: 'Plan paused.',
+  logUse: 'Log THC use',
+  pause: 'Pause',
+  pauseAndReview: 'Pause & review',
+  resume: 'Resume',
+  editPlan: 'Edit plan',
+  endPlan: 'End plan',
+  reviewBody:
+    'Your plan was exceeded twice in the last 7 days. Consider a 3\u20137 day pause and review your limits.',
+  endConfirmTitle: 'End your cut-down plan?',
+  endConfirmBody:
+    'Ending closes this plan and stops tracking use against these limits. Your saved result and history stay on this device.',
+  useDayLimitCopy: 'Last 7 days: {0} / {1} use days',
+  sessionLimitCopy: 'Today: {0} / {1} sessions',
+  useDayLimitSingleCopy: 'Last 7 days: {0} / 1 use day',
+  sessionLimitSingleCopy: 'Today: {0} / 1 session',
+  aboveWeek: 'Above your use-day plan this week',
+  aboveToday: 'Above your plan today',
+  concentrateLogged:
+    'A concentrate was logged \u2014 your plan says avoid concentrates.',
+  refreshRecommendation: 'Update your break recommendation',
+} as const;
+
+function reductionStateDaysLine(rolling: number, cap: number): string {
+  if (cap === 1) {
+    return rolling === 1
+      ? 'Last 7 days: 1 / 1 use day'
+      : `Last 7 days: ${rolling} / 1 use days`;
+  }
+  return REDUCTION_CARD.useDayLimitCopy
+    .replace('{0}', String(rolling))
+    .replace('{1}', String(cap));
+}
+
+function reductionStateSessionsLine(sessions: number, cap: number): string {
+  if (cap === 1) {
+    return sessions === 1
+      ? 'Today: 1 / 1 session'
+      : `Today: ${sessions} / 1 sessions`;
+  }
+  return REDUCTION_CARD.sessionLimitCopy
+    .replace('{0}', String(sessions))
+    .replace('{1}', String(cap));
+}
+
+function ReductionActiveCard(props: TodayScreenProps) {
+  const live = props.live.reduction;
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  if (live === null) return null;
+  const { plan, state } = live;
+  const paused = plan.status === 'paused';
+  const review = plan.status === 'review_recommended' || state.reviewRecommended;
+  const pauseLabel = review ? REDUCTION_CARD.pauseAndReview : REDUCTION_CARD.pause;
+  const shownStatus = paused ? 'paused' : review ? 'review_recommended' : 'active';
+
+  return (
+    <article className="today-plan-card" data-testid="reduction-card" data-status={shownStatus}>
+      <p className="eyebrow">{REDUCTION_CARD.eyebrow}</p>
+      <h2 className="card-title">{REDUCTION_CARD.title}</h2>
+      {props.reductionFeedback !== null ? (
+        <p className="today-note meta" data-testid="reduction-feedback">
+          {props.reductionFeedback}
+        </p>
+      ) : null}
+      {paused ? (
+        <p className="paused-note" data-testid="reduction-paused">
+          <PauseIcon size={18} />
+          {REDUCTION_CARD.pausedNote}
+        </p>
+      ) : (
+        <>
+          {review ? (
+            <section className="review-banner" data-testid="reduction-review">
+              <p className="body">{REDUCTION_CARD.reviewBody}</p>
+              <button
+                type="button"
+                className="cta-secondary"
+                data-testid="reduction-pause-cta"
+                onClick={props.onPauseReduction}
+              >
+                {pauseLabel}
+              </button>
+            </section>
+          ) : null}
+          <div className="stack" data-testid="reduction-state">
+            <p className="meta">{reductionStateDaysLine(state.rollingUseDays, plan.limits.maxUseDaysPerWeek)}</p>
+            {state.useDaysExceeded ? <p className="meta">{REDUCTION_CARD.aboveWeek}</p> : null}
+            <p className="meta">{reductionStateSessionsLine(state.todaySessions, plan.limits.maxSessionsPerUseDay)}</p>
+            {state.sessionsExceededToday ? <p className="meta">{REDUCTION_CARD.aboveToday}</p> : null}
+            {plan.strategy.avoidConcentrates && state.strategyExceededToday ? (
+              <p className="meta">{REDUCTION_CARD.concentrateLogged}</p>
+            ) : null}
+          </div>
+        </>
+      )}
+      <div className="today-actions">
+        {paused ? (
+          <button
+            type="button"
+            className="cta-primary"
+            data-testid="reduction-resume-cta"
+            onClick={props.onResumeReduction}
+          >
+            {REDUCTION_CARD.resume}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="cta-primary"
+            data-testid="log-use-cta"
+            onClick={props.onLogUse}
+          >
+            {REDUCTION_CARD.logUse}
+          </button>
+        )}
+      </div>
+      <div className="footer-links">
+        {!paused && !review ? (
+          <button type="button" className="text-back" data-testid="reduction-pause" onClick={props.onPauseReduction}>
+            {REDUCTION_CARD.pause}
+          </button>
+        ) : null}
+        <button type="button" className="text-back" data-testid="reduction-edit" onClick={props.onRecommitReduction}>
+          {REDUCTION_CARD.editPlan}
+        </button>
+        {plan.events.length > 0 ? (
+          <button
+            type="button"
+            className="text-back"
+            data-testid="reduction-refresh-cta"
+            onClick={props.onOpenReductionRefresh}
+          >
+            {REDUCTION_CARD.refreshRecommendation}
+          </button>
+        ) : null}
+        <button type="button" className="text-back" data-testid="reduction-end" onClick={() => setConfirmEnd(true)}>
+          {REDUCTION_CARD.endPlan}
+        </button>
+      </div>
+      {confirmEnd ? (
+        <ConfirmDialog
+          title={REDUCTION_CARD.endConfirmTitle}
+          body={REDUCTION_CARD.endConfirmBody}
+          confirmLabel={REDUCTION_CARD.endPlan}
+          onConfirm={() => {
+            setConfirmEnd(false);
+            props.onEndReduction();
+          }}
+          onCancel={() => setConfirmEnd(false)}
+        />
+      ) : null}
+    </article>
+  );
+}
+
 // --- Profile-no-break -------------------------------------------------------
 
 function ProfileNoBreakCard(props: TodayScreenProps) {
@@ -460,11 +633,21 @@ function ReductionSummary(props: TodayScreenProps) {
       ) : (
         <p className="meta">{RESULT.reductionBody}</p>
       )}
-      {props.onViewResult ? (
-        <button type="button" className="cta-primary" data-testid="view-result" onClick={props.onViewResult}>
-          {PROFILE_NO_BREAK.viewResult}
+      <div className="cta-row">
+        <button
+          type="button"
+          className="cta-primary"
+          data-testid="start-reduction-plan"
+          onClick={props.onOpenReductionStart}
+        >
+          {RESULT.startReductionPlan}
         </button>
-      ) : null}
+        {props.onViewResult ? (
+          <button type="button" className="cta-primary" data-testid="view-result" onClick={props.onViewResult}>
+            {PROFILE_NO_BREAK.viewResult}
+          </button>
+        ) : null}
+      </div>
       <div className="footer-links">
         <button type="button" className="text-back" data-testid="today-see-break-range" onClick={props.onSeeBreakRange}>
           {PROFILE_NO_BREAK.seeBreakRange}

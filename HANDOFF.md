@@ -5,14 +5,14 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.7.2** (PWA polish: live Settings update state, corrected gear icon, grouped Break Outlook roadmap — on top of 0.7.1's duration-first questionnaire and 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
+- App version: **0.8.0** (tolerance-v3 exposure classification + active reduction tracking — on top of 0.7.2's PWA polish, 0.7.1's duration-first questionnaire, and 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.7.2 revision note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
-- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v2 target rule in §4.3, §7.3, §7.5, §7.6; Q6 routing/order in §4.3)
-- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.8.0 revision note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1; Q6 routing/order in §4.3)
+- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; 0.8.0 note covers tone from 4 use-days up)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
 
@@ -25,14 +25,15 @@ to make UI easier. Do not commit untracked review files.
 ## What is on main
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
-visual redesign, the **0.3.1–0.6.1** patches, and the **0.7.0–0.7.2**
-calculator/questionnaire/PWA-polish revisions.
+visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
+calculator/questionnaire/PWA-polish revisions, and the **0.8.0**
+tolerance-v3 + active-reduction revision.
 
 | Step | Status |
 |---|---|
 | 1. Shell + Today router + draft persistence | done |
-| 2. Declarative questionnaire engine + §5.1 flow | done (Q6 added in 0.6.0; moved first in 0.7.1) |
-| 3. Result screens + §14 template layer | done (outlook replaces “First weeks”; grouped roadmap in 0.7.2) |
+| 2. Declarative questionnaire engine + §5.1 flow | done (Q6 added in 0.6.0; moved first in 0.7.1; Q4/Q5 asked from 4 use-days in 0.8.0) |
+| 3. Result screens + §14 template layer | done (outlook replaces “First weeks”; grouped roadmap in 0.7.2; hero leads with the plan target in 0.8.0) |
 | 4. Break loop (§8, §10): break start, Today states, plan detail, use-first check-in, interruption, completion | done |
 | 5. History + contextual flows + IndexedDB | done (0.4.0) |
 | 0.4.2 iOS 26 Liquid Glass viewport fill | done |
@@ -41,11 +42,79 @@ calculator/questionnaire/PWA-polish revisions.
 | 0.7.0 duration-aware planning target (tolerance-v2) | done |
 | 0.7.1 duration asked first on consuming routes + compact Q6 rows | done |
 | 0.7.2 Settings update state + gear icon + grouped Break Outlook | **done** |
+| 0.8.0 tolerance-v3 exposure classification + active reduction tracking (reduction-records-v2) | **done** |
 | 6. Runtime AI / DeepSeek | **not started** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.8.0 added
+
+Versions: tolerance policy **`tolerance-v3`** (engine for all new
+calculations); reduction tracker schema **`reduction-records-v2`** (legacy
+`reduction-plan-v1` still readable). Two changes:
+
+### Tolerance policy `tolerance-v3` (`src/domain/policies/tolerance-policy-v3.ts`)
+
+1. **Multi-factor exposure classification** replaces the single-variable
+   frequency lookup. Frequency (use days in 30) selects the base tier;
+   intensity (sessions per use day ≥ 2, concentrate product, dabbing route)
+   and chronicity (how long the current pattern has been typical) may move
+   the classification at most ONE adjacent evidence tier. Tier 1 (1–3 use
+   days) never moves; tier 2 (4–15) moves to 14–21 only when intensity is
+   high; tier 3 (16–25) moves to 21–28 when intensity is high or the pattern
+   is long-established (2–5 / 5+ years); tier 4 (26–30) stays 21–28. Missing
+   duration never counts as long-established. The broad evidence ranges
+   2–7 / 7–14 / 14–21 / 21–28 are unchanged outer bounds; nothing exceeds 28.
+   Classification moves are labelled `heuristic_frequency_intensity_v3` /
+   `heuristic_chronicity_range_v3`.
+2. **Questionnaire routing:** sessions/products/routes are asked on
+   range-requested routes from **4 use-days up** (previously ≥ 16); optional
+   at 1–3; never required at 0.
+3. **Planning target inside the final range:** recent (`under_1_month`,
+   `1_to_6_months`) → lower anchor; medium/long/missing → upper anchor
+   (`heuristic_duration_target_within_range_v3`).
+4. **Bounded previous-break override** (`heuristic_history_target_within_range_v3`):
+   only a clean directional in-range history (no inversions; shortest AND
+   longest compared durations both inside the current range; longest scored
+   higher) may RAISE the planning target to that observed duration; never the
+   range, never interpolation/regression/extrapolation, never above 28.
+   Out-of-range or mixed history stays descriptive.
+5. **Result hero:** the headline is the actionable planning target (“Plan for
+   N days”) with the evidence range beneath it (“Evidence range: min–max
+   days”); the rail marks the target inside the evidence bounds.
+
+### Active reduction (cut-down) tracking (`reduction-records-v2`)
+
+- A real tracker with user limits (max use-days in a rolling 7-day window, max
+  sessions per use day) and an optional `ThcStrategy`; exact THC-use event
+  logging (UTC instants grouped by the local calendar day; an event = one
+  session); derived plan state (rolling use-days, today's sessions, breach
+  days); a quick **Log THC use** flow with product/route and a **Use again**
+  fast path; Today's `reduction-active` state; post-break takeover when an
+  `occasional`/`reduced_regular_use` break completes; and adaptive tolerance
+  recalculation.
+- Domain: `src/domain/reduction/reduction-engine.ts` +
+  `reduction-plan-lifecycle.ts`; store: `src/application/progress/reduction-record.ts`
+  (envelope `tbreak.reduction-records.v2`); durable family `reductionRecords`
+  in the web + IndexedDB backends; UI: `src/ui/log-use.tsx`,
+  `reduction-start-sheet.tsx`, `reduction-refresh-sheet.tsx`; Today state
+  `reduction-active` between `abstinence-tracking` and `profile-no-break`.
+- **Review rule:** two DISTINCT breach days inside the rolling 7-day window
+  put the plan in `review_recommended` with “consider a 3–7 day pause and
+  review” — a transparent product rule, never a biological reset claim.
+  Breach days age out of the window and the plan returns to `active`
+  automatically. `paused` / `ended` are user-controlled.
+- Logging use in reduction mode is **not** a T-break interruption.
+- Adaptive recalculation (`src/application/calculation/adaptive-recalc.ts`)
+  re-runs tolerance-v3 on the observed profile and **freezes a NEW
+  `CalculationRecord`** — old records remain immutable. With less than 30
+  days of tracked coverage the app asks for a minimal refresh instead of
+  fabricating a 30-day profile.
+- Frozen calculation records stay immutable under tolerance-v3 display.
+  Legacy `reduction-plan-v1` limit-only records migrate into a new plan's
+  baseline when a v2 plan starts from one and remain readable otherwise.
 
 ## What 0.7.2 added (PWA polish; no science change)
 
@@ -99,6 +168,8 @@ viewport change. Two changes:
 
 Step counts shift: tolerance_reset min 3 / typical 4 / max 6; reduction-break
 min 4 / typical 5 / max 7; abstinence, reduction-no-break and detection stay 3.
+(Superseded for the range-requested routes in 0.8.0, where Q4/Q5 are asked
+from 4 use-days up — see `UX_SPEC.md` §5.4.)
 Engine `resolvedPath`/`startSession`/`restoreStep`/`previousStep` and draft
 resume reflect the new order; old saved drafts restore at Q6 when Q6 is the
 first incomplete step.
@@ -159,6 +230,9 @@ Since **0.7.1** the flow asks duration (Q6) first on consuming routes:
   collected — including for a 4–15 use-day multi-session concentrate profile,
   which stays in its frequency band (7–14 for 4–15 use-days) by the same
   conservative boundary. This is written into `CALCULATOR_SPEC.md` §4.3.
+  (0.7.0 statement; superseded in 0.8.0 — tolerance-v3 asks sessions/
+  products/routes from 4 use-days up on range-requested routes because
+  intensity can move the classification there.)
 
 No new personal data is asked (no age, sex, BMI, hydration, exercise,
 metabolism, health, or medications). Step counts per goal are updated in
@@ -189,11 +263,12 @@ Docs updated wherever “7 / 14 / 21 / 28 targets” was listed.
 
 ### Previous-break history
 
-Kept descriptive. Section 7.7 still forbids any numeric effect of history on
-range **or** target; there was no defensible way to use individual
-self-reported observations to shift the population-derived planning target
-under the current evidence rules, so history continues to produce insight copy
-only. This decision is recorded in `CALCULATOR_SPEC.md` §7.7 and §13/§14.
+Kept descriptive at 0.7.0: Section 7.7 then forbade any numeric effect of
+history on range **or** target, and history produced insight copy only.
+(Superseded in 0.8.0 by the bounded tolerance-v3 override: a clean,
+directional history whose shortest and longest compared durations both sit
+inside the current range may now raise the planning target to the observed
+anchor; history still never moves the range. See `CALCULATOR_SPEC.md` §7.7.)
 
 ### Golden fixtures and tests
 
@@ -209,6 +284,10 @@ only. This decision is recorded in `CALCULATOR_SPEC.md` §7.7 and §13/§14.
 - UI tests updated only where the deliberate policy changes them
   (`results.test.tsx` lower/upper anchors; `break-loop.test.tsx` helper now
   uses a long-established band so break mechanics expectations stay intact).
+
+(0.8.0 update: golden fixtures now carry `policyVersion: "tolerance-v3"` and
+cover the bounded classification moves, the interior in-range history target
+override, and the legacy missing-duration default.)
 
 ## What 0.6.0 added (context)
 
@@ -228,8 +307,14 @@ PDF’s overlapping windows. That discrepancy is intentional.
 ## Invariants that still apply
 
 - UI never computes `breakDay`. `abstinenceDayAt` is the only clock.
-- Recommended ranges are evidence-conservative and unchanged by duration;
-  duration only picks the target anchor inside the range.
+- Recommended ranges are evidence-conservative. Duration may move the range
+  only in the single bounded tolerance-v3 case (frequent 16–25 use-days +
+  long-established → 21–28); otherwise duration only picks the target anchor
+  inside the range and never acts as a days-added formula.
+- Previous-break history never moves the range. The only numeric history
+  effect is the tolerance-v3 in-range planning-target override: clean,
+  directional history with both compared durations inside the current range,
+  raise-only, never above 28, no interpolation/regression.
 - Interval visual system; in-flow tab bar; no accidental UI redesign in 0.7.0.
 - Auth / database OFF. Local-first IndexedDB + Web Storage draft.
 - No invented science, percentages, safe doses, numeric detection, or
@@ -243,8 +328,11 @@ PDF’s overlapping windows. That discrepancy is intentional.
 - Do not start UX_SPEC §16 step 6 / runtime AI unless explicitly asked.
 - Do not add age, sex, BMI, hydration, exercise, liver/kidney, medications, or
   “fast metabolism”.
-- Do not reintroduce a duration × days formula or let duration move the range.
-- Do not give previous-break history any numeric effect on range or target.
+- Do not reintroduce a duration × days formula, a “one dab/vape = +N days”
+  penalty, or a duration range effect beyond the single bounded v3 case
+  (16–25 use-days + long-established → 21–28).
+- Do not give previous-break history any range effect or any unbounded target
+  effect — keep the v3 in-range override raise-only and bounded by 28.
 - Do not convert the app to TanStack Start.
 - Do not rewrite engines to match PDF overlapping windows.
 

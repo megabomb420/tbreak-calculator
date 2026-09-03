@@ -24,10 +24,10 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     if (result.status === 'incomplete') assert.equal(result.currentStep, 'Q6');
   });
 
-  it('builds a tolerance 1–15 snapshot without inventing sessions/products/routes', () => {
+  it('builds a tolerance 1-3 snapshot without inventing sessions/products/routes', () => {
     const answers = answerAll([
       { step: 'Q1', value: 'tolerance_reset' },
-      { step: 'Q2', value: 10 },
+      { step: 'Q2', value: 3 },
       { step: 'Q3', value: LAST_USE },
       { step: 'Q6', value: '1_to_6_months' },
     ]);
@@ -40,7 +40,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     assert.equal(profile.goal, 'tolerance_reset');
     assert.equal(profile.breakRequested, true);
     assert.equal(profile.postBreakMode, null);
-    assert.deepEqual(profile.thcUseDaysLast30, { value: 10, provenance: 'user_estimate' });
+    assert.deepEqual(profile.thcUseDaysLast30, { value: 3, provenance: 'user_estimate' });
     assert.deepEqual(profile.sessionsPerUseDay, missingValue());
     assert.deepEqual(profile.products, []);
     assert.deepEqual(profile.routes, []);
@@ -97,10 +97,10 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     assert.deepEqual(result.snapshot.request, { matrix: 'urine', context: 'workplace' });
   });
 
-  it('includes sessions/products/routes only on the 16–30 intensity band', () => {
+  it('includes sessions/products/routes on every 4-30 intensity band', () => {
     const answers = answerAll([
       { step: 'Q1', value: 'tolerance_reset' },
-      { step: 'Q2', value: 20 },
+      { step: 'Q2', value: 10 },
       { step: 'Q3', value: LAST_USE },
       { step: 'Q6', value: '6_to_24_months' },
       { step: 'Q4', value: 3 },

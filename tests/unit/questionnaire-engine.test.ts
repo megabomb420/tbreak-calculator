@@ -92,11 +92,21 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q2',
       'Q3-opt',
     ]);
+    // 1-3 very-infrequent use never consumes sessions/products/routes.
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }), [
+      'Q1',
+      'Q6',
+      'Q2',
+      'Q3',
+    ]);
+    // From 4 use-days upward, intensity fields follow last use (tolerance-v3).
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), [
       'Q1',
       'Q6',
       'Q2',
       'Q3',
+      'Q4',
+      'Q5',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }), [
       'Q1',
@@ -133,8 +143,9 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
   });
 
-  it('keeps longest consuming path at 7 steps and does not ask Q4/Q5 below 16 use-days', () => {
-    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 4);
+  it('keeps the longest consuming path at 7 steps and never asks Q4/Q5 below 4 use-days', () => {
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }).length, 4);
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 6);
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }).length, 6);
     assert.equal(
       resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 30 }).length,
@@ -194,7 +205,24 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
     assert.equal(after.lastUseAt, withinWindowIso());
   });
 
-  it('drops sessions/products/routes when leaving the 16–30 band', () => {
+  it('drops sessions/products/routes when leaving the 4-30 intensity band', () => {
+    const before: QuestionnaireAnswers = {
+      goal: 'tolerance_reset',
+      thcUseDaysLast30: 20,
+      lastUseAt: withinWindowIso(),
+      sessionsPerUseDay: 2,
+      products: ['flower'],
+      routes: ['smoking'],
+    };
+    const after = applyAnswer(before, { step: 'Q2', value: 3 }, NOW);
+    assert.equal(after.thcUseDaysLast30, 3);
+    assert.equal(after.lastUseAt, withinWindowIso());
+    assert.equal(after.sessionsPerUseDay, undefined);
+    assert.equal(after.products, undefined);
+    assert.equal(after.routes, undefined);
+  });
+
+  it('keeps sessions/products/routes when use-days stay in the 4-30 intensity band', () => {
     const before: QuestionnaireAnswers = {
       goal: 'tolerance_reset',
       thcUseDaysLast30: 20,
@@ -205,10 +233,9 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
     };
     const after = applyAnswer(before, { step: 'Q2', value: 10 }, NOW);
     assert.equal(after.thcUseDaysLast30, 10);
-    assert.equal(after.lastUseAt, withinWindowIso());
-    assert.equal(after.sessionsPerUseDay, undefined);
-    assert.equal(after.products, undefined);
-    assert.equal(after.routes, undefined);
+    assert.equal(after.sessionsPerUseDay, 2);
+    assert.deepEqual(after.products, ['flower']);
+    assert.deepEqual(after.routes, ['smoking']);
   });
 
   it('drops last-use when switching to reduction-no-break (field is not collected)', () => {
@@ -253,8 +280,9 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
       () => applyAnswer({ goal: 'abstinence' }, { step: 'Q2', value: 10 }, NOW),
       RangeError,
     );
+    // Q4/Q5 exist on the path only from 4 use-days upward; 1-3 never asks them.
     assert.throws(
-      () => applyAnswer({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }, { step: 'Q4', value: 2 }, NOW),
+      () => applyAnswer({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }, { step: 'Q4', value: 2 }, NOW),
       RangeError,
     );
   });

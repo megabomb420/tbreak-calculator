@@ -31,6 +31,12 @@ import {
   type ReductionPlanRecord,
 } from '../progress/reduction-plan.ts';
 import {
+  createReductionRecordsStore,
+  emptyReductionRecords,
+  REDUCTION_RECORDS_KEY,
+} from '../progress/reduction-record.ts';
+import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
+import {
   createQuestionnaireSnapshotStore,
   QUESTIONNAIRE_SNAPSHOT_KEY,
   type QuestionnaireSnapshotRecord,
@@ -72,6 +78,7 @@ export const LOCAL_DATA_KEYS = [
   TRACKING_RECORDS_KEY,
   CHECKINS_KEY,
   REDUCTION_PLAN_KEY,
+  REDUCTION_RECORDS_KEY,
   CALCULATION_RECORDS_KEY,
   PREVIOUS_BREAKS_KEY,
   POST_BREAK_PLANS_KEY,
@@ -85,6 +92,7 @@ export const MIGRATED_WEB_STORAGE_KEYS = [
   TRACKING_RECORDS_KEY,
   CHECKINS_KEY,
   REDUCTION_PLAN_KEY,
+  REDUCTION_RECORDS_KEY,
   CALCULATION_RECORDS_KEY,
   PREVIOUS_BREAKS_KEY,
   POST_BREAK_PLANS_KEY,
@@ -96,6 +104,7 @@ export type HistoryRecordKind =
   | 'tracking'
   | 'checkin'
   | 'previous-break'
+  | 'reduction'
   | 'corrupt';
 
 export interface CorruptHistoryRow {
@@ -109,6 +118,7 @@ export interface DurableSnapshot {
   readonly tracking: readonly StoredTrack[];
   readonly checkins: readonly DailyCheckin[];
   readonly reductionPlan: ReductionPlanRecord | null;
+  readonly reductionRecords: readonly ReductionPlan[];
   readonly snapshot: QuestionnaireSnapshotRecord | null;
   readonly calculations: readonly CalculationRecord[];
   readonly previousBreaks: readonly StoredPreviousBreak[];
@@ -124,6 +134,7 @@ export interface DurablePersistence {
   saveTracking(records: readonly StoredTrack[]): void;
   saveCheckins(checkins: readonly DailyCheckin[]): void;
   saveReductionPlan(plan: ReductionPlanRecord | null): void;
+  saveReductionRecords(records: readonly ReductionPlan[]): void;
   saveSnapshot(record: QuestionnaireSnapshotRecord | null): void;
   putCalculation(record: CalculationRecord): void;
   deleteCalculation(id: string): void;
@@ -132,6 +143,7 @@ export interface DurablePersistence {
   deleteAttempt(id: string): void;
   deleteTracking(id: string): void;
   deleteCheckin(id: string): void;
+  deleteReductionPlan(id: string): void;
   deleteCorrupt(id: string): void;
   deleteAll(): void;
   flush(): Promise<void>;
@@ -143,6 +155,7 @@ export function emptyDurableSnapshot(): DurableSnapshot {
     tracking: [],
     checkins: [],
     reductionPlan: null,
+    reductionRecords: [],
     snapshot: null,
     calculations: [],
     previousBreaks: [],
@@ -159,6 +172,7 @@ export function createWebBackedDurable(
   const trackingStore = createTrackingRecordsStore(adapter);
   const checkinsStore = createCheckinsStore(adapter);
   const reductionStore = createReductionPlanStore(adapter);
+  const reductionRecordsStore = createReductionRecordsStore(adapter);
   const snapshots = createQuestionnaireSnapshotStore(adapter);
   const calculationsStore = createCalculationRecordsStore(adapter);
   const previousBreaksStore = createPreviousBreaksStore(adapter);
@@ -183,6 +197,7 @@ export function createWebBackedDurable(
       tracking: tracking?.records ?? [],
       checkins: checkins?.checkins ?? [],
       reductionPlan: reductionStore.load(),
+      reductionRecords: reductionRecordsStore.load().plans,
       snapshot,
       calculations: calculations.records,
       previousBreaks: previousBreaks.records,
@@ -208,6 +223,9 @@ export function createWebBackedDurable(
     saveReductionPlan(plan) {
       if (plan === null) reductionStore.clear();
       else reductionStore.save(plan);
+    },
+    saveReductionRecords(records) {
+      reductionRecordsStore.save({ ...emptyReductionRecords(), plans: [...records] });
     },
     saveSnapshot(record) {
       if (record === null) snapshots.clear();
@@ -242,6 +260,10 @@ export function createWebBackedDurable(
     deleteAttempt(id) {
       const current = load();
       api.saveAttempts(current.attempts.filter((item) => item.id !== id));
+    },
+    deleteReductionPlan(id) {
+      const current = load();
+      api.saveReductionRecords(current.reductionRecords.filter((item) => item.id !== id));
     },
     deleteTracking(id) {
       const current = load();
@@ -325,6 +347,9 @@ export function deleteHistoryRecord(durable: DurablePersistence, kind: HistoryRe
       return;
     case 'tracking':
       durable.deleteTracking(id);
+      return;
+    case 'reduction':
+      durable.deleteReductionPlan(id);
       return;
     case 'checkin':
       durable.deleteCheckin(id);

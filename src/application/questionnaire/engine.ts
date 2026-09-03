@@ -253,8 +253,14 @@ export function isFlowComplete(answers: QuestionnaireAnswers, now: Instant): boo
 /**
  * Steps after the goal/route choice on a range-requested tolerance route.
  * `currentPatternDuration` (Q6) is the first substantive use-profile question,
- * asked before use-days so it can shape the planning target; use-days, last
- * use, and (only at >= 16 use-days) sessions/products/routes follow.
+ * asked before use-days so it can shape the planning recommendation; use-days,
+ * last use, and (from 4 use-days upward) sessions/products/routes follow.
+ *
+ * Since tolerance-v3 reads intensity signals (sessions per use day,
+ * concentrates, dabbing) from 4 use-days upward, Q4/Q5 are collected for every
+ * consuming range route with >= 4 use-days. The 1-3 very-infrequent band never
+ * consumes them (an isolated concentrate/dab at that frequency is not treated
+ * as heavy), so they are not asked there.
  */
 function toleranceFromGoalChoice(answers: QuestionnaireAnswers): QuestionnaireStepId[] {
   const steps: QuestionnaireStepId[] = ['Q6', 'Q2'];
@@ -265,7 +271,7 @@ function toleranceFromGoalChoice(answers: QuestionnaireAnswers): QuestionnaireSt
     return steps;
   }
   steps.push('Q3');
-  if (days >= 16) steps.push('Q4', 'Q5');
+  if (days >= 4) steps.push('Q4', 'Q5');
   return steps;
 }
 
@@ -280,7 +286,7 @@ function estimatedPathLength(answers: QuestionnaireAnswers): number {
   const days = answers.thcUseDaysLast30;
   if (days === undefined) return 6 + reductionPrefix;
   if (days === 0) return 4 + reductionPrefix;
-  if (days <= 15) return 4 + reductionPrefix;
+  if (days <= 3) return 4 + reductionPrefix;
   return 6 + reductionPrefix;
 }
 

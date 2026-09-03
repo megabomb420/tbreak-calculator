@@ -84,11 +84,11 @@ const MESSAGES: Record<ValidationErrorCode, string> = {
   invalid_post_break_mode: 'postBreakMode must be null or one of: continue_abstinence, occasional, reduced_regular_use, undecided.',
   thc_use_days_required: 'THC-use days in the last 30 is required for this goal.',
   thc_use_days_must_be_integer_0_to_30: 'thcUseDaysLast30 must be an integer between 0 and 30.',
-  sessions_required: 'sessionsPerUseDay is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
+  sessions_required: 'sessionsPerUseDay is required when thcUseDaysLast30 is 4 or more and a tolerance range is requested.',
   sessions_must_be_positive_number: 'sessionsPerUseDay must be a positive number.',
   sessions_forbidden_when_zero_use_days: 'sessionsPerUseDay must be missing when thcUseDaysLast30 is 0.',
-  products_required: 'At least one product is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
-  routes_required: 'At least one route is required when thcUseDaysLast30 is 16 or more and a tolerance range is requested.',
+  products_required: 'At least one product is required when thcUseDaysLast30 is 4 or more and a tolerance range is requested.',
+  routes_required: 'At least one route is required when thcUseDaysLast30 is 4 or more and a tolerance range is requested.',
   invalid_product: 'Unknown product kind.',
   invalid_route: 'Unknown route.',
   invalid_timestamp: 'Timestamp must be an ISO-8601 string with an explicit timezone (Z or +HH:MM).',
@@ -225,9 +225,12 @@ export function validateAndNormalizeProfile(
   }
   const useDaysPositive = useDays !== null && useDays > 0;
   const useDaysZero = useDays === 0;
-  // Only the 16-30 band can trigger the intensity rule, so only it is required
-  // to supply the intensity fields on range-requested routes (spec 5.7).
-  const useDaysIntensityBand = useDays !== null && useDays >= 16;
+  // Tolerance-v3 exposure classification reads sessions/products/routes from 4
+  // use-days upward (an intensity signal can move a regular non-daily profile
+  // one adjacent evidence tier). Only the 1-3 very-infrequent band never
+  // consumes them, so only it may omit them on range-requested routes
+  // (spec 5.7).
+  const useDaysIntensityBand = useDays !== null && useDays >= 4;
 
   // --- sessionsPerUseDay ---------------------------------------------------
   const sessionsField = readCoreSourcedField(errors, 'sessionsPerUseDay', input.sessionsPerUseDay);

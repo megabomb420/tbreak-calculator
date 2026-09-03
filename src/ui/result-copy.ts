@@ -46,6 +46,9 @@ export const RESULT = {
   limitsHeading: 'Your limits',
   maxDaysWeek: 'Max use days per week',
   maxSessions: 'Max sessions on a use day (optional)',
+  startReductionPlan: 'Start your cut-down plan',
+  reductionRecalculated: 'Your break recommendation was updated from your tracked use.',
+  reductionRefreshed: 'Break recommendation refreshed from your updated pattern.',
 } as const;
 
 export function reductionDaysLine(days: number): string {
@@ -74,6 +77,16 @@ export function planForTarget(days: number, range?: { readonly min: number; read
     if (days <= range.min) return `${base} — the lower end of your range.`;
   }
   return `${base}.`;
+}
+
+/** Aria/text label for the result hero: the actionable planning target. */
+export function planHeroLabel(days: number): string {
+  return `Plan for ${days} days`;
+}
+
+/** Secondary line under the hero naming the broad evidence range explicitly. */
+export function evidenceRangeLine(min: number, max: number): string {
+  return `Evidence range: ${min}–${max} days`;
 }
 
 export function aroundDay(breakDay: number): string {

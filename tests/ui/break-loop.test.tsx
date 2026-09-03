@@ -141,10 +141,12 @@ describe('break start sheet', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: BREAK_START.startBreak }));
     expect(screen.queryByTestId('break-start-sheet')).toBeNull();
     expect(screen.queryByTestId('result-screen')).toBeNull();
-    // Real attempt created and owning Today.
+    // Real attempt created and owning Today. The flow profile (20 use days,
+    // 5+ years, single session) is long-established frequent use, which the
+    // v3 exposure classification places at the top of the evidence bounds.
     const attempt = attemptsOf(storage)[0];
     expect(attempt?.status).toBe('active');
-    expect(attempt?.targetDurationDays).toBe(21);
+    expect(attempt?.targetDurationDays).toBe(28);
     expect(attempt?.postBreakMode).toBe('occasional');
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
   });
@@ -428,7 +430,14 @@ describe('reload persistence', () => {
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(
       storage,
-      storedAttempt({ status: 'completed', segments: [{ startedFromLastUseAt: ANCHOR, endedAt: toInstant(ANCHOR + 21 * DAY_MS), endReason: 'completed' }] }),
+      storedAttempt({
+        status: 'completed',
+        // Continue-abstinence mode: acknowledging must not auto-start a
+        // post-break reduction plan, so Today falls back to the profile card.
+        postBreakMode: 'continue_abstinence',
+        postBreakPlan: { mode: 'continue_abstinence' },
+        segments: [{ startedFromLastUseAt: ANCHOR, endedAt: toInstant(ANCHOR + 21 * DAY_MS), endReason: 'completed' }],
+      }),
     );
     const first = renderApp(storage);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');

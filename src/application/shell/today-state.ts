@@ -25,6 +25,7 @@ export type TodayPrimaryState =
   | 'interrupted'
   | 'completed-break'
   | 'abstinence-tracking'
+  | 'reduction-active'
   | 'detection-only';
 
 export type ResumePlacement = 'none' | 'secondary' | 'replaces-primary';
@@ -37,6 +38,11 @@ export interface TrackingSummary {
   readonly status: AbstinenceTrackStatus;
 }
 
+/** A live (non-ended) active reduction plan owns Today until ended. */
+export interface ReductionSummary {
+  readonly status: 'active' | 'review_recommended' | 'paused';
+}
+
 /** Stored facts the `Today` router needs. Supplied by the persistence layer. */
 export interface TodayFacts {
   /** True when anything besides the transient draft is stored on device. */
@@ -47,6 +53,8 @@ export interface TodayFacts {
   readonly attempt: BreakAttemptSummary | null;
   /** The current open-ended tracking summary, or null. */
   readonly tracking: TrackingSummary | null;
+  /** The current live reduction-plan summary, or null. */
+  readonly reduction: ReductionSummary | null;
   /** True when a completed tolerance/reduction/planning calculation is saved. */
   readonly hasProfile: boolean;
   /** True when the only stored results are detection results. Mutually
@@ -66,6 +74,7 @@ export function emptyTodayFacts(): TodayFacts {
     hasAnyData: false,
     attempt: null,
     tracking: null,
+    reduction: null,
     hasProfile: false,
     detectionOnly: false,
     draft: null,
@@ -74,7 +83,7 @@ export function emptyTodayFacts(): TodayFacts {
 
 /** Resolves the primary `Today` state (UX_SPEC 3.2 precedence). */
 export function resolveTodayPrimaryState(facts: TodayFacts): TodayPrimaryState {
-  const { attempt, tracking } = facts;
+  const { attempt, tracking, reduction } = facts;
   if (attempt !== null) {
     if (attempt.status === 'interrupted_time_needed') return 'interrupted';
     if (attempt.status === 'active') return 'active-break';
@@ -86,6 +95,7 @@ export function resolveTodayPrimaryState(facts: TodayFacts): TodayPrimaryState {
     if (tracking.status === 'tracking') return 'abstinence-tracking';
     // ended tracking does not own Today.
   }
+  if (reduction !== null) return 'reduction-active';
   if (facts.hasProfile) return 'profile-no-break';
   if (facts.detectionOnly) return 'detection-only';
   // First launch means no data at all; a persisted draft is data (resume card).
@@ -94,15 +104,17 @@ export function resolveTodayPrimaryState(facts: TodayFacts): TodayPrimaryState {
 
 /** True when the state card is a live timing state that keeps the resume card
  * secondary (UX_SPEC 3.2). Tracking counts: pausing a check-in on an
- * open-ended timeline would hide a live counter otherwise. */
+ * open-ended timeline would hide a live counter otherwise. An active reduction
+ * plan similarly keeps a draft resume secondary. */
 export function liveTimingState(facts: TodayFacts): boolean {
-  const { attempt, tracking } = facts;
+  const { attempt, tracking, reduction } = facts;
   if (attempt !== null) {
     if (attempt.status === 'active' || attempt.status === 'interrupted_time_needed') return true;
   }
   if (tracking !== null) {
     if (tracking.status === 'tracking' || tracking.status === 'interrupted_time_needed') return true;
   }
+  if (reduction !== null) return true;
   return false;
 }
 

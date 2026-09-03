@@ -10,7 +10,7 @@ import {
 } from '../../src/domain/guidance/break-outlook.ts';
 import { presentBreakOutlook } from '../../src/application/presentation/break-outlook.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
-import { TOLERANCE_POLICY_V2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
+import { TOLERANCE_POLICY_V3 } from '../../src/domain/policies/tolerance-policy-v3.ts';
 import { sampleProfile, C0 } from '../helpers.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
@@ -133,7 +133,7 @@ describe('break outlook span', () => {
 
   it('derives outlook for a legacy profile with no duration without rewriting numeric results', () => {
     const profile = sampleProfile();
-    const result = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
+    const result = calculateTolerance(profile, TOLERANCE_POLICY_V3, C0);
     const outlook = deriveBreakOutlook({
       targetDays: result.preferredTargetDays,
       openEnded: false,
@@ -179,5 +179,37 @@ describe('exposure tone does not change numeric ranges', () => {
     assert.equal(heavy.tone, 'heavier');
     assert.match(light.mayNotice[0] ?? '', /less typical/);
     assert.match(heavy.mayNotice[0] ?? '', /more plausible/);
+  });
+
+  it('reads v3 intensity signals (sessions, concentrates, dabbing) from 4 use-days upward', () => {
+    const outlook = deriveBreakOutlook({
+      targetDays: 14,
+      openEnded: false,
+      exposure: exposure({
+        useDaysLast30: 10,
+        sessionsPerUseDay: 2,
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: 'under_1_month',
+      }),
+    });
+    assert.equal(outlook.tone, 'heavier');
+    assert.ok(outlook.personalisationNote?.includes('This is not a personal prediction.'));
+    assert.equal(outlook.personalisationNote?.includes('does not change the recommended day range'), false);
+  });
+
+  it('never treats a 1-3 isolate concentrate pattern as heavier', () => {
+    const outlook = deriveBreakOutlook({
+      targetDays: 14,
+      openEnded: false,
+      exposure: exposure({
+        useDaysLast30: 2,
+        sessionsPerUseDay: 1,
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: '5_plus_years',
+      }),
+    });
+    assert.equal(outlook.tone, 'typical');
   });
 });

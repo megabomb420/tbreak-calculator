@@ -171,14 +171,15 @@ export function presentToleranceResult(result: ToleranceResult, profile: UseProf
   if (result.recommendedRangeDays === null || result.preferredTargetDays === null) {
     return { kind: 'unavailable' };
   }
+  const historyOverride = result.limitations.includes('heuristic_history_target_within_range_v3');
   return {
     kind: 'tolerance_result',
     rangeDays: result.recommendedRangeDays,
     preferredTargetDays: result.preferredTargetDays,
     uncertainty: renderMessageCode(result.uncertaintySummaryCode ?? '') ?? '',
     contextNote: personalisationContextLine(profile),
-    drivers: presentDrivers(result.drivers, profile, result.recommendedRangeDays, result.preferredTargetDays),
-    history: presentHistory(result.historyInsight),
+    drivers: presentDrivers(result, profile),
+    history: presentHistory(result.historyInsight, historyOverride, result.recommendedRangeDays),
     withdrawal: presentWithdrawal(result.withdrawal),
     outlook: presentOutlookForProfile({
       profile,
@@ -232,13 +233,11 @@ function statusLabel(status: WithdrawalAnchorStatus | null): WithdrawalStopView[
   return null;
 }
 
-function presentDrivers(
-  engineDrivers: readonly string[],
-  profile: UseProfileInput,
-  rangeDays: RecommendedRangeDays,
-  preferredTargetDays: number,
-): readonly string[] {
-  const fromEngine = engineDrivers
+function presentDrivers(result: ToleranceResult, profile: UseProfileInput): readonly string[] {
+  const rangeDays = result.recommendedRangeDays;
+  const target = result.preferredTargetDays;
+  if (rangeDays === null || target === null) return [];
+  const fromEngine = result.drivers
     .map((code) => renderMessageCode(code))
     .filter((line): line is string => line !== null);
   const band = profile.currentPatternDuration?.value ?? null;
@@ -247,14 +246,34 @@ function presentDrivers(
     const bandLine = renderMessageCode(`current_pattern_${band}`);
     if (bandLine !== null) lines.push(bandLine);
   }
-  const rationale = targetRationaleCode(rangeDays, preferredTargetDays, band);
-  if (rationale !== null) {
-    const rendered = renderMessageCode(rationale, {
-      min: rangeDays.min,
-      max: rangeDays.max,
-      target: preferredTargetDays,
-    });
-    if (rendered !== null) lines.push(rendered);
+  // Range-lift lines: only for tolerance-v3 records, only when the engine
+  // recorded the corresponding movement limitation. Frozen pre-v3 records
+  // never emit these codes, so their historical rationale stays unchanged.
+  if (result.policyVersion === 'tolerance-v3') {
+    const vars = { min: rangeDays.min, max: rangeDays.max };
+    if (result.limitations.includes('heuristic_frequency_intensity_v3')) {
+      const line = renderMessageCode('range_lifted_by_intensity', vars);
+      if (line !== null) lines.push(line);
+    }
+    if (result.limitations.includes('heuristic_chronicity_range_v3')) {
+      const line = renderMessageCode('range_lifted_by_chronicity', vars);
+      if (line !== null) lines.push(line);
+    }
+  }
+  // Anchor rationale (lower end for recent / upper end for established) unless
+  // the planning target came from an in-range history observation, in which
+  // case the history paragraph below already explains the target choice.
+  const historyOverride = result.limitations.includes('heuristic_history_target_within_range_v3');
+  if (!historyOverride) {
+    const rationale = targetRationaleCode(rangeDays, target, band);
+    if (rationale !== null) {
+      const rendered = renderMessageCode(rationale, {
+        min: rangeDays.min,
+        max: rangeDays.max,
+        target,
+      });
+      if (rendered !== null) lines.push(rendered);
+    }
   }
   return lines;
 }
@@ -291,8 +310,8 @@ function targetRationaleCode(
 /**
  * Profile-completeness context (UX_SPEC 9.1): distinguishes how much of the
  * individual pattern was collected without inventing a statistical confidence.
- * Evidence confidence stays uniformly low; more answers add planning context
- * for the target choice, not scientific certainty.
+ * Evidence confidence stays uniformly low; more answers add exposure context
+ * for the planning recommendation, not scientific certainty.
  */
 function personalisationContextLine(profile: UseProfileInput): string | null {
   const hasDuration = profile.currentPatternDuration?.value != null;
@@ -301,15 +320,19 @@ function personalisationContextLine(profile: UseProfileInput): string | null {
     profile.products.length > 0 ||
     profile.routes.length > 0;
   if (hasDuration && hasIntensityContext) {
-    return 'Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. Fuller context can shape the planning target inside the range — it does not raise scientific certainty.';
+    return 'Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. That exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty.';
   }
   if (hasDuration) {
-    return 'Planning context: use frequency and how long the current pattern has lasted. That context can shape the planning target inside the range — it does not raise scientific certainty.';
+    return 'Planning context: use frequency and how long the current pattern has lasted. That exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty.';
   }
   return null;
 }
 
-function presentHistory(insight: HistoryInsight | null): string | null {
+function presentHistory(
+  insight: HistoryInsight | null,
+  historyOverride: boolean,
+  rangeDays: RecommendedRangeDays,
+): string | null {
   if (insight === null) return null;
   const vars =
     insight.observations === null
@@ -317,6 +340,14 @@ function presentHistory(insight: HistoryInsight | null): string | null {
       : { short: insight.observations[0].durationDays, long: insight.observations[1].durationDays };
   const primary = renderMessageCode(insight.code, vars);
   if (primary === null) return null;
+  if (historyOverride) {
+    const tail = renderMessageCode('history_target_override_tail', {
+      ...vars,
+      min: rangeDays.min,
+      max: rangeDays.max,
+    });
+    return tail === null ? primary : `${primary} ${tail}`;
+  }
   if (!insight.outsideRecommendedRange) return `${primary} Your history never changes the recommended range.`;
   const extra = renderMessageCode('history_outside_population_range');
   return extra === null

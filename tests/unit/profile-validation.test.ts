@@ -165,9 +165,16 @@ describe('profile validation: 30-day consistency, both directions (spec 5.4-5.8)
     expectCodes(sampleProfile({ lastUseAt: userValue('2026-08-20T01:00:00Z') }), ['last_use_in_future']);
   });
 
-  it('requires sessions, products and routes when use days are positive', () => {
-    const input = sampleProfile({ sessionsPerUseDay: absent(), products: [], routes: [] });
-    expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+  it('requires sessions, products and routes from 4 use days upward on a range route', () => {
+    for (const useDays of [4, 10, 16, 30]) {
+      const input = sampleProfile({
+        thcUseDaysLast30: userValue(useDays),
+        sessionsPerUseDay: absent(),
+        products: [],
+        routes: [],
+      });
+      expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+    }
   });
 
   it('rejects sessionsPerUseDay present when use days are zero', () => {
@@ -261,9 +268,9 @@ describe('profile validation: goal routing rules (spec 5.9-5.14)', () => {
   });
 });
 
-describe('profile validation: UX D1 - intensity fields required only at 16+ use days', () => {
-  it('does not require sessions, products or routes below 16 use days on a range route', () => {
-    for (const useDays of [1, 10, 15]) {
+describe('profile validation: UX D1 - intensity fields required from 4 use days on range routes (spec 5.7)', () => {
+  it('does not require sessions, products or routes at 1-3 use days on a range route', () => {
+    for (const useDays of [1, 2, 3]) {
       const input = sampleProfile({
         thcUseDaysLast30: userValue(useDays),
         sessionsPerUseDay: absent(),
@@ -274,14 +281,16 @@ describe('profile validation: UX D1 - intensity fields required only at 16+ use 
     }
   });
 
-  it('still requires sessions, products and routes at 16 use days', () => {
-    const input = sampleProfile({
-      thcUseDaysLast30: userValue(16),
-      sessionsPerUseDay: absent(),
-      products: [],
-      routes: [],
-    });
-    expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+  it('requires sessions, products and routes from 4 use days upward', () => {
+    for (const useDays of [4, 10, 15]) {
+      const input = sampleProfile({
+        thcUseDaysLast30: userValue(useDays),
+        sessionsPerUseDay: absent(),
+        products: [],
+        routes: [],
+      });
+      expectCodes(input, ['sessions_required', 'products_required', 'routes_required']);
+    }
   });
 
   it('still requires them at the top of the band (30 use days)', () => {

@@ -11,9 +11,9 @@ describe('snapshot → engine → presentation pipeline', () => {
       kind: 'use_profile',
       profile: sampleProfile({
         thcUseDaysLast30: userValue(10),
-        sessionsPerUseDay: absent(),
-        products: [],
-        routes: [],
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
       }),
     };
     const view = runCalculation(snapshot, C0);
@@ -62,11 +62,11 @@ describe('snapshot → engine → presentation pipeline', () => {
 });
 
 describe('answersFromSnapshot restores questionnaire answers without inventing fields', () => {
-  it('rebuilds a 1–15 tolerance path without sessions or products', () => {
+  it('rebuilds a 1-3 tolerance path without sessions or products', () => {
     const snapshot: RawAnswerSnapshot = {
       kind: 'use_profile',
       profile: sampleProfile({
-        thcUseDaysLast30: userValue(10),
+        thcUseDaysLast30: userValue(3),
         sessionsPerUseDay: absent(),
         products: [],
         routes: [],
@@ -75,7 +75,7 @@ describe('answersFromSnapshot restores questionnaire answers without inventing f
     };
     const answers = answersFromSnapshot(snapshot);
     assert.equal(answers.goal, 'tolerance_reset');
-    assert.equal(answers.thcUseDaysLast30, 10);
+    assert.equal(answers.thcUseDaysLast30, 3);
     assert.equal(answers.lastUseAt, '2026-08-18T12:00:00Z');
     assert.equal(answers.sessionsPerUseDay, undefined);
     assert.equal(answers.products, undefined);

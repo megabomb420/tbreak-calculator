@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { TOLERANCE_POLICY_V2, type TolerancePolicyV2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
+import { TOLERANCE_POLICY_V3, type TolerancePolicyV3 } from '../../src/domain/policies/tolerance-policy-v3.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
 import type { PreviousBreakInput } from '../../src/domain/schemas/profile.ts';
@@ -8,7 +8,7 @@ import type { Instant } from '../../src/domain/schemas/time.ts';
 import { C0, sampleProfile, userValue, absent } from '../helpers.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
-const POLICY = TOLERANCE_POLICY_V2;
+const POLICY = TOLERANCE_POLICY_V3;
 
 /** Withdrawal display for the sample profile (last use 2 h before C0). */
 function withdrawalDisplayAtDay1() {
@@ -61,7 +61,7 @@ const nullResultFields = (kind: ToleranceResult['kind']): ToleranceResult => ({
   drivers: [],
   historyInsight: null,
   limitations: [],
-  policyVersion: 'tolerance-v2',
+  policyVersion: 'tolerance-v3',
   calculatedAt: C0,
 });
 
@@ -152,8 +152,8 @@ describe('Tolerance Engine: goal routing (spec 7.4)', () => {
     assert.deepEqual(result, nullResultFields('planning_only'));
   });
 
-  it('below 16 use days a range route needs no intensity fields (UX D1)', () => {
-    for (const useDays of [1, 10, 15]) {
+  it('1–3 very-infrequent use needs no intensity fields and never moves (UX D1)', () => {
+    for (const useDays of [1, 2, 3]) {
       const result = resultOf(
         sampleProfile({
           thcUseDaysLast30: userValue(useDays),
@@ -163,9 +163,23 @@ describe('Tolerance Engine: goal routing (spec 7.4)', () => {
         }),
       );
       assert.equal(result.kind, 'tolerance_result', `use days ${useDays}`);
-      assert.deepEqual(result.recommendedRangeDays, useDays <= 3 ? { min: 2, max: 7 } : { min: 7, max: 14 });
-      assert.equal(result.drivers.length, 1);
+      assert.deepEqual(result.recommendedRangeDays, { min: 2, max: 7 });
+      assert.deepEqual(result.drivers, ['very_infrequent_use']);
       assert.equal(result.limitations.length, 0);
+    }
+  });
+
+  it('4+ use days on a range route requires intensity fields or returns validation_error', () => {
+    for (const useDays of [4, 10, 15]) {
+      const result = resultOf(
+        sampleProfile({
+          thcUseDaysLast30: userValue(useDays),
+          sessionsPerUseDay: absent(),
+          products: [],
+          routes: [],
+        }),
+      );
+      assert.equal(result.kind, 'validation_error', `use days ${useDays}`);
     }
   });
 
@@ -227,8 +241,8 @@ describe('Tolerance Engine: base band boundaries (spec 7.3, invariant item 4)', 
   });
 });
 
-describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant item 5)', () => {
-  it('locks qualifying frequent users (>= 16 use days) to one unambiguous 21-28 result', () => {
+describe('Tolerance Engine: bounded exposure classification (spec 7.3, invariant item 5)', () => {
+  it('locks frequent users (16–25 use days) with high intensity to one unambiguous 21-28 result', () => {
     const qualifying: Array<ReturnType<typeof sampleProfile>> = [
       sampleProfile({ thcUseDaysLast30: userValue(16), sessionsPerUseDay: userValue(2) }),
       sampleProfile({ thcUseDaysLast30: userValue(25), products: ['concentrate'], routes: ['vaping'] }),
@@ -239,11 +253,12 @@ describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant it
       assert.equal(result.kind, 'tolerance_result');
       assert.deepEqual(result.recommendedRangeDays, { min: 21, max: 28 });
       assert.equal(result.preferredTargetDays, 28);
-      assert.ok(result.limitations.includes('heuristic_frequency_intensity_v1'));
+      assert.ok(result.limitations.includes('heuristic_frequency_intensity_v3'));
+      assert.equal(result.limitations.includes('heuristic_frequency_intensity_v1'), false);
     }
   });
 
-  it('emits decisive intensity drivers in policy order when the override fires', () => {
+  it('emits decisive intensity drivers in policy order when intensity raises the tier', () => {
     const result = resultOf(
       sampleProfile({
         thcUseDaysLast30: userValue(20),
@@ -260,7 +275,7 @@ describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant it
     ]);
   });
 
-  it('does not treat vape product or vaping route as the concentrate/dabbing override', () => {
+  it('does not treat vape product or vaping route as a concentrate/dabbing intensity signal', () => {
     const result = resultOf(
       sampleProfile({
         thcUseDaysLast30: userValue(20),
@@ -272,27 +287,56 @@ describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant it
     assert.equal(result.kind, 'tolerance_result');
     assert.deepEqual(result.recommendedRangeDays, { min: 14, max: 21 });
     assert.equal(result.preferredTargetDays, 21);
-    assert.equal(result.limitations.includes('heuristic_frequency_intensity_v1'), false);
+    assert.equal(result.limitations.length, 0);
     assert.equal(result.drivers.includes('concentrate_product_use'), false);
     assert.equal(result.drivers.includes('dabbing_route_use'), false);
   });
 
-  it('does not apply the override below 16 use days (isolated concentrate is not heavy)', () => {
-    for (const d of [1, 4, 15]) {
+  it('never moves the 1–3 very-infrequent tier, even with concentrate/dabbing and years of history', () => {
+    for (const d of [1, 2, 3]) {
       const result = resultOf(
         sampleProfile({
           thcUseDaysLast30: userValue(d),
           sessionsPerUseDay: userValue(3),
           products: ['concentrate'],
           routes: ['dabbing'],
+          currentPatternDuration: userValue('5_plus_years'),
         }),
       );
+      assert.equal(result.kind, 'tolerance_result');
+      assert.deepEqual(result.recommendedRangeDays, { min: 2, max: 7 }, `use days ${d}`);
       assert.equal(result.limitations.length, 0, `use days ${d}`);
-      assert.equal(result.drivers.length, 1, `use days ${d}`);
+      // Intensity drivers still describe the pattern, but no tier moves.
+      assert.deepEqual(result.drivers, [
+        'very_infrequent_use',
+        'multiple_sessions_per_day',
+        'concentrate_product_use',
+        'dabbing_route_use',
+      ]);
     }
   });
 
-  it('keeps 26-30 daily users at 21-28 with or without intensity inputs', () => {
+  it('moves a regular non-daily (4–15) profile one tier up when intensity is high', () => {
+    const result = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(2),
+        products: ['concentrate'],
+        routes: ['dabbing'],
+      }),
+    );
+    assert.equal(result.kind, 'tolerance_result');
+    assert.deepEqual(result.recommendedRangeDays, { min: 14, max: 21 });
+    assert.deepEqual(result.drivers, [
+      'regular_nondaily_use',
+      'multiple_sessions_per_day',
+      'concentrate_product_use',
+      'dabbing_route_use',
+    ]);
+    assert.ok(result.limitations.includes('heuristic_frequency_intensity_v3'));
+  });
+
+  it('keeps 26-30 daily users at 21-28 with or without intensity inputs and emits no intensity raise', () => {
     const plain = resultOf(sampleProfile({ thcUseDaysLast30: userValue(30) }));
     const intense = resultOf(
       sampleProfile({ thcUseDaysLast30: userValue(30), sessionsPerUseDay: userValue(4), products: ['concentrate'] }),
@@ -300,7 +344,27 @@ describe('Tolerance Engine: frequency/intensity override (spec 7.3, invariant it
     assert.deepEqual(plain.recommendedRangeDays, { min: 21, max: 28 });
     assert.deepEqual(intense.recommendedRangeDays, { min: 21, max: 28 });
     assert.equal(plain.limitations.length, 0);
-    assert.ok(intense.limitations.includes('heuristic_frequency_intensity_v1'));
+    // Tier 4 is already the top evidence band: intensity describes the pattern
+    // but cannot raise the classification further.
+    assert.equal(intense.limitations.includes('heuristic_frequency_intensity_v3'), false);
+    assert.ok(intense.drivers.includes('concentrate_product_use'));
+    assert.ok(intense.drivers.includes('multiple_sessions_per_day'));
+  });
+
+  it('a missing duration never counts as long-established at 16–25 use days', () => {
+    const result = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+      }),
+    );
+    assert.equal(result.kind, 'tolerance_result');
+    assert.deepEqual(result.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(result.preferredTargetDays, 21);
+    assert.equal(result.limitations.length, 0);
+    assert.equal(result.drivers.includes('long_established_chronic_use'), false);
   });
 });
 
@@ -349,8 +413,11 @@ describe('Tolerance Engine: uniform confidence and target invariants (spec 7.6, 
     }
   });
 
-  it('maps recent patterns to the lower anchor and established patterns to the upper anchor', () => {
-    for (const useDays of [2, 10, 20, 27]) {
+  it('maps recent/medium/long patterns to duration anchors where chronicity cannot move the tier', () => {
+    // Tiers 1, 2 and 4 never move by chronicity, so every duration band shares
+    // the same range: recent bands anchor the lower end, established bands the
+    // upper end.
+    for (const useDays of [2, 10, 27]) {
       const recent = resultOf(
         sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('under_1_month') }),
       );
@@ -381,28 +448,71 @@ describe('Tolerance Engine: uniform confidence and target invariants (spec 7.6, 
       assert.equal(fewMonths.preferredTargetDays, range.min, `use days ${useDays} few months`);
       assert.equal(established.preferredTargetDays, range.max, `use days ${useDays} established`);
       assert.equal(long.preferredTargetDays, range.max, `use days ${useDays} long`);
-      // Duration never widens the range: identical across every duration tier.
+      // On tiers chronicity cannot move, duration leaves the range identical.
       assert.deepEqual(established.recommendedRangeDays, range);
       assert.deepEqual(long.recommendedRangeDays, range);
     }
   });
 
-  it('never treats long duration as extra days beyond the evidence range', () => {
-    // The maximum possible target for long-established use stays the range's
-    // upper anchor: 7 / 14 / 21 / 28 by frequency band, never more.
-    const cases: ReadonlyArray<{ useDays: number; expectedMax: number }> = [
-      { useDays: 3, expectedMax: 7 },
-      { useDays: 15, expectedMax: 14 },
-      { useDays: 25, expectedMax: 21 },
-      { useDays: 30, expectedMax: 28 },
+  it('raises a long-established frequent (16–25, no intensity) profile to 21-28 via chronicity', () => {
+    const recent = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    );
+    const established = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        currentPatternDuration: userValue('6_to_24_months'),
+      }),
+    );
+    const long = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.equal(recent.kind, 'tolerance_result');
+    assert.equal(established.kind, 'tolerance_result');
+    assert.equal(long.kind, 'tolerance_result');
+    if (
+      recent.kind !== 'tolerance_result' ||
+      established.kind !== 'tolerance_result' ||
+      long.kind !== 'tolerance_result'
+    ) {
+      return;
+    }
+    // Recent and medium stay in 14-21; only the long-established band moves one
+    // tier up to 21-28, labelled by the chronicity limitation.
+    assert.deepEqual(recent.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(recent.preferredTargetDays, 14);
+    assert.deepEqual(established.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(established.preferredTargetDays, 21);
+    assert.deepEqual(long.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(long.preferredTargetDays, 28);
+    assert.ok(long.drivers.includes('long_established_chronic_use'));
+    assert.ok(long.limitations.includes('heuristic_chronicity_range_v3'));
+    assert.equal(long.limitations.includes('heuristic_frequency_intensity_v3'), false);
+  });
+
+  it('never lets a long-established pattern exceed the 21-28 evidence cap', () => {
+    // v3 bounded rule: long duration may lift the frequent (16-25) tier to 4,
+    // but the strongest evidence band is still 21-28 and is never exceeded.
+    const cases: ReadonlyArray<{ useDays: number; expectedRange: { min: number; max: number } }> = [
+      { useDays: 3, expectedRange: { min: 2, max: 7 } },
+      { useDays: 15, expectedRange: { min: 7, max: 14 } },
+      { useDays: 25, expectedRange: { min: 21, max: 28 } },
+      { useDays: 30, expectedRange: { min: 21, max: 28 } },
     ];
-    for (const { useDays, expectedMax } of cases) {
+    for (const { useDays, expectedRange } of cases) {
       const result = resultOf(
         sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('5_plus_years') }),
       );
       assert.equal(result.kind, 'tolerance_result');
-      if (result.kind !== 'tolerance_result') continue;
-      assert.ok(result.preferredTargetDays !== null && result.preferredTargetDays <= expectedMax, `use days ${useDays}`);
+      if (result.kind !== 'tolerance_result' || result.recommendedRangeDays === null) continue;
+      assert.deepEqual(result.recommendedRangeDays, expectedRange, `use days ${useDays}`);
+      assert.ok(result.preferredTargetDays !== null && result.preferredTargetDays <= 28, `use days ${useDays}`);
     }
   });
 });
@@ -433,9 +543,9 @@ describe('Tolerance Engine: determinism and validation failure', () => {
   });
 
   it('is not affected by a different policy id appearing in a validation_error result', () => {
-    const otherPolicy: TolerancePolicyV2 = { ...POLICY, id: 'tolerance-v2-fake' };
+    const otherPolicy: TolerancePolicyV3 = { ...POLICY, id: 'tolerance-v3-fake' };
     const result = calculateTolerance(sampleProfile({ thcUseDaysLast30: userValue(31) }), otherPolicy, C0);
-    assert.equal(result.policyVersion, 'tolerance-v2-fake');
+    assert.equal(result.policyVersion, 'tolerance-v3-fake');
   });
 
   it('attaches the elapsed withdrawal display to every tolerance_result', () => {
@@ -490,5 +600,308 @@ describe('Tolerance Engine: determinism and validation failure', () => {
     );
     assert.equal(notApplicable.kind, 'not_applicable');
     assert.equal(notApplicable.historyInsight, null);
+  });
+});
+
+describe('Tolerance Engine: v3 canonical outputs (spec 7.3/7.7 acceptance)', () => {
+  it('use-days 27 daily/heavy: intensity present but no raise, duration picks the target', () => {
+    const recent = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(27),
+        sessionsPerUseDay: userValue(3),
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    );
+    assert.deepEqual(recent.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(recent.preferredTargetDays, 21);
+    assert.deepEqual(recent.drivers, ['near_daily_or_daily_use', 'multiple_sessions_per_day']);
+    assert.deepEqual(recent.limitations, ['heuristic_duration_target_within_range_v3']);
+
+    const long = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(27),
+        sessionsPerUseDay: userValue(3),
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(long.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(long.preferredTargetDays, 28);
+    assert.deepEqual(long.limitations, []);
+  });
+
+  it('use-days 10 regular non-daily: high intensity raises tier 2 -> 3 once', () => {
+    const long = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(3),
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(long.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(long.preferredTargetDays, 21);
+    assert.deepEqual(long.drivers, [
+      'regular_nondaily_use',
+      'multiple_sessions_per_day',
+      'concentrate_product_use',
+      'dabbing_route_use',
+    ]);
+    assert.deepEqual(long.limitations, ['heuristic_frequency_intensity_v3']);
+
+    const recent = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(3),
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    );
+    assert.deepEqual(recent.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(recent.preferredTargetDays, 14);
+    assert.deepEqual(recent.limitations, [
+      'heuristic_frequency_intensity_v3',
+      'heuristic_duration_target_within_range_v3',
+    ]);
+  });
+
+  it('use-days 10 single-session flower never raises, whatever the duration', () => {
+    const long = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(long.recommendedRangeDays, { min: 7, max: 14 });
+    assert.equal(long.preferredTargetDays, 14);
+    assert.deepEqual(long.drivers, ['regular_nondaily_use']);
+    assert.deepEqual(long.limitations, []);
+  });
+
+  it('use-days 20 frequent: only a long-established pattern raises to 21-28 (chronicity)', () => {
+    const long = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(long.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(long.preferredTargetDays, 28);
+    assert.deepEqual(long.drivers, ['frequent_use', 'long_established_chronic_use']);
+    assert.deepEqual(long.limitations, ['heuristic_chronicity_range_v3']);
+
+    const medium = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('6_to_24_months'),
+      }),
+    );
+    assert.deepEqual(medium.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(medium.preferredTargetDays, 21);
+    assert.deepEqual(medium.limitations, []);
+
+    const recent = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    );
+    assert.deepEqual(recent.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(recent.preferredTargetDays, 14);
+    assert.deepEqual(recent.limitations, ['heuristic_duration_target_within_range_v3']);
+  });
+
+  it('use-days 2 very infrequent never moves, even isolate concentrate/dabbing with years of history', () => {
+    const result = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(2),
+        sessionsPerUseDay: userValue(1),
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(result.recommendedRangeDays, { min: 2, max: 7 });
+    assert.equal(result.preferredTargetDays, 7);
+    assert.deepEqual(result.drivers, ['very_infrequent_use', 'concentrate_product_use', 'dabbing_route_use']);
+    assert.deepEqual(result.limitations, []);
+  });
+
+  it('use-days 28 daily: concentrate/dabbing adds drivers but never a raise above 28', () => {
+    const plain = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(28),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    const intense = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(28),
+        sessionsPerUseDay: userValue(1),
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+    );
+    assert.deepEqual(plain.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(plain.preferredTargetDays, 28);
+    assert.deepEqual(intense.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(intense.preferredTargetDays, 28);
+    assert.deepEqual(intense.drivers, [
+      'near_daily_or_daily_use',
+      'concentrate_product_use',
+      'dabbing_route_use',
+    ]);
+    assert.equal(intense.limitations.includes('heuristic_frequency_intensity_v3'), false);
+  });
+
+  it('missing duration is never long-established and keeps the upper target anchor', () => {
+    const frequent = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+      }),
+    );
+    assert.deepEqual(frequent.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(frequent.preferredTargetDays, 21);
+    assert.deepEqual(frequent.limitations, []);
+    assert.equal(frequent.drivers.includes('long_established_chronic_use'), false);
+
+    const daily = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(27),
+        sessionsPerUseDay: userValue(3),
+      }),
+    );
+    assert.deepEqual(daily.recommendedRangeDays, { min: 21, max: 28 });
+    assert.equal(daily.preferredTargetDays, 28);
+    assert.deepEqual(daily.limitations, []);
+  });
+
+  it('raises the planning target to an in-range history anchor but never moves the range', () => {
+    const withHistory = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('under_1_month'),
+        previousBreaks: [
+          previousBreak({ durationDays: 7, toleranceReductionScore: 3 }),
+          previousBreak({ id: 'b2', durationDays: 14, toleranceReductionScore: 8 }),
+        ],
+      }),
+    );
+    const withoutHistory = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(1),
+        products: ['flower'],
+        routes: ['smoking'],
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    );
+    assert.equal(withHistory.kind, 'tolerance_result');
+    assert.equal(withoutHistory.kind, 'tolerance_result');
+    if (withHistory.kind !== 'tolerance_result' || withoutHistory.kind !== 'tolerance_result') return;
+    assert.deepEqual(withHistory.recommendedRangeDays, withoutHistory.recommendedRangeDays);
+    assert.deepEqual(withHistory.recommendedRangeDays, { min: 7, max: 14 });
+    assert.deepEqual(withHistory.drivers, withoutHistory.drivers);
+    // Anchor was 7 (recent lower end); the clean 14-day observation raised it.
+    assert.equal(withoutHistory.preferredTargetDays, 7);
+    assert.equal(withHistory.preferredTargetDays, 14);
+    assert.deepEqual(withHistory.limitations, ['heuristic_history_target_within_range_v3']);
+  });
+
+  it('history outside the range or with an inversion never overrides the duration anchor', () => {
+    for (const breaks of [
+      // One compared duration (3) sits below today's 7-14 range.
+      [
+        previousBreak({ durationDays: 3, toleranceReductionScore: 2 }),
+        previousBreak({ id: 'b2', durationDays: 14, toleranceReductionScore: 8 }),
+      ],
+      // Inversion: the longer break scored lower.
+      [
+        previousBreak({ durationDays: 7, toleranceReductionScore: 8 }),
+        previousBreak({ id: 'b2', durationDays: 14, toleranceReductionScore: 3 }),
+      ],
+    ]) {
+      const result = resultOf(
+        sampleProfile({
+          thcUseDaysLast30: userValue(10),
+          sessionsPerUseDay: userValue(1),
+          products: ['flower'],
+          routes: ['smoking'],
+          currentPatternDuration: userValue('under_1_month'),
+          previousBreaks: breaks,
+        }),
+      );
+      assert.equal(result.kind, 'tolerance_result');
+      if (result.kind !== 'tolerance_result') return;
+      assert.equal(result.preferredTargetDays, 7, 'duration anchor must be kept');
+      assert.equal(result.limitations.includes('heuristic_history_target_within_range_v3'), false);
+      assert.ok(result.limitations.includes('heuristic_duration_target_within_range_v3'));
+    }
+  });
+
+  it('use-days 10 concentrate with missing duration raises to 14-21 and anchors the upper end', () => {
+    const result = resultOf(
+      sampleProfile({
+        thcUseDaysLast30: userValue(10),
+        sessionsPerUseDay: userValue(3),
+        products: ['concentrate'],
+        routes: ['smoking'],
+      }),
+    );
+    assert.deepEqual(result.recommendedRangeDays, { min: 14, max: 21 });
+    assert.equal(result.preferredTargetDays, 21);
+    assert.deepEqual(result.drivers, [
+      'regular_nondaily_use',
+      'multiple_sessions_per_day',
+      'concentrate_product_use',
+    ]);
+    assert.deepEqual(result.limitations, ['heuristic_frequency_intensity_v3']);
+  });
+
+  it('never emits the retired v1/v2 limitation codes on a v3 result', () => {
+    const retired = ['heuristic_frequency_intensity_v1', 'heuristic_duration_target_within_range_v2'];
+    const inputs = [
+      sampleProfile({ thcUseDaysLast30: userValue(16), sessionsPerUseDay: userValue(2) }),
+      sampleProfile({
+        thcUseDaysLast30: userValue(20),
+        sessionsPerUseDay: userValue(1),
+        currentPatternDuration: userValue('5_plus_years'),
+      }),
+      sampleProfile({
+        thcUseDaysLast30: userValue(27),
+        sessionsPerUseDay: userValue(1),
+        currentPatternDuration: userValue('under_1_month'),
+      }),
+    ];
+    for (const input of inputs) {
+      const result = resultOf(input);
+      assert.equal(result.kind, 'tolerance_result');
+      for (const code of retired) {
+        assert.equal((result.limitations as readonly string[]).includes(code), false);
+      }
+    }
   });
 });

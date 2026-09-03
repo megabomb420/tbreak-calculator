@@ -1,9 +1,11 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.7.2  
+Version: 0.8.0  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
+
+**0.8.0 note:** the tolerance policy line is **`tolerance-v3`** (`src/domain/policies/tolerance-policy-v3.ts`): multi-factor exposure classification (frequency + intensity + chronicity) bounded at most one adjacent evidence tier, unchanged 2–7 / 7–14 / 14–21 / 21–28 outer bounds, deterministic target anchor inside the final range with a bounded in-range history override. Active reduction (cut-down) tracking adds a pure reduction domain (`src/domain/reduction/reduction-engine.ts` + `reduction-plan-lifecycle.ts`), the `reduction-records-v2` application store (`src/application/progress/reduction-record.ts`), the durable `reductionRecords` family in both the web and IndexedDB backends, adaptive tolerance recalculation (`src/application/calculation/adaptive-recalc.ts`), the UI sheets `log-use.tsx`, `reduction-start-sheet.tsx`, and `reduction-refresh-sheet.tsx`, and the new Today state `reduction-active`. Sections 5.1 and 9 reflect the policy and durable-store lists.
 
 ## 1. Architecture objective
 
@@ -59,8 +61,8 @@ Application services
 Domain core
   schemas | validation | tolerance | qualitative detection | nominal THC
        |
-Static versioned policies
-  tolerance-policy-v2 | detection-copy-policy-v1
+Static versioned policies / domain rules
+  tolerance-policy-v3 | reduction (reduction-engine, reduction-plan-lifecycle) | detection-copy-policy-v1
 
 Infrastructure adapters
   Web Storage (transient draft) | explicit clock | service worker
@@ -141,17 +143,18 @@ V1 uses small, reviewable, versioned policy modules rather than a general pack p
 
 ### 5.1 Tolerance policy
 
-The tolerance policy (`tolerance-policy-v2.ts`, version `tolerance-v2`) contains only:
+The tolerance policy (`tolerance-policy-v3.ts`, version `tolerance-v3`) contains only:
 
-- the accepted 30-day use-frequency boundaries;
-- the single frequent-use intensity rule;
-- the within-range preferred-target anchor rule (recently established pattern → lower anchor; established or missing duration → upper anchor) labelled `heuristic_duration_target_within_range_v2`;
-- uniform v2 confidence values and uncertainty code;
+- the accepted 30-day use-frequency boundaries and their base tiers;
+- the bounded exposure classification over frequency + intensity + chronicity (a tier moves at most one adjacent evidence tier; the 2–7 / 7–14 / 14–21 / 21–28 ranges are the outer bounds, never above 28), labelled `heuristic_frequency_intensity_v3` / `heuristic_chronicity_range_v3`;
+- the within-range preferred-target anchor rule (recently established pattern → lower anchor; medium/long-established or missing duration → upper anchor) labelled `heuristic_duration_target_within_range_v3`;
+- the bounded in-range previous-break planning-target override labelled `heuristic_history_target_within_range_v3`;
+- uniform v3 confidence values and uncertainty code;
 - withdrawal anchors;
 - history-inference predicates; and
 - driver/limitation message codes.
 
-Every non-source threshold is labelled `product_heuristic`. The broad ranges and the intensity rule are unchanged from tolerance-v1; the new duration-aware target selection is the reason for the version bump. A policy change creates a new version and new golden fixtures. Historical records retain the version used.
+Every non-source threshold is labelled `product_heuristic`. The broad ranges are unchanged from tolerance-v1/v2; v3 replaces the single-variable frequency lookup with the multi-factor bounded classification above. A policy change creates a new version and new golden fixtures. Historical records retain the version used.
 
 ### 5.2 Qualitative detection policy
 
@@ -180,7 +183,7 @@ goal
   |-- tolerance reset
   |     -> current-pattern duration (first use-profile question)
   |     -> use days -> authoritative last use
-  |        (sessions, products and routes only when use days are 16-30)
+  |        (sessions, products and routes only when use days are 4-30)
   |
   |-- reduction
   |     -> explicit breakRequested
@@ -201,7 +204,7 @@ goal
 
 The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break timing. Detection v1 does not need it because it emits no numeric elapsed-time interpretation; if the screen shows elapsed time for general orientation, it references the same profile field and does not copy it into `DetectionRequest`.
 
-`currentPatternDuration` is collected as exposure context and is the first use-profile question on the routes that use it (tolerance reset, reduction with a break, abstinence). Under tolerance-v2 it may move the deterministic *planning target* to the lower anchor of the unchanged evidence range (recently established pattern) or keep it at the upper anchor (established or missing duration). It MUST NOT change recommended ranges, and no duration-to-days formula exists. Legacy profiles without the field remain valid.
+`currentPatternDuration` is collected as exposure context and is the first use-profile question on the routes that use it (tolerance reset, reduction with a break, abstinence). Under tolerance-v3 it selects the deterministic *planning target* inside the final range (lower anchor for a recently established pattern; upper anchor for a medium/long-established or missing duration) and may move the recommended range itself only in the single bounded case of a frequent (16–25 use-days) long-established pattern (one band to 21–28). There is no duration-to-days formula. Legacy profiles without the field remain valid.
 
 V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 
@@ -258,6 +261,17 @@ separate open-ended record (CALCULATOR_SPEC 4.7): no `targetDurationDays`,
 no `completed`, and the interruption mechanics apply minus any target-date
 recomputation.
 
+Active reduction (cut-down) plans are a separate pure domain
+(`src/domain/reduction/reduction-engine.ts` + `reduction-plan-lifecycle.ts`)
+persisted under the `reduction-records-v2` application store
+(`src/application/progress/reduction-record.ts`; see CALCULATOR_SPEC §10.1).
+Their events are sessions recorded as UTC instants grouped by the local
+calendar day; logging use in reduction mode never interrupts, restarts, or
+re-anchors a break attempt. Adaptive recalculation
+(`src/application/calculation/adaptive-recalc.ts`) re-runs tolerance-v3 on
+the observed profile and freezes a NEW calculation record; old records stay
+immutable.
+
 ## 9. Local persistence
 
 Use IndexedDB behind repository interfaces for durable records (profiles,
@@ -269,10 +283,14 @@ that draft.
 
 **Current slice note (0.4.0):** durable records persist through IndexedDB
 per-record stores (`calculations`, `breakAttempts`, `trackingRecords`,
-`checkins`, `previousBreaks`, `postBreakPlans`, `profiles`, `reductionPlans`).
-The questionnaire draft and result-overlay flag remain on Web Storage. v0.3.x
-envelopes are migrated once, idempotently, and left in place if a family
-fails. The repository interface and record shapes are the boundary.
+`checkins`, `previousBreaks`, `postBreakPlans`, `profiles`, `reductionPlans`,
+`reductionRecords`). `reductionPlans` holds legacy reduction-plan-v1 limit
+rows (still readable; copied into a plan baseline and cleared when a
+`reduction-records-v2` plan starts from one); `reductionRecords` holds the v2
+active-reduction tracker plans. The questionnaire draft and result-overlay
+flag remain on Web Storage. v0.3.x envelopes are migrated once,
+idempotently, and left in place if a family fails. The repository interface
+and record shapes are the boundary.
 
 Minimal logical stores (IndexedDB, later slice) are:
 
@@ -283,6 +301,7 @@ breakAttempts
 checkins
 previousBreaks
 postBreakPlans
+reductionRecords
 settings
 ```
 
@@ -304,13 +323,13 @@ Schema migrations are forward-only, tested, and non-destructive. A failed migrat
 
 ### 10.1 Tolerance result
 
-The primary card renders the range and target from `ToleranceResult`, followed by drivers and one uncertainty sentence. It does not display two confidence badges in v1 even though the structured fields remain separate.
+The primary card renders the planning target from `ToleranceResult` as the hero, with the broad evidence range as the meta line beneath it, followed by drivers and one uncertainty sentence. It does not display two confidence badges in v1 even though the structured fields remain separate.
 
 Example shape:
 
 ```text
-Recommended T-Break: 21–28 days
-Planning target: 21 days — the lower end of your range (recently established pattern)
+Plan for 21 days (hero)
+Evidence range: 21–28 days
 Limited certainty: this is a broad product heuristic, and individual response varies.
 Why: frequent use + multiple sessions/high-potency concentrate route
 ```
@@ -364,7 +383,7 @@ AI output is interpretation only and can never be promoted into a policy or over
 
 ### Unit and boundary tests
 
-Test schema/provenance validation, inverse 30-day consistency, goal routing, every tolerance boundary, the one frequency/intensity override, uniform confidence, nominal THC math, history predicates, elapsed withdrawal status, and interruption mechanics.
+Test schema/provenance validation, inverse 30-day consistency, goal routing, every tolerance boundary, the bounded v3 exposure classification (intensity/chronicity moves at most one adjacent tier, never above 28), uniform confidence, nominal THC math, history predicates, elapsed withdrawal status, and interruption mechanics.
 
 ### Golden domain fixtures
 
@@ -419,6 +438,8 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 - inverse 30-day validation;
 - elapsed withdrawal and interruption restart mechanics;
 - outside-range/mixed previous-history behaviour;
+- tolerance-v3 multi-factor bounded exposure classification and the in-range history target override;
+- active reduction tracking (`reduction-records-v2`) with the derived 3–7-day pause/review rule, plus adaptive recalculation that freezes new calculation records;
 - strict v1 input minimisation;
 - qualitative-only detection;
 - minimal local-only architecture; and

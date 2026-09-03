@@ -227,6 +227,11 @@ describe('Today states from real records', () => {
     acknowledgeProfile(storage, toleranceProfile());
     const closed = storedAttempt({
       status: 'completed',
+      // Continue-abstinence mode so acknowledging falls back to the profile
+      // card (an occasional-mode completion hands Today to the reduction
+      // tracker instead — covered in the reduction UI tests).
+      postBreakMode: 'continue_abstinence',
+      postBreakPlan: { mode: 'continue_abstinence' },
       segments: [{ startedFromLastUseAt: ANCHOR_MS as Instant, endedAt: AT, endReason: 'completed' }],
     });
     seedAttempt(storage, closed);

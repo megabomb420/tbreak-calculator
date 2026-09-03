@@ -25,11 +25,18 @@ export type DriverCode =
   | 'multiple_sessions_per_day'
   | 'concentrate_product_use'
   | 'dabbing_route_use'
+  | 'long_established_chronic_use'
   | 'baseline_tolerance_likely_low';
 
 export type LimitationCode =
+  // v1/v2 codes: retained so frozen historical records keep their metadata.
   | 'heuristic_frequency_intensity_v1'
-  | 'heuristic_duration_target_within_range_v2';
+  | 'heuristic_duration_target_within_range_v2'
+  // v3 exposure-classification codes (tolerance-v3).
+  | 'heuristic_frequency_intensity_v3'
+  | 'heuristic_chronicity_range_v3'
+  | 'heuristic_duration_target_within_range_v3'
+  | 'heuristic_history_target_within_range_v3';
 
 export type WithdrawalAnchorCode = 'onset' | 'common_peak' | 'substantial_improvement' | 'sleep_disturbance';
 
