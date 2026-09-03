@@ -26,6 +26,11 @@ import {
   type StoredPreviousBreak,
 } from './previous-break-store.ts';
 import { isInstantNumber, isRecord } from '../progress/record-codec.ts';
+import {
+  RECOVERY_OUTLOOK_VERSION,
+  RECOVERY_OUTLOOK_V1_VERSION,
+  type RecoveryOutlookVersion,
+} from '../../domain/recovery/recovery-outlook.ts';
 
 export const CALCULATION_RECORDS_SCHEMA_VERSION = 'calculation-records-v1' as const;
 export const CALCULATION_RECORDS_KEY = 'tbreak.calculations.v1';
@@ -41,6 +46,8 @@ export interface CalculationRecord {
   readonly calculatedAt: Instant;
   readonly inputSchemaVersion: string;
   readonly policyVersion: string;
+  /** Absent on pre-0.9.2 records, which retain recovery-outlook-v1 semantics. */
+  readonly recoveryOutlookVersion?: RecoveryOutlookVersion;
   readonly snapshot: RawAnswerSnapshot;
   readonly result: FrozenEngineResult;
 }
@@ -138,6 +145,11 @@ export function isValidCalculationRecord(value: unknown): value is CalculationRe
   if (!isInstantNumber(value.calculatedAt)) return false;
   if (typeof value.inputSchemaVersion !== 'string' || value.inputSchemaVersion === '') return false;
   if (typeof value.policyVersion !== 'string' || value.policyVersion === '') return false;
+  if (
+    value.recoveryOutlookVersion !== undefined &&
+    value.recoveryOutlookVersion !== RECOVERY_OUTLOOK_V1_VERSION &&
+    value.recoveryOutlookVersion !== RECOVERY_OUTLOOK_VERSION
+  ) return false;
   if (!isValidSnapshot(value.snapshot)) return false;
   return isValidFrozenResult(value.result);
 }
@@ -215,6 +227,7 @@ export function freezeCalculation(
     calculatedAt,
     inputSchemaVersion: PROFILE_SCHEMA_VERSION,
     policyVersion: TOLERANCE_POLICY_VERSION,
+    recoveryOutlookVersion: RECOVERY_OUTLOOK_VERSION,
     snapshot,
     result: { type: 'tolerance', value },
   };

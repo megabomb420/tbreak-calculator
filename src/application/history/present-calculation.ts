@@ -1,7 +1,11 @@
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 import type { CalculationRecord } from '../persistence/calculation-record.ts';
-import { buildToleranceRecoveryOutlook } from '../../domain/recovery/recovery-outlook.ts';
-import type { ToleranceRecoveryOutlookV1 } from '../../domain/recovery/recovery-outlook.ts';
+import {
+  buildToleranceRecoveryOutlook,
+  buildToleranceRecoveryOutlookV1,
+  RECOVERY_OUTLOOK_VERSION,
+  type ToleranceRecoveryOutlook,
+} from '../../domain/recovery/recovery-outlook.ts';
 import {
   presentDetectionResult,
   presentToleranceResult,
@@ -38,13 +42,16 @@ export function presentCalculationRecord(record: CalculationRecord): ResultView 
  */
 export function recoveryOutlookFromRecord(
   record: CalculationRecord | null,
-): ToleranceRecoveryOutlookV1 | null {
+): ToleranceRecoveryOutlook | null {
   if (record === null) return null;
   if (record.result.type !== 'tolerance') return null;
   const result = record.result.value;
   if (result.kind !== 'tolerance_result') return null;
   if (record.snapshot.kind !== 'use_profile') return null;
-  return buildToleranceRecoveryOutlook({
+  const build = record.recoveryOutlookVersion === RECOVERY_OUTLOOK_VERSION
+    ? buildToleranceRecoveryOutlook
+    : buildToleranceRecoveryOutlookV1;
+  return build({
     profile: record.snapshot.profile,
     result,
     previousBreaks: record.snapshot.profile.previousBreaks,

@@ -5,14 +5,14 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.9.1** (deterministic-only architecture cleanup: runtime generative AI removed from the roadmap; on top of 0.9.0 Recovery Intelligence, 0.8.1 interaction polish and 0.8.0’s tolerance-v3 exposure classification + active reduction tracking)
+- App version: **0.9.2** (Recovery Outlook v2 profile-sensitive prediction; tolerance-v3 unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
 - `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
-- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; recovery-outlook content version `tolerance-recovery-outlook-v1` in §13; 0.8.0 note covers tone from 4 use-days up)
+- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
 
@@ -27,8 +27,8 @@ to make UI easier. Do not commit untracked review files.
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
-tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, and the **0.9.1**
-deterministic-only architecture cleanup.
+tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
+deterministic-only architecture cleanup, and the **0.9.2** Recovery Outlook v2 revision.
 
 | Step | Status |
 |---|---|
@@ -47,10 +47,21 @@ deterministic-only architecture cleanup.
 | 0.8.1 interaction polish (selection/touch/callout/tap/overscroll) | **done** |
 | 0.9.0 Recovery Intelligence: plan/predicted-reset result, frozen-history outlook, outcome capture, reduction trajectory | done |
 | 0.9.1 deterministic-only architecture cleanup (runtime generative AI intentionally out of scope) | **done** |
+| 0.9.2 Recovery Outlook v2 profile-sensitive recovery windows | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.9.2 added (Recovery Outlook v2)
+
+- `tolerance-recovery-outlook-v2` adds `predictedRecoveryWindow` beside the unchanged frozen tolerance-v3 plan and separate Day-28 human CB1 reference.
+- Base v2 windows mirror the stored plan range: 2–7, 7–14, 14–21, or 21–28. Daily 26–30 use-days plus either intensity or long duration produces 28–35; frequent 16–25 plus both intensity and long duration also produces 28–35; daily plus both produces 28–42. Intensity is sessions ≥2, concentrate, or dabbing; long means 2–5 or 5+ years. Missing fields never count as extension signals. Maximum is 42.
+- The post-28 segment is lower-directness product heuristic, grounded in uncertainty after the four-week human PET reference plus indirect regional/preclinical CB1 recovery evidence. It is not a validated human tolerance endpoint or complete-reset day.
+- Personal 0–10 history stays descriptive in v2 and cannot move the predicted window.
+- New tolerance calculation records freeze `recoveryOutlookVersion: tolerance-recovery-outlook-v2`. Records from 0.9.0/0.9.1 without the field use the retained v1 builder and historical-context UI.
+- UI hierarchy: likely recovery window → Your plan → Human CB1 reference → conditional Extended recovery → time-only timeline → optional check-ins/history → direct-vs-extended evidence disclosure and limitations. No progress percentage or curve.
+- Tolerance-v3 policy, engine and golden fixtures are unchanged.
 
 ## What 0.9.0 added (“Recovery Intelligence”)
 

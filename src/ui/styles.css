@@ -2470,6 +2470,37 @@ select,
   user-select: none;
 }
 
+.reset-stat-compact {
+  font-size: clamp(1.35rem, 6vw, 1.9rem);
+}
+
+.reset-lead {
+  background: color-mix(in oklab, var(--accent-strong) 9%, var(--bg-card));
+}
+
+.reset-lead .micro-label {
+  margin-bottom: var(--space-2);
+}
+
+.reset-comparison {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+.reset-evidence-label,
+.reset-extended {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--accent-strong);
+}
+
+@media (min-width: 560px) {
+  .reset-comparison {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .recovery-timeline {
   list-style: none;
   margin: 0;

@@ -5,6 +5,16 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.9.2** — Recovery Outlook v2. **Your plan** remains the unchanged
+tolerance-v3 practical recommendation (maximum 28 days), while **Predicted
+reset** now leads with a separate profile-sensitive tolerance-recovery window.
+The highest-burden daily + intensity + long-duration class can show about 4–6
+weeks; the post-four-week portion is explicitly a lower-directness product
+heuristic, not a validated complete-reset endpoint. Day 28 remains the separate
+human CB1 PET reference. New records freeze the outlook version and old v1
+History stays historical. No runtime AI, network prediction, or percentage
+model was added.
+
 Version **0.9.1** — deterministic-only architecture cleanup. Runtime generative
 AI is intentionally out of scope and was removed from the product roadmap:
 no LLM, no provider inference layer, no AI consent flow, no runtime prompt
@@ -59,7 +69,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.9.0)
+## Capabilities (0.9.2)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -87,16 +97,16 @@ the UI component tests.
   “Plan for N days” with “Evidence range: min–max days” as the meta line
   beneath it and the rail marking the target inside the evidence bounds — the
   target is a planning choice inside the range, never a second, tighter range.
-- **“Your plan” | “Predicted reset” (0.9.0):** an accessible segmented control
+- **“Your plan” | “Predicted reset” (0.9.2):** an accessible segmented control
   on tolerance results defaults to the plan-first screen and adds the versioned
-  recovery outlook (`tolerance-recovery-outlook-v1`): disclaimer → planning
-  target → evidence range → biological reference (“around four weeks (Day 28)”,
-  explicitly not a 100% reset) → profile wording → a TIME timeline captioned
-  “not a percentage of recovery” → optional recorded check-in facts → your own
-  scored history (separate from research) → a “Why four weeks?” evidence
-  disclosure (D’Souza/Hirvonen PET points + “What this does NOT mean”). Frozen
-  history derives the same outlook from stored data only; legacy v1/v2 records
-  carry a “historical context” label.
+  recovery outlook (`tolerance-recovery-outlook-v2`): likely profile-sensitive
+  recovery window → separate practical plan → separate Day-28 human CB1
+  reference → conditional extended-recovery explanation → time-only timeline →
+  optional check-in facts and descriptive history → evidence disclosure that
+  separates direct human PET from lower-directness extension evidence. Coarse
+  windows span 2–7 through 28–42 days under explicit reviewed rules; only the
+  highest-burden class reaches six weeks. Frozen v1 history uses the retained
+  historical model rather than adopting v2 semantics.
 - **Post-break outcome capture (0.9.0):** after a completed break ends with a
   real return to THC, you can rate the tolerance reduction 0–10 (anchors 0 = no
   noticeable reduction / 10 = very large reduction) or skip — never after

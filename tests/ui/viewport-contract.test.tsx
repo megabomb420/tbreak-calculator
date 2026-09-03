@@ -10,7 +10,8 @@ import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const CSS = readFileSync(resolve(ROOT, 'src/ui/styles.css'), 'utf8');
+// Keep selector assertions portable across Git's LF/CRLF checkout settings.
+const CSS = readFileSync(resolve(ROOT, 'src/ui/styles.css'), 'utf8').replace(/\r\n/g, '\n');
 const INDEX_HTML = readFileSync(resolve(ROOT, 'index.html'), 'utf8');
 const clock = fixedClock(toInstant(1787184000000));
 

@@ -6,7 +6,10 @@ import { calculateNominalFlowerThc } from '../domain/nominal-thc/nominal-thc-eng
 import { NOMINAL_THC_POLICY_V1 } from '../domain/policies/nominal-thc-policy-v1.ts';
 import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
 import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
-import type { ToleranceRecoveryOutlookV1 } from '../domain/recovery/recovery-outlook.ts';
+import {
+  RECOVERY_OUTLOOK_V1_VERSION,
+  type ToleranceRecoveryOutlook,
+} from '../domain/recovery/recovery-outlook.ts';
 import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
 import {
   aroundDay,
@@ -179,14 +182,14 @@ function ResultBody({
   // to "plan" whenever the underlying record changes so a reused component
   // never carries a stale selection across records.
   const [resetMode, setResetMode] = useState(false);
-  const outlook: ToleranceRecoveryOutlookV1 | null = recoveryOutlookFromRecord(outlookRecord);
+  const outlook: ToleranceRecoveryOutlook | null = recoveryOutlookFromRecord(outlookRecord);
   const [modeRecordId, setModeRecordId] = useState<string | null>(outlookRecord?.id ?? null);
   const recordId = outlookRecord?.id ?? null;
   if (recordId !== modeRecordId) {
     setModeRecordId(recordId);
     setResetMode(false);
   }
-  const legacyReset = historical && outlookRecord !== null && outlookRecord.policyVersion !== 'tolerance-v3';
+  const legacyReset = historical && outlook?.version === RECOVERY_OUTLOOK_V1_VERSION;
 
   switch (view.kind) {
     case 'tolerance_result': {

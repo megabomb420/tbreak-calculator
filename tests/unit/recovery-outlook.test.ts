@@ -1,4 +1,4 @@
-// Recovery-outlook invariants (0.9.0, tolerance-recovery-outlook-v1).
+// Recovery Outlook v2 policy and historical v1 compatibility.
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -7,7 +7,12 @@ import type { UseProfileInput } from '../../src/domain/schemas/profile.ts';
 import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import { TOLERANCE_POLICY_V3 } from '../../src/domain/policies/tolerance-policy-v3.ts';
-import { buildToleranceRecoveryOutlook } from '../../src/domain/recovery/recovery-outlook.ts';
+import {
+  BIOLOGICAL_REFERENCE_DAYS,
+  buildToleranceRecoveryOutlook,
+  buildToleranceRecoveryOutlookV1,
+  MAX_PREDICTED_RECOVERY_DAYS,
+} from '../../src/domain/recovery/recovery-outlook.ts';
 
 const NOW = toInstant(Date.parse('2026-06-10T12:00:00.000Z'));
 
@@ -28,158 +33,207 @@ function profile(overrides: Partial<UseProfileInput> = {}): UseProfileInput {
 }
 
 function resultOf(input: UseProfileInput): ToleranceResult {
-  const outcome = calculateTolerance(input, TOLERANCE_POLICY_V3, NOW);
-  assert.equal(outcome.kind, 'tolerance_result');
-  return outcome;
+  const result = calculateTolerance(input, TOLERANCE_POLICY_V3, NOW);
+  assert.equal(result.kind, 'tolerance_result');
+  return result;
 }
 
-function outlook(input: UseProfileInput, extra: Partial<Parameters<typeof buildToleranceRecoveryOutlook>[0]> = {}) {
-  return buildToleranceRecoveryOutlook({
-    profile: input,
-    result: resultOf(input),
-    ...extra,
-  });
+function outlook(input: UseProfileInput) {
+  return buildToleranceRecoveryOutlook({ profile: input, result: resultOf(input), previousBreaks: input.previousBreaks })!;
 }
 
-describe('recovery outlook: invariants', () => {
-  it('emits no percentage-reset output anywhere', () => {
-    for (const days of [2, 10, 20, 30]) {
-      const view = outlook(profile({ thcUseDaysLast30: { value: days, provenance: 'user_estimate' } }));
-      const serialized = JSON.stringify(view);
-      assert.ok(!/%|reset to|recovered|detox|100%/i.test(serialized.replace(/"([0-9]+)"/g, '$1')));
+describe('recovery outlook v2: explicit prediction policy', () => {
+  it('keeps plan target and plan evidence range byte-for-byte equal to tolerance-v3 output', () => {
+    const inputs = [
+      profile({ thcUseDaysLast30: { value: 2, provenance: 'user_estimate' } }),
+      profile({ thcUseDaysLast30: { value: 12, provenance: 'user_estimate' } }),
+      profile({ thcUseDaysLast30: { value: 20, provenance: 'user_estimate' } }),
+      profile({
+        thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+        sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+      }),
+    ];
+    for (const input of inputs) {
+      const result = resultOf(input);
+      const view = buildToleranceRecoveryOutlook({ profile: input, result })!;
+      assert.equal(view.planningTargetDays, result.preferredTargetDays);
+      assert.deepEqual(view.evidenceRange, result.recommendedRangeDays);
+      assert.equal(view.biologicalReferenceDays, BIOLOGICAL_REFERENCE_DAYS);
     }
   });
 
-  it('never changes planning target or evidence range from tolerance-v3', () => {
-    const input = profile({
-      thcUseDaysLast30: { value: 27, provenance: 'user_estimate' },
-      sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
-      currentPatternDuration: { value: 'under_1_month', provenance: 'user_estimate' },
-    });
-    const result = resultOf(input);
-    const view = buildToleranceRecoveryOutlook({ profile: input, result })!;
-    assert.equal(view.planningTargetDays, result.preferredTargetDays);
-    assert.deepEqual(view.evidenceRange, result.recommendedRangeDays);
-    assert.equal(view.biologicalReferenceDays, 28);
+  it('maps very light, regular, frequent and ordinary daily profiles to short/coarse windows', () => {
+    assert.deepEqual(
+      outlook(profile({ thcUseDaysLast30: { value: 2, provenance: 'user_estimate' } })).predictedRecoveryWindow,
+      { min: 2, max: 7 },
+    );
+    assert.deepEqual(
+      outlook(profile({ thcUseDaysLast30: { value: 10, provenance: 'user_estimate' } })).predictedRecoveryWindow,
+      { min: 7, max: 14 },
+    );
+    assert.deepEqual(
+      outlook(profile({ thcUseDaysLast30: { value: 20, provenance: 'user_estimate' } })).predictedRecoveryWindow,
+      { min: 14, max: 21 },
+    );
+    assert.deepEqual(
+      outlook(profile({ thcUseDaysLast30: { value: 30, provenance: 'user_estimate' } })).predictedRecoveryWindow,
+      { min: 21, max: 28 },
+    );
   });
 
-  it('does not require 28 days for a light profile wording', () => {
-    const input = profile({ thcUseDaysLast30: { value: 2, provenance: 'user_estimate' } });
-    const view = outlook(input)!;
-    assert.equal(view.wordingKey, 'light_or_regular');
-    assert.equal(view.profileContext.lightOrRegular, true);
-    assert.equal(view.profileContext.planReachesReference, false);
-  });
-
-  it('flags when the plan reaches the four-week reference', () => {
-    const input = profile({
-      thcUseDaysLast30: { value: 28, provenance: 'user_estimate' },
+  it('allows one reviewed daily extension signal to produce 28–35 days', () => {
+    const highIntensity = outlook(profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
       sessionsPerUseDay: { value: 2, provenance: 'user_estimate' },
+    }));
+    assert.deepEqual(highIntensity.predictedRecoveryWindow, { min: 28, max: 35 });
+    assert.equal(highIntensity.predictionRule, 'daily_with_one_extended_signal');
+
+    const longEstablished = outlook(profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+    }));
+    assert.deepEqual(longEstablished.predictedRecoveryWindow, { min: 28, max: 35 });
+  });
+
+  it('allows the highest-burden daily + intensity + long-duration class to reach 28–42 days', () => {
+    const view = outlook(profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
       products: ['concentrate'],
       routes: ['dabbing'],
       currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
-    });
-    const view = outlook(input)!;
-    assert.equal(view.wordingKey, 'heavy_reaches_reference');
-    assert.equal(view.profileContext.planReachesReference, true);
+    }));
+    assert.deepEqual(view.predictedRecoveryWindow, { min: 28, max: 42 });
+    assert.equal(view.predictionRule, 'daily_with_intensity_and_long_duration');
+    assert.equal(view.predictionEvidence.extendedBeyondHumanReference, true);
+    assert.equal(view.predictionEvidence.upperBoundDirectness, 'indirect_preclinical');
   });
 
-  it('heavy profile below 28 uses the near-reference wording, not a mandate', () => {
-    // 27/30 multi-session recent -> 21-28, plan 21.
-    const input = profile({
-      thcUseDaysLast30: { value: 27, provenance: 'user_estimate' },
+  it('requires both intensity and long duration for a frequent non-daily extension', () => {
+    const view = outlook(profile({
+      thcUseDaysLast30: { value: 20, provenance: 'user_estimate' },
+      sessionsPerUseDay: { value: 2, provenance: 'user_estimate' },
+      currentPatternDuration: { value: '2_to_5_years', provenance: 'user_estimate' },
+    }));
+    assert.deepEqual(view.predictedRecoveryWindow, { min: 28, max: 35 });
+    assert.equal(view.predictionRule, 'frequent_with_intensity_and_long_duration');
+  });
+
+  it('does not turn light concentrate use or long duration alone at low frequency into a long window', () => {
+    const view = outlook(profile({
+      thcUseDaysLast30: { value: 2, provenance: 'user_estimate' },
       sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
-      currentPatternDuration: { value: 'under_1_month', provenance: 'user_estimate' },
-    });
-    const view = outlook(input)!;
-    assert.equal(view.planningTargetDays, 21);
-    assert.equal(view.wordingKey, 'heavy_target_below_reference');
-    assert.equal(view.profileContext.planReachesReference, false);
+      products: ['concentrate'],
+      routes: ['dabbing'],
+      currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+    }));
+    assert.deepEqual(view.predictedRecoveryWindow, { min: 2, max: 7 });
+    assert.equal(view.profileContext.lightOrRegular, true);
   });
 
-  it('deduplicates milestone days (target = range.max = 28)', () => {
+  it('does not silently treat missing intensity and duration as heavy signals', () => {
+    const complete = profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      products: ['flower'],
+      routes: ['smoking'],
+    });
+    // Legacy/frozen records can be less complete than today's questionnaire;
+    // the recovery layer must not fill those gaps with high-burden defaults.
+    const missing: UseProfileInput = {
+      ...complete,
+      sessionsPerUseDay: { value: null, provenance: 'missing' },
+      currentPatternDuration: { value: null, provenance: 'missing' },
+    };
+    const view = buildToleranceRecoveryOutlook({ profile: missing, result: resultOf(complete) })!;
+    assert.deepEqual(view.predictedRecoveryWindow, { min: 21, max: 28 });
+    assert.equal(view.predictionRule, 'tolerance_range');
+  });
+
+  it('never exceeds the reviewed six-week product ceiling', () => {
+    for (const days of [1, 3, 4, 15, 16, 25, 26, 30]) {
+      const view = outlook(profile({
+        thcUseDaysLast30: { value: days, provenance: 'user_estimate' },
+        sessionsPerUseDay: { value: 20, provenance: 'user_estimate' },
+        products: ['concentrate'],
+        routes: ['dabbing'],
+        currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+      }));
+      assert.ok(view.predictedRecoveryWindow.max <= MAX_PREDICTED_RECOVERY_DAYS);
+    }
+  });
+
+  it('emits no reset/receptor/detox percentages or exact complete-reset day', () => {
+    const serialized = JSON.stringify(outlook(profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
+      products: ['concentrate'],
+      routes: ['dabbing'],
+      currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+    })));
+    assert.doesNotMatch(serialized, /%|detox|complete.?reset|fully.?reset|reset.?day/i);
+  });
+
+  it('deduplicates Day 28 when plan, reference and predicted start coincide, while retaining Day 42', () => {
+    const view = outlook(profile({
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
+      products: ['concentrate'],
+      routes: ['dabbing'],
+      currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+    }));
+    const days = view.milestones.map((milestone) => milestone.day);
+    assert.equal(days.filter((day) => day === 28).length, 1);
+    assert.ok(view.milestones.some((milestone) => milestone.id === 'four_week_reference' && milestone.day === 28));
+    assert.ok(view.milestones.some((milestone) => milestone.id === 'predicted_window_end' && milestone.day === 42));
+  });
+});
+
+describe('recovery outlook v2: history and compatibility', () => {
+  it('keeps history descriptive and does not use a score to move the predicted window', () => {
+    const input = profile({
+      previousBreaks: [
+        { id: 'pb-1', durationDays: 7, toleranceReductionScore: 8, endedAt: null, createdAt: '2025-01-01T00:00:00.000Z' },
+      ],
+    });
+    const withHistory = buildToleranceRecoveryOutlook({
+      profile: input,
+      result: resultOf(input),
+      previousBreaks: input.previousBreaks,
+    })!;
+    const withoutHistory = buildToleranceRecoveryOutlook({
+      profile: { ...input, previousBreaks: [] },
+      result: resultOf({ ...input, previousBreaks: [] }),
+      previousBreaks: [],
+    })!;
+    assert.deepEqual(withHistory.predictedRecoveryWindow, withoutHistory.predictedRecoveryWindow);
+    assert.deepEqual(withHistory.personalHistory, [{ durationDays: 7, toleranceReductionScore: 8 }]);
+    assert.equal(JSON.stringify(withHistory).includes('80'), false);
+  });
+
+  it('keeps v1 as a fixed-reference historical model with no v2 predicted window', () => {
     const input = profile({
       thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
       sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
       currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
     });
-    const view = outlook(input)!;
-    const days = view.milestones.map((m) => m.day);
-    assert.equal(new Set(days).size, days.length);
-    // One single Day-28 marker (the four-week reference wins over duplicates).
-    assert.equal(days.filter((d) => d === 28).length, 1);
-    assert.ok(view.milestones.some((m) => m.id === 'four_week_reference' && m.day === 28));
+    const view = buildToleranceRecoveryOutlookV1({ profile: input, result: resultOf(input) })!;
+    assert.equal(view.version, 'tolerance-recovery-outlook-v1');
+    assert.equal('predictedRecoveryWindow' in view, false);
+    assert.equal(Math.max(...view.milestones.map((milestone) => milestone.day)), 28);
   });
 
-  it('keeps after-28 open: no invented further reference day', () => {
-    const view = outlook(
-      profile({
-        thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
-        sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
-      }),
-    )!;
-    const maxDay = Math.max(...view.milestones.map((m) => m.day));
-    assert.equal(maxDay, 28);
-  });
-
-  it('returns null for non-tolerance results', () => {
-    const base = resultOf(profile({ thcUseDaysLast30: { value: 10, provenance: 'user_estimate' } }));
-    const notApplicable: ToleranceResult = { ...base, kind: 'not_applicable', recommendedRangeDays: null, preferredTargetDays: null };
-    const planningOnly: ToleranceResult = { ...base, kind: 'planning_only', recommendedRangeDays: null, preferredTargetDays: null };
-    assert.equal(
-      buildToleranceRecoveryOutlook({ profile: profile(), result: notApplicable }),
-      null,
-    );
-    assert.equal(
-      buildToleranceRecoveryOutlook({ profile: profile(), result: planningOnly }),
-      null,
-    );
-  });
-});
-
-describe('recovery outlook: personal history', () => {
-  it('lists clean scored breaks as facts only', () => {
-    const input = profile({ thcUseDaysLast30: { value: 10, provenance: 'user_estimate' } });
-    const view = outlook(input, {
-      previousBreaks: [
-        { durationDays: 7, toleranceReductionScore: 4 },
-        { durationDays: 14, toleranceReductionScore: 8 },
-      ],
-    })!;
-    assert.ok(view.personalHistory);
-    // Preserves the stored order of the user's recorded observations.
-    assert.deepEqual(view.personalHistory![0], { durationDays: 7, toleranceReductionScore: 4 });
-    // No conversion to percentages anywhere in the model.
-    assert.equal(JSON.stringify(view).includes('80'), false);
-  });
-
-  it('omits personal history when no scored break exists', () => {
-    const view = outlook(
-      profile({ thcUseDaysLast30: { value: 10, provenance: 'user_estimate' } }),
-      { previousBreaks: [{ durationDays: 14, toleranceReductionScore: null }] },
-    )!;
-    assert.equal(view.personalHistory, null);
-  });
-
-  it('flags when tolerance-v3 used an in-range history observation for the target', () => {
-    const input = profile({
-      thcUseDaysLast30: { value: 10, provenance: 'user_estimate' },
-      currentPatternDuration: { value: 'under_1_month', provenance: 'user_estimate' },
-      previousBreaks: [
-        { id: 'pb-1', durationDays: 7, toleranceReductionScore: 3, endedAt: null, createdAt: '2025-01-01T00:00:00.000Z' },
-        { id: 'pb-2', durationDays: 14, toleranceReductionScore: 8, endedAt: null, createdAt: '2025-06-01T00:00:00.000Z' },
-      ],
-    });
-    const result = resultOf(input);
-    // 7-14 range with a recent profile anchors at 7; the clean 14-day
-    // observation raises the target inside the range.
-    assert.equal(result.preferredTargetDays, 14);
-    const view = buildToleranceRecoveryOutlook({
-      profile: input,
-      result,
-      previousBreaks: input.previousBreaks,
-    })!;
-    assert.equal(view.planningTargetDays, 14);
-    assert.equal(view.historyRaisedTarget, true);
+  it('returns null for non-tolerance result kinds', () => {
+    const base = resultOf(profile());
+    const planningOnly: ToleranceResult = {
+      ...base,
+      kind: 'planning_only',
+      recommendedRangeDays: null,
+      preferredTargetDays: null,
+    };
+    assert.equal(buildToleranceRecoveryOutlook({ profile: profile(), result: planningOnly }), null);
   });
 });

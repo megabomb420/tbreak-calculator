@@ -83,13 +83,14 @@ describe('predicted reset panel content', () => {
     openResetMode();
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('reset-disclaimer').textContent).toBe(RESET_PANEL.disclaimer);
-    expect(screen.getByTestId('reset-target-day').textContent).toBe('Day 7');
+    expect(screen.getByTestId('reset-window-value').textContent).toBe('About 1–2 weeks');
+    expect(screen.getByTestId('reset-target-day').textContent).toBe('7 days');
     expect(screen.getByTestId('reset-evidence-range').textContent).toContain('7–14 days');
     expect(screen.getByTestId('reset-biological-reference').textContent).toContain(RESET_PANEL.referenceValue);
-    expect(screen.getByTestId('reset-biological-reference').textContent).toMatch(/not proof of a 100% reset/i);
+    expect(screen.getByTestId('reset-biological-reference').textContent).toMatch(/not.*proof of complete recovery/i);
     // The panel is a time list, never a percentage meter.
     expect(screen.getByTestId('reset-timeline-section').textContent).toMatch(
-      /not a percentage of recovery/i,
+      /never a recovery percentage/i,
     );
     expect(screen.queryByRole('progressbar')).toBeNull();
     expect(screen.queryByTestId('plan-ring')).toBeNull();
@@ -97,8 +98,8 @@ describe('predicted reset panel content', () => {
     const timeline = screen.getByTestId('recovery-timeline');
     expect(within(timeline).getByTestId('recovery-milestone-last_use')).toBeTruthy();
     expect(within(timeline).getByTestId('recovery-milestone-early_recovery')).toBeTruthy();
-    expect(within(timeline).getByTestId('recovery-milestone-plan_target')).toBeTruthy();
-    expect(within(timeline).getByTestId('recovery-milestone-range_upper')).toBeTruthy();
+    expect(within(timeline).getByTestId('recovery-milestone-predicted_window_start')).toBeTruthy();
+    expect(within(timeline).getByTestId('recovery-milestone-predicted_window_end')).toBeTruthy();
     expect(within(timeline).getByTestId('recovery-milestone-four_week_reference')).toBeTruthy();
     // Plan content is replaced while in reset mode.
     expect(screen.queryByTestId('break-outlook')).toBeNull();
@@ -122,10 +123,10 @@ describe('predicted reset panel content', () => {
     completeTolerance(createMemoryStorage(), { useDays: '2', duration: /Less than 1 month/ });
     openResetMode();
     const wording = screen.getByTestId('reset-wording').textContent ?? '';
-    expect(wording).toContain('Your plan aims for a meaningful tolerance reduction appropriate to your current pattern.');
-    expect(wording).toMatch(/not evidence that you personally need a 28-day break/i);
+    expect(wording).toContain('Your profile-sensitive prediction remains relatively short.');
+    expect(screen.getByTestId('reset-window-value').textContent).toBe('2–7 days');
     // It never claims the plan reaches the strongest chronic-use reference.
-    expect(screen.getByTestId('reset-biological-reference').textContent ?? '').toMatch(/light or regular user is not being told/i);
+    expect(screen.getByTestId('reset-light-reference-note').textContent ?? '').toMatch(/does not mean.*Day 28/i);
   });
 
   it('toggles the evidence disclosure open and closed', () => {
@@ -137,11 +138,11 @@ describe('predicted reset panel content', () => {
     fireEvent.click(within(evidence).getByText(RESET_EVIDENCE.summary));
     // happy-dom toggles native <details> on summary activation.
     expect(evidence.hasAttribute('open')).toBe(true);
-    expect(evidence.textContent).toMatch(/11 cannabis-dependent men/i);
+    expect(evidence.textContent).toMatch(/Eleven cannabis-dependent men/i);
     expect(evidence.textContent).toMatch(/D'Souza/i);
     expect(evidence.textContent).toMatch(/Hirvonen/i);
-    expect(evidence.textContent).toMatch(/regional CB1 downregulation/i);
-    expect(evidence.textContent).toMatch(/not a guaranteed 100% reset/i);
+    expect(evidence.textContent).toMatch(/Cortical CB1 availability/i);
+    expect(evidence.textContent).toMatch(/not scientifically proven as a complete reset/i);
     fireEvent.click(within(evidence).getByText(RESET_EVIDENCE.summary));
     expect(evidence.hasAttribute('open')).toBe(false);
   });
@@ -190,7 +191,7 @@ describe('predicted reset panel content', () => {
 });
 
 describe('predicted reset from History (frozen records)', () => {
-  function toleranceProfile(): UseProfileInput {
+  function toleranceProfile(overrides: Partial<UseProfileInput> = {}): UseProfileInput {
     return {
       goal: 'tolerance_reset',
       breakRequested: true,
@@ -202,14 +203,16 @@ describe('predicted reset from History (frozen records)', () => {
       lastUseAt: { value: new Date(AT - 2 * 86400000).toISOString(), provenance: 'user_estimate' },
       currentPatternDuration: { value: '1_to_6_months', provenance: 'user_estimate' },
       previousBreaks: [],
+      ...overrides,
     };
   }
 
   function seedHistory(
     storage: StorageAdapter,
     mutate?: (record: ReturnType<typeof freezeCalculation>) => ReturnType<typeof freezeCalculation>,
+    profileOverrides: Partial<UseProfileInput> = {},
   ) {
-    const profile = toleranceProfile();
+    const profile = toleranceProfile(profileOverrides);
     const snapshot = { kind: 'use_profile' as const, profile };
     createQuestionnaireSnapshotStore(storage).save({
       schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
@@ -238,24 +241,52 @@ describe('predicted reset from History (frozen records)', () => {
     expect(screen.getByTestId('result-mode')).toBeTruthy();
     fireEvent.click(screen.getByTestId('result-mode-reset'));
     expect(screen.getByTestId('reset-disclaimer')).toBeTruthy();
-    expect(screen.getByTestId('reset-target-day').textContent).toBe('Day 7');
+    expect(screen.getByTestId('reset-target-day').textContent).toBe('7 days');
     expect(screen.getByTestId('recovery-timeline')).toBeTruthy();
     expect(screen.queryByTestId('reset-context-label')).toBeNull();
   });
 
+  it('renders a six-week outer heuristic separately from the 28-day plan and human reference', () => {
+    const storage = createMemoryStorage();
+    seedHistory(storage, undefined, {
+      thcUseDaysLast30: { value: 30, provenance: 'user_estimate' },
+      sessionsPerUseDay: { value: 3, provenance: 'user_estimate' },
+      products: ['concentrate'],
+      routes: ['dabbing'],
+      currentPatternDuration: { value: '5_plus_years', provenance: 'user_estimate' },
+    });
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    fireEvent.click(screen.getByTestId('history-row'));
+    fireEvent.click(screen.getByTestId('result-mode-reset'));
+    expect(screen.getByTestId('reset-window-value').textContent).toBe('About 4–6 weeks');
+    expect(screen.getByTestId('reset-target-day').textContent).toBe('28 days');
+    expect(screen.getByTestId('reset-biological-reference').textContent).toContain('Day 28');
+    expect(screen.getByTestId('reset-lower-directness').textContent).toMatch(/product heuristic/i);
+    expect(screen.getByTestId('reset-extended-recovery')).toBeTruthy();
+    const timeline = screen.getByTestId('recovery-timeline');
+    expect(within(timeline).getAllByText('Day 28')).toHaveLength(1);
+    expect(within(timeline).getByText('Day 42')).toBeTruthy();
+  });
+
   it('labels legacy v1/v2 records "historical context" but still renders stored numbers', () => {
     const storage = createMemoryStorage();
-    seedHistory(storage, (frozen) => ({
-      ...frozen,
-      policyVersion: 'tolerance-v1',
-      result: { type: 'tolerance', value: { ...frozen.result.value, policyVersion: 'tolerance-v1' } },
-    }));
+    seedHistory(storage, (frozen) => {
+      const { recoveryOutlookVersion: _recoveryOutlookVersion, ...legacy } = frozen;
+      return {
+        ...legacy,
+        policyVersion: 'tolerance-v1',
+        result: { type: 'tolerance', value: { ...frozen.result.value, policyVersion: 'tolerance-v1' } },
+      };
+    });
     renderApp(storage);
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     fireEvent.click(screen.getByTestId('history-row'));
     fireEvent.click(screen.getByTestId('result-mode-reset'));
     expect(screen.getByTestId('reset-context-label').textContent).toBe(RESET_MODE.historicalContext);
     expect(screen.getByTestId('reset-target-day').textContent).toBe('Day 7');
-    expect(screen.getByTestId('reset-planning-target').textContent).toMatch(/earlier policy version/i);
+    expect(screen.getByTestId('reset-planning-target').textContent).toMatch(/policy used at the time/i);
+    expect(screen.getByTestId('reset-v1-historical')).toBeTruthy();
+    expect(screen.queryByTestId('reset-predicted-window')).toBeNull();
   });
 });
