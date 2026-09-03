@@ -17,6 +17,7 @@ import {
   ROUTES,
 } from '../../domain/schemas/enums.ts';
 import { isCoreSourcedValue, isRecord } from './record-codec.ts';
+import { isCompanionPersonalisation } from '../questionnaire/companion.ts';
 
 export const QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION = 'questionnaire-snapshot-v1' as const;
 export const QUESTIONNAIRE_SNAPSHOT_KEY = 'tbreak.questionnaire-snapshot.v1';
@@ -99,6 +100,7 @@ function isValidSnapshot(value: unknown): value is RawAnswerSnapshot {
     );
   }
   if (record.kind !== 'use_profile') return false;
+  if (record.companion !== undefined && !isCompanionPersonalisation(record.companion)) return false;
   const profile = record.profile;
   if (typeof profile !== 'object' || profile === null) return false;
   const body = profile as Record<string, unknown>;

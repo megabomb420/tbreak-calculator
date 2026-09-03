@@ -19,6 +19,7 @@ import {
 } from '../../domain/schemas/enums.ts';
 import { parseSubmittedTimestamp, type Instant } from '../../domain/schemas/time.ts';
 import { isInstantInWindow, type DateWindowKind } from './date-answers.ts';
+import { isSupportFocus, type SupportFocus } from './companion.ts';
 
 export const QUESTIONNAIRE_STEP_IDS = [
   'Q1',
@@ -28,6 +29,7 @@ export const QUESTIONNAIRE_STEP_IDS = [
   'Q3-opt',
   'Q2A',
   'Q6',
+  'Q7',
   'Q4',
   'Q5',
   'Q2D',
@@ -42,7 +44,8 @@ export type AnswerType =
   | 'date_optional'
   | 'sessions'
   | 'products_routes'
-  | 'pattern_duration';
+  | 'pattern_duration'
+  | 'support_focus';
 
 export interface StepSpec {
   readonly id: QuestionnaireStepId;
@@ -58,6 +61,7 @@ export const STEP_SPECS: Record<QuestionnaireStepId, StepSpec> = {
   'Q3-opt': { id: 'Q3-opt', answerType: 'date_optional', dateWindow: 'older_than_30_days' },
   Q2A: { id: 'Q2A', answerType: 'date', dateWindow: 'any_past' },
   Q6: { id: 'Q6', answerType: 'pattern_duration' },
+  Q7: { id: 'Q7', answerType: 'support_focus' },
   Q4: { id: 'Q4', answerType: 'sessions' },
   Q5: { id: 'Q5', answerType: 'products_routes' },
   Q2D: { id: 'Q2D', answerType: 'single_select_advance' },
@@ -71,6 +75,7 @@ export interface QuestionnaireAnswers {
   readonly lastUseAt?: string;
   readonly lastUseSkipped?: boolean;
   readonly currentPatternDuration?: CurrentPatternDurationBand;
+  readonly supportFocus?: SupportFocus;
   readonly sessionsPerUseDay?: number;
   readonly products?: readonly ProductKind[];
   readonly routes?: readonly Route[];
@@ -86,6 +91,7 @@ export type StepAnswer =
   | { readonly step: 'Q2A'; readonly value: string }
   | { readonly step: 'Q3-opt'; readonly value: string | { readonly skip: true } }
   | { readonly step: 'Q6'; readonly value: CurrentPatternDurationBand }
+  | { readonly step: 'Q7'; readonly value: SupportFocus }
   | { readonly step: 'Q4'; readonly value: number }
   | {
       readonly step: 'Q5';
@@ -122,7 +128,7 @@ export function resolvedPath(answers: QuestionnaireAnswers): QuestionnaireStepId
   if (goal === 'abstinence') {
     // Duration is the first substantive use-profile question; last use anchors
     // the open-ended timeline after it.
-    path.push('Q6', 'Q2A');
+    path.push('Q6', 'Q2A', 'Q7');
     return path;
   }
   if (goal === 'reduction') {
@@ -161,6 +167,8 @@ export function isStepComplete(step: QuestionnaireStepId, answers: Questionnaire
       return lastUseFits(answers.lastUseAt, now, 'older_than_30_days');
     case 'Q6':
       return answers.currentPatternDuration !== undefined;
+    case 'Q7':
+      return answers.supportFocus !== undefined;
     case 'Q4':
       return answers.sessionsPerUseDay !== undefined;
     case 'Q5':
@@ -272,22 +280,23 @@ function toleranceFromGoalChoice(answers: QuestionnaireAnswers): QuestionnaireSt
   }
   steps.push('Q3');
   if (days >= 4) steps.push('Q4', 'Q5');
+  steps.push('Q7');
   return steps;
 }
 
 function estimatedPathLength(answers: QuestionnaireAnswers): number {
   const { goal } = answers;
-  if (goal === undefined) return 6;
-  if (goal === 'abstinence') return 3;
+  if (goal === undefined) return 7;
+  if (goal === 'abstinence') return 4;
   if (goal === 'detection_information') return 3;
   const reductionPrefix = goal === 'reduction' ? 1 : 0;
-  if (goal === 'reduction' && answers.breakRequested === undefined) return 7;
+  if (goal === 'reduction' && answers.breakRequested === undefined) return 8;
   if (goal === 'reduction' && answers.breakRequested === false) return 3;
   const days = answers.thcUseDaysLast30;
-  if (days === undefined) return 6 + reductionPrefix;
+  if (days === undefined) return 7 + reductionPrefix;
   if (days === 0) return 4 + reductionPrefix;
-  if (days <= 3) return 4 + reductionPrefix;
-  return 6 + reductionPrefix;
+  if (days <= 3) return 5 + reductionPrefix;
+  return 7 + reductionPrefix;
 }
 
 function isFullyResolved(answers: QuestionnaireAnswers): boolean {
@@ -351,6 +360,12 @@ function fieldsFromAnswer(answer: StepAnswer): QuestionnaireAnswers {
       }
       return { currentPatternDuration: answer.value };
     }
+    case 'Q7': {
+      if (!isSupportFocus(answer.value)) {
+        throw new RangeError(`invalid supportFocus: ${answer.value}`);
+      }
+      return { supportFocus: answer.value };
+    }
     case 'Q4': {
       if (!Number.isInteger(answer.value) || answer.value < 1 || answer.value > 9) {
         throw new RangeError(`sessionsPerUseDay must be an integer 1–9, got ${answer.value}`);
@@ -403,6 +418,7 @@ function pruneAnswers(answers: QuestionnaireAnswers): QuestionnaireAnswers {
     lastUseAt?: string;
     lastUseSkipped?: boolean;
     currentPatternDuration?: CurrentPatternDurationBand;
+    supportFocus?: SupportFocus;
     sessionsPerUseDay?: number;
     products?: readonly ProductKind[];
     routes?: readonly Route[];
@@ -426,6 +442,9 @@ function pruneAnswers(answers: QuestionnaireAnswers): QuestionnaireAnswers {
   }
   if (pathOf(next).includes('Q6') && answers.currentPatternDuration !== undefined) {
     next.currentPatternDuration = answers.currentPatternDuration;
+  }
+  if (pathOf(next).includes('Q7') && answers.supportFocus !== undefined) {
+    next.supportFocus = answers.supportFocus;
   }
   if (pathOf(next).includes('Q4') && answers.sessionsPerUseDay !== undefined) {
     next.sessionsPerUseDay = answers.sessionsPerUseDay;

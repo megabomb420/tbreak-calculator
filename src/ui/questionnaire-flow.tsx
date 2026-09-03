@@ -20,6 +20,7 @@ import {
   MatrixCards,
   ProductsRoutesControl,
   SessionsControl,
+  SupportFocusCards,
   UseDaysSlider,
 } from './questionnaire-controls.tsx';
 import { QUESTIONNAIRE, STEP_COPY } from './questionnaire-copy.ts';
@@ -58,6 +59,7 @@ export function QuestionnaireFlow({
   const backTarget = previousStep(currentStep, answers);
   const fraction = progressFraction(currentStep, answers);
   const advance = spec.answerType === 'single_select_advance';
+  const autoAdvance = advance || spec.answerType === 'pattern_duration' || spec.answerType === 'support_focus';
   const percent = Math.round(fraction * 100);
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export function QuestionnaireFlow({
           <CloseIcon />
         </button>
         <div className="progress-cluster">
+          <p className="questionnaire-stage-label">{questionnaireStage(currentStep)}</p>
           <div
             className="progress-track"
             role="progressbar"
@@ -114,7 +117,7 @@ export function QuestionnaireFlow({
         </section>
       </div>
       <footer className="questionnaire-footer">
-        {!advance ? (
+        {!autoAdvance ? (
           <button
             type="button"
             className="cta-primary"
@@ -140,6 +143,13 @@ export function QuestionnaireFlow({
       </footer>
     </div>
   );
+}
+
+function questionnaireStage(step: QuestionnaireStepId): string {
+  if (step === 'Q1' || step === 'Q2R') return 'Choose your direction';
+  if (step === 'Q7') return 'Personalise your plan';
+  if (step === 'Q2D' || step === 'Q3D') return 'Detection basics';
+  return 'Learn your pattern';
 }
 
 function StepControl({
@@ -187,6 +197,13 @@ function StepControl({
         <DurationCards
           selected={answers.currentPatternDuration}
           onSelect={(value) => onAdvance({ step: 'Q6', value })}
+        />
+      );
+    case 'Q7':
+      return (
+        <SupportFocusCards
+          selected={answers.supportFocus}
+          onSelect={(value) => onAdvance({ step: 'Q7', value })}
         />
       );
     case 'Q4':

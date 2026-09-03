@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { FIRST_LAUNCH } from '../../src/ui/copy.ts';
 import { QUESTIONNAIRE } from '../../src/ui/questionnaire-copy.ts';
-import { RESULT, planHeroLabel } from '../../src/ui/result-copy.ts';
+import { RESULT } from '../../src/ui/result-copy.ts';
 import { RESET_MODE, RESET_PANEL, RESET_EVIDENCE } from '../../src/ui/recovery-copy.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
@@ -46,6 +46,7 @@ function completeTolerance(storage: StorageAdapter, opts: { useDays: string; dur
     fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
   }
+  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
 }
 
 function openResetMode(): void {
@@ -62,7 +63,7 @@ describe('result view mode segment (tolerance_result)', () => {
     expect(screen.getByTestId('result-mode-plan').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('false');
     // Default "Your plan": the hero still leads, unchanged.
-    expect(screen.getByRole('heading', { name: planHeroLabel(7) })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '7 days' })).toBeTruthy();
     expect(screen.getByTestId('break-outlook')).toBeTruthy();
   });
 
@@ -84,6 +85,7 @@ describe('predicted reset panel content', () => {
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('reset-disclaimer').textContent).toBe(RESET_PANEL.disclaimer);
     expect(screen.getByTestId('reset-window-value').textContent).toBe('About 1–2 weeks');
+    expect(screen.getByTestId('result-lens-recovery').textContent).toContain('weeks');
     expect(screen.getByTestId('reset-target-day').textContent).toBe('7 days');
     expect(screen.getByTestId('reset-evidence-range').textContent).toContain('7–14 days');
     expect(screen.getByTestId('reset-biological-reference').textContent).toContain(RESET_PANEL.referenceValue);

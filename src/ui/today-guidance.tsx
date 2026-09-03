@@ -1,16 +1,21 @@
 import type { TodayGuidanceView } from '../application/presentation/break-guidance.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { CheckinComparisonBlock } from './checkin-comparison.tsx';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import { supportFocusCopy } from './companion-copy.ts';
 
 export function TodayGuidance({
   view,
   compact = false,
+  supportFocus = null,
 }: {
   readonly view: TodayGuidanceView;
   readonly compact?: boolean;
+  readonly supportFocus?: SupportFocus | null;
 }) {
-  const notice = compact ? view.mayNotice.slice(0, 4) : view.mayNotice;
-  const help = compact ? view.canHelp.slice(0, 4) : view.canHelp;
+  const notice = compact ? view.mayNotice.slice(0, 3) : view.mayNotice;
+  const help = compact ? view.canHelp.slice(0, 2) : view.canHelp;
+  const focus = supportFocusCopy(supportFocus);
   return (
     <section className="today-guidance" data-testid="today-guidance" data-window={view.windowId}>
       <p className="guidance-headline" data-testid="guidance-headline">
@@ -21,12 +26,20 @@ export function TodayGuidance({
           <span className="guidance-milestone-title">{view.milestone.title}.</span> {view.milestone.body}
         </p>
       ) : null}
+      {compact ? (
+        <div className="guidance-block guidance-primary">
+          <h3 className="guidance-kicker">What matters today</h3>
+          <p className="body" data-testid="guidance-primary-action">
+            {supportFocus === null ? (view.whyThisMatters ?? help[0] ?? view.context) : focus.todayAction}
+          </p>
+        </div>
+      ) : null}
       {notice.length > 0 ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.mayNotice}</h3>
           {compact ? (
-            <p className="body" data-testid="guidance-notice">
-              {notice.join(', ')}.
+            <p className="body guidance-notice-line" data-testid="guidance-notice">
+              {notice.join(' · ')}
             </p>
           ) : (
             <ul className="guidance-list" data-testid="guidance-notice">
@@ -37,7 +50,7 @@ export function TodayGuidance({
           )}
         </div>
       ) : null}
-      {help.length > 0 ? (
+      {help.length > 0 && !compact ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.canHelp}</h3>
           <ul className="guidance-list" data-testid="guidance-help">
@@ -57,12 +70,14 @@ export function TodayGuidance({
           </ul>
         </div>
       ) : null}
-      <div className="guidance-block">
-        <h3 className="guidance-kicker">{GUIDANCE_CHROME.context}</h3>
-        <p className="body" data-testid={compact ? 'guidance-context' : 'phase-focus'}>
-          {view.context}
-        </p>
-      </div>
+      {!compact ? (
+        <div className="guidance-block">
+          <h3 className="guidance-kicker">{GUIDANCE_CHROME.context}</h3>
+          <p className="body" data-testid="phase-focus">{view.context}</p>
+        </div>
+      ) : (
+        <span className="sr-only" data-testid="guidance-context">{view.context}</span>
+      )}
       {view.comesNext !== null ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.comesNext}</h3>

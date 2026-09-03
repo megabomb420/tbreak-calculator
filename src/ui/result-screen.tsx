@@ -16,7 +16,6 @@ import {
   daysSince,
   evidenceRangeLine,
   NOMINAL_THC,
-  planHeroLabel,
   RESULT,
 } from './result-copy.ts';
 import {
@@ -33,6 +32,8 @@ import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.
 import { presentCb1Education } from '../application/presentation/break-guidance.ts';
 import { PredictedResetPanel } from './predicted-reset.tsx';
 import { RESET_MODE } from './recovery-copy.ts';
+import { ResultLensHero } from './result-lens.tsx';
+import { YourPlanGuide } from './your-plan-guide.tsx';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -190,6 +191,10 @@ function ResultBody({
     setResetMode(false);
   }
   const legacyReset = historical && outlook?.version === RECOVERY_OUTLOOK_V1_VERSION;
+  const supportFocus =
+    outlookRecord?.snapshot.kind === 'use_profile'
+      ? outlookRecord.snapshot.companion?.supportFocus ?? null
+      : null;
 
   switch (view.kind) {
     case 'tolerance_result': {
@@ -197,39 +202,36 @@ function ResultBody({
       // visible directly underneath so a target inside a shared range is never
       // buried. The target is a planning choice, not a predicted reset date.
       const planBody = (
-        <div className="stack">
-          <header className="result-hero">
-            <p className="eyebrow">Your plan</p>
-            <h2 id="result-title" className="hero-range" aria-label={planHeroLabel(view.preferredTargetDays)}>
-              <span className="hero-range-visual" aria-hidden="true">
-                <span className="hero-num">{view.preferredTargetDays}</span>
-                <span className="hero-unit">days</span>
-              </span>
-            </h2>
-            <p className="meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
+        <div
+          id="result-panel-plan"
+          className="stack result-lens-panel"
+          data-testid="result-plan-panel"
+          role="tabpanel"
+          aria-labelledby="result-tab-plan"
+        >
+          <ResultLensHero
+            eyebrow="Your practical plan"
+            value={view.preferredTargetDays}
+            unit="days"
+            summary="A clear target for the break you can act on now."
+            tone="plan"
+            labelledBy="result-title"
+          >
+            <p className="result-lens-meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
             <RangeBand
               min={view.rangeDays.min}
               max={view.rangeDays.max}
               preferred={view.preferredTargetDays}
             />
-            <p className="body">{view.uncertainty}</p>
-            {view.contextNote !== null ? (
-              <p className="meta" data-testid="planning-context">
-                {view.contextNote}
-              </p>
-            ) : null}
-          </header>
-          <section className="result-section">
-            <h3 className="card-title">{RESULT.whyHeading}</h3>
-            <ul className="driver-list">
-              {view.drivers.map((line) => (
-                <li key={line} className="driver-item">
-                  <span className="driver-mark" aria-hidden="true" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+            <p className="meta">{view.uncertainty}</p>
+          </ResultLensHero>
+          <YourPlanGuide
+            targetDays={view.preferredTargetDays}
+            drivers={view.drivers}
+            contextNote={view.contextNote}
+            supportFocus={supportFocus}
+            onEditFocus={historical ? undefined : () => onEditStep('Q7')}
+          />
           {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : null}
           <Cb1ContextNote />
           <HistoryCard
@@ -243,7 +245,13 @@ function ResultBody({
       );
       if (outlook === null) return planBody;
       const resetBody = (
-        <div className="stack">
+        <div
+          id="result-panel-reset"
+          className="stack result-lens-panel"
+          data-testid="result-reset-panel"
+          role="tabpanel"
+          aria-labelledby="result-tab-reset"
+        >
           <h2 id="result-title" className="sr-only">
             {RESET_MODE.reset}
           </h2>
@@ -399,9 +407,11 @@ function ResultModeControl({
       }}
     >
       <button
+        id="result-tab-plan"
         type="button"
         role="tab"
         aria-selected={!resetMode}
+        aria-controls="result-panel-plan"
         tabIndex={resetMode ? -1 : 0}
         className={resetMode ? 'result-mode-option' : 'result-mode-option selected'}
         data-testid="result-mode-plan"
@@ -412,9 +422,11 @@ function ResultModeControl({
         {RESET_MODE.plan}
       </button>
       <button
+        id="result-tab-reset"
         type="button"
         role="tab"
         aria-selected={resetMode}
+        aria-controls="result-panel-reset"
         tabIndex={resetMode ? 0 : -1}
         className={resetMode ? 'result-mode-option selected' : 'result-mode-option'}
         data-testid="result-mode-reset"

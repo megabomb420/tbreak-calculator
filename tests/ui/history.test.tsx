@@ -39,6 +39,7 @@ function completeTolerance10Days(storage: StorageAdapter) {
   fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
   fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
   fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
 }
 
 describe('history tab and previous-break flow', () => {

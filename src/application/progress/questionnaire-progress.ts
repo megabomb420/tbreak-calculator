@@ -20,6 +20,7 @@ import {
   PRODUCT_KINDS,
   ROUTES,
 } from '../../domain/schemas/enums.ts';
+import { isSupportFocus } from '../questionnaire/companion.ts';
 
 export const QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION = 'questionnaire-draft-v2' as const;
 export const QUESTIONNAIRE_PROGRESS_KEY = 'tbreak.questionnaire-progress.v1';
@@ -104,6 +105,7 @@ function isValidAnswers(value: unknown): value is QuestionnaireAnswers {
     'lastUseAt',
     'lastUseSkipped',
     'currentPatternDuration',
+    'supportFocus',
     'sessionsPerUseDay',
     'products',
     'routes',
@@ -124,6 +126,7 @@ function isValidAnswers(value: unknown): value is QuestionnaireAnswers {
   ) {
     return false;
   }
+  if (record.supportFocus !== undefined && !isSupportFocus(record.supportFocus)) return false;
   if (record.lastUseAt !== undefined && typeof record.lastUseAt !== 'string') return false;
   if (record.lastUseSkipped !== undefined && typeof record.lastUseSkipped !== 'boolean') return false;
   if (

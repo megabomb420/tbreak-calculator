@@ -29,6 +29,8 @@ import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import type { BreakOutlookView } from '../application/presentation/break-outlook.ts';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import { supportFocusCopy } from './companion-copy.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -44,6 +46,7 @@ export interface PlanDetailProps {
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly DailyCheckin[];
   readonly profile: UseProfileInput | null;
+  readonly supportFocus?: SupportFocus | null;
 }
 
 export function PlanDetail(props: PlanDetailProps) {
@@ -106,7 +109,7 @@ export function PlanDetail(props: PlanDetailProps) {
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
         {active !== null ? (
-          <ActivePlanContent active={active} guidance={bundle} outlook={outlook} />
+          <ActivePlanContent active={active} guidance={bundle} outlook={outlook} supportFocus={props.supportFocus ?? null} />
         ) : planned !== null ? (
           <PlannedPlanContent planned={planned} outlook={outlook} />
         ) : null}
@@ -180,10 +183,12 @@ function ActivePlanContent({
   active,
   guidance,
   outlook,
+  supportFocus,
 }: {
   readonly active: ActiveBreakView;
   readonly guidance: ReturnType<typeof presentBreakGuidance>;
   readonly outlook: BreakOutlookView;
+  readonly supportFocus: SupportFocus | null;
 }) {
   return (
     <section className="plan-hero" data-testid="active-plan-content">
@@ -194,7 +199,11 @@ function ActivePlanContent({
           <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
         </div>
       </dl>
-      <TodayGuidance view={guidance.today} />
+      <section className="plan-focus-card" data-testid="plan-focus-card">
+        <p className="micro-label">Your focus · {supportFocusCopy(supportFocus).shortLabel}</p>
+        <p className="body">{supportFocusCopy(supportFocus).planLead}</p>
+      </section>
+      <TodayGuidance view={guidance.today} supportFocus={supportFocus} />
       <BreakOutlook view={outlook} />
     </section>
   );

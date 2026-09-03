@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.9.2
+Version: 0.10.0
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -10,6 +10,8 @@ Companion specification: `CALCULATOR_SPEC.md`
 **0.9.0 note:** Recovery Intelligence adds a deterministic recovery-outlook presentation boundary with no AI or network dependency and no tolerance-v3 engine change: `src/domain/recovery/recovery-outlook.ts` (version `tolerance-recovery-outlook-v1`) interprets a frozen tolerance result, `src/domain/checkins/checkin-summary.ts` derives conservative check-in facts, and `src/application/presentation/recovery-checkin-facts.ts` / `reduction-trajectory.ts` map them to a live break context and the reduction card. The result UI adds an accessible **"Your plan" | "Predicted reset"** segmented control (`src/ui/result-screen.tsx` + `src/ui/predicted-reset.tsx`; copy `src/ui/recovery-copy.ts`); the reset mode and frozen-history outlook are derived from record data only and never re-run an engine. Persistence additions: the durable `break-outcome-marks-v1` envelope family (`breakOutcomes` in both the web and IndexedDB backends; key `tbreak.break-outcome-marks.v1`) with per-attempt marks `captured | skipped` (`src/application/progress/break-outcome.ts`, eligibility in `src/domain/recovery/outcome-capture.ts`), plus an optional `sourceAttemptId` on previous-break records linking a captured outcome to its attempt.
 
 **0.9.2 note:** `tolerance-recovery-outlook-v2` adds an explicit profile-sensitive predicted window while keeping tolerance-v3 a separate, unchanged engine. The recovery builder is pure/local and reads only the frozen result plus existing profile signals. New tolerance records store `recoveryOutlookVersion`; missing/v1 values route to the retained v1 builder, while v2 routes to the new policy. No runtime AI, network, migration rewrite, percentage model, or prediction curve is introduced.
+
+**0.10.0 note:** result presentation now uses one shared `ResultLensHero` / `ResultInsight` visual and type system for Your Plan and Predicted Reset. `supportFocus` is a separately versioned companion value (`companion-personalisation-v1`) attached beside, never inside, the `UseProfileInput`; it may select deterministic action copy but is never passed to tolerance-v3 or Recovery Outlook v2. Today derives a named visual phase from existing break/tracking state and renders CSS-only decorative atmosphere; it introduces no recovery score, percentage, or scientific state.
 
 ## 1. Architecture objective
 
@@ -188,6 +190,7 @@ goal
   |     -> current-pattern duration (first use-profile question)
   |     -> use days -> authoritative last use
   |        (sessions, products and routes only when use days are 4-30)
+  |     -> support focus (plan/daily copy only)
   |
   |-- reduction
   |     -> explicit breakRequested
@@ -197,6 +200,7 @@ goal
   |-- abstinence
   |     -> current-pattern duration (first use-profile question)
   |     -> authoritative last use
+  |     -> support focus (plan/daily copy only)
   |     -> no use days, sessions, products, or routes
   |     -> withdrawal/abstinence planning
   |     -> postBreakMode fixed to continue_abstinence
@@ -213,6 +217,8 @@ The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break 
 V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 
 Flower grams and potency appear only when the user opens the nominal THC calculator. Check-in notes remain optional, local, unparsed, and user-visible.
+
+`supportFocus` is the sole companion intake question. It is asked only when a consuming break or abstinence plan will use it, and is stored in the raw snapshot as `{ schemaVersion: 'companion-personalisation-v1', supportFocus }`. The calculation coordinator strips this companion boundary before domain validation and engine calls. Detection, zero-use baseline, and reduction-without-a-break do not ask it.
 
 ## 7. Calculation orchestration
 

@@ -130,6 +130,7 @@ import {
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
 
 export type Flow =
   | { readonly kind: 'break-start' }
@@ -356,6 +357,10 @@ export function App({
       snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
         ? exposureFromProfile(snapshotRecord.snapshot.profile)
         : null,
+    supportFocus:
+      snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
+        ? snapshotRecord.snapshot.companion?.supportFocus ?? null
+        : null,
   };
   const profileData: TodayProfileData = {
     resultView: profileView,
@@ -532,7 +537,10 @@ export function App({
       try {
         durable.saveSnapshot({
           ...snapshot,
-          snapshot: { kind: 'use_profile', profile: { ...profile, lastUseAt: { value: usedAtIso, provenance: 'user_estimate' } } },
+          snapshot: {
+            ...snapshot.snapshot,
+            profile: { ...profile, lastUseAt: { value: usedAtIso, provenance: 'user_estimate' } },
+          },
           updatedAt: nowAt,
         });
       } catch {
@@ -1307,6 +1315,11 @@ export function App({
               ? snapshotRecord.snapshot.profile
               : null
           }
+          supportFocus={
+            snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
+              ? snapshotRecord.snapshot.companion?.supportFocus ?? null
+              : null
+          }
           reductionPlan={liveReductionPlan}
           utcOffsetMinutes={utcOffsetMinutes}
           onStartReduction={startReductionFromProfile}
@@ -1393,6 +1406,7 @@ function FlowRenderer({
   checkins,
   preparation,
   profile,
+  supportFocus,
   reductionPlan,
   utcOffsetMinutes,
   onStartReduction,
@@ -1424,6 +1438,7 @@ function FlowRenderer({
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;
+  readonly supportFocus: SupportFocus | null;
   readonly reductionPlan: ReductionPlan | null;
   readonly utcOffsetMinutes: number;
   readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
@@ -1460,6 +1475,7 @@ function FlowRenderer({
           onUpdatePreparation={onUpdatePreparation}
           checkins={checkins}
           profile={profile}
+          supportFocus={supportFocus}
         />
       ) : null;
     case 'tracking-detail':

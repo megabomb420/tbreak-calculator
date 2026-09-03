@@ -20,6 +20,7 @@ import { presentTodayGuidance } from '../application/presentation/break-guidance
 import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
 
 export interface TodayLiveData {
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
@@ -30,6 +31,7 @@ export interface TodayLiveData {
   readonly reduction: { readonly plan: ReductionPlan; readonly state: ReductionPlanState } | null;
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
+  readonly supportFocus: SupportFocus | null;
 }
 
 export interface TodayProfileData {
@@ -87,6 +89,7 @@ export function TodayScreen(props: TodayScreenProps) {
         onResume={props.onResume}
       />
     ) : null;
+  const phase = todayPhase(props);
 
   return (
     <section
@@ -94,7 +97,9 @@ export function TodayScreen(props: TodayScreenProps) {
       data-testid="today-view"
       data-primary={view.primary}
       data-resume={view.resume}
+      data-phase={phase}
     >
+      <AmbientIntervalField phase={phase} />
       {view.resume === 'replaces-primary' ? (
         resume
       ) : (
@@ -206,34 +211,41 @@ function ActiveBreakCard(props: TodayScreenProps) {
   if (active === null) return null;
   const { attempt, view } = active;
   return (
-    <article className="today-plan-card" data-testid="state-active-break">
+    <article className="today-plan-card today-live-card" data-testid="state-active-break">
       <button
         type="button"
-        className="today-plan-main"
+        className="today-plan-main today-phase-hero"
         data-testid="open-plan-detail"
         onClick={props.onOpenPlanDetail}
       >
-        <p className="eyebrow">{ACTIVE_BREAK_CARD.eyebrow}</p>
-        <h2 className="plan-day-title" data-testid="break-day-label">
-          {view.dayOfLabel}
-        </h2>
-        <p className="meta" data-testid="target-date-line">
-          {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
-        </p>
+        <span className="today-hero-copy">
+          <span className="eyebrow">{ACTIVE_BREAK_CARD.eyebrow}</span>
+          <span className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</span>
+          <span className="meta" data-testid="target-date-line">
+            {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
+          </span>
+        </span>
+        <span className="today-hero-mark" aria-hidden="true">
+          <span>{view.day}</span>
+          <small>day</small>
+        </span>
         {view.withdrawal !== null ? <WithdrawalPosition view={view.withdrawal} /> : null}
       </button>
-      <TodayGuidance
-        compact
-        view={presentTodayGuidance({
-          breakDay: view.day,
-          targetDays: view.targetDays,
-          openEnded: false,
-          planned: false,
-          preparation: attempt.preparation,
-          checkins: props.live.checkins,
-          exposure: props.live.exposure,
-        })}
-      />
+      <section className="today-now" aria-label="Today’s guidance">
+        <TodayGuidance
+          compact
+          supportFocus={props.live.supportFocus}
+          view={presentTodayGuidance({
+            breakDay: view.day,
+            targetDays: view.targetDays,
+            openEnded: false,
+            planned: false,
+            preparation: attempt.preparation,
+            checkins: props.live.checkins,
+            exposure: props.live.exposure,
+          })}
+        />
+      </section>
       <div className="today-actions">
         <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
           {ACTIVE_BREAK_CARD.checkIn}
@@ -244,7 +256,9 @@ function ActiveBreakCard(props: TodayScreenProps) {
           </button>
         ) : null}
       </div>
-      <span className="today-note meta">{ACTIVE_BREAK_CARD.viewPlan}</span>
+      <button type="button" className="text-link today-plan-link" onClick={props.onOpenPlanDetail}>
+        {ACTIVE_BREAK_CARD.viewPlan}
+      </button>
     </article>
   );
 }
@@ -323,6 +337,7 @@ function TrackingCard(props: TodayScreenProps) {
       {tracking.view !== null ? (
         <TodayGuidance
           compact
+          supportFocus={props.live.supportFocus}
           view={presentTodayGuidance({
             breakDay: tracking.view.day,
             targetDays: null,
@@ -357,6 +372,46 @@ function TrackingCard(props: TodayScreenProps) {
       ) : null}
     </article>
   );
+}
+
+function AmbientIntervalField({ phase }: { readonly phase: string }) {
+  return (
+    <div className="interval-field" data-phase={phase} aria-hidden="true">
+      <span className="interval-field-orbit orbit-one" />
+      <span className="interval-field-orbit orbit-two" />
+      <span className="interval-field-pause"><i /><i /></span>
+    </div>
+  );
+}
+
+function todayPhase(props: TodayScreenProps): string {
+  switch (props.view.primary) {
+    case 'first-launch': return 'welcome';
+    case 'no-profile':
+    case 'profile-no-break':
+    case 'detection-only': return 'ready';
+    case 'interrupted': return 'paused';
+    case 'completed-break': return 'complete';
+    case 'reduction-active': return 'reduction';
+    case 'abstinence-tracking': {
+      const day = props.live.tracking?.view?.day ?? 1;
+      return day > 28 ? 'extended' : phaseForDay(day, null);
+    }
+    case 'active-break': {
+      const live = props.live.active;
+      return live === null ? 'ready' : phaseForDay(live.view.day, live.view.targetDays);
+    }
+  }
+}
+
+function phaseForDay(day: number, target: number | null): string {
+  if (target !== null && day >= target) return 'reached';
+  if (target !== null && day >= Math.max(7, target - 3)) return 'approaching';
+  if (day <= 3) return 'onset';
+  if (day <= 6) return 'peak';
+  if (day <= 14) return 'settling';
+  if (day <= 28) return 'middle';
+  return 'extended';
 }
 
 // --- Active reduction (cut-down) plan --------------------------------------

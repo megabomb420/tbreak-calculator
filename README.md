@@ -5,6 +5,17 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.10.0** — one coherent Interval experience. **Your plan** and
+**Predicted reset** now share the same result lens, duration typography and
+supporting-insight system. Your Plan leads with a personal priority, practical
+preparation, what to watch, and a clear target-day action before deeper
+explanation. Today adds a restrained phase-aware ambient field and a stronger
+Day N → what matters now → check-in hierarchy. One optional companion answer,
+`supportFocus`, personalises plan and daily guidance but is stored outside the
+scientific use profile and cannot change tolerance-v3 or Recovery Outlook v2
+numbers. Narrow-phone spacing and wider layouts are tightened; motion respects
+`prefers-reduced-motion`.
+
 Version **0.9.2** — Recovery Outlook v2. **Your plan** remains the unchanged
 tolerance-v3 practical recommendation (maximum 28 days), while **Predicted
 reset** now leads with a separate profile-sensitive tolerance-recovery window.
@@ -69,7 +80,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.9.2)
+## Capabilities (0.10.0)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.

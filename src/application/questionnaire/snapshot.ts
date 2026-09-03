@@ -15,9 +15,17 @@ import {
   type QuestionnaireAnswers,
   type QuestionnaireStepId,
 } from './engine.ts';
+import {
+  COMPANION_PERSONALISATION_VERSION,
+  type CompanionPersonalisationV1,
+} from './companion.ts';
 
 export type RawAnswerSnapshot =
-  | { readonly kind: 'use_profile'; readonly profile: UseProfileInput }
+  | {
+      readonly kind: 'use_profile';
+      readonly profile: UseProfileInput;
+      readonly companion?: CompanionPersonalisationV1;
+    }
   | { readonly kind: 'detection'; readonly request: DetectionRequest };
 
 export type FinishResult =
@@ -45,7 +53,18 @@ export function buildRawSnapshot(answers: QuestionnaireAnswers): RawAnswerSnapsh
   if (answers.goal === undefined) {
     throw new RangeError('use-profile snapshot requires a goal');
   }
-  return { kind: 'use_profile', profile: buildUseProfileInput(answers) };
+  return {
+    kind: 'use_profile',
+    profile: buildUseProfileInput(answers),
+    ...(answers.supportFocus === undefined
+      ? {}
+      : {
+          companion: {
+            schemaVersion: COMPANION_PERSONALISATION_VERSION,
+            supportFocus: answers.supportFocus,
+          },
+        }),
+  };
 }
 
 export function finishQuestionnaire(answers: QuestionnaireAnswers, now: Instant): FinishResult {
@@ -118,6 +137,7 @@ function stepForValidationPath(path: string, answers: QuestionnaireAnswers): Que
     return 'Q3';
   }
   if (path.startsWith('currentPatternDuration')) return 'Q6';
+  if (path.startsWith('supportFocus')) return 'Q7';
   if (path.startsWith('sessionsPerUseDay')) return 'Q4';
   if (path.startsWith('products') || path.startsWith('routes')) return 'Q5';
   return restoreStep(answers, 0 as Instant);

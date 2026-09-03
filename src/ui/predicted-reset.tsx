@@ -6,7 +6,7 @@ import type {
 import { highestCravingObservation, sleepFirstToLaterChange } from '../domain/checkins/checkin-summary.ts';
 import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
 import {
-  predictedWindowLabel,
+  predictedWindowParts,
   RESET_EVIDENCE,
   RESET_HISTORY_RAISED,
   RESET_PANEL,
@@ -14,6 +14,7 @@ import {
   resetHistoryLine,
   resetMilestoneDayLabel,
 } from './recovery-copy.ts';
+import { ResultInsight, ResultLensHero } from './result-lens.tsx';
 
 export interface PredictedResetPanelProps {
   readonly outlook: ToleranceRecoveryOutlook;
@@ -42,42 +43,55 @@ function CurrentV2Panel({
   if (range === null || target === null) return null;
   const prediction = outlook.predictedRecoveryWindow;
   const extended = outlook.predictionEvidence.extendedBeyondHumanReference;
+  const window = predictedWindowParts(prediction.min, prediction.max);
 
   return (
     <div className="stack reset-panel">
       {contextLabel !== null ? <p className="eyebrow" data-testid="reset-context-label">{contextLabel}</p> : null}
 
-      <section className="card reset-card reset-lead" data-testid="reset-predicted-window">
-        <p className="micro-label">{RESET_PANEL.predictionTitle}</p>
-        <p className="reset-stat" data-testid="reset-window-value">
-          {predictedWindowLabel(prediction.min, prediction.max)}
-        </p>
-        <p className="body" data-testid="reset-disclaimer">{RESET_PANEL.disclaimer}</p>
+      <div data-testid="reset-predicted-window">
+        <ResultLensHero
+          eyebrow={RESET_PANEL.predictionTitle}
+          prefix={window.prefix}
+          value={window.value}
+          unit={window.unit}
+          summary={RESET_PANEL.disclaimer}
+          tone="recovery"
+          valueTestId="reset-window-value"
+          summaryTestId="reset-disclaimer"
+        >
         {extended ? (
           <p className="meta reset-evidence-label" data-testid="reset-lower-directness">
             The part beyond Day 28 is a lower-directness product heuristic.
           </p>
         ) : null}
-      </section>
+        </ResultLensHero>
+      </div>
 
       <div className="reset-comparison">
-        <section className="card reset-card" data-testid="reset-planning-target">
-          <h3 className="card-title">{RESET_PANEL.planningCardTitle}</h3>
-          <p className="reset-stat reset-stat-compact" data-testid="reset-target-day">{target} days</p>
+        <ResultInsight
+          label={RESET_PANEL.planningCardTitle}
+          value={`${target} days`}
+          testId="reset-planning-target"
+        >
+          <span className="sr-only" data-testid="reset-target-day">{target} days</span>
           <p className="body">{planningNote(historical, contextLabel)}</p>
           <p className="meta" data-testid="reset-evidence-range">
             {RESET_PANEL.rangeCardTitle}: {range.min}–{range.max} days. {RESET_PANEL.rangeCardNote}
           </p>
-        </section>
+        </ResultInsight>
 
-        <section className="card reset-card" data-testid="reset-biological-reference">
-          <h3 className="card-title">{RESET_PANEL.referenceCardTitle}</h3>
-          <p className="reset-stat reset-stat-compact">{RESET_PANEL.referenceValue}</p>
-          {RESET_PANEL.referenceNotes.map((note) => <p key={note} className="body">{note}</p>)}
+        <ResultInsight
+          label={RESET_PANEL.referenceCardTitle}
+          value={RESET_PANEL.referenceValue}
+          testId="reset-biological-reference"
+        >
+          <p className="body">{RESET_PANEL.referenceNotes[0]}</p>
+          <p className="meta">{RESET_PANEL.referenceNotes[1]}</p>
           {outlook.profileContext.lightOrRegular ? (
             <p className="meta" data-testid="reset-light-reference-note">{RESET_PANEL.lightReferenceNote}</p>
           ) : null}
-        </section>
+        </ResultInsight>
       </div>
 
       {extended ? (

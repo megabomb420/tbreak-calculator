@@ -78,6 +78,19 @@ export function predictedWindowLabel(minDays: number, maxDays: number): string {
   return `${minDays}–${maxDays} days`;
 }
 
+export function predictedWindowParts(minDays: number, maxDays: number): {
+  readonly prefix?: string;
+  readonly value: string;
+  readonly unit: string;
+} {
+  if (minDays === 7 && maxDays === 14) return { prefix: 'About', value: '1–2', unit: 'weeks' };
+  if (minDays === 14 && maxDays === 21) return { prefix: 'About', value: '2–3', unit: 'weeks' };
+  if (minDays === 21 && maxDays === 28) return { prefix: 'About', value: '3–4', unit: 'weeks' };
+  if (minDays === 28 && maxDays === 35) return { prefix: 'About', value: '4–5', unit: 'weeks' };
+  if (minDays === 28 && maxDays === 42) return { prefix: 'About', value: '4–6', unit: 'weeks' };
+  return { value: `${minDays}–${maxDays}`, unit: 'days' };
+}
+
 export const RESET_EVIDENCE = {
   summary: 'What informs this estimate?',
   extendedSummary: 'Why can recovery extend beyond four weeks?',

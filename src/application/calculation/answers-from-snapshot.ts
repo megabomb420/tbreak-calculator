@@ -17,9 +17,14 @@ export function answersFromSnapshot(snapshot: RawAnswerSnapshot): QuestionnaireA
       ...answers,
       breakRequested: profile.breakRequested,
       ...useFields(profile),
+      ...(snapshot.companion ? { supportFocus: snapshot.companion.supportFocus } : {}),
     };
   }
-  return { ...answers, ...useFields(profile) };
+  return {
+    ...answers,
+    ...useFields(profile),
+    ...(snapshot.companion ? { supportFocus: snapshot.companion.supportFocus } : {}),
+  };
 }
 
 function useFields(profile: UseProfileInput): QuestionnaireAnswers {

@@ -4,6 +4,8 @@
 import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, ProductKind, Route } from '../domain/schemas/enums.ts';
 import type { QuestionnaireStepId } from '../application/questionnaire/engine.ts';
 import type { DateChipId, DayPart } from '../application/questionnaire/date-answers.ts';
+import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import { SUPPORT_FOCUS_COPY } from './companion-copy.ts';
 
 export const QUESTIONNAIRE = {
   close: 'Close questionnaire',
@@ -49,6 +51,10 @@ export const STEP_COPY: Record<QuestionnaireStepId, StepCopy> = {
   Q6: {
     title: 'How long has this level of THC use been typical for you?',
     helper: 'Not how long you have ever used — how long this current pattern has been your usual level.',
+  },
+  Q7: {
+    title: 'What would you most like help with?',
+    helper: 'This personalises your plan and daily guidance. It does not change the recommended days.',
   },
   Q4: {
     title: 'On a day you used, how many separate sessions?',
@@ -139,6 +145,14 @@ export const PATTERN_DURATION_OPTIONS: ReadonlyArray<{
   { id: '2_to_5_years', title: '2–5 years', helper: 'A few years at this level' },
   { id: '5_plus_years', title: '5+ years', helper: 'This has been typical for a long time' },
 ];
+
+export const SUPPORT_FOCUS_OPTIONS: ReadonlyArray<{
+  id: SupportFocus;
+  title: string;
+}> = (Object.keys(SUPPORT_FOCUS_COPY) as SupportFocus[]).map((id) => ({
+  id,
+  title: SUPPORT_FOCUS_COPY[id].label,
+}));
 
 export const SESSION_CHIPS = [
   { label: '1', value: 1 },

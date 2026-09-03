@@ -31,6 +31,7 @@ import {
   RECOVERY_OUTLOOK_V1_VERSION,
   type RecoveryOutlookVersion,
 } from '../../domain/recovery/recovery-outlook.ts';
+import { isCompanionPersonalisation } from '../questionnaire/companion.ts';
 
 export const CALCULATION_RECORDS_SCHEMA_VERSION = 'calculation-records-v1' as const;
 export const CALCULATION_RECORDS_KEY = 'tbreak.calculations.v1';
@@ -160,7 +161,11 @@ function isValidSnapshot(value: unknown): value is RawAnswerSnapshot {
     return isRecord(value.request) && typeof value.request.matrix === 'string' && typeof value.request.context === 'string';
   }
   if (value.kind !== 'use_profile') return false;
-  return isRecord(value.profile) && typeof value.profile.goal === 'string';
+  return (
+    isRecord(value.profile) &&
+    typeof value.profile.goal === 'string' &&
+    (value.companion === undefined || isCompanionPersonalisation(value.companion))
+  );
 }
 
 function isValidFrozenResult(value: unknown): value is FrozenEngineResult {
@@ -184,7 +189,7 @@ export function withPreviousBreaks(
   previousBreaks: readonly PreviousBreakInput[],
 ): RawAnswerSnapshot {
   if (snapshot.kind !== 'use_profile') return snapshot;
-  return { kind: 'use_profile', profile: { ...snapshot.profile, previousBreaks: [...previousBreaks] } };
+  return { ...snapshot, profile: { ...snapshot.profile, previousBreaks: [...previousBreaks] } };
 }
 
 /**

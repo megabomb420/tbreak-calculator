@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.9.2** (Recovery Outlook v2 profile-sensitive prediction; tolerance-v3 unchanged)
+- App version: **0.10.0** (unified Interval result experience + support-focus guidance; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, and the **0.9.2** Recovery Outlook v2 revision.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, and the **0.10.0** product-experience release.
 
 | Step | Status |
 |---|---|
@@ -48,10 +48,20 @@ deterministic-only architecture cleanup, and the **0.9.2** Recovery Outlook v2 r
 | 0.9.0 Recovery Intelligence: plan/predicted-reset result, frozen-history outlook, outcome capture, reduction trajectory | done |
 | 0.9.1 deterministic-only architecture cleanup (runtime generative AI intentionally out of scope) | **done** |
 | 0.9.2 Recovery Outlook v2 profile-sensitive recovery windows | **done** |
+| 0.10.0 unified results, actionable plan, phase-aware Today, support focus | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.10.0 added
+
+- A shared `ResultLensHero` / `ResultInsight` system gives Your Plan and Predicted Reset the same duration typography, atmospheric geometry, spacing, and hierarchy.
+- Your Plan leads with one personal priority and provides preparation, what-to-watch, and target-day actions through progressive disclosure before the existing detailed outlook.
+- Today uses an existing-state-derived visual phase, CSS-only ambience, a compact day mark, one primary action, and a stronger check-in hierarchy. Reduced motion is static.
+- Q7 asks one companion answer: sleep, cravings, routine, mood, appetite, or not sure. It is stored as `companion-personalisation-v1` beside the raw use-profile snapshot and only chooses deterministic UI copy. It is never passed into the tolerance or recovery builders.
+- The reading shell expands on wider screens, while 320px spacing/typography and result/footer fit are tightened. The established iOS viewport contract remains unchanged.
+- All 532 domain/golden tests and 135 UI tests pass. `sources/` is unchanged.
 
 ## What 0.9.2 added (Recovery Outlook v2)
 

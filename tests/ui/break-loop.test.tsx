@@ -124,6 +124,7 @@ function completeToleranceFlow(storage: StorageAdapter) {
   fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
   fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
   fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
   return rendered;
 }
 
@@ -460,6 +461,7 @@ describe('open-ended abstinence tracking (D4)', () => {
     const flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(screen.getByRole('button', { name: 'I’m not sure yet' }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     fireEvent.click(screen.getByTestId('start-tracking'));
     expect(screen.queryByTestId('result-screen')).toBeNull();
@@ -504,7 +506,7 @@ describe('evidence-guided companion', () => {
     const guidance = screen.getByTestId('today-guidance');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
-    expect(screen.getByTestId('guidance-help').textContent).toMatch(/thirst/i);
+    expect(screen.getByTestId('guidance-primary-action').textContent).toBeTruthy();
     expect(screen.getByTestId('guidance-context').textContent).toMatch(/does not mean the break is failing/i);
   });
 
