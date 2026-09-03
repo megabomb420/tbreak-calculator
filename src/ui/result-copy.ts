@@ -16,6 +16,7 @@ export const RESULT = {
   outlookHeading: 'Your break outlook',
   outlookHelper: 'Every planned day, from population evidence — not a personal prediction.',
   outlookSwipe: 'Swipe the days to inspect the rest of the plan.',
+  outlookMore: 'What you may notice and what can help',
   whatMatters: 'What matters today',
   historyHeading: 'Your history',
   historyPrompt:
