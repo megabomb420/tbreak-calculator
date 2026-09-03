@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.11.1** (Today visual-polish release — page-level decorative background removed, Today guidance de-carded; presentation only, tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.12.0** (visual-unification release — the Predicted Reset result language becomes the shared surface contract app-wide; presentation only, tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.11.1 note covers the Today visual-polish release — page background removed, Today guidance de-carded; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.12.0 note covers the app-wide visual unification on the Predicted Reset language; 0.11.1 note covers the Today visual-polish release — page background removed, Today guidance de-carded; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, and the **0.11.1** Today visual-polish release.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, and the **0.12.0** visual-unification release.
 
 | Step | Status |
 |---|---|
@@ -52,10 +52,46 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.10.1 Today profile-no-break reuses the shared result lens | **done** |
 | 0.11.0 Today phase-system completion + Plan Detail/check-in alignment | **done** |
 | 0.11.1 Today visual polish (page background removed, guidance de-carded) | **done** |
+| 0.12.0 visual unification (Predicted Reset language app-wide) | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.12.0 added (visual unification; no science change)
+
+A presentation-only release that makes the Predicted Reset result language
+(ResultLensHero / ResultInsight: open editorial sections, hairline rules,
+Fraunces + Figtree hierarchy, restrained card use) the shared surface contract
+across the app. No tolerance-v3, Recovery Outlook v2, Reduction, Detection,
+History semantics, persistence, copy, routing, tab or viewport change;
+`sources/` unchanged; all `data-testid` hooks and test-referenced class names
+kept (restyle, not rename).
+
+- **One card surface.** Top-level Today cards (`.today-plan-card`,
+  `.deferred-shell`, `.resume-card`) share the lens-hero treatment: 1px
+  hairline border, quiet 145° accent wash, soft shadow, `--radius-xl`.
+- **One disclosure pattern.** Filled `details.card` disclosures
+  (`.guidance-why` evidence/education notes, Plan Detail `.plan-overflow`
+  "More") now render as `.result-disclosure`-style hairline sections with a
+  Fraunces summary and +/– marker, matching Your Plan / Predicted Reset.
+- **Open editorial sections instead of nested boxes.** The outlook inspector,
+  roadmap detail, Plan Detail "After this break" card, Plan Detail preparation
+  editor and detox-method entries lost their filled panels and group by
+  hairline rules; the roadmap current stage is marked by the accent dot and
+  label colour, not a tinted band; guidance milestones are plain editorial
+  lines everywhere (0.11.1 Today treatment, now global).
+- **One callout.** `.banner`, `.clock-note`, `.warning` and
+  `.today-state-note` are the same left-rule editorial line, colour-coded by
+  intent (accent / accent-strong / warn / ok), replacing five tinted-box
+  styles. Status pills (`.paused-note`) stay pills.
+- **Check-in symptoms** are hairline-separated rows (slider is the control)
+  instead of five stacked filled cards; **History** rows are one quiet
+  hairline-divided list instead of filled cards.
+- **Today Reduction summary fix:** the "View result" action is `cta-secondary`
+  (was a second stacked `cta-primary`).
+- Verified at 430×932, 320×568 and 1280×900: no horizontal overflow at 320,
+  primary CTAs stay reachable, first screen usable without interaction.
 
 ## What 0.11.1 added (Today visual polish; no science change)
 

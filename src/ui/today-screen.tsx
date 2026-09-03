@@ -752,7 +752,7 @@ function ReductionSummary(props: TodayScreenProps) {
           {RESULT.startReductionPlan}
         </button>
         {props.onViewResult ? (
-          <button type="button" className="cta-primary" data-testid="view-result" onClick={props.onViewResult}>
+          <button type="button" className="cta-secondary" data-testid="view-result" onClick={props.onViewResult}>
             {PROFILE_NO_BREAK.viewResult}
           </button>
         ) : null}

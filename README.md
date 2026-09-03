@@ -5,6 +5,14 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.12.0** — visual unification. The Predicted Reset result language
+is now the shared surface contract across the app: one card surface (hairline
+border, quiet accent wash), one hairline disclosure pattern with Fraunces
+summaries, open editorial sections instead of nested boxes, one left-rule
+callout for notices, hairline-divided check-in rows and History list.
+Presentation only — no science, tolerance-v3, Recovery Outlook, Reduction,
+History, persistence, tabs or viewport change.
+
 Version **0.11.1** — Today visual polish. The decorative orbit/interval
 wallpaper behind Today is gone, so every Today state reads on the clean
 product surface. Today guidance is de-carded: milestones are editorial lines,
