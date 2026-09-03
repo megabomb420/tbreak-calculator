@@ -23,9 +23,21 @@ export type DetectionContext = (typeof DETECTION_CONTEXTS)[number];
 export const CONFIDENCE_LEVELS = ['low', 'moderate', 'high'] as const;
 export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
 
+/**
+ * Human ranges for how long the CURRENT use pattern has been typical.
+ * Product UX bands — not scientifically validated cut-points.
+ */
+export const CURRENT_PATTERN_DURATION_BANDS = [
+  'under_1_month',
+  '1_to_6_months',
+  '6_to_24_months',
+  '2_to_5_years',
+  '5_plus_years',
+] as const;
+export type CurrentPatternDurationBand = (typeof CURRENT_PATTERN_DURATION_BANDS)[number];
+
 export const FIELD_PROVENANCES = ['missing', 'user_estimate', 'label_derived', 'laboratory_derived', 'derived'] as const;
 export type FieldProvenance = (typeof FIELD_PROVENANCES)[number];
 
-// Canonical display/definition order used by normalisation for stable output.
 export const PRODUCT_KIND_ORDER: readonly ProductKind[] = PRODUCT_KINDS;
 export const ROUTE_ORDER: readonly Route[] = ['smoking', 'vaping', 'dabbing', 'oral', 'sublingual', 'other'];
