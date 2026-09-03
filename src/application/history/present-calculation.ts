@@ -1,5 +1,3 @@
-// Present a frozen calculation record without re-running engines.
-
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 import type { CalculationRecord } from '../persistence/calculation-record.ts';
 import {
@@ -17,6 +15,7 @@ const EMPTY_PROFILE: UseProfileInput = {
   products: [],
   routes: [],
   lastUseAt: { value: null, provenance: 'missing' },
+  currentPatternDuration: { value: null, provenance: 'missing' },
   previousBreaks: [],
 };
 

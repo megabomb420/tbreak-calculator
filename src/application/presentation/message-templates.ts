@@ -1,8 +1,4 @@
 // UX_SPEC §14 message-code → copy mapping.
-//
-// Components MUST NOT write scientific sentences inline. A code missing
-// from this table renders nothing — never freestyle copy.
-
 export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   very_infrequent_use: 'You use THC only occasionally',
   regular_nondaily_use: 'You use THC regularly, but not daily',
@@ -12,6 +8,13 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   concentrate_product_use: 'Concentrates in the mix',
   dabbing_route_use: 'Dabbing in the mix',
   baseline_tolerance_likely_low: 'Your baseline tolerance is likely already low',
+  current_pattern_under_1_month: 'This current pattern is recent — weeks rather than years',
+  current_pattern_1_to_6_months: 'This current pattern has been typical for a few months',
+  current_pattern_6_to_24_months: 'This current pattern has been typical for about 1–2 years',
+  current_pattern_2_to_5_years: 'This current pattern has been typical for a few years',
+  current_pattern_5_plus_years: 'This current pattern has been typical for many years',
+  current_pattern_duration_contextual_only:
+    'How long this pattern has lasted is useful context. It does not change the recommended day range.',
   broad_heuristic_individual_response_varies:
     'Limited certainty: this is a broad planning heuristic, and individual response varies.',
   history_directional_observation:
@@ -45,7 +48,6 @@ export interface MessageVars {
   readonly long?: number;
 }
 
-/** Returns spec copy for a known code, or null when the code is unmapped. */
 export function renderMessageCode(code: string, vars: MessageVars = {}): string | null {
   const template = MESSAGE_TEMPLATES[code];
   if (template === undefined) return null;

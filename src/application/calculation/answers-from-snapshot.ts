@@ -2,7 +2,6 @@ import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 import type { QuestionnaireAnswers } from '../questionnaire/engine.ts';
 import type { RawAnswerSnapshot } from '../questionnaire/snapshot.ts';
 
-/** Rebuilds questionnaire answers from a stored snapshot. Unasked fields stay absent. */
 export function answersFromSnapshot(snapshot: RawAnswerSnapshot): QuestionnaireAnswers {
   if (snapshot.kind === 'detection') {
     return {
@@ -39,5 +38,8 @@ function useFields(profile: UseProfileInput): QuestionnaireAnswers {
     ...(sessions !== null && sessions !== undefined ? { sessionsPerUseDay: sessions } : {}),
     ...(products.length > 0 ? { products: [...products] } : {}),
     ...(routes.length > 0 ? { routes: [...routes] } : {}),
+    ...(profile.currentPatternDuration?.value
+      ? { currentPatternDuration: profile.currentPatternDuration.value }
+      : {}),
   };
 }
