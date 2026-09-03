@@ -5,9 +5,8 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.3.3** (persistence/state-corruption hardening of the 0.3.x break loop)
-- This file sits on `main` at the commit that landed the 0.3.1 QA pass (the
-  header intentionally carries no self-referential SHA).
+- App version: **0.4.0** (UX_SPEC §16 step 5 — History, IndexedDB, previous-break flows)
+- This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
@@ -24,7 +23,7 @@ to make UI easier. Do not commit untracked review files.
 
 ## What is on main
 
-UX_SPEC §16 steps **1–4** plus deploy, iOS layout, vape product, the
+UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the
 Interval visual redesign, the **0.3.1 QA hardening** patch, the **0.3.2
 UX/product** patch, and the **0.3.3 persistence** patch:
 
@@ -38,7 +37,8 @@ UX/product** patch, and the **0.3.3 persistence** patch:
 | Vape product + iOS first-paint bottom layout | done |
 | Interval visual redesign | done |
 | Domain prerequisites D4 + D5 (see below) | done |
-| 5. History + contextual flows + IndexedDB | **not started** |
+| 0.3.3 fail-closed persistence | done |
+| 5. History + contextual flows + IndexedDB | **done (0.4.0)** |
 
 Working product behaviour (unchanged from earlier steps):
 
@@ -48,11 +48,41 @@ Working product behaviour (unchanged from earlier steps):
 4. App shell tab bar is in-flow inside a `100svh` column (not `position: fixed`).
 5. Product vs route distinction preserved (`vape` product ≠ `vaping` route).
 
+## What 0.4.0 added (UX_SPEC §16 step 5)
+
+History, IndexedDB durable records, previous-break personalisation, per-item
+deletion, storage/PWA banners, and overlay focus traps. Scientific engines,
+bands, coefficients, golden fixtures, and the `breakDay` formula are unchanged.
+
+- **History tab:** past breaks (add/edit/delete), monthly activity of frozen
+  calculations, attempts (with segments), tracking runs, and check-ins.
+  Historical calculations render the stored engine output and never re-run.
+  Opening a calculation from History is a pushed screen (tab bar stays).
+- **Previous-break flow (§7):** from the tolerance result prompt and from
+  History → Past breaks → Add. Stepper + chips, 0–10 slider + Not sure, optional
+  ended date. **Recalculate with history** creates a new calculation record;
+  the earlier record is preserved. Insight copy is verbatim from §14 and always
+  ends with "Your history never changes the recommended range."
+- **IndexedDB:** per-record stores behind `DurablePersistence`. v0.3.x Web
+  Storage envelopes migrate once, idempotently, and stay in place if a family
+  fails. Draft + result-view overlay remain on Web Storage. Deleting a History
+  calculation never rematerializes it from the live snapshot.
+- **Deletion:** per-item confirm (including past breaks from the edit sheet);
+  corrupt rows render as Unavailable; Delete-everything still hold-to-confirm
+  and still never calls `storage.clear()`.
+- **Offline/a11y:** storage-unavailable banner, PWA update snackbar
+  (`registerType: 'prompt'`), passive install hint after the first saved
+  calculation, overlay focus trap + Escape, shell `inert` while a dialog is
+  open. First-launch safety slot remains the reviewed-copy placeholder
+  (still not invented).
+- Session mutations still re-read durable stores immediately before write
+  (0.3.3). IndexedDB writes are queued; attempt/track + check-in + snapshot
+  `lastUseAt` are not yet one transaction.
+
 ## What 0.3.3 fixed (persistence / state-corruption pass)
 
-Patch on 0.3.2. No new product slice. UX_SPEC §16 step 5 was **not** started.
-Scientific engines, bands, coefficients, golden fixtures, and the
-`breakDay` formula are unchanged.
+Patch on 0.3.2. Landed before step 5. Scientific engines, bands, coefficients,
+golden fixtures, and the `breakDay` formula are unchanged.
 
 High:
 
@@ -85,15 +115,6 @@ Medium:
 Low:
 
 - Instants outside the JS Date range are rejected at decode.
-
-Intentionally **not** changed:
-
-- History, IndexedDB, per-item delete, storage banner, PWA snackbar —
-  step 5.
-- Extra individually-valid finished rows stay in the envelope for History.
-- Multi-key `persistBreakSession` is still three sequential writes, not a
-  transaction. Documented below for the IndexedDB migration.
-- Accidental-Yes undo, Q5 flower THC deep-link, day formula.
 
 ## What 0.3.2 fixed (UX / product pass)
 
@@ -289,47 +310,67 @@ tests/unit|golden|ui
 
 ## Persistence
 
-Persistence is **Web Storage only**, behind the same `StorageAdapter` used for
-the draft. Keys (all versioned envelopes with strict decode validation):
+The questionnaire draft and result-view overlay stay on Web Storage. Durable
+records hydrate from IndexedDB (`tbreak-calculator`, version 1) through
+`DurablePersistence`. Keys still used on Web Storage:
 
 - `tbreak.questionnaire-progress.v1` — unfinished draft
-- `tbreak.questionnaire-snapshot.v1` — completed raw answers (+ optional `runId`)
 - `tbreak.result-view.v1` — `open` | `acknowledged`
-- `tbreak.break-attempts.v1` — stored attempts (status, segments, post-break
-  plan, completion acknowledgement, timestamps)
-- `tbreak.tracking-records.v1` — stored open-ended tracking records
-- `tbreak.checkins.v1` — stored daily check-ins (chronological)
-- `tbreak.reduction-plan.v1` — user-defined cutting-down limits (never an engine input)
+- `tbreak.durable-migration.v1` — migration marker (envelopes already copied)
+
+v0.3.x envelopes (`tbreak.break-attempts.v1`, `tracking-records`, `checkins`,
+`questionnaire-snapshot`, `reduction-plan`) are copied into IndexedDB then
+removed only after a successful flush. A failed family leaves its envelope.
 
 Corrupt envelopes are wiped and treated as absent; an invalid row inside an
 envelope is dropped in isolation (valid rows/records survive). Duplicate ids
-keep the first (newest) row. Impossible segment timing and overflowing
-target durations are invalid rows, not rendered. A use-profile snapshot
-missing required sourced fields / product-route arrays is an invalid
-envelope. Check-in `usedAt` cannot be after `recordedAt`. Storage
-unavailable — or a later adapter throw — degrades without crashing
-(in-memory / best-effort writes; no banner). Delete-everything removes only
-the `tbreak.*` keys listed above (not `storage.clear()`).
+keep the newest row. Impossible segment timing and overflowing target
+durations are invalid rows, not rendered. A use-profile snapshot missing
+required sourced fields / product-route arrays is an invalid envelope.
+Check-in `usedAt` cannot be after `recordedAt`. Storage unavailable — or a
+later adapter throw — degrades without crashing (banner in 0.4.0).
 
-Session mutations re-read the three record stores immediately before
-applying the operation. That is not cross-tab live sync: a stale tab that
-writes later can still last-write-wins a check-in list, but it will not
-rebuild the operation from a stale in-memory timeline.
+Session mutations re-read durable stores immediately before applying the
+operation. That is not cross-tab live sync: a stale tab that writes later can
+still last-write-wins, but it will not rebuild the operation from a stale
+in-memory timeline.
 
-**IndexedDB is still reserved** (ARCHITECTURE §9) for the durable per-record
-stores in the History slice. The step-4 record envelopes are the migration
-boundary: repository interfaces mirror the planned `breakAttempts` / tracking /
-`checkins` stores.
+Corrupt calculation / previous-break / IndexedDB rows become History
+"Unavailable" items; unrelated records stay. Delete-everything removes only
+`LOCAL_DATA_KEYS` plus the IndexedDB database contents (not `storage.clear()`).
 
-**Atomicity to carry into step 5:** `persistBreakSession` writes attempts,
-tracking, and check-ins as three sequential Web Storage keys. Confirm-use
-then updates the questionnaire snapshot's `lastUseAt` as a fourth write.
-There is no transaction. A crash between writes can leave a restarted
-segment without its use-day check-in, or a check-in without a matching
-profile `lastUseAt` (the open segment remains the timing source of truth).
-IndexedDB should commit attempt/track + check-in + snapshot `lastUseAt` in
-one transaction. Extra injected live rows are selected by Today precedence
-rather than deleted; History should list them rather than invent a merge.
+## Known notes after step 5
+
+- `planned` future attempts activate when the app loads/refreshes after their
+  start instant; they are not activated mid-session without an interaction or
+  the 60 s clock tick (both refresh state).
+- Check-in symptom direction semantics (10 = more of the named thing) live in
+  the UI copy + D5 schema note; no engine consumes ratings.
+- Result overlay **Start this break** is hidden while a live plan/tracking
+  exists; plan detail **Recalculate profile** keeps the current plan intact.
+- A picked start date equal to today activates immediately (start instant ≤
+  now), matching §8 semantics.
+- Reviewed first-launch safety copy is still the pending placeholder
+  (`safety_first_launch`). Do not invent medical/eligibility wording.
+- Web-storage fallback still drops invalid attempt/tracking/check-in rows
+  rather than listing them as Unavailable (IndexedDB lists them).
+- Deleting a History calculation does not wipe the live Today profile; the
+  snapshot stays. The deleted frozen record is not rematerialized.
+- Multi-tab live synchronization is not built. Mutations re-read before
+  write; last-write-wins remains for overlapping concurrent saves.
+- `persistBreakSession` writes attempts, tracking, and check-ins as three
+  sequential durable writes (IndexedDB queues them). Confirm-use then updates
+  the snapshot `lastUseAt` as a fourth write. There is no single transaction.
+
+## Exact next slice
+
+Step 5 is done. Do **not** start UX_SPEC §16 step 6 or runtime AI from this
+handoff. Remaining product follow-ups if a later slice is commissioned:
+
+- Commissioned/reviewed first-launch safety copy in `safety_first_launch`.
+- Accidental-Yes undo (not in current specs).
+- Check-in trend chart (explicitly deferred, §15.3).
+- One IndexedDB transaction for attempt/track + check-in + snapshot `lastUseAt`.
 
 ## Today facts model (changed in 0.3.0)
 
@@ -368,52 +409,6 @@ Vape is not mapped onto concentrate intensity (intensity fires only on
   current specs surface them (abstinence/baseline results → Start/Keep
   tracking; Today `abstinence-tracking`; check-ins store nulls).
 
-## Known notes for step 5
-
-- The History tab is still the empty placeholder; per-item deletion is not
-  built (delete-everything covers all `tbreak.*` keys only).
-- `planned` future attempts activate when the app loads/refreshes after their
-  start instant; they are not activated mid-session without an interaction or
-  the 60 s clock tick (both refresh state). Only the current planned attempt
-  (Today-precedence selected) is activated, so injected extra planned rows
-  stay planned until they become current.
-- Post-break limits are stored on the attempt record (`postBreakPlan`);
-  ARCHITECTURE's separate `postBreakPlans` store can be split out in step 5.
-- Check-in symptom direction semantics (10 = more of the named thing) live in
-  the UI copy + D5 schema note; no engine consumes ratings.
-- Result overlay **Start this break** is hidden while a live plan/tracking
-  exists (a second plan over an active one is undefined by the spec); plan
-  detail **Recalculate profile** keeps the current plan intact. Create ops
-  also no-op if a live timeline already exists.
-- A picked start date equal to today activates immediately (start instant ≤
-  now), matching §8 semantics.
-- Overlays use `role="dialog" aria-modal="true"` but do not yet apply `inert`
-  / a focus trap on the shell. Full a11y verification is step 5.
-- Storage-unavailable is still a silent in-memory / swallowed-write fallback
-  (no banner).
-- PWA update snackbar is not built (`registerType: 'prompt'` is wired).
-- Reviewed first-launch safety copy is still the pending placeholder.
-- Multi-tab live synchronization is not built. Mutations re-read before
-  write; last-write-wins remains for overlapping concurrent saves.
-- Web Storage has no multi-key transactions. See Persistence above.
-
-## Exact next slice
-
-**UX_SPEC §16 step 5 — History + contextual flows (§7), settings, deletion,
-offline hardening (§13).** Against current `main`:
-
-- History tab contents: past calculations/results, attempts (segments), open
-  tracking runs, check-ins; previous-break add/edit (§7) with history insight.
-- Move the step-4 attempt/tracking/check-in envelopes onto IndexedDB
-  per-record stores behind the documented repository interfaces
-  (ARCHITECTURE §9); keep the interfaces and record shapes as the boundary.
-- Per-item deletion with confirm; corrupt-row "Unavailable" handling in
-  History (§13.3).
-- Settings completion, PWA/offline hardening, accessibility verification.
-
-Out of scope for step 5: runtime AI (see below), new science, another visual
-redesign, numeric detection.
-
 ## Future AI note (do NOT implement now)
 
 Future optional conversational guidance may explain deterministic results and
@@ -440,8 +435,7 @@ Golden fixtures freeze engine output. Do not edit them to match a UI change.
 ## Constraints for the next agent
 
 1. Sync `main` and treat the repo as source of truth.
-2. Read `UX_SPEC.md` §7, §9, §13, §16 and `ARCHITECTURE.md` §9 before the
-   History slice.
+2. Do not start §16 step 6 or runtime AI from this handoff.
 3. Keep the Interval visual tokens; extend them; no second palette.
 4. UI never computes `breakDay`, target dates, withdrawal statuses, phase
    boundaries, or restart anchors — read them from domain/application
@@ -453,3 +447,4 @@ Golden fixtures freeze engine output. Do not edit them to match a UI change.
 8. Commit and push only what the slice asked for.
 
 Do not start §16 step 6 or any later step from this handoff.
+

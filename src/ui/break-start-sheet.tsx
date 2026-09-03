@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import { toInstant } from '../domain/schemas/time.ts';
 import { MILLIS_PER_DAY } from '../domain/schemas/time.ts';
@@ -7,6 +7,7 @@ import { localIsoDate } from '../application/questionnaire/date-answers.ts';
 import { BREAK_START, POST_BREAK_MODE_COPY, clockAlreadyRunningNote } from './break-copy.ts';
 import { planForTarget } from './result-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface BreakStartSheetProps {
   /** Planning target from the deterministic result (preferredTargetDays). */
@@ -21,6 +22,8 @@ export interface BreakStartSheetProps {
 const FUTURE_WINDOW_DAYS = 14;
 
 export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onClose }: BreakStartSheetProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, onClose);
   const [choice, setChoice] = useState<'now' | 'date'>('now');
   const [picked, setPicked] = useState('');
   const [mode, setMode] = useState<PostBreakMode | null>(null);
@@ -54,6 +57,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
       role="dialog"
       aria-modal="true"
       aria-labelledby="break-start-title"
+      ref={rootRef}
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={BREAK_START.close} onClick={onClose}>

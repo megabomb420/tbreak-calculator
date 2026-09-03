@@ -152,6 +152,14 @@ describe('app shell', () => {
     fireEvent.click(screen.getByRole('button', { name: SETTINGS.close }));
     expect(screen.queryByTestId('settings-modal')).toBeNull();
   });
+
+  it('closes settings on Escape without restoring focus onto the inert shell', () => {
+    renderApp();
+    fireEvent.click(screen.getByTestId('open-settings'));
+    expect(screen.getByTestId('settings-modal')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('settings-modal')).toBeNull();
+  });
 });
 
 describe('Today states from real records', () => {

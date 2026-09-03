@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { PostBreakMode } from '../domain/schemas/enums.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
@@ -28,6 +28,7 @@ import {
   PLANNED_CARD,
 } from './break-copy.ts';
 import { BackIcon, CloseIcon, MoreIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -44,13 +45,15 @@ export interface PlanDetailProps {
 
 export function PlanDetail(props: PlanDetailProps) {
   const { attempt } = props;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, props.onBack);
   const active = attempt.status === 'active' ? activeBreakView(attempt, props.now) : null;
   const planned = attempt.status === 'planned' ? plannedBreakView(attempt, props.anchor) : null;
   const [confirm, setConfirm] = useState<'end-early' | 'cancel' | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
   return (
-    <div className="questionnaire-overlay" data-testid="plan-detail" role="dialog" aria-modal="true" aria-label={PLAN_DETAIL.title}>
+    <div className="questionnaire-overlay" data-testid="plan-detail" role="dialog" aria-modal="true" aria-label={PLAN_DETAIL.title} ref={rootRef}>
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={PLAN_DETAIL.back} onClick={props.onBack}>
           <BackIcon />

@@ -1,9 +1,10 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { DateControl } from './questionnaire-controls.tsx';
 import { INTERRUPTION, RESTART_COPY_BREAK, RESTART_COPY_TRACKING, RESTART_DONE, RESTART_RECALCULATE } from './break-copy.ts';
 import { CloseIcon, PauseIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export type ConfirmScope = 'attempt' | 'tracking';
 
@@ -19,6 +20,8 @@ export interface ConfirmUseProps {
 }
 
 export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRecalculate }: ConfirmUseProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, onClose);
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -38,6 +41,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-use-title"
+      ref={rootRef}
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={INTERRUPTION.close} onClick={onClose}>

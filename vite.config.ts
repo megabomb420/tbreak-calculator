@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       preact(),
       VitePWA({
         registerType: 'prompt',
-        injectRegister: 'auto',
+        injectRegister: false,
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icons/*.png'],
         manifest: {
           name: 'T-Break Calculator',

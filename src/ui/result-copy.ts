@@ -15,7 +15,10 @@ export const RESULT = {
   whyHeading: 'Why this result',
   historyHeading: 'Your history',
   historyPrompt:
-    'Taken a tolerance break before? You can add a past break later — it never changes this range.',
+    'Taken a tolerance break before? Add it — next time, your result can include what your own history suggests.',
+  addPastBreak: 'Add a past break',
+  recalculateWithHistory: 'Recalculate with history',
+  historicalNote: 'This is the result that was calculated at the time. It is not recalculated.',
   detectionBasics: 'Separate topic: drug-test detection basics →',
   breakRecommendation: 'Tolerance is a separate topic → get a break recommendation',
   nominalThc: 'Estimate nominal THC in flower →',

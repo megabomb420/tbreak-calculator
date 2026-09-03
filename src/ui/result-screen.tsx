@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { AnswerRow, ResultView } from '../application/presentation/result-presentation.ts';
 import type { QuestionnaireStepId } from '../application/questionnaire/engine.ts';
 import { calculateNominalFlowerThc } from '../domain/nominal-thc/nominal-thc-engine.ts';
@@ -15,9 +15,11 @@ import {
   DEFAULT_REDUCTION_DAYS_PER_WEEK,
   DEFAULT_REDUCTION_SESSIONS,
 } from '../application/progress/reduction-plan.ts';
+import { HISTORY } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -39,6 +41,11 @@ export interface ResultScreenProps {
     readonly maxUseDaysPerWeek: number;
     readonly maxSessionsPerUseDay: number;
   }) => void;
+  readonly historical?: boolean;
+  readonly onAddPastBreak?: () => void;
+  readonly onRecalculateWithHistory?: () => void;
+  readonly onRecalculate?: () => void;
+  readonly onDelete?: () => void;
 }
 
 export function ResultScreen({
@@ -55,24 +62,34 @@ export function ResultScreen({
   trackingAvailable = true,
   reductionPlan = null,
   onReductionPlanChange,
+  historical = false,
+  onAddPastBreak,
+  onRecalculateWithHistory,
+  onRecalculate,
+  onDelete,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(!historical, rootRef, onAcknowledge);
 
   return (
     <div
-      className="questionnaire-overlay"
+      className={historical ? 'history-result' : 'questionnaire-overlay'}
       data-testid="result-screen"
       data-kind={view.kind}
-      role="dialog"
-      aria-modal="true"
+      data-historical={historical ? 'true' : 'false'}
+      role={historical ? undefined : 'dialog'}
+      aria-modal={historical ? undefined : 'true'}
       aria-labelledby="result-title"
+      ref={rootRef}
     >
       <header className="questionnaire-header">
-        <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge}>
+        <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
           <CloseIcon />
         </button>
       </header>
       <div className="questionnaire-body result-body">
+        {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
         <ResultBody
           view={view}
           onEditStep={onEditStep}
@@ -82,18 +99,23 @@ export function ResultScreen({
           onDetectionBasics={onDetectionBasics}
           reductionPlan={reductionPlan}
           onReductionPlanChange={onReductionPlanChange}
+          onAddPastBreak={historical ? undefined : onAddPastBreak}
+          onRecalculateWithHistory={historical ? undefined : onRecalculateWithHistory}
         />
       </div>
       <footer className="questionnaire-footer">
         <ResultActions
           view={view}
+          historical={historical}
           onAcknowledge={onAcknowledge}
           onSeeBreakRange={onSeeBreakRange}
           onCheckAnotherTest={onCheckAnotherTest}
           onStartOver={onStartOver}
-          onStartBreak={onStartBreak}
-          onStartTracking={onStartTracking}
+          onStartBreak={historical ? undefined : onStartBreak}
+          onStartTracking={historical ? undefined : onStartTracking}
           trackingAvailable={trackingAvailable}
+          onRecalculate={onRecalculate}
+          onDelete={onDelete}
         />
       </footer>
       {thcOpen ? <NominalThcSheet onClose={() => setThcOpen(false)} /> : null}
@@ -110,6 +132,8 @@ function ResultBody({
   onDetectionBasics,
   reductionPlan,
   onReductionPlanChange,
+  onAddPastBreak,
+  onRecalculateWithHistory,
 }: {
   readonly view: ResultView;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
@@ -122,6 +146,8 @@ function ResultBody({
     readonly maxUseDaysPerWeek: number;
     readonly maxSessionsPerUseDay: number;
   }) => void;
+  readonly onAddPastBreak?: () => void;
+  readonly onRecalculateWithHistory?: () => void;
 }) {
   switch (view.kind) {
     case 'tolerance_result': {
@@ -158,14 +184,11 @@ function ResultBody({
             </ul>
           </section>
           {view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
-          {view.history ? (
-            <section className="result-section">
-              <h3 className="card-title">{RESULT.historyHeading}</h3>
-              <p className="body">{view.history}</p>
-            </section>
-          ) : (
-            <p className="meta">{RESULT.historyPrompt}</p>
-          )}
+          <HistoryCard
+            insight={view.history}
+            onAddPastBreak={onAddPastBreak}
+            onRecalculateWithHistory={onRecalculateWithHistory}
+          />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
         </div>
@@ -252,6 +275,38 @@ function ResultBody({
   }
 }
 
+function HistoryCard({
+  insight,
+  onAddPastBreak,
+  onRecalculateWithHistory,
+}: {
+  readonly insight: string | null;
+  readonly onAddPastBreak?: () => void;
+  readonly onRecalculateWithHistory?: () => void;
+}) {
+  return (
+    <section className="result-section" data-testid="history-card">
+      <h3 className="card-title">{RESULT.historyHeading}</h3>
+      {insight !== null ? <p className="body">{insight}</p> : <p className="meta">{RESULT.historyPrompt}</p>}
+      {onAddPastBreak !== undefined ? (
+        <button type="button" className="cta-secondary" data-testid="result-add-past-break" onClick={onAddPastBreak}>
+          {RESULT.addPastBreak}
+        </button>
+      ) : null}
+      {onRecalculateWithHistory !== undefined ? (
+        <button
+          type="button"
+          className="cta-secondary"
+          data-testid="result-recalculate-history"
+          onClick={onRecalculateWithHistory}
+        >
+          {RESULT.recalculateWithHistory}
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 function ReductionBody({
   answers,
   onEditStep,
@@ -318,6 +373,7 @@ function ReductionBody({
 
 function ResultActions({
   view,
+  historical,
   onAcknowledge,
   onSeeBreakRange,
   onCheckAnotherTest,
@@ -325,8 +381,11 @@ function ResultActions({
   onStartBreak,
   onStartTracking,
   trackingAvailable,
+  onRecalculate,
+  onDelete,
 }: {
   readonly view: ResultView;
+  readonly historical: boolean;
   readonly onAcknowledge: () => void;
   readonly onSeeBreakRange: () => void;
   readonly onCheckAnotherTest: () => void;
@@ -334,7 +393,28 @@ function ResultActions({
   readonly onStartBreak?: () => void;
   readonly onStartTracking?: () => void;
   readonly trackingAvailable: boolean;
+  readonly onRecalculate?: () => void;
+  readonly onDelete?: () => void;
 }) {
+  if (historical) {
+    return (
+      <>
+        {onRecalculate !== undefined && view.kind !== 'unavailable' ? (
+          <button type="button" className="cta-primary" data-testid="history-recalculate" onClick={onRecalculate}>
+            {HISTORY.recalculate}
+          </button>
+        ) : null}
+        <button type="button" className="cta-secondary" onClick={onAcknowledge}>
+          {HISTORY.closeDetail}
+        </button>
+        {onDelete !== undefined ? (
+          <button type="button" className="cta-danger" data-testid="history-delete" onClick={onDelete}>
+            {HISTORY.delete}
+          </button>
+        ) : null}
+      </>
+    );
+  }
   switch (view.kind) {
     case 'tolerance_result':
       // While a live plan owns the break, Start-this-break is not offered:
@@ -498,6 +578,8 @@ function NominalThcSheet({ onClose }: { readonly onClose: () => void }) {
   const [percent, setPercent] = useState(20);
   const [label, setLabel] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, onClose);
 
   function calculate() {
     const result = calculateNominalFlowerThc(
@@ -515,13 +597,13 @@ function NominalThcSheet({ onClose }: { readonly onClose: () => void }) {
   }
 
   return (
-    <div className="modal-root" data-testid="nominal-thc-sheet">
+    <div className="modal-root" data-testid="nominal-thc-sheet" ref={rootRef}>
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-sheet" role="dialog" aria-modal="true" aria-label={NOMINAL_THC.title}>
         <div className="sheet-handle" aria-hidden="true" />
         <header className="modal-header">
           <h2 className="card-title">{NOMINAL_THC.title}</h2>
-          <button type="button" className="icon-button" aria-label={NOMINAL_THC.close} onClick={onClose}>
+          <button type="button" className="icon-button" aria-label={NOMINAL_THC.close} onClick={onClose} data-autofocus>
             <CloseIcon />
           </button>
         </header>

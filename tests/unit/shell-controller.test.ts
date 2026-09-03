@@ -35,6 +35,6 @@ describe('shell controller (UX_SPEC 3.1)', () => {
   });
 
   it('exposes exactly the documented settings entries', () => {
-    assert.deepEqual(SETTINGS_MENU, ['install-help', 'offline-note', 'delete-everything']);
+    assert.deepEqual(SETTINGS_MENU, ['install-help', 'offline-note', 'app-info', 'delete-everything']);
   });
 });

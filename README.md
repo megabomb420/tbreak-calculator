@@ -4,10 +4,10 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.3.3** — persistence/state-corruption hardening on the 0.3.2
-break loop. Malformed envelopes, impossible timeline rows, and storage
-failures fail closed without crashing Today. Scientific engines, bands, and
-the day formula are unchanged.
+Version **0.4.0** — History, IndexedDB durable records, previous-break
+personalisation, per-item deletion, storage/PWA banners, and overlay
+accessibility. 0.3.3 fail-closed persistence is included. Scientific engines,
+bands, and the day formula are unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -43,7 +43,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.3.3)
+## Capabilities (0.4.0)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -72,32 +72,49 @@ the UI component tests.
 - Completion is explicit (**Mark complete** once the target date is reached);
   ending early is a neutral state; history segments and check-ins are
   preserved on device.
+- **History** lists frozen calculations, break attempts (with segments),
+  tracking runs, check-ins, and past breaks. Historical results are never
+  silently recalculated.
+- **Previous breaks** are added from the tolerance result or History. They can
+  add a history insight only after **Recalculate with history** — they never
+  change the recommended range.
+- Per-item deletion with confirm; corrupt rows render as **Unavailable**.
+  **Delete everything** still requires a 3-second hold.
+- A storage-unavailable banner, a PWA update snackbar, and a one-time install
+  hint after the first saved calculation. Overlays trap focus; the shell is
+  `inert` while a dialog is open.
 
 ## Storage
 
-Persistence is **Web Storage only**, through versioned, validated records:
+Durable records live in **IndexedDB** (`tbreak-calculator`, per-record stores)
+after a one-time, idempotent migration from the v0.3.x Web Storage envelopes.
+The unfinished questionnaire draft and the result-overlay flag stay on Web
+Storage. When IndexedDB is missing, the same repository interface falls back
+to the versioned envelopes. When no storage works, the session is in-memory
+and a persistent banner says it cannot be saved.
 
-| Key | Contents |
+| Store / key | Contents |
 |---|---|
-| `tbreak.questionnaire-progress.v1` | unfinished draft |
-| `tbreak.questionnaire-snapshot.v1` | completed raw answers (+ optional `runId`) |
-| `tbreak.result-view.v1` | result overlay `open` / `acknowledged` |
-| `tbreak.break-attempts.v1` | stored break attempts (segments, post-break plan, ack) |
-| `tbreak.tracking-records.v1` | stored open-ended tracking records |
-| `tbreak.checkins.v1` | stored daily check-ins (chronological) |
-| `tbreak.reduction-plan.v1` | cutting-down limits (never fed to an engine) |
+| IndexedDB `calculations` | Frozen engine outputs (never silently recalculated) |
+| IndexedDB `breakAttempts` | stored break attempts (segments, post-break plan, ack) |
+| IndexedDB `trackingRecords` | stored open-ended tracking records |
+| IndexedDB `checkins` | stored daily check-ins |
+| IndexedDB `previousBreaks` | past-break personalisation (§7) |
+| IndexedDB `postBreakPlans` | per-attempt plan mirror |
+| IndexedDB `profiles` | latest completed questionnaire snapshot |
+| IndexedDB `reductionPlans` | cutting-down limits (never fed to an engine) |
+| `tbreak.questionnaire-progress.v1` | unfinished draft (Web Storage) |
+| `tbreak.result-view.v1` | result overlay `open` / `acknowledged` (Web Storage) |
 
 Corrupt envelopes are dropped and treated as absent; an invalid row is
 isolated from the rows/records that still validate. Duplicate ids keep the
-newest row. Impossible segment timing (end before start, overlap) and
-overflowing target durations are dropped rather than rendered. A
-use-profile snapshot missing required fields is treated as absent, not
-passed to an engine. When Web Storage is unavailable — or a later write
-throws after a successful probe — the app stays usable (degraded, not
-durable; no banner until step 5). **Delete everything** removes only these
-`tbreak.*` keys so a shared origin (GitHub Pages) is not wiped wholesale.
-IndexedDB remains reserved for the durable record stores of the History
-slice.
+newest row. Impossible segment timing and overflowing target durations are
+dropped rather than rendered. A use-profile snapshot missing required fields
+is treated as absent, not passed to an engine.
+
+**Delete everything** removes only T-Break IndexedDB databases/stores and
+`tbreak.*` Web Storage keys so a shared origin (GitHub Pages) is not wiped
+wholesale.
 
 ## Layout
 
@@ -105,11 +122,11 @@ slice.
   tracking state machines, versioned policies
 - `src/application` — Today router, questionnaire engine, calculation
   coordinator, break-session services, deterministic plan presentation,
-  versioned record stores
-- `src/infrastructure` — clock, storage adapters (`localStorage` in the
-  browser)
-- `src/ui` — Preact PWA: shell, Today, plan detail, break start, check-in,
-  interruption, questionnaire, result screens, settings
+  History model, IndexedDB-backed durable repositories
+- `src/infrastructure` — clock, Web Storage adapter, IndexedDB durable store
+- `src/ui` — Preact PWA: shell, Today, History, plan detail, break start,
+  check-in, interruption, previous-break sheet, questionnaire, result
+  screens, settings
 
 Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.
 Next-session notes: `HANDOFF.md`.

@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   FIRST_LAUNCH,
   GOAL_CHIPS,
+  HISTORY,
   HISTORY_EMPTY,
+  INSTALL_HINT,
   NO_PROFILE,
+  PREVIOUS_BREAK,
+  PWA_UPDATE,
   RESUME,
   SETTINGS,
+  STORAGE_BANNER,
 } from '../../src/ui/copy.ts';
 import * as questionnaireCopy from '../../src/ui/questionnaire-copy.ts';
 import * as resultCopy from '../../src/ui/result-copy.ts';
@@ -17,10 +22,15 @@ describe('UI copy invariants', () => {
   const dumped = JSON.stringify({
     FIRST_LAUNCH,
     GOAL_CHIPS,
+    HISTORY,
     HISTORY_EMPTY,
+    INSTALL_HINT,
     NO_PROFILE,
+    PREVIOUS_BREAK,
+    PWA_UPDATE,
     RESUME,
     SETTINGS,
+    STORAGE_BANNER,
     questionnaireCopy,
     resultCopy,
     breakCopy,

@@ -8,6 +8,7 @@ export interface ShellProps {
   readonly onSelectTab: (tab: AppTab) => void;
   readonly onOpenSettings: () => void;
   readonly children: ComponentChildren;
+  readonly inert?: boolean;
 }
 
 const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }> = [
@@ -15,10 +16,15 @@ const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }>
   { id: 'history', label: 'History', icon: HistoryIcon },
 ];
 
-export function Shell({ shell, onSelectTab, onOpenSettings, children }: ShellProps) {
+export function Shell({ shell, onSelectTab, onOpenSettings, children, inert = false }: ShellProps) {
   const title = shell.activeTab === 'today' ? 'Today' : 'History';
   return (
-    <div className="app-shell" data-testid="app-shell" data-active-tab={shell.activeTab}>
+    <div
+      className="app-shell"
+      data-testid="app-shell"
+      data-active-tab={shell.activeTab}
+      inert={inert || undefined}
+    >
       <header className="app-header">
         <h1 className="screen-title">{title}</h1>
         <button

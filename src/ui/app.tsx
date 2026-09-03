@@ -12,7 +12,6 @@ import {
   createTracking,
   currentLiveAttempt,
   currentLiveTracking,
-  emptySessionState,
   endBreakEarly,
   recordNoUseCheckin,
   recordSymptomCheckin,
@@ -28,32 +27,36 @@ import { buildTodayFacts } from '../application/break/today-model.ts';
 import {
   createQuestionnaireProgressStore,
   QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
-  type QuestionnaireProgressStore,
 } from '../application/progress/questionnaire-progress.ts';
 import {
-  createQuestionnaireSnapshotStore,
   QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
   type QuestionnaireSnapshotRecord,
 } from '../application/progress/questionnaire-snapshot.ts';
 import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../application/progress/result-view.ts';
+import { type StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import {
-  createBreakAttemptsStore,
-  emptyBreakAttemptsRecord,
-  type StoredAttempt,
-} from '../application/progress/break-attempt-record.ts';
-import {
-  createTrackingRecordsStore,
-  emptyTrackingRecordsRecord,
-  type StoredTrack,
-} from '../application/progress/tracking-record.ts';
-import { createCheckinsStore, emptyCheckinsRecord } from '../application/progress/checkin-store.ts';
-import {
-  createReductionPlanStore,
   DEFAULT_REDUCTION_DAYS_PER_WEEK,
   DEFAULT_REDUCTION_SESSIONS,
   REDUCTION_PLAN_SCHEMA_VERSION,
 } from '../application/progress/reduction-plan.ts';
-import { deleteAllLocalData } from '../application/settings/settings.ts';
+import {
+  createWebBackedDurable,
+  deleteAllLocalData,
+  deleteHistoryRecord,
+  ensureCalculationFromSnapshot,
+  type DurablePersistence,
+} from '../application/persistence/durable.ts';
+import {
+  freezeCalculation,
+  withPreviousBreaks,
+  type CalculationRecord,
+} from '../application/persistence/calculation-record.ts';
+import { createdAtIso, PreviousBreakSheet, type PreviousBreakDraft } from './previous-break-sheet.tsx';
+import { newRecordId } from '../application/persistence/ids.ts';
+import { toPreviousBreakInput } from '../application/persistence/previous-break-store.ts';
+import { findPreviousBreak } from '../application/history/history-model.ts';
+import { StorageBanner } from './storage-banner.tsx';
+import { InstallHint, UpdateSnackbar, isStandaloneDisplay } from './pwa-ui.tsx';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
 import { todayFactsFromSnapshot } from '../application/shell/today-facts-from-snapshot.ts';
 import { resolveTodayState, type TodayFacts } from '../application/shell/today-state.ts';
@@ -97,27 +100,46 @@ export type Flow =
   | { readonly kind: 'break-start' }
   | { readonly kind: 'plan-detail' }
   | { readonly kind: 'checkin' }
-  | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant };
+  | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
+  | { readonly kind: 'previous-break'; readonly editId: string | null };
 
 export interface AppProps {
   readonly storage: StorageAdapter;
   readonly clock?: Clock;
+  readonly durable?: DurablePersistence;
+  readonly persistent?: boolean;
+  readonly updateReady?: boolean;
+  readonly onReloadUpdate?: () => void;
+  readonly onDismissUpdate?: () => void;
 }
 
-export function App({ storage, clock = systemClock }: AppProps) {
+export function App({
+  storage,
+  clock = systemClock,
+  durable: durableProp,
+  persistent = true,
+  updateReady = false,
+  onReloadUpdate,
+  onDismissUpdate,
+}: AppProps) {
   const [shell, dispatch] = useReducer(shellReducer, INITIAL_SHELL_STATE);
   const progress = useMemo(() => createQuestionnaireProgressStore(storage), [storage]);
-  const snapshots = useMemo(() => createQuestionnaireSnapshotStore(storage), [storage]);
   const resultViews = useMemo(() => createResultViewStore(storage), [storage]);
-  const attemptsStore = useMemo(() => createBreakAttemptsStore(storage), [storage]);
-  const trackingStore = useMemo(() => createTrackingRecordsStore(storage), [storage]);
-  const checkinsStore = useMemo(() => createCheckinsStore(storage), [storage]);
-  const reductionPlanStore = useMemo(() => createReductionPlanStore(storage), [storage]);
+  const durable = useMemo(
+    () =>
+      durableProp ??
+      createWebBackedDurable(storage, {
+        persistent,
+        backend: persistent ? 'web-storage' : 'memory',
+      }),
+    [durableProp, storage, persistent],
+  );
   const [factsEpoch, setFactsEpoch] = useState(0);
   const [session, setSession] = useState<QuestionnaireSession | null>(null);
   const [lastUseWarning, setLastUseWarning] = useState(false);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [now, setNow] = useState<Instant>(() => clock.now());
+  const [installHintDismissed, setInstallHintDismissed] = useState(false);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -139,25 +161,36 @@ export function App({ storage, clock = systemClock }: AppProps) {
     setFactsEpoch((value) => value + 1);
   }
 
-  const snapshotRecord = useMemo(() => snapshots.load(), [snapshots, factsEpoch]);
+  const snapshotRecord = useMemo(() => {
+    const loaded = durable.load();
+    // v0.3.x snapshots never stored a calculation id. Materialize once.
+    // A snapshot that already has runId but no matching row was deleted.
+    if (loaded.snapshot !== null && loaded.snapshot.runId === undefined) {
+      ensureCalculationFromSnapshot(durable, loaded.snapshot);
+      return durable.load().snapshot;
+    }
+    return loaded.snapshot;
+  }, [durable, factsEpoch]);
   const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
-  const attemptsRecord = useMemo(() => attemptsStore.load(), [attemptsStore, factsEpoch]);
-  const trackingRecord = useMemo(() => trackingStore.load(), [trackingStore, factsEpoch]);
-  const checkinsRecord = useMemo(() => checkinsStore.load(), [checkinsStore, factsEpoch]);
-  const reductionPlan = useMemo(() => reductionPlanStore.load(), [reductionPlanStore, factsEpoch]);
+  const durableSnap = useMemo(() => durable.load(), [durable, factsEpoch]);
+  const attemptsRecord = durableSnap.attempts;
+  const trackingRecord = durableSnap.tracking;
+  const checkinsRecord = durableSnap.checkins;
+  const reductionPlan = durableSnap.reductionPlan;
 
   const sessionState: BreakSessionState = {
-    attempts: attemptsRecord?.attempts ?? [],
-    tracking: trackingRecord?.records ?? [],
-    checkins: checkinsRecord?.checkins ?? [],
+    attempts: attemptsRecord,
+    tracking: trackingRecord,
+    checkins: checkinsRecord,
   };
 
   function readSessionState(): BreakSessionState {
+    const loaded = durable.load();
     return {
-      attempts: attemptsStore.load()?.attempts ?? [],
-      tracking: trackingStore.load()?.records ?? [],
-      checkins: checkinsStore.load()?.checkins ?? [],
+      attempts: loaded.attempts,
+      tracking: loaded.tracking,
+      checkins: loaded.checkins,
     };
   }
 
@@ -165,13 +198,13 @@ export function App({ storage, clock = systemClock }: AppProps) {
   // stale tab cannot resurrect a cancelled plan over a newer write.
   useEffect(() => {
     const current = readSessionState();
-    const anchor = profileAnchor(snapshots.load());
+    const anchor = profileAnchor(durable.load().snapshot);
     const activated = activateDuePlans(current, () => anchor, now);
     if (activated !== current) {
       persistBreakSession(activated);
       refresh();
     }
-  }, [factsEpoch, now, attemptsRecord, trackingRecord, checkinsRecord, snapshotRecord, attemptsStore]);
+  }, [factsEpoch, now, attemptsRecord, trackingRecord, checkinsRecord, snapshotRecord, durable]);
 
   const snapshotFacts = todayFactsFromSnapshot(snapshotRecord?.snapshot ?? null);
   const acknowledged = resultRecord?.status === 'acknowledged';
@@ -228,12 +261,11 @@ export function App({ storage, clock = systemClock }: AppProps) {
 
   function persistBreakSession(next: BreakSessionState): void {
     try {
-      attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...next.attempts] });
-      trackingStore.save({ ...emptyTrackingRecordsRecord(), records: [...next.tracking] });
-      checkinsStore.save({ ...emptyCheckinsRecord(), checkins: [...next.checkins] });
+      durable.saveAttempts(next.attempts);
+      durable.saveTracking(next.tracking);
+      durable.saveCheckins(next.checkins);
     } catch {
-      // Quota or a late adapter failure must not crash the shell. Durability
-      // is best-effort until IndexedDB transactions land in step 5.
+      // Quota or a late adapter failure must not crash the shell.
     }
   }
 
@@ -249,10 +281,13 @@ export function App({ storage, clock = systemClock }: AppProps) {
   function snapshotRunId(): string | null {
     if (snapshotRecord === null) return null;
     if (snapshotRecord.runId !== undefined) return snapshotRecord.runId;
-    const runId = newRecordId('run', clock.now());
-    snapshots.save({ ...snapshotRecord, runId, updatedAt: clock.now() });
-    refresh();
-    return runId;
+    const existing = durable.load().calculations[0];
+    if (existing !== undefined) {
+      durable.saveSnapshot({ ...snapshotRecord, runId: existing.id, updatedAt: clock.now() });
+      return existing.id;
+    }
+    const frozen = ensureCalculationFromSnapshot(durable, snapshotRecord);
+    return frozen?.id ?? null;
   }
 
   /** The authoritative last-use instant from the current profile, if any. */
@@ -374,14 +409,18 @@ export function App({ storage, clock = systemClock }: AppProps) {
         : confirmTrackingUse(latest, { id, usedAt, usedAtIso, now: nowAt });
     if (!outcome.ok) return false;
     persistBreakSession(outcome.state);
-    const snapshot = snapshots.load();
+    const snapshot = durable.load().snapshot;
     if (snapshot !== null && snapshot.snapshot.kind === 'use_profile') {
       const profile = snapshot.snapshot.profile;
-      snapshots.save({
-        ...snapshot,
-        snapshot: { kind: 'use_profile', profile: { ...profile, lastUseAt: { value: usedAtIso, provenance: 'user_estimate' } } },
-        updatedAt: nowAt,
-      });
+      try {
+        durable.saveSnapshot({
+          ...snapshot,
+          snapshot: { kind: 'use_profile', profile: { ...profile, lastUseAt: { value: usedAtIso, provenance: 'user_estimate' } } },
+          updatedAt: nowAt,
+        });
+      } catch {
+        // Profile last-use is best-effort; the open segment remains the clock.
+      }
     }
     refresh();
     return true;
@@ -506,7 +545,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
   /** Recovery for a snapshot that cannot produce a result. Keeps any live plan. */
   function resetFailedCalculation() {
     progress.clear();
-    snapshots.clear();
+    durable.saveSnapshot(null);
     resultViews.clear();
     setSession(null);
     setLastUseWarning(false);
@@ -583,11 +622,14 @@ export function App({ storage, clock = systemClock }: AppProps) {
       const finished = finishQuestionnaire(answers, nowAt);
       if (finished.status === 'complete') {
         progress.clear();
-        snapshots.save({
+        const runId = newRecordId('calc', nowAt);
+        const frozen = freezeCalculation(runId, finished.snapshot, nowAt);
+        durable.putCalculation(frozen);
+        durable.saveSnapshot({
           schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
           snapshot: finished.snapshot,
           updatedAt: nowAt,
-          runId: snapshotRecord?.runId,
+          runId: frozen.id,
         });
         markResult('open');
         setSession(null);
@@ -609,6 +651,68 @@ export function App({ storage, clock = systemClock }: AppProps) {
     refresh();
   }
 
+  function openRecalculateFrom(record: CalculationRecord, step?: QuestionnaireStepId) {
+    const answers = answersFromSnapshot(record.snapshot);
+    const nowAt = clock.now();
+    const next = { currentStep: restoreStep(answers, nowAt, step), answers };
+    persist(next);
+    setSession(next);
+    setLastUseWarning(lastUseNeedsReselect(answers, nowAt));
+    setFlow(null);
+    refresh();
+  }
+
+  function recalculateWithHistory() {
+    if (snapshotRecord === null || snapshotRecord.snapshot.kind !== 'use_profile') return;
+    const nowAt = clock.now();
+    const previous = durable.load().previousBreaks;
+    const merged = withPreviousBreaks(snapshotRecord.snapshot, previous.map(toPreviousBreakInput));
+    const frozen = freezeCalculation(newRecordId('calc', nowAt), merged, nowAt);
+    durable.putCalculation(frozen);
+    durable.saveSnapshot({
+      ...snapshotRecord,
+      snapshot: merged,
+      runId: frozen.id,
+      updatedAt: nowAt,
+    });
+    markResult('open');
+    setFlow(null);
+    refresh();
+  }
+
+  function savePreviousBreak(draft: PreviousBreakDraft, addAnother: boolean) {
+    const nowAt = clock.now();
+    const editing = flow?.kind === 'previous-break' ? flow.editId : null;
+    const existing = editing === null ? null : findPreviousBreak(durable.load(), editing);
+    const id = existing?.id ?? newRecordId('pb', nowAt);
+    durable.putPreviousBreak({
+      id,
+      durationDays: draft.durationDays,
+      toleranceReductionScore: draft.toleranceReductionScore,
+      endedAt: draft.endedAt,
+      createdAt: existing?.createdAt ?? createdAtIso(nowAt),
+      updatedAt: nowAt,
+    });
+    if (addAnother) {
+      setFlow({ kind: 'previous-break', editId: null });
+      refresh();
+      return;
+    }
+    setFlow(null);
+    refresh();
+  }
+
+  function snapshotIncludesPreviousBreaks(): boolean {
+    const previous = durableSnap.previousBreaks;
+    if (previous.length === 0) return true;
+    if (snapshotRecord === null || snapshotRecord.snapshot.kind !== 'use_profile') return false;
+    const ids = new Set(snapshotRecord.snapshot.profile.previousBreaks.map((item) => item.id));
+    return previous.every((item) => ids.has(item.id));
+  }
+
+  const canRecalculateWithHistory =
+    resultModel?.kind === 'tolerance_result' && durableSnap.previousBreaks.length > 0 && !snapshotIncludesPreviousBreaks();
+
   function skipOptionalLastUse() {
     submitAnswer({ step: 'Q3-opt', value: { skip: true } });
   }
@@ -628,10 +732,20 @@ export function App({ storage, clock = systemClock }: AppProps) {
   const planDetailAttempt =
     liveAttempt?.status === 'active' || liveAttempt?.status === 'planned' ? liveAttempt : null;
 
+  const overlayOpen =
+    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen;
+  const showInstallHint =
+    !overlayOpen &&
+    !installHintDismissed &&
+    durableSnap.calculations.length > 0 &&
+    !isStandaloneDisplay();
+
   return (
     <>
+      {!persistent ? <StorageBanner /> : null}
       <Shell
         shell={shell}
+        inert={overlayOpen}
         onSelectTab={(tab: AppTab) => dispatch({ type: 'select_tab', tab })}
         onOpenSettings={() => dispatch({ type: 'open_settings' })}
       >
@@ -665,7 +779,17 @@ export function App({ storage, clock = systemClock }: AppProps) {
             onStopTracking={stopCurrentTracking}
           />
         ) : (
-          <HistoryScreen />
+          <HistoryScreen
+            snapshot={durableSnap}
+            now={now}
+            onAddPastBreak={() => setFlow({ kind: 'previous-break', editId: null })}
+            onEditPastBreak={(id) => setFlow({ kind: 'previous-break', editId: id })}
+            onDelete={(kind, id) => {
+              deleteHistoryRecord(durable, kind, id);
+              refresh();
+            }}
+            onRecalculate={openRecalculateFrom}
+          />
         )}
       </Shell>
       {session !== null ? (
@@ -706,7 +830,7 @@ export function App({ storage, clock = systemClock }: AppProps) {
                 }
           }
           onReductionPlanChange={(plan) => {
-            reductionPlanStore.save({
+            durable.saveReductionPlan({
               schemaVersion: REDUCTION_PLAN_SCHEMA_VERSION,
               maxUseDaysPerWeek: plan.maxUseDaysPerWeek,
               maxSessionsPerUseDay: plan.maxSessionsPerUseDay,
@@ -714,9 +838,13 @@ export function App({ storage, clock = systemClock }: AppProps) {
             });
             refresh();
           }}
+          onAddPastBreak={
+            resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
+          }
+          onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
         />
       ) : null}
-      {flow !== null ? (
+      {flow !== null && flow.kind !== 'previous-break' ? (
         <FlowRenderer
           flow={flow}
           targetDays={breakSheetTarget ?? 0}
@@ -739,17 +867,43 @@ export function App({ storage, clock = systemClock }: AppProps) {
           onUpdatePostBreak={updatePostBreak}
         />
       ) : null}
+      {flow?.kind === 'previous-break' ? (
+        <PreviousBreakSheet
+          now={now}
+          initial={flow.editId === null ? null : findPreviousBreak(durableSnap, flow.editId)}
+          onSave={savePreviousBreak}
+          onDelete={
+            flow.editId === null
+              ? undefined
+              : () => {
+                  deleteHistoryRecord(durable, 'previous-break', flow.editId!);
+                  setFlow(null);
+                  refresh();
+                }
+          }
+          onClose={() => setFlow(null)}
+        />
+      ) : null}
       <SettingsModal
         open={shell.settingsOpen}
+        persistent={persistent}
         onClose={() => dispatch({ type: 'close_settings' })}
         onDeleteEverything={() => {
-          deleteAllLocalData(storage);
+          deleteAllLocalData(storage, durable);
           setSession(null);
           setFlow(null);
           refresh();
           dispatch({ type: 'close_settings' });
         }}
       />
+      {updateReady ? (
+        <UpdateSnackbar
+          onReload={() => onReloadUpdate?.()}
+          onDismiss={() => onDismissUpdate?.()}
+        />
+      ) : showInstallHint ? (
+        <InstallHint onDismiss={() => setInstallHintDismissed(true)} />
+      ) : null}
     </>
   );
 }
@@ -844,6 +998,8 @@ function FlowRenderer({
         />
       );
     }
+    case 'previous-break':
+      return null;
   }
 }
 
@@ -855,12 +1011,7 @@ function toleranceTargetDays(view: ResultView | null): number | null {
 
 function profileAnchor(snapshot: QuestionnaireSnapshotRecord | null): Instant | null {
   if (snapshot === null || snapshot.snapshot.kind !== 'use_profile') return null;
-  const lastUse = snapshot.snapshot.profile.lastUseAt;
-  if (lastUse === undefined || lastUse === null || typeof lastUse.value !== 'string') return null;
-  return parseSubmittedTimestamp(lastUse.value);
-}
-
-function newRecordId(prefix: string, now: Instant): string {
-  const suffix = Math.random().toString(36).slice(2, 8);
-  return `${prefix}-${now}-${suffix}`;
+  const iso = snapshot.snapshot.profile.lastUseAt.value;
+  if (iso === null) return null;
+  return parseSubmittedTimestamp(iso);
 }

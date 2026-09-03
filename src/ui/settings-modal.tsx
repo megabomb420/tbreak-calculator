@@ -1,34 +1,34 @@
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
-import { SETTINGS_MENU, type SettingsMenuId } from '../application/settings/settings.ts';
+import { APP_VERSION, SETTINGS_MENU, type SettingsMenuId } from '../application/settings/settings.ts';
 import { SETTINGS } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 const HOLD_MS = 3000;
 
 export interface SettingsModalProps {
   readonly open: boolean;
+  readonly persistent?: boolean;
   readonly onClose: () => void;
   readonly onDeleteEverything: () => void;
 }
 
-export function SettingsModal({ open, onClose, onDeleteEverything }: SettingsModalProps) {
+export function SettingsModal({ open, persistent = true, onClose, onDeleteEverything }: SettingsModalProps) {
   const titleId = useId();
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(open, rootRef, onClose);
 
   if (!open) return null;
 
   return (
-    <div className="modal-root" data-testid="settings-modal">
+    <div
+      className="modal-root"
+      data-testid="settings-modal"
+      ref={rootRef}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+    >
       <div className="modal-backdrop" onClick={onClose} />
       <div
         className="modal-sheet"
@@ -42,18 +42,18 @@ export function SettingsModal({ open, onClose, onDeleteEverything }: SettingsMod
             {SETTINGS.title}
           </h2>
           <button
-            ref={closeRef}
             type="button"
             className="icon-button"
             aria-label={SETTINGS.close}
             onClick={onClose}
+            data-autofocus
           >
             <CloseIcon />
           </button>
         </header>
         <div className="modal-body">
           {SETTINGS_MENU.map((id) => (
-            <SettingsEntry key={id} id={id} onDeleteEverything={onDeleteEverything} />
+            <SettingsEntry key={id} id={id} persistent={persistent} onDeleteEverything={onDeleteEverything} />
           ))}
         </div>
       </div>
@@ -63,9 +63,11 @@ export function SettingsModal({ open, onClose, onDeleteEverything }: SettingsMod
 
 function SettingsEntry({
   id,
+  persistent,
   onDeleteEverything,
 }: {
   readonly id: SettingsMenuId;
+  readonly persistent: boolean;
   readonly onDeleteEverything: () => void;
 }) {
   switch (id) {
@@ -84,6 +86,15 @@ function SettingsEntry({
       return (
         <section className="settings-entry" data-settings-entry="offline-note">
           <p className="body">{SETTINGS.offlineNote}</p>
+          <p className="meta">{persistent ? SETTINGS.storageOk : SETTINGS.storageUnavailable}</p>
+        </section>
+      );
+    case 'app-info':
+      return (
+        <section className="settings-entry" data-settings-entry="app-info">
+          <h3 className="settings-entry-title">{SETTINGS.appInfoTitle}</h3>
+          <p className="body">{SETTINGS.appInfoVersion}</p>
+          <p className="meta">Version {APP_VERSION}</p>
         </section>
       );
     case 'delete-everything':

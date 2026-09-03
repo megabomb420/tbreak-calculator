@@ -127,6 +127,22 @@ export function CheckIcon({ size = 16, className }: SvgProps) {
   );
 }
 
+export function PlusIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M12 5v14M5 12h14" {...stroke} />
+    </Glyph>
+  );
+}
+
+export function ChevronIcon(props: SvgProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M9 6l6 6-6 6" {...stroke} />
+    </Glyph>
+  );
+}
+
 export function GoalResetIcon(props: SvgProps) {
   return (
     <Glyph {...props}>
@@ -416,14 +432,6 @@ export function BreakNoIcon(props: SvgProps) {
     <Glyph {...props}>
       <path d="M6 15.5c2.4-3 4.6-4.6 6-4.6s3.6 1.6 6 4.6" {...stroke} />
       <path d="M8.5 9.5h7" {...stroke} />
-    </Glyph>
-  );
-}
-
-export function ChevronIcon(props: SvgProps) {
-  return (
-    <Glyph {...props}>
-      <path d="M9 6l6 6-6 6" {...stroke} />
     </Glyph>
   );
 }

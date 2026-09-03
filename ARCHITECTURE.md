@@ -258,12 +258,12 @@ string and is stored through the Web Storage-shaped `StorageAdapter`
 (`localStorage` in the browser, in-memory in tests). IndexedDB is not used for
 that draft.
 
-**Current slice note (0.3.0):** break attempts, open-ended tracking records,
-and check-ins currently persist through the same key-value adapter behind
-versioned, validated envelopes whose repository interfaces mirror the
-`breakAttempts` / tracking / `checkins` stores below. The IndexedDB-backed
-history slice replaces that backing with the per-record stores; the interfaces
-and record shapes are the migration boundary.
+**Current slice note (0.4.0):** durable records persist through IndexedDB
+per-record stores (`calculations`, `breakAttempts`, `trackingRecords`,
+`checkins`, `previousBreaks`, `postBreakPlans`, `profiles`, `reductionPlans`).
+The questionnaire draft and result-overlay flag remain on Web Storage. v0.3.x
+envelopes are migrated once, idempotently, and left in place if a family
+fails. The repository interface and record shapes are the boundary.
 
 Minimal logical stores (IndexedDB, later slice) are:
 

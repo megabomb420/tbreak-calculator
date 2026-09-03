@@ -1694,3 +1694,170 @@ details.card > summary::-webkit-details-marker {
 .modal-sheet .cta-secondary {
   margin-top: var(--space-3);
 }
+
+.cta-danger {
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--error);
+  color: #1a0b09;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.storage-banner,
+.snackbar {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  z-index: 50;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sheet);
+  color: var(--fg);
+}
+
+.storage-banner {
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--warn);
+}
+
+.snackbar {
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.snackbar-copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.snackbar-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.history-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.history-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  min-height: 44px;
+  color: var(--accent);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.history-row {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-border);
+  text-align: left;
+}
+
+.history-row.unavailable {
+  color: var(--fg-muted);
+}
+
+.history-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.history-row-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.history-static-row {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.history-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+
+.history-result {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.history-result .questionnaire-header,
+.history-result .questionnaire-body,
+.history-result .questionnaire-footer {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.history-result .questionnaire-body {
+  overflow: visible;
+  flex: none;
+}
+
+.boot-shell {
+  height: 100%;
+  height: 100svh;
+  background:
+    radial-gradient(120% 70% at 50% -18%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 58%),
+    var(--bg-base);
+}
+
+.confirm-sheet {
+  padding-top: var(--space-5);
+}
+
+

@@ -23,6 +23,7 @@ import {
 } from './questionnaire-controls.tsx';
 import { QUESTIONNAIRE, STEP_COPY } from './questionnaire-copy.ts';
 import { CloseIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface QuestionnaireFlowProps {
   readonly session: QuestionnaireSession;
@@ -48,6 +49,8 @@ export function QuestionnaireFlow({
   onSkip,
 }: QuestionnaireFlowProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, onClose);
   const { currentStep, answers } = session;
   const spec = STEP_SPECS[currentStep];
   const copy = STEP_COPY[currentStep];
@@ -60,14 +63,6 @@ export function QuestionnaireFlow({
     headingRef.current?.focus();
   }, [currentStep]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
     <div
       className="questionnaire-overlay"
@@ -76,6 +71,7 @@ export function QuestionnaireFlow({
       role="dialog"
       aria-modal="true"
       aria-labelledby="questionnaire-title"
+      ref={rootRef}
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={QUESTIONNAIRE.close} onClick={onClose}>

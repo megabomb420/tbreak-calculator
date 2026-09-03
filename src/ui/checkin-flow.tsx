@@ -1,6 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
 import { CHECKIN, SYMPTOM_FIELDS } from './break-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface SymptomValues {
   readonly craving: number | null;
@@ -23,6 +24,8 @@ export interface CheckInProps {
 }
 
 export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, onClose }: CheckInProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, rootRef, onClose);
   const [screen, setScreen] = useState<'question' | 'symptoms'>('question');
   const [noSelected, setNoSelected] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -35,6 +38,7 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkin-title"
+      ref={rootRef}
     >
       <header className="questionnaire-header">
         <button type="button" className="icon-button" aria-label={CHECKIN.close} onClick={onClose}>
