@@ -4,10 +4,12 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.4.0** — History, IndexedDB durable records, previous-break
-personalisation, per-item deletion, storage/PWA banners, and overlay
-accessibility. 0.3.3 fail-closed persistence is included. Scientific engines,
-bands, and the day formula are unchanged.
+Version **0.4.1** — History, IndexedDB durable records, previous-break
+personalisation, per-item deletion, storage/PWA banners, overlay
+accessibility, and a viewport-fill fix so the in-flow tab bar meets the
+physical bottom of the screen (`100dvh` with `100vh` fallback). 0.3.3
+fail-closed persistence is included. Scientific engines, bands, and the
+day formula are unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -43,7 +45,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.4.0)
+## Capabilities (0.4.1)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -127,6 +129,13 @@ wholesale.
 - `src/ui` — Preact PWA: shell, Today, History, plan detail, break start,
   check-in, interruption, previous-break sheet, questionnaire, result
   screens, settings
+
+The root shell fills the current dynamic viewport (`--app-height`: `100vh`,
+upgraded to `100dvh` inside `@supports` so minifiers keep the fallback).
+The tab bar stays in normal document flow; `.app-main` is the only normal
+scrolling pane. `viewport-fit=cover` plus `env(safe-area-inset-*)` pad the
+notch / home indicator. Do not lock the shell to `100svh` (it underfills
+when mobile chrome collapses or in a standalone PWA).
 
 Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.
 Next-session notes: `HANDOFF.md`.

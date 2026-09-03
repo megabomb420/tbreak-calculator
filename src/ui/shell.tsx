@@ -40,7 +40,7 @@ export function Shell({ shell, onSelectTab, onOpenSettings, children, inert = fa
         </button>
       </header>
       <main className="app-main">{children}</main>
-      <nav className="tab-bar" aria-label="Primary">
+      <nav className="tab-bar" aria-label="Primary" data-testid="tab-bar">
         {TABS.map((tab) => {
           const selected = shell.activeTab === tab.id;
           const Icon = tab.icon;

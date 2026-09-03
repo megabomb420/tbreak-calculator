@@ -58,7 +58,14 @@
   --motion-slow: 400ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --app-height: 100vh;
   font-family: var(--font-body);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
 }
 
 *,
@@ -67,9 +74,29 @@
   box-sizing: border-box;
 }
 
-html {
+/*
+  Viewport fill contract (0.4.1):
+  Size the root column to the *current* viewport so the in-flow tab bar
+  sits on the physical bottom with no blank body strip below it.
+
+  100svh (smallest viewport) underfills when iOS Safari chrome collapses
+  or when the app runs as an installed standalone PWA — svh stays at the
+  “chrome expanded” size while the visible area is taller.
+
+  --app-height is 100vh, then 100dvh inside @supports so the fallback
+  survives CSS minifiers that would otherwise drop overridden height
+  declarations. Do not lock the shell to svh. Do not use position:fixed
+  bottom chrome or visualViewport JS hacks.
+*/
+html,
+body,
+#app,
+.boot-shell {
   height: 100%;
-  height: 100svh;
+  height: var(--app-height);
+}
+
+html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -82,8 +109,6 @@ body {
 }
 
 body {
-  height: 100%;
-  height: 100svh;
   overflow: hidden;
   font-size: var(--text-base);
   line-height: var(--leading-normal);
@@ -107,8 +132,6 @@ summary:focus-visible {
 
 #app {
   position: relative;
-  height: 100%;
-  height: 100svh;
   overflow: hidden;
 }
 
@@ -167,7 +190,7 @@ summary:focus-visible {
 }
 
 .app-main {
-  flex: 1 1 auto;
+  flex: 1;
   min-height: 0;
   overflow: auto;
   padding: var(--space-2) var(--gutter) var(--space-5);
@@ -550,7 +573,8 @@ summary:focus-visible {
   left: 0;
   right: 0;
   bottom: 0;
-  max-height: min(92svh, 720px);
+  max-height: min(92vh, 720px);
+  max-height: min(calc(var(--app-height) * 0.92), 720px);
   overflow: auto;
   padding: var(--space-3) var(--gutter) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   background: var(--bg-card);
@@ -1205,7 +1229,8 @@ details.card > summary::-webkit-details-marker {
 }
 
 .history-empty {
-  min-height: 52svh;
+  min-height: 52vh;
+  min-height: calc(var(--app-height) * 0.52);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1849,8 +1874,6 @@ details.card > summary::-webkit-details-marker {
 }
 
 .boot-shell {
-  height: 100%;
-  height: 100svh;
   background:
     radial-gradient(120% 70% at 50% -18%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 58%),
     var(--bg-base);
