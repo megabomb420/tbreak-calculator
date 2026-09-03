@@ -5,13 +5,13 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.7.0** (duration-aware planning target inside unchanged evidence ranges; tolerance policy `tolerance-v2`)
+- App version: **0.7.1** (questionnaire order: duration first on consuming routes; compact Q6 option rows — on top of 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.7.0 revision note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
-- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v2 target rule in §4.3, §7.3, §7.5, §7.6; Q6 routing in §4.3)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.7.1 revision note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `CALCULATOR_SPEC.md` (domain / engines; tolerance-v2 target rule in §4.3, §7.3, §7.5, §7.6; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
@@ -25,25 +25,52 @@ to make UI easier. Do not commit untracked review files.
 ## What is on main
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
-visual redesign, the **0.3.1–0.6.1** patches, and the **0.7.0** calculator
-policy revision.
+visual redesign, the **0.3.1–0.6.1** patches, and the **0.7.0–0.7.1**
+calculator/questionnaire revisions.
 
 | Step | Status |
 |---|---|
 | 1. Shell + Today router + draft persistence | done |
-| 2. Declarative questionnaire engine + §5.1 flow | done (Q6 added in 0.6.0) |
+| 2. Declarative questionnaire engine + §5.1 flow | done (Q6 added in 0.6.0; moved first in 0.7.1) |
 | 3. Result screens + §14 template layer | done (outlook replaces “First weeks”) |
 | 4. Break loop (§8, §10): break start, Today states, plan detail, use-first check-in, interruption, completion | done |
 | 5. History + contextual flows + IndexedDB | done (0.4.0) |
 | 0.4.2 iOS 26 Liquid Glass viewport fill | done |
 | 0.5.0 evidence-guided T-break companion | done |
 | 0.6.0 current-pattern duration + full break outlook | done |
-| 0.7.0 duration-aware planning target (tolerance-v2) | **done** |
+| 0.7.0 duration-aware planning target (tolerance-v2) | done |
+| 0.7.1 duration asked first on consuming routes + compact Q6 rows | **done** |
 | 6. Runtime AI / DeepSeek | **not started** |
 
-Working product behaviour: unchanged from 0.6.1 — questionnaire overlay with
-per-step persistence, result overlay with the full Day 1 → target outlook
-before Start this break, in-flow tab bar, product-vs-route distinction.
+Working product behaviour: questionnaire overlay with per-step persistence,
+result overlay with the full Day 1 → target outlook before Start this break,
+in-flow tab bar, product-vs-route distinction.
+
+## What 0.7.1 added (flow + layout only)
+
+No science, engine, target policy, evidence rule, History, BreakOutlook, or
+viewport change. Two changes:
+
+1. **Q6 (current-pattern duration) is the first use-profile question.** After
+   Q1 goal (and Q2R when a reduction requests a break) the flow asks duration
+   before use-days, last use, sessions, and products/routes. Abstinence asks
+   duration before the last-use anchor. Zero use-days is only discovered after
+   Q6, so a 0-day tolerance completion may store a duration band that the
+   baseline-low result ignores. Q6 is still never asked on reduction-no-break
+   or detection.
+2. **Compact Q6 option rows.** The rows previously rendered inside the generic
+   `.choice-card` three-column grid (`44px 1fr auto`) with no leading icon, so
+   auto-placement squeezed the label/helper text into the 44px column
+   (one-word-per-line). The rows now use the two-column compact grid
+   (`1fr auto`, `choice-card compact duration-option`): full-width tappable
+   card, title on top, helper directly below, normal wrapping, selected state
+   preserved.
+
+Step counts shift: tolerance_reset min 3 / typical 4 / max 6; reduction-break
+min 4 / typical 5 / max 7; abstinence, reduction-no-break and detection stay 3.
+Engine `resolvedPath`/`startSession`/`restoreStep`/`previousStep` and draft
+resume reflect the new order; old saved drafts restore at Q6 when Q6 is the
+first incomplete step.
 
 ## What 0.7.0 added
 
@@ -87,10 +114,15 @@ presentation never invents a lower-end claim for a stored upper target.
 
 ### Questionnaire
 
-Routing is unchanged from 0.6.0 — this was a deliberate, documented decision:
+Ordering is defined in `UX_SPEC.md` §5.1/§5.3 and `CALCULATOR_SPEC.md` §4.3.
+Since **0.7.1** the flow asks duration (Q6) first on consuming routes:
 
-- Q6 asked after last use when use-days ≥ 1 on range-requested routes and
-  after Q2A on abstinence; skipped for 0 days, reduction-no-break, detection.
+- Q6 is the first use-profile question after Q1 (tolerance_reset, abstinence)
+  and after Q2R = Yes (reduction with a break) — before use-days, last use,
+  sessions, and products/routes. Zero use-days is discovered only after Q6; a
+  0-day tolerance completion may store a duration band that the baseline-low
+  result ignores.
+- Q6 is still never asked on reduction-no-break or detection.
 - Q4/Q5 stay at use-days ≥ 16 only. Below 16 use-days sessions/products/routes
   change neither the range rule nor the target heuristic, so they are not
   collected — including for a 4–15 use-day multi-session concentrate profile,
@@ -98,7 +130,8 @@ Routing is unchanged from 0.6.0 — this was a deliberate, documented decision:
   conservative boundary. This is written into `CALCULATOR_SPEC.md` §4.3.
 
 No new personal data is asked (no age, sex, BMI, hydration, exercise,
-metabolism, health, or medications). Step counts are unchanged.
+metabolism, health, or medications). Step counts per goal are updated in
+`UX_SPEC.md` §5.4 for the new order.
 
 ### Result rationale and personalisation
 

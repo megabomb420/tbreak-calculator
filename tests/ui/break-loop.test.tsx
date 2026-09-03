@@ -111,12 +111,13 @@ function completeToleranceFlow(storage: StorageAdapter) {
   const rendered = renderApp(storage);
   fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
   fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+  // Duration is the first use-profile question, then use-days, then last use.
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
   fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '20' } });
   fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
   fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: '1' }));
   fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: QUESTIONNAIRE.continue }));
   const q5 = screen.getByTestId('questionnaire-flow');
@@ -441,10 +442,11 @@ describe('open-ended abstinence tracking (D4)', () => {
     renderApp(storage);
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
+    // Abstinence asks duration first, then the last-use anchor.
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     const flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     fireEvent.click(screen.getByTestId('start-tracking'));
     expect(screen.queryByTestId('result-screen')).toBeNull();

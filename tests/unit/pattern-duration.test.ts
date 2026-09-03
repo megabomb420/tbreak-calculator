@@ -363,31 +363,39 @@ describe('frozen historical records stay immutable', () => {
 });
 
 describe('questionnaire routing for current pattern duration', () => {
-  it('asks Q6 after last use on consuming routes with use days, and on abstinence', () => {
+  it('asks duration first on consuming routes, before use-days and last use', () => {
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }), [
       'Q1',
+      'Q6',
       'Q2',
       'Q3',
-      'Q6',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 20 }), [
       'Q1',
+      'Q6',
       'Q2',
       'Q3',
-      'Q6',
       'Q4',
       'Q5',
     ]);
+    // Zero use-days is only known after Q2; Q6 is already asked on the route.
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 0 }), [
       'Q1',
+      'Q6',
       'Q2',
       'Q3-opt',
     ]);
-    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q2A', 'Q6']);
+    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A']);
     assert.deepEqual(
       resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 10 }),
       ['Q1', 'Q2R', 'Q2'],
     );
+    assert.deepEqual(
+      resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 10 }),
+      ['Q1', 'Q2R', 'Q6', 'Q2', 'Q3'],
+    );
+    // Detection never asks Q6.
+    assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
   });
 
   it('sessions/products/routes stay restricted to the 16–30 band where they can change the range', () => {
@@ -395,9 +403,9 @@ describe('questionnaire routing for current pattern duration', () => {
     // nor the target heuristic reads those fields below 16 use days.
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }), [
       'Q1',
+      'Q6',
       'Q2',
       'Q3',
-      'Q6',
     ]);
     assert.ok(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }).includes('Q6'));
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }).includes('Q4'), false);
@@ -406,10 +414,9 @@ describe('questionnaire routing for current pattern duration', () => {
 
   it('requires Q6 before a new 1–15 calculation can finish', () => {
     let answers = applyAnswer({}, { step: 'Q1', value: 'tolerance_reset' }, C0);
+    answers = applyAnswer(answers, { step: 'Q6', value: '1_to_6_months' }, C0);
     answers = applyAnswer(answers, { step: 'Q2', value: 10 }, C0);
     answers = applyAnswer(answers, { step: 'Q3', value: LAST_USE }, C0);
-    assert.equal(isFlowComplete(answers, C0), false);
-    answers = applyAnswer(answers, { step: 'Q6', value: '1_to_6_months' }, C0);
     assert.equal(isFlowComplete(answers, C0), true);
     const finished = finishQuestionnaire(answers, C0);
     assert.equal(finished.status, 'complete');

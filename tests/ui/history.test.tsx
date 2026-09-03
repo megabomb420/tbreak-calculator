@@ -25,12 +25,13 @@ function completeTolerance10Days(storage: StorageAdapter) {
   renderApp(storage);
   fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
   fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+  // Duration is the first use-profile question, then use-days, then last use.
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
   fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '10' } });
   fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
 }
 
 describe('history tab and previous-break flow', () => {

@@ -1,8 +1,9 @@
 # T-Break Calculator Specification
 
 Status: implementation-ready core specification; release requirements remain in section 14  
-Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v2** (app 0.7.0)  
+Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v2** (app 0.7.1)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
+Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Scope: deterministic v2 Tolerance Engine, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, and future scientific extension boundaries
 
@@ -117,7 +118,7 @@ UseProfile
 
 `currentPatternDuration` is optional on input. Legacy profiles without the field remain valid and MUST normalise it to `missing`. When present it MUST be one of the five product bands. It describes how long the *current* use pattern has been typical, never lifetime use. It is collected as exposure context for Why-this-result copy, break-outlook wording, and — since tolerance-v2 — for the deterministic **preferred-target anchor selection** inside the already-selected evidence range (section 7.3). It MUST NOT add, subtract, or multiply recommended days as a formula, and it MUST NOT move `recommendedRangeDays` (the broad evidence range). Product amount and numeric potency remain outside core intake and are collected only in the optional nominal-flower branch in section 6.
 
-Routing (product, not a numeric rule): collect Q6 after last use when `thcUseDaysLast30 ≥ 1` on a range-requested route, and after Q2A on abstinence. Skip it when use-days = 0, on reduction-no-break, and on detection. New calculations on those collecting routes SHOULD store a band; missing remains valid. Sessions/products/routes remain required only at `thcUseDaysLast30 ≥ 16` on range-requested routes (validation rule 7): below 16 use-days neither the range rule nor the target heuristic reads them, so they are not collected there. In particular, a 4–15 use-day profile that also involves multiple concentrate sessions stays within its frequency band (7–14 days for 4–15 use-days) — the frequency band, not the isolated concentrate detail, is the evidence-conservative driver at that frequency, and the rationale says so.
+Routing (product, not a numeric rule): Q6 is the first use-profile question after the goal/route choice — after Q1 on `tolerance_reset` and abstinence, and after Q2R = Yes on reduction-with-a-break. Use-days (Q2), sessions (Q4), and products/routes (Q5) follow it in flow order. Q6 is skipped on reduction-no-break and on detection. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion may store a duration band that the baseline-low result ignores. New calculations on those collecting routes SHOULD store a band; missing remains valid. Sessions/products/routes remain required only at `thcUseDaysLast30 ≥ 16` on range-requested routes (validation rule 7): below 16 use-days neither the range rule nor the target heuristic reads them, so they are not collected there. In particular, a 4–15 use-day profile that also involves multiple concentrate sessions stays within its frequency band (7–14 days for 4–15 use-days) — the frequency band, not the isolated concentrate detail, is the evidence-conservative driver at that frequency, and the rationale says so.
 
 ### 4.4 Previous break and check-in
 

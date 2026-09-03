@@ -53,12 +53,12 @@ describe('Q1 tap-advance, persistence, resume, start over', () => {
   it('advances from Q1, persists, returns to Today resume, and restores the step', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
-    expect(screen.getByRole('heading', { name: STEP_COPY.Q2.title })).toBeTruthy();
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q6');
+    expect(screen.getByRole('heading', { name: STEP_COPY.Q6.title })).toBeTruthy();
 
     const draft = createQuestionnaireProgressStore(storage).load();
     expect(draft?.answeredSteps).toBe(1);
-    expect(draft?.currentStep).toBe('Q2');
+    expect(draft?.currentStep).toBe('Q6');
     expect(draft?.answers.goal).toBe('tolerance_reset');
     expect(draft?.schemaVersion).toBe(QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION);
 
@@ -68,8 +68,8 @@ describe('Q1 tap-advance, persistence, resume, start over', () => {
     expect(screen.getByTestId('resume-card')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: RESUME.resume }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
-    expect(screen.getByRole('heading', { name: STEP_COPY.Q2.title })).toBeTruthy();
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q6');
+    expect(screen.getByRole('heading', { name: STEP_COPY.Q6.title })).toBeTruthy();
   });
 
   it('Start over clears the draft and returns to first-launch', () => {
@@ -114,6 +114,8 @@ describe('step controls and keyboard', () => {
   it('keeps Continue disabled on use-days until a value is chosen', () => {
     openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    // Duration is asked first; picking a band advances to use-days.
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     const cont = screen.getByRole('button', { name: QUESTIONNAIRE.continue }) as HTMLButtonElement;
     expect(cont.disabled).toBe(true);
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '10' } });
@@ -125,6 +127,7 @@ describe('step controls and keyboard', () => {
   it('offers a None (0) chip so baseline-low is reachable without dragging a parked slider', () => {
     openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
     fireEvent.click(screen.getByRole('button', { name: 'None (0)' }));
     expect(screen.getByTestId('use-days-readout').textContent).toBe('0');
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
@@ -152,10 +155,10 @@ describe('last-use steps', () => {
   it('completes abstinence from the still-use chip', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2A');
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q6');
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.stillUseToday }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
@@ -169,6 +172,7 @@ describe('last-use steps', () => {
   it('lets Q3-opt Skip finish a zero use-days tolerance path', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q3-opt');
@@ -188,15 +192,15 @@ describe('Q5 vape product', () => {
   it('offers a vape product chip distinct from the vaping route and stores it', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    let flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: /1–6 months/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
-    let flow = screen.getByTestId('questionnaire-flow');
+    flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     flow = screen.getByTestId('questionnaire-flow');
-    expect(flow.getAttribute('data-step')).toBe('Q6');
-    fireEvent.click(within(flow).getByRole('button', { name: /1–6 months/ }));
-    flow = screen.getByTestId('questionnaire-flow');
+    expect(flow.getAttribute('data-step')).toBe('Q4');
     fireEvent.click(within(flow).getByRole('button', { name: '1' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     flow = screen.getByTestId('questionnaire-flow');

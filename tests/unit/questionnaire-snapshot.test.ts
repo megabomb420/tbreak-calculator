@@ -21,7 +21,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
   it('does not finish an incomplete flow', () => {
     const result = finishQuestionnaire({ goal: 'tolerance_reset' }, NOW);
     assert.equal(result.status, 'incomplete');
-    if (result.status === 'incomplete') assert.equal(result.currentStep, 'Q2');
+    if (result.status === 'incomplete') assert.equal(result.currentStep, 'Q6');
   });
 
   it('builds a tolerance 1–15 snapshot without inventing sessions/products/routes', () => {
@@ -120,6 +120,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
   it('treats Q3-opt skip as a missing last use, not a default timestamp', () => {
     const answers = answerAll([
       { step: 'Q1', value: 'tolerance_reset' },
+      { step: 'Q6', value: 'under_1_month' },
       { step: 'Q2', value: 0 },
       { step: 'Q3-opt', value: { skip: true } },
     ]);

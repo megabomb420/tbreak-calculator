@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.7.0  
+Version: 0.7.1  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -178,30 +178,30 @@ The questionnaire is declarative and branches only to fields that affect an enab
 ```text
 goal
   |-- tolerance reset
+  |     -> current-pattern duration (first use-profile question)
   |     -> use days -> authoritative last use
-  |        -> current-pattern duration when use days ≥ 1
   |        (sessions, products and routes only when use days are 16-30)
   |
   |-- reduction
   |     -> explicit breakRequested
-  |     -> if true: tolerance path (identical to tolerance reset)
-  |     -> if false: use days -> reduction planning, no last use collected
+  |     -> if true: tolerance path (duration first, identical to tolerance reset)
+  |     -> if false: use days -> reduction planning, no duration/last use collected
   |
   |-- abstinence
+  |     -> current-pattern duration (first use-profile question)
   |     -> authoritative last use
-  |     -> current-pattern duration (context for outlook wording)
   |     -> no use days, sessions, products, or routes
   |     -> withdrawal/abstinence planning
   |     -> postBreakMode fixed to continue_abstinence
   |
   |-- detection information
         -> matrix -> general/workplace/roadside context
-        -> qualitative result only
+        -> qualitative result only (no duration)
 ```
 
 The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break timing. Detection v1 does not need it because it emits no numeric elapsed-time interpretation; if the screen shows elapsed time for general orientation, it references the same profile field and does not copy it into `DetectionRequest`.
 
-`currentPatternDuration` is collected as exposure context. Under tolerance-v2 it may move the deterministic *planning target* to the lower anchor of the unchanged evidence range (recently established pattern) or keep it at the upper anchor (established or missing duration). It MUST NOT change recommended ranges, and no duration-to-days formula exists. Legacy profiles without the field remain valid.
+`currentPatternDuration` is collected as exposure context and is the first use-profile question on the routes that use it (tolerance reset, reduction with a break, abstinence). Under tolerance-v2 it may move the deterministic *planning target* to the lower anchor of the unchanged evidence range (recently established pattern) or keep it at the upper anchor (established or missing duration). It MUST NOT change recommended ranges, and no duration-to-days formula exists. Legacy profiles without the field remain valid.
 
 V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 

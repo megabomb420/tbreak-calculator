@@ -120,20 +120,24 @@ export function resolvedPath(answers: QuestionnaireAnswers): QuestionnaireStepId
     return path;
   }
   if (goal === 'abstinence') {
-    path.push('Q2A', 'Q6');
+    // Duration is the first substantive use-profile question; last use anchors
+    // the open-ended timeline after it.
+    path.push('Q6', 'Q2A');
     return path;
   }
   if (goal === 'reduction') {
     path.push('Q2R');
     if (answers.breakRequested === undefined) return path;
     if (answers.breakRequested === false) {
+      // Reduction without a requested break does not consume duration,
+      // sessions, products/routes, or a last-use timestamp.
       path.push('Q2');
       return path;
     }
-    path.push(...toleranceFromQ2(answers));
+    path.push(...toleranceFromGoalChoice(answers));
     return path;
   }
-  path.push(...toleranceFromQ2(answers));
+  path.push(...toleranceFromGoalChoice(answers));
   return path;
 }
 
@@ -246,15 +250,21 @@ export function isFlowComplete(answers: QuestionnaireAnswers, now: Instant): boo
   return resolvedPath(answers).every((step) => isStepComplete(step, answers, now));
 }
 
-function toleranceFromQ2(answers: QuestionnaireAnswers): QuestionnaireStepId[] {
-  const steps: QuestionnaireStepId[] = ['Q2'];
+/**
+ * Steps after the goal/route choice on a range-requested tolerance route.
+ * `currentPatternDuration` (Q6) is the first substantive use-profile question,
+ * asked before use-days so it can shape the planning target; use-days, last
+ * use, and (only at >= 16 use-days) sessions/products/routes follow.
+ */
+function toleranceFromGoalChoice(answers: QuestionnaireAnswers): QuestionnaireStepId[] {
+  const steps: QuestionnaireStepId[] = ['Q6', 'Q2'];
   const days = answers.thcUseDaysLast30;
   if (days === undefined) return steps;
   if (days === 0) {
     steps.push('Q3-opt');
     return steps;
   }
-  steps.push('Q3', 'Q6');
+  steps.push('Q3');
   if (days >= 16) steps.push('Q4', 'Q5');
   return steps;
 }
@@ -269,7 +279,7 @@ function estimatedPathLength(answers: QuestionnaireAnswers): number {
   if (goal === 'reduction' && answers.breakRequested === false) return 3;
   const days = answers.thcUseDaysLast30;
   if (days === undefined) return 6 + reductionPrefix;
-  if (days === 0) return 3 + reductionPrefix;
+  if (days === 0) return 4 + reductionPrefix;
   if (days <= 15) return 4 + reductionPrefix;
   return 6 + reductionPrefix;
 }

@@ -7,7 +7,9 @@ Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, hi
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
-Revision note (0.7.0): `currentPatternDuration` (Q6) is no longer contextual only. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged evidence range — a recently established pattern (less than 1 month / 1–6 months) targets the lower anchor of the range, an established pattern (6–24 months / 2–5 years / 5+ years) or a missing legacy duration targets the upper anchor. The recommended range never moves, and duration is still never a days-added formula. “Why this result” explains the target choice; the outlook and the planning-context note follow. Questionnaire routing is unchanged from 0.6.0.
+Revision note (0.7.1): questionnaire order — `currentPatternDuration` (Q6) is now the **first substantive use-profile question** on every route that uses it (after Q1 goal, and after Q2R when a reduction requests a break; on abstinence before the last-use anchor). Use-days, sessions, products/routes follow. It is still never asked on reduction-no-break or detection. The Q6 option rows are also a compact two-column layout: full-width cards, title on top and helper directly below, normal wrapping, whole row tappable. No science, engine, history, outlook, or target-selection change.
+
+Revision note (0.7.0): `currentPatternDuration` (Q6) is no longer contextual only. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged evidence range — a recently established pattern (less than 1 month / 1–6 months) targets the lower anchor of the range, an established pattern (6–24 months / 2–5 years / 5+ years) or a missing legacy duration targets the upper anchor. The recommended range never moves, and duration is still never a days-added formula. “Why this result” explains the target choice; the outlook and the planning-context note follow. In 0.7.0 Q6 was still asked after last use; 0.7.1 moves it first (see above).
 
 Revision note (0.6.0): added `currentPatternDuration` (Q6) as exposure context only — it never changes recommended ranges — and replaced the shallow “first weeks” result block with a full Day 1 → planning-target break outlook reused by Result, Today, and Plan Detail. Q4/Q5 remain restricted to use-days ≥ 16.
 
@@ -32,7 +34,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 
 ### 1.2 Design principles
 
-1. **Fast to an answer.** The shortest useful path is 2 questions; the longest is 7. A daily user reaches a recommended range in under a minute.
+1. **Fast to an answer.** The shortest useful path is 3 questions; the longest is 7. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
 4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v2 anchor rule), Why-this-result copy, and break-outlook wording; it MUST NOT change the recommended range itself.
@@ -219,18 +221,18 @@ Every path ends in exactly one of:
 ```text
 Q1 goal
  ├─ tolerance_reset
- │    Q2 use days
+ │    Q6 current-pattern duration → Q2 use days
  │      ├─ 0     → Q3-opt last use (optional, >30 days ago only) → TERMINAL baseline-low
- │      ├─ 1–15  → Q3 last use (≤30 days) → Q6 current-pattern duration → TERMINAL tolerance result
- │      └─ 16–30 → Q3 last use → Q6 current-pattern duration → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
+ │      ├─ 1–15  → Q3 last use (≤30 days) → TERMINAL tolerance result
+ │      └─ 16–30 → Q3 last use (≤30 days) → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
  ├─ reduction
  │    Q2R break wanted?
- │      ├─ Yes → identical to the tolerance_reset path from Q2
- │      └─ Not now → Q2 use days → TERMINAL reduction planning
+ │      ├─ Yes → Q6 current-pattern duration → identical to the tolerance_reset path from Q2
+ │      └─ Not now → Q2 use days → TERMINAL reduction planning (no Q6)
  ├─ abstinence
- │    Q2A last use (any past date, or "I still use — today") → Q6 current-pattern duration → TERMINAL abstinence planning
+ │    Q6 current-pattern duration → Q2A last use (any past date, or "I still use — today") → TERMINAL abstinence planning
  └─ detection_information
-      Q2D test type → Q3D situation → TERMINAL detection result
+      Q2D test type → Q3D situation → TERMINAL detection result (no Q6)
 ```
 
 Post-break mode and previous-break history are deliberately **not** in the initial questionnaire — see §7 and §8 for their contextual flows.
@@ -241,15 +243,15 @@ Field mapping:
 |---|---|---|
 | Q1 | `goal` | always |
 | Q2R | `breakRequested` | reduction only (fixed by rule for other goals) |
-| Q2 | `thcUseDaysLast30` (`user_estimate`) | tolerance_reset, reduction |
+| Q6 | `currentPatternDuration` (`user_estimate`) | first use-profile question after Q1 (tolerance_reset), after Q2R = Yes (reduction with a break), and on abstinence; skipped on reduction-no-break and detection |
+| Q2 | `thcUseDaysLast30` (`user_estimate`) | tolerance_reset, reduction (after Q6 when a break is requested) |
 | Q2A / Q3 / Q3-opt | `lastUseAt` (`user_estimate`) | abstinence; use-days 1–30; optional when use-days = 0 |
-| Q6 | `currentPatternDuration` (`user_estimate`) | use-days ≥ 1 on consuming routes, and abstinence; skipped for 0 days, reduction-no-break, detection |
 | Q4 | `sessionsPerUseDay` (`user_estimate`) | use-days 16–30 only |
 | Q5 | `products[]`, `routes[]` | use-days 16–30 only |
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
 
-Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v2`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. Q6 is asked more broadly because duration is exposure context for Why-this-result, outlook wording, and — under tolerance-v2 — the planning-target anchor inside the range; it still MUST NOT change `recommendedRangeDays`. A 4–15 use-day profile that also involves concentrate or multi-session use is not routed to Q4/Q5: below 16 use-days neither the range rule nor the target heuristic reads those fields, and the rationale explains the frequency band as the driver. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
+Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v2`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. Q6 is the first use-profile question because duration is exposure context for Why-this-result, outlook wording, and — under tolerance-v2 — the planning-target anchor inside the range; it still MUST NOT change `recommendedRangeDays`. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion carries a stored duration band that the baseline-low result ignores. A 4–15 use-day profile that also involves concentrate or multi-session use is not routed to Q4/Q5: below 16 use-days neither the range rule nor the target heuristic reads those fields, and the rationale explains the frequency band as the driver. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
 
 ### 5.2 Step-by-step copy deck
 
@@ -359,11 +361,11 @@ Helper: "This only changes which notes we show you — it never changes the scie
 ### 5.3 Skip conditions (consolidated)
 
 - Q2R only for `reduction`.
-- Q3 (last use) only when use-days ∈ 1–30; replaced by optional Q3-opt when use-days = 0.
-- Q6 only when use-days ≥ 1 on a consuming route, or on abstinence. Skipped for use-days = 0, reduction-no-break, and detection.
+- Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset`, after Q2R = Yes on reduction-with-a-break, and after Q1 on abstinence. Skipped on reduction-no-break and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
+- Q2 (use days) after Q6 on the tolerance route; Q3 (last use) only when use-days ∈ 1–30; replaced by optional Q3-opt when use-days = 0.
 - Q4/Q5 only when use-days ∈ 16–30.
 - Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording. **Depends on validation change D2 (§15).**
-- Reduction-no-break asks no last use: the engine attaches no withdrawal display on this route, so the timestamp would be harvested and unused. **Depends on validation change D3 (§15).**
+- Reduction-no-break asks no last use and no duration: the engine attaches no withdrawal display and no target on this route, so those answers would be harvested and unused. **Depends on validation change D3 (§15).**
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
 - Previous breaks and post-break mode never appear in the initial questionnaire (§7, §8).
 
@@ -371,11 +373,13 @@ Helper: "This only changes which notes we show you — it never changes the scie
 
 | Goal | Min steps | Typical | Max |
 |---|---|---|---|
-| tolerance_reset | 2 (use-days 0) | 4 (use-days 1–15) | 6 (use-days 16–30) |
-| reduction (break) | 3 | 5 | 7 |
+| tolerance_reset | 3 (use-days 0) | 4 (use-days 1–15) | 6 (use-days 16–30) |
+| reduction (break) | 4 | 5 | 7 |
 | reduction (no break) | 3 | 3 | 3 |
 | abstinence | 3 | 3 | 3 |
 | detection_information | 3 | 3 | 3 |
+
+Duration (Q6) is counted in every consuming min/typical/max: it is the first use-profile question, before use-days.
 
 ---
 

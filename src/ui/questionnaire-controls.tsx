@@ -107,7 +107,7 @@ export function DurationCards({
         <button
           key={option.id}
           type="button"
-          className={cardClass(selected === option.id)}
+          className={durationCardClass(selected === option.id)}
           data-duration={option.id}
           onClick={() => onSelect(option.id)}
         >
@@ -554,6 +554,16 @@ function HoldButton({
 
 function cardClass(selected: boolean): string {
   return selected ? 'choice-card selected' : 'choice-card';
+}
+
+/**
+ * Duration rows have no leading icon, so they need the two-column compact
+ * grid (`1fr auto`) instead of the three-column `44px 1fr auto` layout that
+ * would otherwise squeeze the text into a one-word-per-line column. The row
+ * stays a full-width tappable card with the title on top and helper below.
+ */
+function durationCardClass(selected: boolean): string {
+  return selected ? 'choice-card compact duration-option selected' : 'choice-card compact duration-option';
 }
 
 function chipClass(selected: boolean): string {

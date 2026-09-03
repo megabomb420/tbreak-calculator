@@ -1557,6 +1557,15 @@ details.card > summary::-webkit-details-marker {
   grid-template-columns: 1fr auto;
 }
 
+/* Duration rows (Q6): no leading icon, so the copy takes the full remaining
+   width. Kept shorter than generic compact cards: title on top, helper below,
+   normal wrapping, still one full-width tappable card. */
+.choice-card.compact.duration-option {
+  min-height: 52px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 /* Post-break plan editor / summary ----------------------------------------- */
 
 .post-break-summary {

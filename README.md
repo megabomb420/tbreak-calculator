@@ -4,6 +4,8 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
+Version **0.7.1** — questionnaire order + Q6 layout. `currentPatternDuration` is now the **first use-profile question** (before use-days, sessions, products/routes) on every route that uses it, and the Q6 option rows are compact full-width cards (title on top, helper below). No science, engine bands, target policy, history, outlook, or viewport change beyond 0.7.0.
+
 Version **0.7.0** — `currentPatternDuration` is no longer decorative. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged, evidence-supported recommended range (recently established patterns target the lower end; established or missing ones the upper end). Recommended ranges, engines' bands, History/IndexedDB, Interval, and the iOS 26 viewport-fill contract are unchanged; there is still no duration-to-days formula. Old historical results stay frozen.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
@@ -40,15 +42,17 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.7.0)
+## Capabilities (0.7.1)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
 - **Q6 current-pattern duration:** “How long has this level of THC use been
-  typical for you?” — five product UX bands, asked after last use when
-  use-days ≥ 1 and on abstinence. Skipped for 0 days, reduction-no-break,
-  and detection. Q4/Q5 still only appear at ≥16 use-days (below that they
-  change neither the range nor the target).
+  typical for you?” — five product UX bands, asked as the **first
+  use-profile question** after the goal/route choice (before use-days) on
+  tolerance reset, reduction with a break, and abstinence. Skipped on
+  reduction-no-break and detection. Compact full-width option rows. Q4/Q5
+  still only appear at ≥16 use-days (below that they change neither the range
+  nor the target).
 - **Planning target inside the range:** duration now picks the anchor —
   recently established (under 1 month / 1–6 months) → the lower end of the
   recommended range (e.g. 21 days of 21–28); established (6+ months) or

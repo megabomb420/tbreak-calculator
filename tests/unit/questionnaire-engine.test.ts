@@ -61,7 +61,7 @@ describe('start and first-step / goal routing', () => {
 
   it('pre-selecting a goal answers Q1 and advances to the first goal step', () => {
     assert.deepEqual(startSession('tolerance_reset'), {
-      currentStep: 'Q2',
+      currentStep: 'Q6',
       answers: { goal: 'tolerance_reset' },
     });
     assert.deepEqual(startSession('reduction'), {
@@ -69,7 +69,7 @@ describe('start and first-step / goal routing', () => {
       answers: { goal: 'reduction' },
     });
     assert.deepEqual(startSession('abstinence'), {
-      currentStep: 'Q2A',
+      currentStep: 'Q6',
       answers: { goal: 'abstinence' },
     });
     assert.deepEqual(startSession('detection_information'), {
@@ -84,15 +84,25 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     assert.deepEqual(resolvedPath({}), ['Q1']);
   });
 
-  it('routes tolerance_reset through use-days then the matching last-use / intensity steps', () => {
-    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset' }), ['Q1', 'Q2']);
-    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 0 }), ['Q1', 'Q2', 'Q3-opt']);
-    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), ['Q1', 'Q2', 'Q3', 'Q6']);
-    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }), [
+  it('routes tolerance_reset through duration first, then use-days and the matching last-use / intensity steps', () => {
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset' }), ['Q1', 'Q6', 'Q2']);
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 0 }), [
       'Q1',
+      'Q6',
+      'Q2',
+      'Q3-opt',
+    ]);
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), [
+      'Q1',
+      'Q6',
       'Q2',
       'Q3',
+    ]);
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }), [
+      'Q1',
       'Q6',
+      'Q2',
+      'Q3',
       'Q4',
       'Q5',
     ]);
@@ -101,13 +111,13 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
   it('inserts Q2R for reduction and follows the break / no-break fork', () => {
     assert.deepEqual(resolvedPath({ goal: 'reduction' }), ['Q1', 'Q2R']);
     assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: false }), ['Q1', 'Q2R', 'Q2']);
-    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: true }), ['Q1', 'Q2R', 'Q2']);
+    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: true }), ['Q1', 'Q2R', 'Q6', 'Q2']);
     assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 20 }), [
       'Q1',
       'Q2R',
+      'Q6',
       'Q2',
       'Q3',
-      'Q6',
       'Q4',
       'Q5',
     ]);
@@ -118,8 +128,8 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     ]);
   });
 
-  it('asks abstinence only for last use then duration, and detection only for matrix then context', () => {
-    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q2A', 'Q6']);
+  it('asks abstinence for duration before last use, and detection only for matrix then context', () => {
+    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A']);
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
   });
 
@@ -162,7 +172,8 @@ describe('next / back / impossible transitions', () => {
 
   it('returns to the previous shown step and has no back target from Q1', () => {
     assert.equal(previousStep('Q1', { goal: 'tolerance_reset' }), null);
-    assert.equal(previousStep('Q2', { goal: 'tolerance_reset' }), 'Q1');
+    assert.equal(previousStep('Q6', { goal: 'tolerance_reset' }), 'Q1');
+    assert.equal(previousStep('Q2', { goal: 'tolerance_reset' }), 'Q6');
     assert.equal(
       previousStep('Q3', { goal: 'reduction', breakRequested: true, thcUseDaysLast30: 10 }),
       'Q2',
@@ -294,7 +305,7 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
 
 describe('restore and progress', () => {
   it('restores the first incomplete step on the resolved path', () => {
-    assert.equal(restoreStep({ goal: 'tolerance_reset' }, NOW), 'Q2');
+    assert.equal(restoreStep({ goal: 'tolerance_reset' }, NOW), 'Q6');
     assert.equal(
       restoreStep({ goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: withinWindowIso() }, NOW),
       'Q6',
@@ -308,7 +319,7 @@ describe('restore and progress', () => {
         },
         NOW,
       ),
-      'Q3-opt',
+      'Q6',
     );
   });
 

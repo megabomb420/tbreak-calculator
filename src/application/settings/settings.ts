@@ -11,7 +11,7 @@ import {
   type DurablePersistence,
 } from '../persistence/durable.ts';
 
-export const APP_VERSION = '0.7.0';
+export const APP_VERSION = '0.7.1';
 
 export const SETTINGS_MENU = ['install-help', 'offline-note', 'app-info', 'delete-everything'] as const;
 export type SettingsMenuId = (typeof SETTINGS_MENU)[number];

@@ -25,12 +25,13 @@ function completeTolerance10Days(storage: StorageAdapter) {
   const rendered = renderApp(storage);
   fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
   fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+  // Duration is the first use-profile question, then use-days, then last use.
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
   fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '10' } });
   fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
   return rendered;
 }
 
@@ -61,12 +62,12 @@ describe('result screens from engine output', () => {
     const rare = renderApp(rareStorage);
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     let flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
     // Recent pattern: lower anchor of the 2–7 evidence range.
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('2');
     expect(screen.getByTestId('outlook-day-2')).toBeTruthy();
@@ -79,12 +80,12 @@ describe('result screens from engine output', () => {
     renderApp(createMemoryStorage());
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
     expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
     expect(screen.queryByTestId('outlook-day-8')).toBeNull();
@@ -95,12 +96,12 @@ describe('result screens from engine output', () => {
     renderApp();
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     let flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
     flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: '1' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
