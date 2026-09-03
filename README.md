@@ -5,6 +5,14 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.10.1** — Today consistency patch. The saved tolerance result on
+Today (`profile-no-break`) now reuses the same shared result lens as the live
+**Your plan** screen: it leads with the actionable planning target (e.g.
+`28 DAYS`), shows the broad evidence range and rail beneath it, and keeps the
+planning-heuristic caveat. **Start this break** remains the primary action,
+with **Recalculate** / **View result** secondary. No science, tolerance-v3,
+Recovery Outlook, Reduction, History, persistence, or viewport change.
+
 Version **0.10.0** — one coherent Interval experience. **Your plan** and
 **Predicted reset** now share the same result lens, duration typography and
 supporting-insight system. Your Plan leads with a personal priority, practical

@@ -10,7 +10,8 @@ import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../appl
 import type { ResultView, WithdrawalView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
-import { RESULT, WITHDRAWAL_STOP_LABELS, planForTarget, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
+import { PLAN_LENS, RESULT, WITHDRAWAL_STOP_LABELS, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
+import { ResultLensHero } from './result-lens.tsx';
 import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
@@ -649,15 +650,27 @@ function ProfileNoBreakCard(props: TodayScreenProps) {
 function ToleranceSummary(props: TodayScreenProps) {
   const view = props.profile.resultView;
   if (view === null || view.kind !== 'tolerance_result') return null;
+  // Saved tolerance result on Today reuses the shared result lens hero so the
+  // card leads with the same actionable planning target as the live result —
+  // the broad evidence range stays visible underneath, exactly as in YOUR PLAN.
   return (
-    <article className="today-plan-card" data-testid="state-profile-no-break">
-      <p className="eyebrow">{PROFILE_NO_BREAK.eyebrow}</p>
-      <h2 className="hero-range compact">{`${view.rangeDays.min}–${view.rangeDays.max} days`}</h2>
-      <p className="meta">{planForTarget(view.preferredTargetDays, view.rangeDays)}</p>
-      <RangeBand min={view.rangeDays.min} max={view.rangeDays.max} preferred={view.preferredTargetDays} />
-      <button type="button" className="cta-primary" data-testid="today-start-break" onClick={props.onStartBreak}>
-        {PROFILE_NO_BREAK.startThisBreak}
-      </button>
+    <article className="today-plan-card saved-result-card" data-testid="state-profile-no-break">
+      <ResultLensHero
+        eyebrow={PLAN_LENS.eyebrow}
+        value={view.preferredTargetDays}
+        unit="days"
+        summary={PLAN_LENS.summary}
+        tone="plan"
+      >
+        <p className="result-lens-meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
+        <RangeBand min={view.rangeDays.min} max={view.rangeDays.max} preferred={view.preferredTargetDays} />
+        <p className="meta">{view.uncertainty}</p>
+      </ResultLensHero>
+      <div className="today-actions">
+        <button type="button" className="cta-primary" data-testid="today-start-break" onClick={props.onStartBreak}>
+          {PROFILE_NO_BREAK.startThisBreak}
+        </button>
+      </div>
       <SecondaryLinks {...props} showRecalculate showViewResult />
     </article>
   );

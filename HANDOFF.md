@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.10.0** (unified Interval result experience + support-focus guidance; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.10.1** (Today `profile-no-break` consistency patch — the saved tolerance result reuses the shared result lens; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, and the **0.10.0** product-experience release.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, and the **0.10.1** Today profile-no-break consistency patch.
 
 | Step | Status |
 |---|---|
@@ -49,10 +49,40 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.9.1 deterministic-only architecture cleanup (runtime generative AI intentionally out of scope) | **done** |
 | 0.9.2 Recovery Outlook v2 profile-sensitive recovery windows | **done** |
 | 0.10.0 unified results, actionable plan, phase-aware Today, support focus | **done** |
+| 0.10.1 Today profile-no-break reuses the shared result lens | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.10.1 added (Today profile-no-break consistency; no science change)
+
+A UI-consistency patch, not a redesign:
+
+- **Cause of the mismatch:** `TodayScreen.ToleranceSummary` (the saved
+  `profile-no-break` tolerance card) still used the pre-lens summary layout —
+  eyebrow “Your result”, the broad evidence range (`21–28 days`) as the hero
+  heading, a `Plan for N days` line, `RangeBand`, CTA. The live result had
+  moved to the shared `ResultLensHero` in 0.10.0, so Today rendered the same
+  plan in a visibly older, range-first design.
+- **Fix:** the Today saved tolerance result reuses the shared
+  `ResultLensHero` (`src/ui/result-lens.tsx`) with the shared `PLAN_LENS`
+  copy constant (`src/ui/result-copy.ts`), so it leads with the actionable
+  planning target (`28 DAYS` typography + orbit artwork) and shows
+  `Evidence range: 21–28 days` + the same `RangeBand` underneath as
+  secondary information, plus the unchanged planning-heuristic caveat. The
+  hero is embedded flush in the Today plan card (`.saved-result-card`
+  override in `src/ui/styles.css`) so Today keeps a single card surface.
+  Composition: shared lens hero → **Start this break** primary action →
+  **Recalculate** / **View result** secondary links.
+- **Untouched:** tolerance-v3, Recovery Outlook v2, questionnaire,
+  companion-personalisation-v1, scientific values, evidence ranges,
+  planning-target logic, persistence schemas, Reduction, Detection, History
+  semantics, the two permanent tabs, and the iOS viewport contract.
+  `sources/` unchanged.
+- Tests: `tests/ui/results.test.tsx` asserts the Today saved-result card
+  leads with the planning target (not the range), keeps the evidence range +
+  RangeBand values, the heuristic caveat, and all three actions.
 
 ## What 0.10.0 added
 

@@ -144,7 +144,23 @@ describe('result screens from engine output', () => {
     fireEvent.click(screen.getByRole('button', { name: RESULT.saveWithoutStarting }));
     expect(screen.queryByTestId('result-screen')).toBeNull();
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
-    fireEvent.click(screen.getByRole('button', { name: 'View result' }));
+    // The saved tolerance result on Today reuses the shared result lens: the
+    // actionable planning target leads the card, the broad evidence range is
+    // a secondary line, and the RangeBand receives the same target/range.
+    const card = screen.getByTestId('state-profile-no-break');
+    expect(within(card).getByRole('heading', { name: '7 days' })).toBeTruthy();
+    expect(within(card).queryByRole('heading', { name: '7–14 days' })).toBeNull();
+    expect(within(card).getByText('Evidence range: 7–14 days')).toBeTruthy();
+    expect(within(card).getByRole('img', { name: 'Recommended break 7 to 14 days, plan for 7 days' })).toBeTruthy();
+    expect(within(card).getByText('A clear target for the break you can act on now.')).toBeTruthy();
+    // The planning-heuristic caveat stays visible in the compact card.
+    expect(card.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
+    // Start-this-break stays the primary action; Recalculate and View result
+    // remain available as secondary actions on the same card.
+    expect(within(card).getByTestId('today-start-break')).toBeTruthy();
+    expect(within(card).getByTestId('today-recalculate')).toBeTruthy();
+    expect(within(card).getByTestId('view-result')).toBeTruthy();
+    fireEvent.click(within(card).getByRole('button', { name: 'View result' }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('tolerance_result');
   });
 

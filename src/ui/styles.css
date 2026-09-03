@@ -1402,6 +1402,24 @@ details.card > summary::-webkit-details-marker {
   font-size: clamp(2rem, 10vw, 2.7rem);
 }
 
+/* Saved tolerance result (profile-no-break) reuses the shared ResultLensHero
+   from the live result overlay (0.10.1). The hero is embedded flush in the
+   Today plan card so the card keeps one surface while the typography,
+   artwork and hierarchy match YOUR PLAN. */
+.today-plan-card.saved-result-card .result-lens-hero {
+  min-height: 0;
+  margin: calc(-1 * var(--space-5)) calc(-1 * var(--card-pad)) 0;
+  padding: var(--space-5) var(--card-pad) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.today-plan-card.saved-result-card .result-lens-meta {
+  margin: var(--space-1) 0 0;
+}
+
 .plan-focus-line {
   color: var(--fg-muted);
   border-left: 2px solid var(--hairline-strong);

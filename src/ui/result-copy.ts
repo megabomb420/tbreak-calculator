@@ -59,6 +59,14 @@ export function reductionSessionsLine(sessions: number): string {
   return sessions === 1 ? 'Up to 1 session on a use day' : `Up to ${sessions} sessions on a use day`;
 }
 
+/** Shared copy for the "Your plan" result lens. Used by both the live result
+ * overlay and the saved-result card on Today so the two always speak about
+ * the one planning target with the same vocabulary. */
+export const PLAN_LENS = {
+  eyebrow: 'Your practical plan',
+  summary: 'A clear target for the break you can act on now.',
+} as const;
+
 export const WITHDRAWAL_STOP_LABELS = {
   onset: 'Onset (≈ days 1–3)',
   common_peak: 'Common peak (≈ days 2–6)',

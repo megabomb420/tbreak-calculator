@@ -16,6 +16,7 @@ import {
   daysSince,
   evidenceRangeLine,
   NOMINAL_THC,
+  PLAN_LENS,
   RESULT,
 } from './result-copy.ts';
 import {
@@ -210,10 +211,10 @@ function ResultBody({
           aria-labelledby="result-tab-plan"
         >
           <ResultLensHero
-            eyebrow="Your practical plan"
+            eyebrow={PLAN_LENS.eyebrow}
             value={view.preferredTargetDays}
             unit="days"
-            summary="A clear target for the break you can act on now."
+            summary={PLAN_LENS.summary}
             tone="plan"
             labelledBy="result-title"
           >
