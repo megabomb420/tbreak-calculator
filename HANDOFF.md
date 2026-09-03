@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.4.1** (viewport fill: `100dvh` + `100vh` fallback; step 5 product is unchanged)
+- App version: **0.4.2** (iOS 26 Liquid Glass viewport fill; step 5 product is unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -25,7 +25,7 @@ to make UI easier. Do not commit untracked review files.
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the
 Interval visual redesign, the **0.3.1 QA hardening** patch, the **0.3.2
-UX/product** patch, the **0.3.3 persistence** patch, and the **0.4.1
+UX/product** patch, the **0.3.3 persistence** patch, and the **0.4.2
 viewport-fill** patch:
 
 | Step | Status |
@@ -40,48 +40,48 @@ viewport-fill** patch:
 | Domain prerequisites D4 + D5 (see below) | done |
 | 0.3.3 fail-closed persistence | done |
 | 5. History + contextual flows + IndexedDB | done (0.4.0) |
-| 0.4.1 dynamic viewport fill (`100dvh`) | **done** |
+| 0.4.1 dynamic viewport fill (`100dvh`) | superseded by 0.4.2 |
+| 0.4.2 iOS 26 Liquid Glass viewport fill | **done** |
 
 Working product behaviour (unchanged from earlier steps):
 
 1. First launch / no-profile Today → **Get started** or goal chips.
 2. Questionnaire overlay, persist after each answered step, Close → Today resume.
 3. Completing the questionnaire opens the **result overlay**.
-4. App shell tab bar is in-flow inside a `100dvh` column (`100vh` fallback; not `position: fixed`).
+4. App shell tab bar is in-flow inside a large-viewport column (`100lvh` / `100vh`; not `position: fixed`). Overlay chrome is padded with `--chrome-bleed`.
 5. Product vs route distinction preserved (`vape` product ≠ `vaping` route).
 
-## What 0.4.1 fixed (viewport fill)
+## What 0.4.2 fixed (iOS 26 Liquid Glass)
 
-Patch on 0.4.0. No new product slice. UX_SPEC §16 step 6 was **not** started.
-Scientific engines, bands, coefficients, golden fixtures, and the `breakDay`
-formula are unchanged.
+Patch on 0.4.1. No new product slice. UX_SPEC §16 step 6 was **not** started.
 
-The root shell was locked to `height: 100svh` on `html` / `body` / `#app` /
-`.boot-shell`. `svh` is the *smallest* viewport (browser chrome expanded).
-When iOS Safari chrome collapses, or when the app runs as an installed
-standalone PWA, the visible area is taller than `svh`, so the in-flow tab
-bar sat above a blank body-coloured strip. That lock was leftover from the
-earlier `position: fixed` Safari bottom-bar bug; the tab bar is now in
-normal flex flow, so it is obsolete.
+`100dvh` was a no-op on iOS 26 Safari: both `svh` and `dvh` end *above* the
+new Liquid Glass bottom toolbar, so the in-flow tab bar still sat over a
+blank strip (the overlay region) on a real iPhone 17 Pro. iOS 26 also made
+`100vh` equal `window.outerHeight`, which paints *behind* that overlay.
 
 New contract:
 
-- `--app-height` is `100vh`, then `100dvh` inside `@supports (height: 100dvh)`
-  so the fallback survives CSS minifiers. `html`, `body`, `#app`,
-  `.boot-shell` use `height: 100%` then `height: var(--app-height)`.
-- `.app-shell` is a flex column filling `#app`; `.app-main` is `flex: 1;
-  min-height: 0; overflow: auto` (the only normal scrolling pane).
-- Tab bar stays in-flow (`flex: none`) with
-  `env(safe-area-inset-bottom, 0px)` padding. Overlays stay
-  `position: absolute; inset: 0` inside `#app`.
-- `viewport-fit=cover` is unchanged.
-- Do **not** use `position: fixed` bottom chrome, visualViewport JS,
-  scroll-to-fix hacks, per-device pixel fudges, or UA sniffing.
+- `--app-height` is `100vh`, then `100lvh` inside `@supports` (minifier-safe).
+- On narrow or standalone viewports, `src/ui/viewport.ts` writes pixel
+  `--app-height` (the fill height) and `--chrome-bleed` (`fill − visible`)
+  so tab-bar / overlay footers stay tappable above the glass.
+- Keyboard shrinks `visualViewport` far below `innerHeight` and is ignored
+  (not treated as chrome).
+- Desktop ≥720px leaves the CSS units alone. No UA sniffing, no per-device
+  pixel tables, no `position: fixed` tab bar.
 
-Intentionally **not** changed: History/IndexedDB/step-5 behaviour, Interval
-tokens, overlay focus traps, engines.
+## What 0.4.1 tried (superseded)
+
+`--app-height: 100dvh` with a `100vh` fallback. Correct for iOS 15–18 chrome
+show/hide; insufficient on iOS 26 Liquid Glass, where `dvh` still stops
+above the overlay.
+
+Intentionally **not** changed in 0.4.2: History/IndexedDB/step-5 behaviour,
+Interval tokens, overlay focus traps, engines.
 
 ## What 0.4.0 added (UX_SPEC §16 step 5)
+
 
 History, IndexedDB durable records, previous-break personalisation, per-item
 deletion, storage/PWA banners, and overlay focus traps. Scientific engines,
@@ -426,14 +426,17 @@ Vape is not mapped onto concentrate intensity (intensity fires only on
 
 ## iOS / PWA layout (do not regress)
 
-- `--app-height`: `100vh`, then `100dvh` via `@supports`; `html` / `body` /
+- `--app-height`: `100vh`, then `100lvh` via `@supports`; `html` / `body` /
   `#app` / `.boot-shell` use `height: 100%` then `var(--app-height)`.
   `#app` is `position: relative`, overflow clipped; `.app-main` is the
   scrolling pane (`flex: 1; min-height: 0; overflow: auto`).
 - In-flow tab bar; overlays `position: absolute; inset: 0` inside `#app`.
-- `env(safe-area-inset-*)` with `0px` fallback; `viewport-fit=cover`.
-- No `position: fixed` bottom chrome; no `100svh` shell sizing;
-  no visualViewport hacks; no scroll-to-fix JS; no per-device pixel fudges.
+- `--chrome-bleed` starts as `env(safe-area-inset-bottom, 0px)` and is
+  measured on narrow/standalone viewports (`src/ui/viewport.ts`) so iOS 26
+  Liquid Glass does not cover the tab buttons.
+- `viewport-fit=cover` unchanged.
+- No `position: fixed` bottom chrome; no `100svh` / `100dvh` shell sizing;
+  no scroll-to-fix JS; no per-device pixel tables; no UA sniffing.
 
 ## Resolved spec/HANDOFF conflicts
 
@@ -478,7 +481,7 @@ Golden fixtures freeze engine output. Do not edit them to match a UI change.
 5. Keep questionnaire routing in `src/application/questionnaire`; keep message
    copy in the presentation template layer / `src/ui/break-copy.ts`.
 6. Preserve product vs route; do not map `vape` onto concentrate intensity.
-7. Do not regress the in-flow tab bar / `--app-height` (`100dvh` via `@supports`, `100vh` fallback) shell.
+7. Do not regress the in-flow tab bar / `--app-height` (`100lvh` via `@supports`, `100vh` fallback) plus `--chrome-bleed` shell.
 8. Commit and push only what the slice asked for.
 
 Do not start §16 step 6 or any later step from this handoff.

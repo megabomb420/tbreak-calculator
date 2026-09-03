@@ -4,12 +4,12 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.4.1** — History, IndexedDB durable records, previous-break
+Version **0.4.2** — History, IndexedDB durable records, previous-break
 personalisation, per-item deletion, storage/PWA banners, overlay
 accessibility, and a viewport-fill fix so the in-flow tab bar meets the
-physical bottom of the screen (`100dvh` with `100vh` fallback). 0.3.3
-fail-closed persistence is included. Scientific engines, bands, and the
-day formula are unchanged.
+physical bottom on iOS 26 Safari Liquid Glass (`100lvh` / `100vh`, plus a
+measured `--chrome-bleed`). 0.3.3 fail-closed persistence is included.
+Scientific engines, bands, and the day formula are unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -45,7 +45,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.4.1)
+## Capabilities (0.4.2)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -130,12 +130,13 @@ wholesale.
   check-in, interruption, previous-break sheet, questionnaire, result
   screens, settings
 
-The root shell fills the current dynamic viewport (`--app-height`: `100vh`,
-upgraded to `100dvh` inside `@supports` so minifiers keep the fallback).
-The tab bar stays in normal document flow; `.app-main` is the only normal
-scrolling pane. `viewport-fit=cover` plus `env(safe-area-inset-*)` pad the
-notch / home indicator. Do not lock the shell to `100svh` (it underfills
-when mobile chrome collapses or in a standalone PWA).
+The root shell fills the large viewport (`--app-height`: `100vh`, upgraded
+to `100lvh` inside `@supports` so minifiers keep the fallback). On phones,
+`--chrome-bleed` pads the in-flow tab bar above iOS 26 Safari’s overlay
+toolbar. `.app-main` is the only normal scrolling pane.
+`viewport-fit=cover` plus `env(safe-area-inset-*)` pad the notch / home
+indicator. Do not lock the shell to `100svh` or `100dvh` (on iOS 26 both
+stop above the Liquid Glass toolbar).
 
 Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.
 Next-session notes: `HANDOFF.md`.

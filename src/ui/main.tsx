@@ -9,7 +9,10 @@ import { registerSW } from 'virtual:pwa-register';
 import { createBrowserStorage } from '../infrastructure/storage/browser-storage.ts';
 import { openDurablePersistence, type OpenDurableResult } from '../infrastructure/storage/indexeddb.ts';
 import { App } from './app.tsx';
+import { startViewportSync } from './viewport.ts';
 import './styles.css';
+
+startViewportSync();
 
 const root = document.getElementById('app');
 if (root === null) {

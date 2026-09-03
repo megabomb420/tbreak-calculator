@@ -33,9 +33,10 @@ describe('viewport CSS contract', () => {
   const mainBlock = blockFor(CSS, '.app-main {');
   const tabBlock = blockFor(CSS, '.tab-bar {');
 
-  it('sizes the root column with a dvh fill and vh fallback, not svh', () => {
+  it('sizes the root column to the large viewport, not svh/dvh', () => {
     expect(CSS).toMatch(/--app-height:\s*100vh/);
-    expect(CSS).toMatch(/@supports\s*\(height:\s*100dvh\)\s*\{[^}]*--app-height:\s*100dvh/);
+    expect(CSS).toMatch(/--chrome-bleed:\s*env\(safe-area-inset-bottom,\s*0px\)/);
+    expect(CSS).toMatch(/@supports\s*\(height:\s*100lvh\)\s*\{[^}]*--app-height:\s*100lvh/);
     const heights = declarationValues(rootBlock, 'height');
     expect(heights[0]).toBe('100%');
     expect(heights.at(-1)).toBe('var(--app-height)');
@@ -54,7 +55,7 @@ describe('viewport CSS contract', () => {
 
     expect(declarationValues(tabBlock, 'flex')).toContain('none');
     expect(declarationValues(tabBlock, 'position')).not.toContain('fixed');
-    expect(tabBlock).toMatch(/env\(safe-area-inset-bottom,\s*0px\)/);
+    expect(tabBlock).toMatch(/var\(--chrome-bleed\)/);
   });
 
   it('keeps viewport-fit=cover and does not reintroduce fixed bottom chrome', () => {

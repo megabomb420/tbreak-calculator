@@ -59,12 +59,13 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --app-height: 100vh;
+  --chrome-bleed: env(safe-area-inset-bottom, 0px);
   font-family: var(--font-body);
 }
 
-@supports (height: 100dvh) {
+@supports (height: 100lvh) {
   :root {
-    --app-height: 100dvh;
+    --app-height: 100lvh;
   }
 }
 
@@ -75,18 +76,17 @@
 }
 
 /*
-  Viewport fill contract (0.4.1):
-  Size the root column to the *current* viewport so the in-flow tab bar
-  sits on the physical bottom with no blank body strip below it.
+  Viewport fill contract (0.4.2):
+  iOS 26 Safari Liquid Glass overlays the bottom of the screen. 100dvh and
+  100svh both end *above* that overlay, which is the blank strip under the
+  in-flow tab bar. 100vh on iOS 26 equals outerHeight and, with 100lvh,
+  paints behind the overlay.
 
-  100svh (smallest viewport) underfills when iOS Safari chrome collapses
-  or when the app runs as an installed standalone PWA — svh stays at the
-  “chrome expanded” size while the visible area is taller.
-
-  --app-height is 100vh, then 100dvh inside @supports so the fallback
-  survives CSS minifiers that would otherwise drop overridden height
-  declarations. Do not lock the shell to svh. Do not use position:fixed
-  bottom chrome or visualViewport JS hacks.
+  --app-height is 100vh, then 100lvh inside @supports so the fallback
+  survives CSS minifiers. On narrow / standalone viewports a small script
+  writes pixel --app-height and --chrome-bleed (fill − visible) so tab-bar
+  and overlay footers stay tappable above the glass. No position:fixed
+  tab bar, no per-device pixel tables, no UA sniffing.
 */
 html,
 body,
@@ -202,7 +202,7 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: var(--tab-bar-height);
-  padding: 6px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 12px calc(8px + var(--chrome-bleed));
   background: color-mix(in oklab, var(--bg-mist) 88%, transparent);
   border-top: 1px solid var(--hairline);
   backdrop-filter: blur(16px);
@@ -576,7 +576,7 @@ summary:focus-visible {
   max-height: min(92vh, 720px);
   max-height: min(calc(var(--app-height) * 0.92), 720px);
   overflow: auto;
-  padding: var(--space-3) var(--gutter) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-3) var(--gutter) calc(var(--space-6) + var(--chrome-bleed));
   background: var(--bg-card);
   box-shadow: var(--shadow-sheet);
   border-radius: 24px 24px 0 0;
@@ -715,7 +715,7 @@ summary:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4) var(--gutter) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-4) var(--gutter) calc(var(--space-4) + var(--chrome-bleed));
   background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
 }
 
@@ -1761,7 +1761,7 @@ details.card > summary::-webkit-details-marker {
 }
 
 .snackbar {
-  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  bottom: calc(var(--tab-bar-height) + var(--chrome-bleed) + var(--space-3));
   display: flex;
   align-items: center;
   justify-content: space-between;
