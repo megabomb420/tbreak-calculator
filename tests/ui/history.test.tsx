@@ -30,6 +30,7 @@ function completeTolerance10Days(storage: StorageAdapter) {
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
 }
 
 describe('history tab and previous-break flow', () => {

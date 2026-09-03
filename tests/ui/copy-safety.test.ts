@@ -18,6 +18,7 @@ import * as breakCopy from '../../src/ui/break-copy.ts';
 import { MESSAGE_TEMPLATES } from '../../src/application/presentation/message-templates.ts';
 import { DETECTION_BANNER, DETECTION_WHAT_HELPS } from '../../src/application/presentation/result-presentation.ts';
 import * as evidence from '../../src/domain/guidance/evidence-guidance-v1.ts';
+import * as outlook from '../../src/domain/guidance/break-outlook.ts';
 
 describe('UI copy invariants', () => {
   const dumped = JSON.stringify({
@@ -39,6 +40,7 @@ describe('UI copy invariants', () => {
     DETECTION_BANNER,
     DETECTION_WHAT_HELPS,
     evidence,
+    outlook,
   });
 
   it('does not invent prohibited scientific claims', () => {

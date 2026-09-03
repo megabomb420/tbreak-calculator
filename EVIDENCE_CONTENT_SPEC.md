@@ -1,7 +1,7 @@
 # Evidence content specification
 
-Status: **evidence-guidance-v1**  
-App version: 0.5.0  
+Status: **evidence-guidance-v1** + **break-outlook-v1**  
+App version: 0.6.0  
 Authoritative research source: *THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA* (project research PDF).  
 Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs companion **guidance copy and product interpretation**, not bands, coefficients, or day formulae.
 
@@ -10,8 +10,9 @@ Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs compa
 `EvidenceGuidanceV1` is a deterministic, versioned, local, offline content layer. It is the only place research-derived companion copy lives. UI selects and renders. There is no runtime LLM, no network science, and no numeric engine read of this layer.
 
 Module: `src/domain/guidance/evidence-guidance-v1.ts`  
-Presentation: `src/application/presentation/break-guidance.ts`, `checkin-comparison.ts`  
-Version string: `evidence-guidance-v1`
+Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v1`)  
+Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`  
+Version strings: `evidence-guidance-v1`, `break-outlook-v1`
 
 ## 2. Source distinctions (preserved)
 
@@ -138,6 +139,33 @@ Qualitative education only. Cutoff matters; matrices differ; urine can fluctuate
 
 Same withdrawal guidance. No finite target, completion percentage, return-to-use encouragement, or automatic finish at day 28. Later guidance shifts to habits, triggers, and maintenance.
 
-## 12. Change control
+## 12. Break outlook (break-outlook-v1)
 
-Copy or window-bound changes increment `evidence-guidance-v1` (or replace it with v2) and update tests. They must not edit tolerance/detection golden fixtures.
+`BreakOutlookV1` is a presentation layer over EvidenceGuidanceV1. It does not replace the Tolerance Engine.
+
+For every inspectable day from Day 1 through the planning target (or Days 1–28 when open-ended), derive:
+
+- primary window + overlapping window ids;
+- stage label / headline;
+- what the person may notice;
+- what may help;
+- what matters today;
+- what usually comes next;
+- optional milestone;
+- exposure tone (`lighter` | `typical` | `heavier`).
+
+Tone is copy-only. It MUST NOT change `recommendedRangeDays` or `preferredTargetDays`.
+
+| Tone | When |
+|---|---|
+| heavier | intensity heuristic applies, or ≥16 use-days with a long-established pattern (2–5 years / 5+ years), or ≥26 use-days |
+| lighter | 1–3 use-days, no concentrate/dabbing, and short or missing duration |
+| typical | everything else, including long-established infrequent use |
+
+Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey.
+
+Current-pattern duration may change outlook wording and Why-this-result copy. The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented.
+
+## 13. Change control
+
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v1` (or replace with v2) and update tests. They must not edit tolerance/detection golden fixtures.

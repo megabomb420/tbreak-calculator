@@ -1,5 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
-import type { DailyCheckin } from '../domain/schemas/profile.ts';
+import type { DailyCheckin, UseProfileInput } from '../domain/schemas/profile.ts';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { PostBreakMode } from '../domain/schemas/enums.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
@@ -17,17 +17,18 @@ import type { ActiveBreakView, PlannedBreakView } from '../application/presentat
 import { activeBreakView, plannedBreakView } from '../application/presentation/plan-presentation.ts';
 import { formatLocalDay } from './format.ts';
 import { PlanRing } from './plan-ring.tsx';
-import { WithdrawalTrack } from './withdrawal-track.tsx';
 import { PLAN_DETAIL, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS, POTENCY_STRATEGY_OPTIONS, QUANTITY_STRATEGY_OPTIONS, PLANNED_CARD, GUIDANCE_CHROME } from './break-copy.ts';
 import { BackIcon, CloseIcon, MoreIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { TodayGuidance } from './today-guidance.tsx';
-import { BreakRoadmap } from './break-roadmap.tsx';
+import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { presentBreakGuidance, presentCb1Education, presentPostBreakGuidance } from '../application/presentation/break-guidance.ts';
+import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
+import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
-import type { WithdrawalWindowId } from '../domain/guidance/evidence-guidance-v1.ts';
+import type { BreakOutlookView } from '../application/presentation/break-outlook.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -42,6 +43,7 @@ export interface PlanDetailProps {
   readonly onUpdatePostBreak: (id: string, mode: PostBreakMode, plan: PostBreakPlan) => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly DailyCheckin[];
+  readonly profile: UseProfileInput | null;
 }
 
 export function PlanDetail(props: PlanDetailProps) {
@@ -53,7 +55,7 @@ export function PlanDetail(props: PlanDetailProps) {
   const [confirm, setConfirm] = useState<'end-early' | 'cancel' | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [showDetox, setShowDetox] = useState(false);
-  const [selectedWindow, setSelectedWindow] = useState<WithdrawalWindowId | null>(null);
+  const exposure = props.profile === null ? null : exposureFromProfile(props.profile);
   const bundle = presentBreakGuidance({
     breakDay: active?.day ?? null,
     targetDays: attempt.targetDurationDays,
@@ -61,7 +63,28 @@ export function PlanDetail(props: PlanDetailProps) {
     planned: attempt.status === 'planned',
     preparation: attempt.preparation,
     checkins: props.checkins,
+    exposure,
   });
+  const outlook =
+    attempt.status === 'planned'
+      ? presentOutlookForProfile({
+          profile: props.profile ?? emptyProfile(),
+          targetDays: attempt.targetDurationDays,
+          openEnded: false,
+          currentDay: null,
+          planned: true,
+          preview: true,
+        })
+      : presentOutlookForProfile({
+          profile: props.profile ?? emptyProfile(),
+          targetDays: attempt.targetDurationDays,
+          openEnded: false,
+          currentDay: active?.day ?? null,
+          planned: false,
+          preview: false,
+          checkins: props.checkins,
+          lastUseAt: props.anchor,
+        });
 
   return (
     <div className="questionnaire-overlay" data-testid="plan-detail" role="dialog" aria-modal="true" aria-label={PLAN_DETAIL.title} ref={rootRef}>
@@ -83,9 +106,9 @@ export function PlanDetail(props: PlanDetailProps) {
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
         {active !== null ? (
-          <ActivePlanContent active={active} guidance={bundle} selectedWindow={selectedWindow} onSelectWindow={setSelectedWindow} />
+          <ActivePlanContent active={active} guidance={bundle} outlook={outlook} />
         ) : planned !== null ? (
-          <PlannedPlanContent planned={planned} />
+          <PlannedPlanContent planned={planned} outlook={outlook} />
         ) : null}
         <PreparationCard value={attempt.preparation} onSave={(next) => props.onUpdatePreparation(attempt.id, next)} />
         <PostBreakCard
@@ -156,13 +179,11 @@ export function PlanDetail(props: PlanDetailProps) {
 function ActivePlanContent({
   active,
   guidance,
-  selectedWindow,
-  onSelectWindow,
+  outlook,
 }: {
   readonly active: ActiveBreakView;
   readonly guidance: ReturnType<typeof presentBreakGuidance>;
-  readonly selectedWindow: WithdrawalWindowId | null;
-  readonly onSelectWindow: (id: WithdrawalWindowId) => void;
+  readonly outlook: BreakOutlookView;
 }) {
   return (
     <section className="plan-hero" data-testid="active-plan-content">
@@ -173,18 +194,19 @@ function ActivePlanContent({
           <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
         </div>
       </dl>
-      {active.withdrawal !== null ? <WithdrawalTrack withdrawal={active.withdrawal} /> : null}
       <TodayGuidance view={guidance.today} />
-      <BreakRoadmap
-        stages={guidance.roadmap}
-        selectedId={selectedWindow ?? guidance.today.windowId}
-        onSelect={onSelectWindow}
-      />
+      <BreakOutlook view={outlook} />
     </section>
   );
 }
 
-function PlannedPlanContent({ planned }: { readonly planned: PlannedBreakView }) {
+function PlannedPlanContent({
+  planned,
+  outlook,
+}: {
+  readonly planned: PlannedBreakView;
+  readonly outlook: BreakOutlookView;
+}) {
   return (
     <section className="plan-hero" data-testid="planned-plan-content">
       <p className="eyebrow">{PLANNED_CARD.eyebrow}</p>
@@ -197,8 +219,24 @@ function PlannedPlanContent({ planned }: { readonly planned: PlannedBreakView })
           : `Plan for ${planned.targetDays} days — target date ${formatLocalDay(planned.targetDate)}`}
       </p>
       <p className="meta">This break has not started yet. It will begin on the start date.</p>
+      <BreakOutlook view={outlook} />
     </section>
   );
+}
+
+function emptyProfile(): UseProfileInput {
+  return {
+    goal: 'tolerance_reset',
+    breakRequested: true,
+    postBreakMode: null,
+    thcUseDaysLast30: { value: null, provenance: 'missing' },
+    sessionsPerUseDay: { value: null, provenance: 'missing' },
+    products: [],
+    routes: [],
+    lastUseAt: { value: null, provenance: 'missing' },
+    currentPatternDuration: { value: null, provenance: 'missing' },
+    previousBreaks: [],
+  };
 }
 
 function PostBreakCard({

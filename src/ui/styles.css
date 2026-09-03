@@ -2067,6 +2067,76 @@ details.card > summary::-webkit-details-marker {
   background: var(--bg-raised);
 }
 
+.outlook {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.outlook-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 var(--space-2);
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.outlook-chip {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  background: var(--bg-raised);
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  scroll-snap-align: start;
+  padding: 4px 0;
+}
+
+.outlook-chip-num {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.outlook-chip-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.outlook-chip.is-selected {
+  border-color: var(--accent-strong);
+  background: color-mix(in oklab, var(--accent-strong) 16%, var(--bg-raised));
+}
+
+.outlook-chip.is-current {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent-strong) 40%, transparent);
+}
+
+.outlook-chip.is-past {
+  opacity: 0.55;
+}
+
+.outlook-inspector {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .preparation-card,
 .prep-disclosure {
   width: 100%;

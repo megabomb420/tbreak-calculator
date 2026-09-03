@@ -1,16 +1,17 @@
 import { useRef, useState } from 'preact/hooks';
-import type { DailyCheckin } from '../domain/schemas/profile.ts';
+import type { DailyCheckin, UseProfileInput } from '../domain/schemas/profile.ts';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
-import { trackingDayView } from '../application/presentation/plan-presentation.ts';
+import { currentSegmentAnchor, trackingDayView } from '../application/presentation/plan-presentation.ts';
 import { presentBreakGuidance, presentCb1Education } from '../application/presentation/break-guidance.ts';
+import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
+import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
-import type { WithdrawalWindowId } from '../domain/guidance/evidence-guidance-v1.ts';
 import { GUIDANCE_CHROME, TRACKING_CARD } from './break-copy.ts';
 import { BackIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { TodayGuidance } from './today-guidance.tsx';
-import { BreakRoadmap } from './break-roadmap.tsx';
+import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 
@@ -20,6 +21,7 @@ export interface TrackingDetailProps {
   readonly checkins: readonly DailyCheckin[];
   readonly onBack: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
+  readonly profile: UseProfileInput | null;
 }
 
 export function TrackingDetail(props: TrackingDetailProps) {
@@ -27,8 +29,8 @@ export function TrackingDetail(props: TrackingDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, props.onBack);
   const [showDetox, setShowDetox] = useState(false);
-  const [selectedWindow, setSelectedWindow] = useState<WithdrawalWindowId | null>(null);
   const dayView = trackingDayView(track, props.now);
+  const exposure = props.profile === null ? null : exposureFromProfile(props.profile);
   const bundle = presentBreakGuidance({
     breakDay: dayView?.day ?? null,
     targetDays: null,
@@ -36,6 +38,28 @@ export function TrackingDetail(props: TrackingDetailProps) {
     planned: false,
     preparation: track.preparation,
     checkins: props.checkins,
+    exposure,
+  });
+  const outlook = presentOutlookForProfile({
+    profile: props.profile ?? {
+      goal: 'abstinence',
+      breakRequested: false,
+      postBreakMode: 'continue_abstinence',
+      thcUseDaysLast30: { value: null, provenance: 'missing' },
+      sessionsPerUseDay: { value: null, provenance: 'missing' },
+      products: [],
+      routes: [],
+      lastUseAt: { value: null, provenance: 'missing' },
+      currentPatternDuration: { value: null, provenance: 'missing' },
+      previousBreaks: [],
+    },
+    targetDays: null,
+    openEnded: true,
+    currentDay: dayView?.day ?? null,
+    planned: false,
+    preview: false,
+    checkins: props.checkins,
+    lastUseAt: currentSegmentAnchor(track.segments),
   });
   const cb1 = presentCb1Education();
 
@@ -64,11 +88,7 @@ export function TrackingDetail(props: TrackingDetailProps) {
             {GUIDANCE_CHROME.openEndedNote}
           </p>
           <TodayGuidance view={bundle.today} />
-          <BreakRoadmap
-            stages={bundle.roadmap}
-            selectedId={selectedWindow ?? bundle.today.windowId}
-            onSelect={setSelectedWindow}
-          />
+          <BreakOutlook view={outlook} />
         </section>
         <PreparationCard value={track.preparation} onSave={(next) => props.onUpdatePreparation(track.id, next)} />
         <details className="card guidance-why" data-testid="cb1-note">

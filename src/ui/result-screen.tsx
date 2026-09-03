@@ -19,8 +19,10 @@ import { HISTORY } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
+import { BreakOutlook } from './break-outlook.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
+import { presentCb1Education } from '../application/presentation/break-guidance.ts';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -184,7 +186,8 @@ function ResultBody({
               ))}
             </ul>
           </section>
-          {view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
+          {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : null}
+          <Cb1ContextNote />
           <HistoryCard
             insight={view.history}
             onAddPastBreak={onAddPastBreak}
@@ -206,7 +209,8 @@ function ResultBody({
             {view.withdrawal ? <p className="body">{aroundDay(view.withdrawal.breakDay)}</p> : null}
             <p className="meta">{view.phaseCopy}</p>
           </header>
-          {view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
+          {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
+          <Cb1ContextNote />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
         </div>
       );
@@ -284,6 +288,20 @@ function ResultBody({
         </header>
       );
   }
+}
+
+function Cb1ContextNote() {
+  const cb1 = presentCb1Education();
+  return (
+    <details className="card guidance-why" data-testid="cb1-note">
+      <summary className="card-title">{cb1.title}</summary>
+      {cb1.paragraphs.map((paragraph) => (
+        <p key={paragraph} className="body">
+          {paragraph}
+        </p>
+      ))}
+    </details>
+  );
 }
 
 function HistoryCard({

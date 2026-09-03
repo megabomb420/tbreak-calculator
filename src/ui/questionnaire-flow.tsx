@@ -15,6 +15,7 @@ import {
   BreakCards,
   ContextCards,
   DateControl,
+  DurationCards,
   GoalCards,
   MatrixCards,
   ProductsRoutesControl,
@@ -179,6 +180,13 @@ function StepControl({
           onChange={(iso) =>
             onDraft(applyAnswer(answers, { step, value: iso } as StepAnswer, now))
           }
+        />
+      );
+    case 'Q6':
+      return (
+        <DurationCards
+          selected={answers.currentPatternDuration}
+          onSelect={(value) => onAdvance({ step: 'Q6', value })}
         />
       );
     case 'Q4':

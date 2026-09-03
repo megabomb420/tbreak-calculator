@@ -1,6 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
-import type { DetectionContext, DetectionMatrix, Goal, ProductKind, Route } from '../domain/schemas/enums.ts';
+import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, Goal, ProductKind, Route } from '../domain/schemas/enums.ts';
 import {
   DATE_CHIPS,
   DAY_PARTS,
@@ -18,6 +18,7 @@ import {
   DATE_CHIP_LABELS,
   DAY_PART_LABELS,
   MATRIX_OPTIONS,
+  PATTERN_DURATION_OPTIONS,
   PRODUCT_GROUP_LABEL,
   PRODUCT_OPTIONS,
   QUESTIONNAIRE,
@@ -80,6 +81,36 @@ export function BreakCards({
           <span className="choice-icon">
             {option.value ? <BreakYesIcon size={20} /> : <BreakNoIcon size={20} />}
           </span>
+          <span className="choice-copy">
+            <span className="choice-title">{option.title}</span>
+            <span className="meta">{option.helper}</span>
+          </span>
+          <span className="choice-check">
+            <CheckIcon size={16} />
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function DurationCards({
+  selected,
+  onSelect,
+}: {
+  readonly selected?: CurrentPatternDurationBand;
+  readonly onSelect: (value: CurrentPatternDurationBand) => void;
+}) {
+  return (
+    <div className="choice-list" data-testid="pattern-duration-cards">
+      {PATTERN_DURATION_OPTIONS.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          className={cardClass(selected === option.id)}
+          data-duration={option.id}
+          onClick={() => onSelect(option.id)}
+        >
           <span className="choice-copy">
             <span className="choice-title">{option.title}</span>
             <span className="meta">{option.helper}</span>

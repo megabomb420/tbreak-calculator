@@ -13,6 +13,7 @@ import {
 import type { Instant } from '../../domain/schemas/time.ts';
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
 import {
+  CURRENT_PATTERN_DURATION_BANDS,
   DETECTION_CONTEXTS,
   DETECTION_MATRICES,
   GOALS,
@@ -102,6 +103,7 @@ function isValidAnswers(value: unknown): value is QuestionnaireAnswers {
     'thcUseDaysLast30',
     'lastUseAt',
     'lastUseSkipped',
+    'currentPatternDuration',
     'sessionsPerUseDay',
     'products',
     'routes',
@@ -124,6 +126,12 @@ function isValidAnswers(value: unknown): value is QuestionnaireAnswers {
   }
   if (record.lastUseAt !== undefined && typeof record.lastUseAt !== 'string') return false;
   if (record.lastUseSkipped !== undefined && typeof record.lastUseSkipped !== 'boolean') return false;
+  if (
+    record.currentPatternDuration !== undefined &&
+    !(CURRENT_PATTERN_DURATION_BANDS as readonly string[]).includes(record.currentPatternDuration as string)
+  ) {
+    return false;
+  }
   if (
     record.sessionsPerUseDay !== undefined &&
     (typeof record.sessionsPerUseDay !== 'number' ||

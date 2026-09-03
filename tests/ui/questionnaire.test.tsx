@@ -155,6 +155,7 @@ describe('last-use steps', () => {
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2A');
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.stillUseToday }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
@@ -192,6 +193,9 @@ describe('Q5 vape product', () => {
     let flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    flow = screen.getByTestId('questionnaire-flow');
+    expect(flow.getAttribute('data-step')).toBe('Q6');
+    fireEvent.click(within(flow).getByRole('button', { name: /1–6 months/ }));
     flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: '1' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));

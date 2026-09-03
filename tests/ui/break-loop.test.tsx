@@ -116,8 +116,9 @@ function completeToleranceFlow(storage: StorageAdapter) {
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(within(flow).getByRole('button', { name: '1' }));
-  fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: '1' }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: QUESTIONNAIRE.continue }));
   const q5 = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
   fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
@@ -193,10 +194,16 @@ describe('plan detail', () => {
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    expect(screen.queryByTestId('outlook-day-strip')).toBeNull();
     fireEvent.click(screen.getByTestId('open-plan-detail'));
     const detail = screen.getByTestId('plan-detail');
     expect(detail).toBeTruthy();
     expect(screen.getByTestId('plan-ring-day').textContent).toBe('Day 4');
+    expect(screen.getByTestId('break-outlook')).toBeTruthy();
+    expect(screen.getByTestId('outlook-day-21')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-22')).toBeNull();
+    expect(screen.getByTestId('outlook-day-4').getAttribute('data-status')).toBe('current');
     expect(screen.getByTestId('target-date')).toBeTruthy();
     expect(screen.getByTestId('phase-focus')).toBeTruthy();
     expect(screen.getByTestId('post-break-card')).toBeTruthy();
@@ -437,6 +444,7 @@ describe('open-ended abstinence tracking (D4)', () => {
     const flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     fireEvent.click(screen.getByTestId('start-tracking'));
     expect(screen.queryByTestId('result-screen')).toBeNull();

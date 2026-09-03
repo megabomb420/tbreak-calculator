@@ -71,6 +71,7 @@ import {
   trackingDayView,
 } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
+import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import type { Goal, PostBreakMode } from '../domain/schemas/enums.ts';
 import { parseSubmittedTimestamp, type Instant } from '../domain/schemas/time.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
@@ -254,6 +255,10 @@ export function App({
         ? { track: liveTracking, view: trackingDayView(liveTracking, now) }
         : null,
     checkins: sessionState.checkins,
+    exposure:
+      snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
+        ? exposureFromProfile(snapshotRecord.snapshot.profile)
+        : null,
   };
   const profileData: TodayProfileData = {
     resultView: profileView,
@@ -897,6 +902,11 @@ export function App({
           onUpdatePreparation={updatePreparation}
           checkins={sessionState.checkins}
           preparation={liveAttempt?.preparation ?? liveTracking?.preparation ?? null}
+          profile={
+            snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
+              ? snapshotRecord.snapshot.profile
+              : null
+          }
         />
       ) : null}
       {flow?.kind === 'previous-break' ? (
@@ -964,6 +974,7 @@ function FlowRenderer({
   onUpdatePreparation,
   checkins,
   preparation,
+  profile,
 }: {
   readonly flow: Flow;
   readonly targetDays: number;
@@ -988,6 +999,7 @@ function FlowRenderer({
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
+  readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;
 }) {
   switch (flow.kind) {
     case 'break-start':
@@ -1014,6 +1026,7 @@ function FlowRenderer({
           onUpdatePostBreak={onUpdatePostBreak}
           onUpdatePreparation={onUpdatePreparation}
           checkins={checkins}
+          profile={profile}
         />
       ) : null;
     case 'tracking-detail':
@@ -1024,6 +1037,7 @@ function FlowRenderer({
           checkins={checkins}
           onBack={onClose}
           onUpdatePreparation={onUpdatePreparation}
+          profile={profile}
         />
       ) : null;
     case 'checkin':

@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as evidence from '../../src/domain/guidance/evidence-guidance-v1.ts';
+import * as outlook from '../../src/domain/guidance/break-outlook.ts';
 import { presentDetoxEvidence, presentPostBreakGuidance } from '../../src/application/presentation/break-guidance.ts';
 import * as breakCopy from '../../src/ui/break-copy.ts';
 
@@ -8,6 +9,7 @@ describe('scientific integrity of companion copy', () => {
   it('forbids recovery, detox, receptor and clearance percentages in guidance data', () => {
     const dumped = JSON.stringify({
       evidence,
+      outlook,
       detox: presentDetoxEvidence(),
       postBreak: presentPostBreakGuidance({ mode: 'occasional', maxUseDaysPerWeek: 2 }),
       breakCopy,

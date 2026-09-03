@@ -39,6 +39,7 @@ describe('declarative step map (UX_SPEC 4, 5.1)', () => {
       'Q3D',
       'Q4',
       'Q5',
+      'Q6',
     ]);
     assert.equal(STEP_SPECS.Q1.answerType, 'single_select_advance');
     assert.equal(STEP_SPECS.Q2.answerType, 'slider');
@@ -47,6 +48,7 @@ describe('declarative step map (UX_SPEC 4, 5.1)', () => {
     assert.equal(STEP_SPECS['Q3-opt'].answerType, 'date_optional');
     assert.equal(STEP_SPECS['Q3-opt'].dateWindow, 'older_than_30_days');
     assert.equal(STEP_SPECS.Q2A.dateWindow, 'any_past');
+    assert.equal(STEP_SPECS.Q6.answerType, 'pattern_duration');
     assert.equal(STEP_SPECS.Q4.answerType, 'sessions');
     assert.equal(STEP_SPECS.Q5.answerType, 'products_routes');
   });
@@ -85,11 +87,12 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
   it('routes tolerance_reset through use-days then the matching last-use / intensity steps', () => {
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset' }), ['Q1', 'Q2']);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 0 }), ['Q1', 'Q2', 'Q3-opt']);
-    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), ['Q1', 'Q2', 'Q3']);
+    assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), ['Q1', 'Q2', 'Q3', 'Q6']);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }), [
       'Q1',
       'Q2',
       'Q3',
+      'Q6',
       'Q4',
       'Q5',
     ]);
@@ -104,6 +107,7 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q2R',
       'Q2',
       'Q3',
+      'Q6',
       'Q4',
       'Q5',
     ]);
@@ -114,9 +118,20 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     ]);
   });
 
-  it('asks abstinence only for last use, and detection only for matrix then context', () => {
-    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q2A']);
+  it('asks abstinence only for last use then duration, and detection only for matrix then context', () => {
+    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q2A', 'Q6']);
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
+  });
+
+  it('keeps longest consuming path at 7 steps and does not ask Q4/Q5 below 16 use-days', () => {
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 4);
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }).length, 6);
+    assert.equal(
+      resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 30 }).length,
+      7,
+    );
+    assert.equal(resolvedPath({ goal: 'abstinence' }).length, 3);
+    assert.equal(resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 20 }).length, 3);
   });
 });
 
@@ -282,7 +297,7 @@ describe('restore and progress', () => {
     assert.equal(restoreStep({ goal: 'tolerance_reset' }, NOW), 'Q2');
     assert.equal(
       restoreStep({ goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: withinWindowIso() }, NOW),
-      'Q3',
+      'Q6',
     );
     assert.equal(
       restoreStep(
@@ -301,6 +316,13 @@ describe('restore and progress', () => {
     assert.equal(countAnsweredSteps({}, NOW), 0);
     assert.equal(countAnsweredSteps({ goal: 'abstinence' }, NOW), 1);
     assert.equal(countAnsweredSteps({ goal: 'abstinence', lastUseAt: withinWindowIso() }, NOW), 2);
+    assert.equal(
+      countAnsweredSteps(
+        { goal: 'abstinence', lastUseAt: withinWindowIso(), currentPatternDuration: '1_to_6_months' },
+        NOW,
+      ),
+      3,
+    );
   });
 
   it('progress fills along the resolved path and jumps forward when a branch removes steps', () => {

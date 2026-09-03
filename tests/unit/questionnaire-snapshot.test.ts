@@ -29,6 +29,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
       { step: 'Q1', value: 'tolerance_reset' },
       { step: 'Q2', value: 10 },
       { step: 'Q3', value: LAST_USE },
+      { step: 'Q6', value: '1_to_6_months' },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');
@@ -69,6 +70,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     const answers = answerAll([
       { step: 'Q1', value: 'abstinence' },
       { step: 'Q2A', value: LAST_USE },
+      { step: 'Q6', value: '2_to_5_years' },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');
@@ -100,6 +102,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
       { step: 'Q1', value: 'tolerance_reset' },
       { step: 'Q2', value: 20 },
       { step: 'Q3', value: LAST_USE },
+      { step: 'Q6', value: '6_to_24_months' },
       { step: 'Q4', value: 3 },
       { step: 'Q5', value: { products: ['flower', 'concentrate'], routes: ['smoking', 'dabbing'] } },
     ]);

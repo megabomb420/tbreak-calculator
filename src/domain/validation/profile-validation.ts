@@ -7,6 +7,7 @@
 // field-level validation errors.
 
 import {
+  CURRENT_PATTERN_DURATION_BANDS,
   FIELD_PROVENANCES,
   GOALS,
   POST_BREAK_MODES,
@@ -14,6 +15,7 @@ import {
   PRODUCT_KINDS,
   ROUTE_ORDER,
   ROUTES,
+  type CurrentPatternDurationBand,
   type FieldProvenance,
   type Goal,
   type ProductKind,
@@ -66,7 +68,8 @@ export type ValidationErrorCode =
   | 'previous_break_duration_days_must_be_positive_integer'
   | 'previous_break_score_must_be_integer_0_to_10_or_null'
   | 'previous_break_invalid_ended_at'
-  | 'previous_break_invalid_created_at';
+  | 'previous_break_invalid_created_at'
+  | 'invalid_current_pattern_duration';
 
 const MESSAGES: Record<ValidationErrorCode, string> = {
   malformed_sourced_value: 'Expected a SourcedValue with value and provenance fields.',
@@ -109,6 +112,8 @@ const MESSAGES: Record<ValidationErrorCode, string> = {
     'Previous break toleranceReductionScore must be an integer between 0 and 10, or null.',
   previous_break_invalid_ended_at: 'Previous break endedAt must be null or an ISO-8601 timestamp with timezone.',
   previous_break_invalid_created_at: 'Previous break createdAt must be an ISO-8601 timestamp with timezone.',
+  invalid_current_pattern_duration:
+    'currentPatternDuration must be missing or one of: under_1_month, 1_to_6_months, 6_to_24_months, 2_to_5_years, 5_plus_years.',
 };
 
 export interface ValidationError {
@@ -297,6 +302,26 @@ export function validateAndNormalizeProfile(
     }
   }
 
+  // --- currentPatternDuration (optional; missing is valid for legacy) ------
+  const rawDuration = input.currentPatternDuration;
+  let durationValue: CurrentPatternDurationBand | null = null;
+  let durationProvenance: FieldProvenance = 'missing';
+  if (rawDuration !== undefined) {
+    const durationField = readCoreSourcedField(errors, 'currentPatternDuration', rawDuration);
+    if (durationField.clean && durationField.present) {
+      const value = rawDuration.value;
+      if (
+        typeof value !== 'string' ||
+        !(CURRENT_PATTERN_DURATION_BANDS as readonly string[]).includes(value)
+      ) {
+        errors.push(error('invalid_current_pattern_duration', 'currentPatternDuration'));
+      } else {
+        durationValue = value as CurrentPatternDurationBand;
+        durationProvenance = rawDuration.provenance as FieldProvenance;
+      }
+    }
+  }
+
   // --- goal / breakRequested / postBreakMode rules (spec 5.9-5.14) ----------
   if (goalKnown && breakRequestedKnown && postBreakModeKnown) {
     switch (goal) {
@@ -409,6 +434,10 @@ export function validateAndNormalizeProfile(
       lastUseInstant !== null
         ? { value: lastUseInstant, provenance: input.lastUseAt.provenance as FieldProvenance }
         : missingValue(),
+    currentPatternDuration:
+      durationValue === null
+        ? missingValue()
+        : { value: durationValue, provenance: durationProvenance },
     previousBreaks: normalisedPreviousBreaks,
   };
 

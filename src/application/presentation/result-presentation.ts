@@ -4,6 +4,7 @@
 // them onto approved copy structure. It does not select bands, compute
 // elapsed days, or invent detection windows.
 
+import type { CurrentPatternDurationBand } from '../../domain/schemas/enums.ts';
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 // Presentation-only structural copy (UX_SPEC 9.5–9.6). Not engine output.
 import type {
@@ -18,6 +19,10 @@ import type {
 import type { QuestionnaireStepId } from '../questionnaire/engine.ts';
 import { renderMessageCode } from './message-templates.ts';
 import { primaryWindowForDay, primaryWindowIdForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
+import {
+  presentOutlookForProfile,
+  type BreakOutlookView,
+} from './break-outlook.ts';
 
 export type ResultViewKind =
   | 'tolerance_result'
@@ -38,7 +43,7 @@ export interface WithdrawalView {
   readonly stops: readonly WithdrawalStopView[];
 }
 
-export type AnswerRowId = 'useDays' | 'lastUse' | 'sessions' | 'productsRoutes';
+export type AnswerRowId = 'useDays' | 'lastUse' | 'sessions' | 'productsRoutes' | 'patternDuration';
 
 export interface AnswerRow {
   readonly id: AnswerRowId;
@@ -55,6 +60,7 @@ export interface ToleranceResultView {
   readonly drivers: readonly string[];
   readonly history: string | null;
   readonly withdrawal: WithdrawalView | null;
+  readonly outlook: BreakOutlookView | null;
   readonly answers: readonly AnswerRow[];
 }
 
@@ -63,6 +69,7 @@ export interface AbstinencePlanningView {
   readonly rangeDays: null;
   readonly withdrawal: WithdrawalView | null;
   readonly phaseCopy: string;
+  readonly outlook: BreakOutlookView | null;
   readonly answers: readonly AnswerRow[];
 }
 
@@ -142,6 +149,13 @@ export function presentToleranceResult(result: ToleranceResult, profile: UseProf
         rangeDays: null,
         withdrawal: presentWithdrawal(result.withdrawal),
         phaseCopy: phaseFocusCopy(result.withdrawal?.breakDay ?? 1),
+        outlook: presentOutlookForProfile({
+          profile,
+          targetDays: 28,
+          openEnded: true,
+          currentDay: result.withdrawal?.breakDay ?? null,
+          preview: true,
+        }),
         answers: answerRows(profile),
       };
     }
@@ -160,9 +174,16 @@ export function presentToleranceResult(result: ToleranceResult, profile: UseProf
     rangeDays: result.recommendedRangeDays,
     preferredTargetDays: result.preferredTargetDays,
     uncertainty: renderMessageCode(result.uncertaintySummaryCode ?? '') ?? '',
-    drivers: result.drivers.map((code) => renderMessageCode(code)).filter((line): line is string => line !== null),
+    drivers: presentDrivers(result.drivers, profile),
     history: presentHistory(result.historyInsight),
     withdrawal: presentWithdrawal(result.withdrawal),
+    outlook: presentOutlookForProfile({
+      profile,
+      targetDays: result.preferredTargetDays,
+      openEnded: false,
+      currentDay: result.withdrawal?.breakDay ?? null,
+      preview: true,
+    }),
     answers: answerRows(profile),
   };
 }
@@ -206,6 +227,23 @@ function statusLabel(status: WithdrawalAnchorStatus | null): WithdrawalStopView[
   if (status === 'current') return 'happening now';
   if (status === 'past') return 'passed';
   return null;
+}
+
+function presentDrivers(engineDrivers: readonly string[], profile: UseProfileInput): readonly string[] {
+  const fromEngine = engineDrivers
+    .map((code) => renderMessageCode(code))
+    .filter((line): line is string => line !== null);
+  const durationCodes = durationDriverCodes(profile);
+  const fromDuration = durationCodes
+    .map((code) => renderMessageCode(code))
+    .filter((line): line is string => line !== null);
+  return [...fromEngine, ...fromDuration];
+}
+
+function durationDriverCodes(profile: UseProfileInput): readonly string[] {
+  const band = profile.currentPatternDuration?.value;
+  if (band === null || band === undefined) return [];
+  return [`current_pattern_${band}`, 'current_pattern_duration_contextual_only'];
 }
 
 function presentHistory(insight: HistoryInsight | null): string | null {
@@ -257,5 +295,30 @@ function answerRows(profile: UseProfileInput): AnswerRow[] {
       step: 'Q5',
     });
   }
+  if (profile.currentPatternDuration?.value) {
+    rows.push({
+      id: 'patternDuration',
+      label: 'How long this current pattern has been typical',
+      value: durationLabel(profile.currentPatternDuration.value),
+      step: 'Q6',
+    });
+  }
   return rows;
+}
+
+function durationLabel(band: CurrentPatternDurationBand): string {
+  switch (band) {
+    case 'under_1_month':
+      return 'Less than 1 month';
+    case '1_to_6_months':
+      return '1–6 months';
+    case '6_to_24_months':
+      return '6–24 months';
+    case '2_to_5_years':
+      return '2–5 years';
+    case '5_plus_years':
+      return '5+ years';
+    default:
+      return '';
+  }
 }

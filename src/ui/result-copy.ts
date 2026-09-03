@@ -13,6 +13,10 @@ export const RESULT = {
   edit: 'Edit',
   answersHeading: 'Your answers',
   whyHeading: 'Why this result',
+  outlookHeading: 'Your break outlook',
+  outlookHelper: 'Every planned day, from population evidence — not a personal prediction.',
+  outlookSwipe: 'Swipe the days to inspect the rest of the plan.',
+  whatMatters: 'What matters today',
   historyHeading: 'Your history',
   historyPrompt:
     'Taken a tolerance break before? Add it — next time, your result can include what your own history suggests.',

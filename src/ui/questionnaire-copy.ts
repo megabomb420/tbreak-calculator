@@ -1,7 +1,7 @@
 // Authoritative questionnaire copy from UX_SPEC §5.2 / §4.3.
 // No scientific, medical, detox, or safety claims are invented here.
 
-import type { DetectionContext, DetectionMatrix, ProductKind, Route } from '../domain/schemas/enums.ts';
+import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, ProductKind, Route } from '../domain/schemas/enums.ts';
 import type { QuestionnaireStepId } from '../application/questionnaire/engine.ts';
 import type { DateChipId, DayPart } from '../application/questionnaire/date-answers.ts';
 
@@ -45,6 +45,10 @@ export const STEP_COPY: Record<QuestionnaireStepId, StepCopy> = {
   Q2A: {
     title: 'When did you last use THC?',
     helper: "If you're quitting now, pick today — your timeline starts from here.",
+  },
+  Q6: {
+    title: 'How long has this level of THC use been typical for you?',
+    helper: 'Not how long you have ever used — how long this current pattern has been your usual level.',
   },
   Q4: {
     title: 'On a day you used, how many separate sessions?',
@@ -122,6 +126,18 @@ export const ROUTE_OPTIONS: ReadonlyArray<{ id: Route; title: string }> = [
   { id: 'oral', title: 'Eating or drinking' },
   { id: 'sublingual', title: 'Under the tongue' },
   { id: 'other', title: 'Other way' },
+];
+
+export const PATTERN_DURATION_OPTIONS: ReadonlyArray<{
+  id: CurrentPatternDurationBand;
+  title: string;
+  helper: string;
+}> = [
+  { id: 'under_1_month', title: 'Less than 1 month', helper: 'This level is still new' },
+  { id: '1_to_6_months', title: '1–6 months', helper: 'A few months at this level' },
+  { id: '6_to_24_months', title: '6–24 months', helper: 'About 1–2 years at this level' },
+  { id: '2_to_5_years', title: '2–5 years', helper: 'A few years at this level' },
+  { id: '5_plus_years', title: '5+ years', helper: 'This has been typical for a long time' },
 ];
 
 export const SESSION_CHIPS = [

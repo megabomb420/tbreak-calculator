@@ -2,14 +2,16 @@
 
 Status: implementation-ready v1 UX design, revised after adversarial UX review
 Version: 0.2.0 (supersedes 0.1.0)
-Companion documents: `CALCULATOR_SPEC.md` (0.2.0), `ARCHITECTURE.md` (0.2.0)
+Companion documents: `CALCULATOR_SPEC.md` (0.2.0), `ARCHITECTURE.md` (0.6.0)
 Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, history, settings, offline behaviour, visual direction. No science, no engine rule changes. Where a better UX requires a small schema/validation change, the change is flagged explicitly in §15 and MUST be made in the domain spec before the affected flow is implemented — it is never worked around silently.
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
+Revision note (0.6.0): added `currentPatternDuration` (Q6) as exposure context only — it never changes recommended ranges — and replaced the shallow “first weeks” result block with a full Day 1 → planning-target break outlook reused by Result, Today, and Plan Detail. Q4/Q5 remain restricted to use-days ≥ 16.
+
 Revision note (0.1.0 → 0.2.0): reordered the questionnaire to ask use frequency before last use; removed previous-break and post-break questions from the initial calculation; restricted sessions/products/routes to the band where they can change the result; simplified the result hierarchy to one hero range; collapsed the shell to two tabs; redesigned the check-in around the THC-use question first; removed the elapsed-time line from detection results; pinned down clock semantics and the abstinence tracking state.
 
-Every question maps to a field an enabled v1 engine, plan, or history feature consumes. No question collects data for a deferred feature.
+Every question maps to a field an enabled v1 engine, plan, history feature, or result-explanation consumes. No question collects data for a deferred feature.
 
 ---
 
@@ -28,10 +30,10 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 
 ### 1.2 Design principles
 
-1. **Fast to an answer.** The shortest useful path is 2 questions; the longest is 6. A daily user reaches a recommended range in under a minute.
+1. **Fast to an answer.** The shortest useful path is 2 questions; the longest is 7. A daily user reaches a recommended range in under a minute.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
-4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, or local history, the question is not in the flow.
+4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes Why-this-result copy and break-outlook wording; it MUST NOT change the numeric range.
 5. **Honest by construction.** No reset percentage, detox percentage, guaranteed clean date, exact universal reset date, or numeric detection window — these outputs do not exist in the engines and MUST NOT be simulated visually (no fake "receptor recovery" rings).
 6. **Tolerance ≠ detection ≠ impairment.** Separate goals, separate flows, separate result cards, visually and verbally separated.
 7. **Estimates are first-class.** Users remember "about two weeks ago," not ISO timestamps. Every date question offers coarse, human answers; the UI converts them to the required timestamp shape.
@@ -47,6 +49,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 | tolerance break / T-break | "break" or "T-break" |
 | `thcUseDaysLast30` | "days you used THC in the last 30 days" |
 | `sessionsPerUseDay` | "sessions on a typical use day" |
+| `currentPatternDuration` | "how long this current pattern has been typical" |
 | `lastUseAt` | "when you last used" |
 | `recommendedRangeDays` | "recommended break" |
 | `preferredTargetDays` | "planning target" |
@@ -114,7 +117,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Result summary card (range + target), CTAs: **Start this break**, **Recalculate**; secondary links: detection info, nominal THC |
-| `active-break` | attempt `active` | Day counter ("Day 12 of 28"), target date, withdrawal position strip, current-phase focus line, primary CTA **Check in**; tap card → plan detail |
+| `active-break` | attempt `active` | Day counter ("Day 12 of 28"), target date, current-day outlook from BreakOutlookV1 (not the full day strip), primary CTA **Check in**; tap card → plan detail |
 | `interrupted` | attempt `interrupted_time_needed` | Timing suspended; card: "You marked that you used THC. Confirm when, so your plan can restart." CTA **Confirm when** |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -216,14 +219,14 @@ Q1 goal
  ├─ tolerance_reset
  │    Q2 use days
  │      ├─ 0     → Q3-opt last use (optional, >30 days ago only) → TERMINAL baseline-low
- │      ├─ 1–15  → Q3 last use (≤30 days) → TERMINAL tolerance result
- │      └─ 16–30 → Q3 last use → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
+ │      ├─ 1–15  → Q3 last use (≤30 days) → Q6 current-pattern duration → TERMINAL tolerance result
+ │      └─ 16–30 → Q3 last use → Q6 current-pattern duration → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
  ├─ reduction
  │    Q2R break wanted?
  │      ├─ Yes → identical to the tolerance_reset path from Q2
  │      └─ Not now → Q2 use days → TERMINAL reduction planning
  ├─ abstinence
- │    Q2A last use (any past date, or "I still use — today") → TERMINAL abstinence planning
+ │    Q2A last use (any past date, or "I still use — today") → Q6 current-pattern duration → TERMINAL abstinence planning
  └─ detection_information
       Q2D test type → Q3D situation → TERMINAL detection result
 ```
@@ -238,12 +241,13 @@ Field mapping:
 | Q2R | `breakRequested` | reduction only (fixed by rule for other goals) |
 | Q2 | `thcUseDaysLast30` (`user_estimate`) | tolerance_reset, reduction |
 | Q2A / Q3 / Q3-opt | `lastUseAt` (`user_estimate`) | abstinence; use-days 1–30; optional when use-days = 0 |
+| Q6 | `currentPatternDuration` (`user_estimate`) | use-days ≥ 1 on consuming routes, and abstinence; skipped for 0 days, reduction-no-break, detection |
 | Q4 | `sessionsPerUseDay` (`user_estimate`) | use-days 16–30 only |
 | Q5 | `products[]`, `routes[]` | use-days 16–30 only |
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
 
-Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v1`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
+Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v1`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. Q6 is asked more broadly because duration is exposure context for Why-this-result and outlook wording; it still MUST NOT change `recommendedRangeDays` or `preferredTargetDays`. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
 
 ### 5.2 Step-by-step copy deck
 
@@ -290,6 +294,20 @@ Presets set the slider (which can then be fine-tuned). No "I don't know" — the
 > **When did you last use THC?**
 >
 > Helper: "If you're quitting now, pick today — your timeline starts from here."
+
+**Q6 — Current-pattern duration** (single-select cards, tap advances; product UX bands, not medical cut-points)
+
+> **How long has this level of THC use been typical for you?**
+>
+> - **Less than 1 month** — This level is still new
+> - **1–6 months** — A few months at this level
+> - **6–24 months** — About 1–2 years at this level
+> - **2–5 years** — A few years at this level
+> - **5+ years** — This has been typical for a long time
+>
+> Helper: "Not how long you have ever used — how long this current pattern has been your usual level."
+
+This is **not** lifetime cannabis use. The answer changes Why-this-result copy and break-outlook wording. It MUST NOT add, subtract, or multiply recommended days.
 
 **Q4 — Sessions** (chips `1` `2` `3+`; stepper escape hatch up to 9)
 
@@ -340,8 +358,9 @@ Helper: "This only changes which notes we show you — it never changes the scie
 
 - Q2R only for `reduction`.
 - Q3 (last use) only when use-days ∈ 1–30; replaced by optional Q3-opt when use-days = 0.
+- Q6 only when use-days ≥ 1 on a consuming route, or on abstinence. Skipped for use-days = 0, reduction-no-break, and detection.
 - Q4/Q5 only when use-days ∈ 16–30.
-- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence output. **Depends on validation change D2 (§15).**
+- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording. **Depends on validation change D2 (§15).**
 - Reduction-no-break asks no last use: the engine attaches no withdrawal display on this route, so the timestamp would be harvested and unused. **Depends on validation change D3 (§15).**
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
 - Previous breaks and post-break mode never appear in the initial questionnaire (§7, §8).
@@ -350,10 +369,10 @@ Helper: "This only changes which notes we show you — it never changes the scie
 
 | Goal | Min steps | Typical | Max |
 |---|---|---|---|
-| tolerance_reset | 2 (use-days 0) | 3 (use-days 1–15) | 5 (use-days 16–30) |
-| reduction (break) | 3 | 4 | 6 |
+| tolerance_reset | 2 (use-days 0) | 4 (use-days 1–15) | 6 (use-days 16–30) |
+| reduction (break) | 3 | 5 | 7 |
 | reduction (no break) | 3 | 3 | 3 |
-| abstinence | 2 | 2 | 2 |
+| abstinence | 3 | 3 | 3 |
 | detection_information | 3 | 3 | 3 |
 
 ---
@@ -461,16 +480,22 @@ Single reading screen, cards in scroll order:
    > - You use THC most days
    > - Multiple sessions per day
    > - Concentrates in the mix
+   > - This current pattern has been typical for many years
+   > - How long this pattern has lasted is useful context. It does not change the recommended day range.
 
-3. **What the first weeks can feel like** — withdrawal timeline (§9.7), anchored to `lastUseAt`.
+   Duration drivers are presentation-layer only. They MUST NOT appear as Tolerance Engine driver codes.
 
-4. **History prompt card** (§7) or, when records exist and were included, the **history insight card** (§9.2).
+3. **Your break outlook** — full Day 1 → planning-target roadmap from BreakOutlookV1 (§9.7). A 7 / 14 / 21 / 28 day target shows exactly those days. Every planned day is inspectable before **Start this break**. Not 28 giant cards: a compact day-chip strip plus one inspector, plus overlapping evidence windows.
 
-5. **Your answers** — collapsible rows for the answers that drove this result (use days; last use; plus sessions/products/routes when asked). Each row: **Edit** → re-enters the questionnaire at that step, preloaded, re-branching from there. Editing triggers an explicit recalculation — the existing record is never silently overwritten.
+4. **Useful withdrawal / tolerance context** — expandable CB1 / concept note from EvidenceGuidanceV1. Approximately four weeks is a research reference in chronic users, not a personal reset day.
 
-6. **Actions (sticky bottom):** **Start this break** → break-start sheet (§8). **Save without starting** → persists the record, `Today` (`profile-no-break`).
+5. **History prompt card** (§7) or, when records exist and were included, the **history insight card** (§9.2).
 
-7. **Footer links:** "Separate topic: **drug-test detection basics →**" and "Estimate nominal THC in flower →".
+6. **Your answers** — collapsible rows for the answers that drove this result (use days; last use; current-pattern duration when asked; plus sessions/products/routes when asked). Each row: **Edit** → re-enters the questionnaire at that step, preloaded, re-branching from there. Editing triggers an explicit recalculation — the existing record is never silently overwritten.
+
+7. **Actions (sticky bottom):** **Start this break** → break-start sheet (§8). **Save without starting** → persists the record, `Today` (`profile-no-break`).
+
+8. **Footer links:** "Separate topic: **drug-test detection basics →**" and "Estimate nominal THC in flower →".
 
 Prohibited here: "reset complete", "100 %", "detoxed", any recovery percentage ring, any safe-restart dose, any detection statement.
 
@@ -481,7 +506,7 @@ Present only when the engine returns a non-null `HistoryInsight`. Copy per §14,
 ### 9.3 Abstinence planning screen (`planning_only`, goal = abstinence)
 
 - Header: "Staying off THC — your plan." No range, no target date, no completion state.
-- Withdrawal timeline (§9.7) anchored to last use (Q2A always collects it, so this always renders; for last use > 30 days ago all anchors show `past` — correct, and the header line shows "Day N" instead of implying upcoming phases).
+- Full break outlook (§9.7) as an open-ended 1–28 inspectable reference, anchored to last use (Q2A always collects it). After-28 remains available; there is no finish line.
 - Phase-based plan content (§10.1) by `breakDay`.
 - **Start tracking** CTA → opens ongoing abstinence tracking (§9.8).
 - No return-to-use controls anywhere on this path.
@@ -519,15 +544,21 @@ Present only when the engine returns a non-null `HistoryInsight`. Copy per §14,
 
 Prohibited: X–Y windows, pass/fail, "clean date", cutoff numbers, jurisdiction claims (incl. any Irish threshold), confidence badges, personal countdowns.
 
-### 9.7 Withdrawal timeline component
+### 9.7 Break outlook (BreakOutlookV1)
 
-Shared by result screens and plan detail. Renders the engine's `WithdrawalDisplay` verbatim — the UI MUST NOT recompute statuses:
+Shared by Result, Today, and Plan Detail. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation.
 
-- Horizontal 4-stop track in fixed order: onset (≈ days 1–3) → common peak (≈ days 2–6) → most acute symptoms ease (≈ days 4–14) → sleep (open-ended).
-- Stops labelled upcoming / happening now / passed from `status`; overlapping "happening now" is normal and both render.
-- The sleep stop carries no status chip: "Sleep can take longer to normalise for heavier users — there's no fixed end date."
-- Header: "Typical patterns across people — not a personal prediction." Position line "You're around day N" reads `breakDay` only.
-- Status via icon + text, never colour alone.
+- Finite planning target: exactly Days 1–`preferredTargetDays` (7 / 14 / 21 / 28). No duplicates, no gaps, no extra days.
+- Open-ended tracking: Days 1–28 inspectable plus the After-28 window. No finish percentage at day 28.
+- Mobile-first: horizontal day-chip strip + one inspector (stage, may notice, can help, what matters, what usually comes next) + overlapping window roadmap. Not a wall of cards.
+- Result previews the whole journey before Start this break. Today shows only the current day. Plan Detail shows past / current / future days, windows, milestones, and stored check-in ratings on the days they belong to.
+- A day may sit in more than one evidence window. Overlaps MUST stay visible.
+- Lighter / infrequent / recently established copy MUST NOT present severe withdrawal as expected. Frequent / multiple-session / concentrate / long-established copy MAY say stronger withdrawal or longer sleep disturbance may be more plausible. Always: may / can / commonly / more plausible.
+- Duration is contextual only. Outlook tone may change; the numeric range must not.
+- Check-in observations are factual stored ratings. Null ≠ 0. Missing days are skipped. No recovery score.
+- Historical calculation records stay frozen. Outlook is derived at display from the stored profile and stored target.
+
+The exclusive engine withdrawal strip (onset 1–3 / peak 2–6 / easing 4–14 / sleep open-ended) remains engine output and MUST NOT be recomputed by the UI. Result no longer uses that strip as the primary “first weeks” block.
 
 ### 9.8 Abstinence / open-ended tracking state
 
@@ -545,17 +576,9 @@ Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` w
 ### 10.1 Plan detail screen (pushed from `Today`)
 
 - Day ring: "Day 12 of 28", labelled **plan progress** — never biological progress. Target date beneath.
-- Current withdrawal phase strip (§9.7 condensed).
-- Phase focus block, keyed to `breakDay` via **EvidenceGuidanceV1** (see `EVIDENCE_CONTENT_SPEC.md`). The UI selects by abstinence day and never invents copy. Scientific windows **overlap** (Days 1–3 with 2–6, and at days 14 and 21); they are not mutually exclusive phases.
-  - **Preparation / Day 0:** optional triggers, replacement, fallback, if-then plan.
-  - **Days 1–3:** withdrawal may begin (craving, irritability, anxiety/tension, sleep difficulty, reduced appetite — may/can/commonly, not “you will”).
-  - **Days 2–6:** commonly observed stronger period; feeling worse does not mean the break is failing.
-  - **Days 7–14:** acute symptoms commonly ease; feeling better ≠ tolerance goal met.
-  - **Days 14–21:** habits, cues, evening/weekend routines — not detox framing.
-  - **Days 21–28:** ~four-week CB1 PET reference in chronic users; not a personal reset day.
-  - **After 28:** maintenance / personal goals; no continuing reset percentage. Open-ended tracking has no finish line.
-- Compact **Today** guidance: what you may notice, what can help today, context, what commonly comes next. Detail and the overlapping roadmap live on **Plan detail**. Open-ended tracking uses the same windows and a companion overlay; it has no completion CTA and no finish at day 28.
-- Optional Then → Now from real check-ins in week two (null ≠ 0; no interpolation; no recovery score).
+- Compact current-day guidance at the top: current stage, what you may notice, what can help today, one next-stage expectation, Then → Now when enough check-ins exist.
+- Full break outlook (§9.7) with past / current / future days, overlapping evidence windows, milestones, and check-in observations on the days they were recorded. Result already previewed this journey; Plan Detail is the running version.
+- Optional trigger/if-then plan (Preparation).
 - Detox-claims panel from Plan detail (not a tab): wellbeing vs elimination, app-specific A–D scale (not GRADE).
 - Post-break settings (mode + limits, §8), editable.
 - Overflow: **End break early** (confirm dialog; neutral resulting state), **Recalculate profile**.
@@ -752,7 +775,7 @@ A code missing from this table renders nothing and is logged locally — never f
 - **R4 — Today state precedence incl. resume and detection-only (was a blocker).** Pinned in §3.2 with explicit precedence and resume-card placement rules.
 - **R5 — Result hierarchy.** Resolved: one hero range; planning target demoted to a supporting meta line; single uncertainty sentence (§9.1).
 - **R6 — Detection elapsed-time implication.** Resolved: the personal "days since last use" line is removed from detection results (§9.6).
-- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–6 steps.
+- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–7 steps. Q6 is the only added contextual question; Q4/Q5 stay at ≥16.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
 
 ### 15.2 Requires domain/spec change (small, explicit — must land before the affected UI ships)
@@ -782,5 +805,6 @@ Domain prerequisites from §15.2 must land first (D1–D5 are small validation/s
 3. **Result screens** (§9) from real engine output + the §14 template layer.
 4. **Break loop** (§8, §10): break-start sheet, plan detail, use-first check-in, interruption — wired to the break state machine.
 5. **History + contextual flows** (§7), settings, deletion, offline hardening (§13).
+6. **Runtime AI / DeepSeek** — not started. Companion copy stays deterministic local EvidenceGuidanceV1 + BreakOutlookV1.
 
-Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output.
+Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output, plan, history record, or result-explanation.

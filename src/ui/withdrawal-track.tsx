@@ -8,7 +8,7 @@ export function WithdrawalTrack({ withdrawal }: { readonly withdrawal: Withdrawa
 
   return (
     <section className="withdrawal-panel" data-testid="withdrawal-track">
-      <p className="micro-label">First weeks</p>
+      <p className="micro-label">Typical patterns</p>
       <h3 className="card-title">{RESULT.withdrawalHeader}</h3>
       <p className="body" data-testid="break-day">
         {aroundDay(withdrawal.breakDay)}

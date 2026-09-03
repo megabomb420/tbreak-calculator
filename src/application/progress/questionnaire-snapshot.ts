@@ -8,6 +8,7 @@ import type { Instant } from '../../domain/schemas/time.ts';
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
 import type { RawAnswerSnapshot } from '../questionnaire/snapshot.ts';
 import {
+  CURRENT_PATTERN_DURATION_BANDS,
   DETECTION_CONTEXTS,
   DETECTION_MATRICES,
   GOALS,
@@ -109,6 +110,15 @@ function isValidSnapshot(value: unknown): value is RawAnswerSnapshot {
   if (!isCoreSourcedValue(body.thcUseDaysLast30, isIntegerNumber)) return false;
   if (!isCoreSourcedValue(body.sessionsPerUseDay, isIntegerNumber)) return false;
   if (!isCoreSourcedValue(body.lastUseAt, (payload) => typeof payload === 'string')) return false;
+  if (body.currentPatternDuration !== undefined) {
+    if (
+      !isCoreSourcedValue(body.currentPatternDuration, (payload) =>
+        typeof payload === 'string' && (CURRENT_PATTERN_DURATION_BANDS as readonly string[]).includes(payload),
+      )
+    ) {
+      return false;
+    }
+  }
   if (!isStringArrayIn(body.products, PRODUCT_KINDS)) return false;
   if (!isStringArrayIn(body.routes, ROUTES)) return false;
   return Array.isArray(body.previousBreaks);

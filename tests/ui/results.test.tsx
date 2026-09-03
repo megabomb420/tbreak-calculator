@@ -30,6 +30,7 @@ function completeTolerance10Days(storage: StorageAdapter) {
   const flow = screen.getByTestId('questionnaire-flow');
   fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
   fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+  fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
   return rendered;
 }
 
@@ -43,7 +44,53 @@ describe('result screens from engine output', () => {
     expect(result.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
     expect(result.textContent ?? '').not.toMatch(/100%/);
     expect(result.textContent ?? '').not.toMatch(/reset complete/i);
-    expect(screen.getByTestId('withdrawal-track')).toBeTruthy();
+    expect(screen.getByTestId('break-outlook')).toBeTruthy();
+    expect(screen.getByTestId('outlook-day-strip')).toBeTruthy();
+    expect(screen.getByTestId('outlook-day-14')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-15')).toBeNull();
+    expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
+    expect(result.textContent ?? '').toMatch(/does not change the recommended day range/);
+    expect(screen.getByTestId('cb1-note')).toBeTruthy();
+  });
+
+  it('shows exactly Days 1–7 for infrequent use', () => {
+    const rare = createMemoryStorage();
+    renderApp(rare);
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    let flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
+    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
+    expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-8')).toBeNull();
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/weeks rather than years/);
+  });
+
+  it('shows exactly Days 1–28 for daily use', () => {
+    renderApp();
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    let flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
+    flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: '1' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Flower (bud)' }));
+    fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('28');
+    expect(screen.getByTestId('outlook-day-28')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-29')).toBeNull();
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/many years/);
   });
 
   it('Save without starting acknowledges the result and shows Today profile-no-break', () => {

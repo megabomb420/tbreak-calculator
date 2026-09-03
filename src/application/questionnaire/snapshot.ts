@@ -4,7 +4,7 @@
 // engines are not invoked. Unasked fields use missing provenance or empty
 // collections — they are not filled with invented defaults.
 
-import type { DetectionContext, DetectionMatrix, Goal, PostBreakMode } from '../../domain/schemas/enums.ts';
+import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, Goal, PostBreakMode } from '../../domain/schemas/enums.ts';
 import type { DetectionRequest, UseProfileInput } from '../../domain/schemas/profile.ts';
 import { missingValue, type SourcedValue } from '../../domain/schemas/sourced-value.ts';
 import type { Instant } from '../../domain/schemas/time.ts';
@@ -80,6 +80,10 @@ export function buildUseProfileInput(answers: QuestionnaireAnswers): UseProfileI
     products: answers.products === undefined ? [] : [...answers.products],
     routes: answers.routes === undefined ? [] : [...answers.routes],
     lastUseAt: answers.lastUseAt === undefined ? missingValue() : { value: answers.lastUseAt, provenance: 'user_estimate' },
+    currentPatternDuration:
+      answers.currentPatternDuration === undefined
+        ? missingValue<CurrentPatternDurationBand>()
+        : { value: answers.currentPatternDuration, provenance: 'user_estimate' },
     previousBreaks: [],
   };
 }
@@ -113,6 +117,7 @@ function stepForValidationPath(path: string, answers: QuestionnaireAnswers): Que
     if (answers.thcUseDaysLast30 === 0) return 'Q3-opt';
     return 'Q3';
   }
+  if (path.startsWith('currentPatternDuration')) return 'Q6';
   if (path.startsWith('sessionsPerUseDay')) return 'Q4';
   if (path.startsWith('products') || path.startsWith('routes')) return 'Q5';
   return restoreStep(answers, 0 as Instant);

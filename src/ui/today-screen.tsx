@@ -17,6 +17,7 @@ import { formatLocalDay } from './format.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
 import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
+import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 
 export interface TodayLiveData {
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
@@ -25,6 +26,7 @@ export interface TodayLiveData {
   readonly completed: StoredAttempt | null;
   readonly tracking: { readonly track: StoredTrack; readonly view: TrackingDayView | null } | null;
   readonly checkins: readonly DailyCheckin[];
+  readonly exposure: ExposureContext | null;
 }
 
 export interface TodayProfileData {
@@ -213,6 +215,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
           planned: false,
           preparation: attempt.preparation,
           checkins: props.live.checkins,
+          exposure: props.live.exposure,
         })}
       />
       <div className="today-actions">
@@ -311,6 +314,7 @@ function TrackingCard(props: TodayScreenProps) {
             planned: false,
             preparation: tracking.track.preparation,
             checkins: props.live.checkins,
+            exposure: props.live.exposure,
           })}
         />
       ) : null}

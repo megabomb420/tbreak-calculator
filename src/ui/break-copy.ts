@@ -158,7 +158,7 @@ export const ACTIVE_BREAK_CARD = {
   targetDateLabel: 'Target date',
   checkIn: 'Check in',
   viewPlan: 'Plan detail',
-  withdrawalHeading: 'First weeks',
+  withdrawalHeading: 'Typical patterns',
   phaseHeading: 'Phase focus',
 } as const;
 
@@ -215,9 +215,11 @@ export const GUIDANCE_CHROME = {
   mayNotice: 'What you may notice',
   canHelp: 'What can help today',
   comesNext: 'What commonly comes next',
+  whatMatters: 'What matters today',
   context: 'Context',
   why: 'Why this matters',
   roadmap: 'Break roadmap',
+  outlook: 'Your break outlook',
   overlap: 'These windows overlap on purpose — they are not exclusive phases.',
   futureExpectation: 'Expectation, not a guarantee.',
   beyondTarget: 'Beyond this plan’s target',

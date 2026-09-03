@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.5.0  
+Version: 0.6.0  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -31,6 +31,7 @@ Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/i
 - branching questionnaire;
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
+- BreakOutlookV1 day-by-day presentation over those windows (Result / Today / Plan Detail);
 - IndexedDB persistence and complete local deletion; and
 - PWA shell/offline support.
 
@@ -86,12 +87,12 @@ src/
     detection/
     nominal-thc/
     policies/
-    guidance/          evidence-guidance-v1 (deterministic companion content)
+    guidance/          evidence-guidance-v1, break-outlook-v1
   application/
     progress/
     settings/
     shell/
-    presentation/      plan, result, break-guidance, check-in comparison
+    presentation/      plan, result, break-guidance, break-outlook, check-in comparison
     break/             session ops, post-break plan, optional preparation
   infrastructure/
     storage/
@@ -178,6 +179,7 @@ The questionnaire is declarative and branches only to fields that affect an enab
 goal
   |-- tolerance reset
   |     -> use days -> authoritative last use
+  |        -> current-pattern duration when use days ≥ 1
   |        (sessions, products and routes only when use days are 16-30)
   |
   |-- reduction
@@ -186,8 +188,9 @@ goal
   |     -> if false: use days -> reduction planning, no last use collected
   |
   |-- abstinence
-  |     -> authoritative last use only (no use days, sessions, products
-  |        or routes; none of them change the abstinence output)
+  |     -> authoritative last use
+  |     -> current-pattern duration (context for outlook wording)
+  |     -> no use days, sessions, products, or routes
   |     -> withdrawal/abstinence planning
   |     -> postBreakMode fixed to continue_abstinence
   |
@@ -198,7 +201,9 @@ goal
 
 The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break timing. Detection v1 does not need it because it emits no numeric elapsed-time interpretation; if the screen shows elapsed time for general orientation, it references the same profile field and does not copy it into `DetectionRequest`.
 
-V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, pattern duration, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism.
+`currentPatternDuration` is collected as exposure context. It MUST NOT change recommended ranges. Legacy profiles without the field remain valid.
+
+V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 
 Flower grams and potency appear only when the user opens the nominal THC calculator. Check-in notes remain optional, local, unparsed, and user-visible.
 

@@ -31,6 +31,12 @@ import type { CheckinComparisonView } from './checkin-comparison.ts';
 import { compareCheckins } from './checkin-comparison.ts';
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { PostBreakPlan } from '../break/post-break-plan.ts';
+import {
+  deriveDayOutlook,
+  exposureTone,
+  LAST_PLANNED_DAY_NEXT,
+  type ExposureContext,
+} from '../../domain/guidance/break-outlook.ts';
 
 export type RoadmapStageStatus = 'past' | 'current' | 'current-overlap' | 'future';
 
@@ -90,6 +96,7 @@ export function presentTodayGuidance(input: {
   readonly planned: boolean;
   readonly preparation: BreakPreparation | null;
   readonly checkins: readonly DailyCheckin[];
+  readonly exposure?: ExposureContext | null;
 }): TodayGuidanceView {
   if (input.planned || input.breakDay === null) {
     const window = windowById('preparation');
@@ -103,13 +110,27 @@ export function presentTodayGuidance(input: {
   }
   const window = primaryWindowForDay(input.breakDay);
   const includeComparison = input.breakDay >= 7;
-  return assemble(window, {
+  const view = assemble(window, {
     breakDay: input.breakDay,
     openEnded: input.openEnded,
     preparation: input.preparation,
     checkins: input.checkins,
     includeComparison,
   });
+  const lastPlannedDay =
+    input.targetDays !== null && !input.openEnded && input.breakDay === input.targetDays;
+  if (input.exposure === undefined || input.exposure === null) {
+    return lastPlannedDay ? { ...view, comesNext: LAST_PLANNED_DAY_NEXT } : view;
+  }
+  const day = deriveDayOutlook(input.breakDay, exposureTone(input.exposure));
+  return {
+    ...view,
+    headline: day.headline,
+    mayNotice: personalizeHelp(day.mayNotice, input.preparation),
+    canHelp: personalizeHelp(day.canHelp, input.preparation),
+    comesNext: lastPlannedDay ? LAST_PLANNED_DAY_NEXT : day.comesNext,
+    whyThisMatters: day.whatMatters,
+  };
 }
 
 export function presentRoadmap(input: {
@@ -154,6 +175,7 @@ export function presentBreakGuidance(input: {
   readonly planned: boolean;
   readonly preparation: BreakPreparation | null;
   readonly checkins: readonly DailyCheckin[];
+  readonly exposure?: ExposureContext | null;
 }): BreakGuidanceBundle {
   return {
     today: presentTodayGuidance(input),

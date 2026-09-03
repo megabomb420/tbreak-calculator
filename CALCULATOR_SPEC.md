@@ -67,10 +67,14 @@ DetectionContext = general | workplace | roadside
 
 Confidence = low | moderate | high
 
+CurrentPatternDurationBand = under_1_month | 1_to_6_months | 6_to_24_months | 2_to_5_years | 5_plus_years
+
 FieldProvenance = missing | user_estimate | label_derived | laboratory_derived | derived
 ```
 
 `laboratory_derived` is reserved for future schemas. V1 does not ask for laboratory data.
+
+`CurrentPatternDurationBand` values are **product UX categories**, not scientifically validated medical cut-points. They describe how long the *current* use pattern has been typical, not lifetime cannabis use.
 
 `vape` is a product form covering cartridges, pods, and disposables. It is distinct from `Route = vaping`. V1 does not assign vape a potency, dose, or pharmacokinetic model, and the section 7.3 intensity heuristic does not treat vape as concentrate.
 
@@ -104,12 +108,15 @@ UseProfile
   products: ProductKind[]
   routes: Route[]
   lastUseAt: SourcedValue<timestamp with timezone>
+  currentPatternDuration: SourcedValue<CurrentPatternDurationBand> or missing
   previousBreaks: PreviousBreak[]
 ```
 
 `UseProfile.lastUseAt` is the single authoritative last-use timestamp for every engine, timeline, and active break plan. Detection and break objects MUST reference it; they MUST NOT store an independent competing value.
 
-`currentPatternDuration`, product amount, and numeric potency are not core v1 intake fields because no enabled v1 tolerance rule uses them. Product amount and potency are collected only in the optional nominal-flower calculation branch described in section 6.
+`currentPatternDuration` is optional on input. Legacy profiles without the field remain valid and MUST normalise it to `missing`. When present it MUST be one of the five product bands. It is collected as exposure context for Why-this-result copy and break-outlook wording. It MUST NOT add, subtract, or multiply recommended days (section 7.3). Product amount and numeric potency remain outside core intake and are collected only in the optional nominal-flower branch in section 6.
+
+Routing (product, not a numeric rule): collect Q6 after last use when `thcUseDaysLast30 ≥ 1` on a range-requested route, and after Q2A on abstinence. Skip it when use-days = 0, on reduction-no-break, and on detection. New calculations on those collecting routes SHOULD store a band; missing remains valid. Sessions/products/routes remain required only at `thcUseDaysLast30 ≥ 16` on range-requested routes (rule 7).
 
 ### 4.4 Previous break and check-in
 
@@ -208,6 +215,7 @@ Validation occurs before calculation.
 16. Invalid or contradictory core input returns `validation_error` and no recommendation.
 17. `goal = abstinence` requires the authoritative `lastUseAt`. `thcUseDaysLast30` is not required for abstinence; the 30-day consistency rules (5–6) apply to abstinence only when use days are present.
 18. `goal = reduction` without a requested break neither requires nor collects `lastUseAt`; rule 6 does not apply to that route.
+19. `currentPatternDuration` is never required. An absent field, or a SourcedValue with `missing` provenance, is valid. An unknown band is `invalid_current_pattern_duration`. Validation MUST NOT invent a default band.
 
 Raw questionnaire state MAY be retained transiently for error correction. Persistent calculation records store only the validated fields needed to reproduce or explain the result.
 
@@ -283,6 +291,8 @@ The source table contains profile anchors, not executable precedence rules. V1 r
 The `>= 16` boundary and treating any reported concentrate/dabbing in that frequent-use group as a conservative proxy for high-potency exposure are product choices. They ensure frequent multi-session or concentrate use cannot receive both 14–21 and 21–28 recommendations. The rule MUST be labelled `heuristic_frequency_intensity_v1` in result metadata.
 
 Current-pattern duration, amount, numeric potency, demographics, hydration, exercise, perceived metabolism, and previous history MUST NOT add or subtract days in v1.
+
+There is no duration-to-days formula. The calculator MUST NOT implement rules such as “20 years = +7 days”, “duration × 1.2”, a BMI/metabolism multiplier, or a recovery percentage. Duration MAY change driver copy, uncertainty explanation, and break-outlook tone. Tests MUST prove that two profiles that differ only in `currentPatternDuration` emit the same `recommendedRangeDays` and `preferredTargetDays`.
 
 ### 7.4 Goal routing
 
@@ -388,6 +398,32 @@ When `usedThc = true` during an active break:
 6. The existing recommended range and target duration remain unchanged, and the target calendar date is recomputed from the new `lastUseAt`.
 7. The UI says “plan restarted from your latest use,” never “your biological progress reset to zero.”
 8. If the user wants the use pattern reassessed, that is a separate explicit recalculation with updated 30-day inputs and a new calculation record.
+
+### 7.10 Break outlook (BreakOutlookV1)
+
+The numeric engine does not emit a day-by-day plan. Companion guidance does.
+
+`BreakOutlookV1` is a deterministic derivation from EvidenceGuidanceV1 windows plus optional exposure context. Result, Today, and Plan Detail MUST reuse this one source. UI MUST NOT invent a second science-copy implementation.
+
+```text
+outlookDayCount = openEnded ? 28 : preferredTargetDays
+days = [1, 2, …, outlookDayCount]
+```
+
+Rules:
+
+- A 7 / 14 / 21 / 28 day planning target produces exactly Days 1–7 / 1–14 / 1–21 / 1–28. No duplicates, no gaps, no extra days.
+- Open-ended tracking uses Days 1–28 as the inspectable reference and keeps the After-28 window available. It has no finish line at day 28.
+- Each day may belong to more than one evidence window. Overlaps MUST be preserved (1–3 with 2–6; 7–14 with 14–21 at day 14; 14–21 with 21–28 at day 21).
+- Copy uses may / can / commonly / more plausible. It MUST NOT guarantee an individual course.
+- A lighter/infrequent + recently established pattern MUST NOT be shown severe withdrawal as if it is expected.
+- A frequent / multiple-session / concentrate / long-established pattern MAY be told that stronger withdrawal or longer sleep disturbance may be more plausible.
+- After day 28 there is no extra reset percentage.
+- Check-in observations, when shown on a past day, are factual stored ratings only. Null is not zero. Missing days are not interpolated. There is no recovery score.
+
+Frozen historical calculation records MUST NOT be rewritten. Outlook is presentation derived from the stored profile and the stored target; the stored range, target, drivers, and policy version stay immutable.
+
+Driver codes `current_pattern_*` and `current_pattern_duration_contextual_only` are presentation-layer codes. They MUST NOT be emitted by the Tolerance Engine and MUST NOT appear in golden fixtures.
 
 ## 8. Qualitative Detection Engine
 
