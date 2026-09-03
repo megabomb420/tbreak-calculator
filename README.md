@@ -4,12 +4,13 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.4.2** — History, IndexedDB durable records, previous-break
-personalisation, per-item deletion, storage/PWA banners, overlay
-accessibility, and a viewport-fill fix so the in-flow tab bar meets the
-physical bottom on iOS 26 Safari Liquid Glass (`100lvh` / `100vh`, plus a
-measured `--chrome-bleed`). 0.3.3 fail-closed persistence is included.
-Scientific engines, bands, and the day formula are unchanged.
+Version **0.5.0** — evidence-guided T-break companion: stage-appropriate
+withdrawal expectations, practical actions, overlapping scientific roadmap,
+optional trigger/if-then planning, honest Then → Now check-in comparisons,
+detox-claim evidence, CB1/tolerance education, and stronger post-break
+guidance. History, IndexedDB, Interval, and the iOS 26 viewport-fill contract
+from 0.4.2 are unchanged. Scientific engines, bands, and the day formula are
+unchanged.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -45,7 +46,7 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.4.2)
+## Capabilities (0.5.0)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
@@ -56,11 +57,17 @@ the UI component tests.
   the authoritative last use (`targetDurationDays` = the result's
   `preferredTargetDays`).
 - **Today** driven by real attempt/tracking state: active break (Day N of
-  target, target date, withdrawal position, phase focus), interrupted (timing
+  target, target date, current scientific window, what you may notice, what
+  can help today, what commonly comes next), interrupted (timing
   paused, Confirm when), completed break card with post-break plan, open-ended
   abstinence tracking, scheduled future plan, and per-goal saved-result cards.
-- **Plan detail**: plan-progress ring, target date, withdrawal strip, phase
-  focus, editable post-break mode/limits, End break early, Recalculate.
+  Open-ended tracking uses the same stage guidance, with a companion overlay
+  for the overlapping roadmap, optional triggers, and detox notes — and no
+  finish at day 28.
+- **Plan detail**: plan-progress ring, overlapping break roadmap, current-stage
+  guidance, optional trigger/if-then plan, Then → Now from real check-ins,
+  detox-claims panel, editable post-break mode/limits, End break early,
+  Recalculate.
 - **Daily check-in** (§10.2 use-first): No → instant save; optional symptom
   screen with five parked 0–10 sliders stored as `null` until touched
   (craving, sleep quality, irritability, anxiety, appetite) and a 500-char
@@ -98,8 +105,8 @@ and a persistent banner says it cannot be saved.
 | Store / key | Contents |
 |---|---|
 | IndexedDB `calculations` | Frozen engine outputs (never silently recalculated) |
-| IndexedDB `breakAttempts` | stored break attempts (segments, post-break plan, ack) |
-| IndexedDB `trackingRecords` | stored open-ended tracking records |
+| IndexedDB `breakAttempts` | stored break attempts (segments, post-break plan, optional preparation, ack) |
+| IndexedDB `trackingRecords` | stored open-ended tracking records (optional preparation) |
 | IndexedDB `checkins` | stored daily check-ins |
 | IndexedDB `previousBreaks` | past-break personalisation (§7) |
 | IndexedDB `postBreakPlans` | per-attempt plan mirror |
@@ -138,5 +145,6 @@ toolbar. `.app-main` is the only normal scrolling pane.
 indicator. Do not lock the shell to `100svh` or `100dvh` (on iOS 26 both
 stop above the Liquid Glass toolbar).
 
-Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`.
+Specs: `CALCULATOR_SPEC.md`, `UX_SPEC.md`, `ARCHITECTURE.md`,
+`EVIDENCE_CONTENT_SPEC.md`.
 Next-session notes: `HANDOFF.md`.

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
+import type { DailyCheckin } from '../domain/schemas/profile.ts';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { PostBreakMode } from '../domain/schemas/enums.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
@@ -17,18 +18,16 @@ import { activeBreakView, plannedBreakView } from '../application/presentation/p
 import { formatLocalDay } from './format.ts';
 import { PlanRing } from './plan-ring.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
-import {
-  PLAN_DETAIL,
-  POST_BREAK_GUIDANCE,
-  POST_BREAK_MESSAGES,
-  POST_BREAK_MODE_COPY,
-  POST_BREAK_SETTINGS,
-  POTENCY_STRATEGY_OPTIONS,
-  QUANTITY_STRATEGY_OPTIONS,
-  PLANNED_CARD,
-} from './break-copy.ts';
+import { PLAN_DETAIL, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS, POTENCY_STRATEGY_OPTIONS, QUANTITY_STRATEGY_OPTIONS, PLANNED_CARD, GUIDANCE_CHROME } from './break-copy.ts';
 import { BackIcon, CloseIcon, MoreIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import { TodayGuidance } from './today-guidance.tsx';
+import { BreakRoadmap } from './break-roadmap.tsx';
+import { PreparationCard } from './preparation-card.tsx';
+import { DetoxEvidencePanel } from './detox-evidence.tsx';
+import { presentBreakGuidance, presentCb1Education, presentPostBreakGuidance } from '../application/presentation/break-guidance.ts';
+import type { BreakPreparation } from '../application/break/preparation.ts';
+import type { WithdrawalWindowId } from '../domain/guidance/evidence-guidance-v1.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -41,6 +40,8 @@ export interface PlanDetailProps {
   readonly onCancelPlanned: (id: string) => void;
   readonly onRecalculate: () => void;
   readonly onUpdatePostBreak: (id: string, mode: PostBreakMode, plan: PostBreakPlan) => void;
+  readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
+  readonly checkins: readonly DailyCheckin[];
 }
 
 export function PlanDetail(props: PlanDetailProps) {
@@ -51,6 +52,16 @@ export function PlanDetail(props: PlanDetailProps) {
   const planned = attempt.status === 'planned' ? plannedBreakView(attempt, props.anchor) : null;
   const [confirm, setConfirm] = useState<'end-early' | 'cancel' | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [showDetox, setShowDetox] = useState(false);
+  const [selectedWindow, setSelectedWindow] = useState<WithdrawalWindowId | null>(null);
+  const bundle = presentBreakGuidance({
+    breakDay: active?.day ?? null,
+    targetDays: attempt.targetDurationDays,
+    openEnded: false,
+    planned: attempt.status === 'planned',
+    preparation: attempt.preparation,
+    checkins: props.checkins,
+  });
 
   return (
     <div className="questionnaire-overlay" data-testid="plan-detail" role="dialog" aria-modal="true" aria-label={PLAN_DETAIL.title} ref={rootRef}>
@@ -72,14 +83,19 @@ export function PlanDetail(props: PlanDetailProps) {
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
         {active !== null ? (
-          <ActivePlanContent active={active} />
+          <ActivePlanContent active={active} guidance={bundle} selectedWindow={selectedWindow} onSelectWindow={setSelectedWindow} />
         ) : planned !== null ? (
           <PlannedPlanContent planned={planned} />
         ) : null}
+        <PreparationCard value={attempt.preparation} onSave={(next) => props.onUpdatePreparation(attempt.id, next)} />
         <PostBreakCard
           attempt={attempt}
           onUpdate={(mode, plan) => props.onUpdatePostBreak(attempt.id, mode, plan)}
         />
+        <Cb1Note />
+        <button type="button" className="cta-secondary" data-testid="open-detox-evidence" onClick={() => setShowDetox(true)}>
+          {GUIDANCE_CHROME.openDetox}
+        </button>
         <details className="card plan-overflow" data-testid="plan-overflow" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
           <summary className="overflow-summary">
             <span className="card-title">{PLAN_DETAIL.more}</span>
@@ -132,11 +148,22 @@ export function PlanDetail(props: PlanDetailProps) {
           onCancel={() => setConfirm(null)}
         />
       ) : null}
+      {showDetox ? <DetoxEvidencePanel onClose={() => setShowDetox(false)} /> : null}
     </div>
   );
 }
 
-function ActivePlanContent({ active }: { readonly active: ActiveBreakView }) {
+function ActivePlanContent({
+  active,
+  guidance,
+  selectedWindow,
+  onSelectWindow,
+}: {
+  readonly active: ActiveBreakView;
+  readonly guidance: ReturnType<typeof presentBreakGuidance>;
+  readonly selectedWindow: WithdrawalWindowId | null;
+  readonly onSelectWindow: (id: WithdrawalWindowId) => void;
+}) {
   return (
     <section className="plan-hero" data-testid="active-plan-content">
       <PlanRing day={active.day} targetDays={active.targetDays} />
@@ -145,12 +172,14 @@ function ActivePlanContent({ active }: { readonly active: ActiveBreakView }) {
           <dt className="meta">{PLAN_DETAIL.targetDateLabel}</dt>
           <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
         </div>
-        <div className="plan-fact">
-          <dt className="meta">{PLAN_DETAIL.phaseHeading}</dt>
-          <dd data-testid="phase-focus">{active.phaseCopy}</dd>
-        </div>
       </dl>
       {active.withdrawal !== null ? <WithdrawalTrack withdrawal={active.withdrawal} /> : null}
+      <TodayGuidance view={guidance.today} />
+      <BreakRoadmap
+        stages={guidance.roadmap}
+        selectedId={selectedWindow ?? guidance.today.windowId}
+        onSelect={onSelectWindow}
+      />
     </section>
   );
 }
@@ -219,8 +248,13 @@ function PostBreakCard({
         <div className="post-break-guidance" data-testid="post-break-guidance">
           <p className="body">{POST_BREAK_MESSAGES.lowerTolerance}</p>
           <p className="body">{POST_BREAK_MESSAGES.notASafeRestartAmount}</p>
+          <p className="body">{POST_BREAK_MESSAGES.previousIsNotRestart}</p>
         </div>
-      ) : null}
+      ) : (
+        <p className="meta" data-testid="abstinence-post-break">
+          {presentPostBreakGuidance({ mode: 'continue_abstinence' }).lead}
+        </p>
+      )}
       {draft.mode === 'occasional' ? (
         <StepperField
           label={POST_BREAK_SETTINGS.maxDaysWeek}
@@ -266,8 +300,8 @@ function PostBreakCard({
         </p>
       ) : null}
       {returnMode ? (
-        <ul className="guidance-chips">
-          {POST_BREAK_GUIDANCE.map((line) => (
+        <ul className="guidance-chips" data-testid="return-principles">
+          {presentPostBreakGuidance(draft).principles.map((line) => (
             <li key={line} className="chip">
               {line}
             </li>
@@ -391,4 +425,18 @@ function ConfirmDialog({
 
 function slug(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
+function Cb1Note() {
+  const cb1 = presentCb1Education();
+  return (
+    <details className="card guidance-why" data-testid="cb1-note">
+      <summary className="card-title">{cb1.title}</summary>
+      {cb1.paragraphs.map((paragraph) => (
+        <p key={paragraph} className="body">
+          {paragraph}
+        </p>
+      ))}
+    </details>
+  );
 }

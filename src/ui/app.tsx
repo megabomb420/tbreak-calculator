@@ -19,10 +19,13 @@ import {
   suspendBreak,
   suspendTracking,
   updatePostBreakPlan,
+  updateBreakPreparation,
+  updateTrackingPreparation,
   type BreakSessionState,
   type CheckinSymptoms,
 } from '../application/break/break-session.ts';
 import type { PostBreakPlan } from '../application/break/post-break-plan.ts';
+import type { BreakPreparation } from '../application/break/preparation.ts';
 import { buildTodayFacts } from '../application/break/today-model.ts';
 import {
   createQuestionnaireProgressStore,
@@ -34,6 +37,7 @@ import {
 } from '../application/progress/questionnaire-snapshot.ts';
 import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../application/progress/result-view.ts';
 import { type StoredAttempt } from '../application/progress/break-attempt-record.ts';
+import { type StoredTrack } from '../application/progress/tracking-record.ts';
 import {
   DEFAULT_REDUCTION_DAYS_PER_WEEK,
   DEFAULT_REDUCTION_SESSIONS,
@@ -76,6 +80,8 @@ import { BreakStartSheet } from './break-start-sheet.tsx';
 import { CheckInFlow } from './checkin-flow.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { PlanDetail } from './plan-detail.tsx';
+import { TrackingDetail } from './tracking-detail.tsx';
+import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { HistoryScreen } from './history-screen.tsx';
 import { QuestionnaireFlow } from './questionnaire-flow.tsx';
 import { ResultScreen } from './result-screen.tsx';
@@ -99,9 +105,11 @@ import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
 export type Flow =
   | { readonly kind: 'break-start' }
   | { readonly kind: 'plan-detail' }
+  | { readonly kind: 'tracking-detail' }
   | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
-  | { readonly kind: 'previous-break'; readonly editId: string | null };
+  | { readonly kind: 'previous-break'; readonly editId: string | null }
+  | { readonly kind: 'detox-evidence' };
 
 export interface AppProps {
   readonly storage: StorageAdapter;
@@ -245,6 +253,7 @@ export function App({
       liveTracking !== null && liveTracking.status === 'tracking'
         ? { track: liveTracking, view: trackingDayView(liveTracking, now) }
         : null,
+    checkins: sessionState.checkins,
   };
   const profileData: TodayProfileData = {
     resultView: profileView,
@@ -299,7 +308,7 @@ export function App({
     setFlow({ kind: 'break-start' });
   }
 
-  function startPlan(mode: PostBreakMode, startAt: Instant): void {
+  function startPlan(mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null): void {
     const latest = readSessionState();
     if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null) {
       return;
@@ -318,6 +327,7 @@ export function App({
       planStart: startAt,
       now: nowAt,
       anchor: lastUse,
+      preparation,
     });
     persistBreakSession(next);
     markResult('acknowledged');
@@ -430,6 +440,10 @@ export function App({
     setFlow({ kind: 'plan-detail' });
   }
 
+  function openTrackingDetail(): void {
+    setFlow({ kind: 'tracking-detail' });
+  }
+
   function markComplete(id: string): void {
     const nowAt = clock.now();
     const outcome = completeBreakPlan(readSessionState(), id, nowAt, nowAt);
@@ -473,6 +487,19 @@ export function App({
   function updatePostBreak(id: string, mode: PostBreakMode, plan: PostBreakPlan): void {
     const outcome = updatePostBreakPlan(readSessionState(), id, { mode, plan, now: clock.now() });
     if (outcome.ok) persistBreakSession(outcome.state);
+    refresh();
+  }
+
+  function updatePreparation(id: string, preparation: BreakPreparation | null): void {
+    const nowAt = clock.now();
+    const latest = readSessionState();
+    if (latest.attempts.some((row) => row.id === id)) {
+      const outcome = updateBreakPreparation(latest, id, { preparation, now: nowAt });
+      if (outcome.ok) persistBreakSession(outcome.state);
+    } else {
+      const outcome = updateTrackingPreparation(latest, id, { preparation, now: nowAt });
+      if (outcome.ok) persistBreakSession(outcome.state);
+    }
     refresh();
   }
 
@@ -774,6 +801,7 @@ export function App({
             onCheckIn={openCheckIn}
             onConfirmWhen={confirmWhen}
             onOpenPlanDetail={openPlanDetail}
+            onOpenTrackingDetail={openTrackingDetail}
             onMarkComplete={markComplete}
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
@@ -851,6 +879,7 @@ export function App({
           breakDayAtStart={breakDayAtStart}
           now={now}
           attempt={planDetailAttempt}
+          track={liveTracking?.status === 'tracking' ? liveTracking : null}
           anchor={anchor}
           segmentStart={flow.kind === 'confirm-use' ? flow.segmentStart : null}
           checkInDay={checkInDay}
@@ -865,6 +894,9 @@ export function App({
           onCancelPlanned={cancelPlanned}
           onRecalculate={openRecalculate}
           onUpdatePostBreak={updatePostBreak}
+          onUpdatePreparation={updatePreparation}
+          checkins={sessionState.checkins}
+          preparation={liveAttempt?.preparation ?? liveTracking?.preparation ?? null}
         />
       ) : null}
       {flow?.kind === 'previous-break' ? (
@@ -914,6 +946,7 @@ function FlowRenderer({
   breakDayAtStart,
   now,
   attempt,
+  track,
   anchor,
   segmentStart,
   checkInDay,
@@ -928,17 +961,21 @@ function FlowRenderer({
   onCancelPlanned,
   onRecalculate,
   onUpdatePostBreak,
+  onUpdatePreparation,
+  checkins,
+  preparation,
 }: {
   readonly flow: Flow;
   readonly targetDays: number;
   readonly breakDayAtStart: number;
   readonly now: Instant;
   readonly attempt: StoredAttempt | null;
+  readonly track: StoredTrack | null;
   readonly anchor: Instant | null;
   readonly segmentStart: Instant | null;
   readonly checkInDay: number | null;
   readonly onClose: () => void;
-  readonly onStartBreak: (mode: PostBreakMode, startAt: Instant) => void;
+  readonly onStartBreak: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
   readonly onCheckInNo: () => void;
   readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onUseReported: () => void;
@@ -948,6 +985,9 @@ function FlowRenderer({
   readonly onCancelPlanned: (id: string) => void;
   readonly onRecalculate: () => void;
   readonly onUpdatePostBreak: (id: string, mode: PostBreakMode, plan: PostBreakPlan) => void;
+  readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
+  readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
+  readonly preparation: BreakPreparation | null;
 }) {
   switch (flow.kind) {
     case 'break-start':
@@ -972,6 +1012,18 @@ function FlowRenderer({
           onCancelPlanned={onCancelPlanned}
           onRecalculate={onRecalculate}
           onUpdatePostBreak={onUpdatePostBreak}
+          onUpdatePreparation={onUpdatePreparation}
+          checkins={checkins}
+        />
+      ) : null;
+    case 'tracking-detail':
+      return track !== null ? (
+        <TrackingDetail
+          track={track}
+          now={now}
+          checkins={checkins}
+          onBack={onClose}
+          onUpdatePreparation={onUpdatePreparation}
         />
       ) : null;
     case 'checkin':
@@ -992,12 +1044,15 @@ function FlowRenderer({
           scope={scope}
           segmentStart={segmentStart}
           now={now}
+          preparation={preparation}
           onConfirm={(usedAt, iso) => onConfirmUse(scope, usedAt, iso)}
           onClose={onClose}
           onRecalculate={onRecalculate}
         />
       );
     }
+    case 'detox-evidence':
+      return <DetoxEvidencePanel onClose={onClose} />;
     case 'previous-break':
       return null;
   }

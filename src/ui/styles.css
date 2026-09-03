@@ -1883,4 +1883,296 @@ details.card > summary::-webkit-details-marker {
   padding-top: var(--space-5);
 }
 
+/* Evidence-guided companion ------------------------------------------------ */
+
+.today-guidance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.guidance-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: var(--tracking-display);
+  color: var(--accent-strong);
+}
+
+.guidance-kicker {
+  margin: 0 0 var(--space-1);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 600;
+}
+
+.guidance-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guidance-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--fg-muted);
+}
+
+.guidance-list li + li {
+  margin-top: 4px;
+}
+
+.guidance-milestone {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--accent-strong) 10%, var(--bg-raised));
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.guidance-milestone-title {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.guidance-why {
+  width: 100%;
+}
+
+.guidance-why summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  list-style: none;
+}
+
+.guidance-why summary::-webkit-details-marker {
+  display: none;
+}
+
+.intention-list {
+  font-style: italic;
+}
+
+.then-now {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--hairline);
+}
+
+.then-now-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.then-now-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.then-now-values {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.roadmap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.roadmap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.roadmap-stage {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: var(--space-3) 0;
+  color: inherit;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.roadmap-marker {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--hairline-strong);
+}
+
+.roadmap-stage.is-current .roadmap-marker,
+.roadmap-stage.is-selected .roadmap-marker {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent-strong) 22%, transparent);
+}
+
+.roadmap-stage.is-current-overlap .roadmap-marker {
+  background: var(--accent);
+}
+
+.roadmap-stage.is-past {
+  opacity: 0.55;
+}
+
+.roadmap-stage.is-future {
+  opacity: 0.72;
+}
+
+.roadmap-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roadmap-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 600;
+}
+
+.roadmap-headline {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+}
+
+.roadmap-detail {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+}
+
+.preparation-card,
+.prep-disclosure {
+  width: 100%;
+}
+
+.prep-disclosure summary {
+  cursor: pointer;
+}
+
+.prep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-3);
+}
+
+.prep-field input {
+  appearance: none;
+  border: 1px solid var(--hairline-strong);
+  background: var(--bg-raised);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.chip-row.wrap {
+  flex-wrap: wrap;
+}
+
+.detox-method-list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detox-method {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-border);
+}
+
+.detox-method-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.evidence-grade {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.evidence-scale {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.evidence-scale-row {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr;
+  gap: var(--space-2);
+}
+
+.evidence-scale-row dt {
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.detox-split {
+  color: var(--fg-faint);
+}
+
+.today-plan-card .today-guidance {
+  gap: var(--space-2);
+}
+
+.today-plan-card .guidance-milestone {
+  padding: var(--space-2) var(--space-3);
+}
+
+.today-plan-card .guidance-list li + li {
+  margin-top: 2px;
+}
+
+.roadmap-stage.is-current .roadmap-label,
+.roadmap-stage.is-current-overlap .roadmap-label {
+  color: var(--accent-strong);
+}
+
+.roadmap-stage.is-current {
+  background: color-mix(in oklab, var(--accent-strong) 6%, transparent);
+  margin: 0 calc(var(--space-3) * -1);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-sm);
+  border-bottom-color: transparent;
+}
+
+
 

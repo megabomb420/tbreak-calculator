@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { Goal } from '../domain/schemas/enums.ts';
+import type { DailyCheckin } from '../domain/schemas/profile.ts';
 import type { TodayView } from '../application/shell/today-state.ts';
 import type { QuestionnaireProgressRecord } from '../application/progress/questionnaire-progress.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
@@ -14,6 +15,8 @@ import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIc
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
+import { TodayGuidance } from './today-guidance.tsx';
+import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
 
 export interface TodayLiveData {
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
@@ -21,6 +24,7 @@ export interface TodayLiveData {
   readonly interruptedTracking: StoredTrack | null;
   readonly completed: StoredAttempt | null;
   readonly tracking: { readonly track: StoredTrack; readonly view: TrackingDayView | null } | null;
+  readonly checkins: readonly DailyCheckin[];
 }
 
 export interface TodayProfileData {
@@ -50,6 +54,7 @@ export interface TodayScreenProps {
   readonly onCheckIn: () => void;
   readonly onConfirmWhen: () => void;
   readonly onOpenPlanDetail: () => void;
+  readonly onOpenTrackingDetail: () => void;
   readonly onMarkComplete: (id: string) => void;
   readonly onAcknowledgeComplete: () => void;
   readonly onStopTracking: () => void;
@@ -198,8 +203,18 @@ function ActiveBreakCard(props: TodayScreenProps) {
           {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
         </p>
         {view.withdrawal !== null ? <WithdrawalPosition view={view.withdrawal} /> : null}
-        <p className="body plan-focus-line">{view.phaseCopy}</p>
       </button>
+      <TodayGuidance
+        compact
+        view={presentTodayGuidance({
+          breakDay: view.day,
+          targetDays: view.targetDays,
+          openEnded: false,
+          planned: false,
+          preparation: attempt.preparation,
+          checkins: props.live.checkins,
+        })}
+      />
       <div className="today-actions">
         <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
           {ACTIVE_BREAK_CARD.checkIn}
@@ -275,11 +290,30 @@ function TrackingCard(props: TodayScreenProps) {
   const day = tracking.view?.day ?? null;
   return (
     <article className="today-plan-card tracking" data-testid="state-abstinence-tracking">
-      <p className="eyebrow">{TRACKING_CARD.eyebrow}</p>
-      <h2 className="plan-day-title" data-testid="tracking-day-label">
-        {day === null ? 'Tracking' : `Day ${day} ${TRACKING_CARD.sinceLabel}`}
-      </h2>
-      {tracking.view !== null ? <p className="body plan-focus-line">{tracking.view.phaseCopy}</p> : null}
+      <button
+        type="button"
+        className="today-plan-main"
+        data-testid="open-tracking-detail"
+        onClick={props.onOpenTrackingDetail}
+      >
+        <p className="eyebrow">{TRACKING_CARD.eyebrow}</p>
+        <h2 className="plan-day-title" data-testid="tracking-day-label">
+          {day === null ? 'Tracking' : `Day ${day} ${TRACKING_CARD.sinceLabel}`}
+        </h2>
+      </button>
+      {tracking.view !== null ? (
+        <TodayGuidance
+          compact
+          view={presentTodayGuidance({
+            breakDay: tracking.view.day,
+            targetDays: null,
+            openEnded: true,
+            planned: false,
+            preparation: tracking.track.preparation,
+            checkins: props.live.checkins,
+          })}
+        />
+      ) : null}
       <div className="today-actions">
         <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
           {TRACKING_CARD.checkIn}
@@ -288,6 +322,7 @@ function TrackingCard(props: TodayScreenProps) {
           {TRACKING_CARD.stop}
         </button>
       </div>
+      <span className="today-note meta">{TRACKING_CARD.viewGuidance}</span>
       {confirmStop ? (
         <ConfirmDialog
           title={TRACKING_CARD.stopConfirmTitle}

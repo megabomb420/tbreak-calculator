@@ -45,12 +45,15 @@ describe('plan presentation', () => {
   });
 
   it('selects the phase deterministically from breakDay', () => {
-    assert.equal(phaseKeyForDay(1), 'days_1_6');
-    assert.equal(phaseKeyForDay(6), 'days_1_6');
+    assert.equal(phaseKeyForDay(1), 'days_1_3');
+    assert.equal(phaseKeyForDay(2), 'days_2_6');
+    assert.equal(phaseKeyForDay(6), 'days_2_6');
     assert.equal(phaseKeyForDay(7), 'days_7_14');
     assert.equal(phaseKeyForDay(14), 'days_7_14');
-    assert.equal(phaseKeyForDay(15), 'days_15_28');
-    assert.equal(phaseKeyForDay(60), 'days_15_28');
+    assert.equal(phaseKeyForDay(15), 'days_14_21');
+    assert.equal(phaseKeyForDay(21), 'days_21_28');
+    assert.equal(phaseKeyForDay(28), 'days_21_28');
+    assert.equal(phaseKeyForDay(60), 'beyond_28');
     assert.ok(phaseFocusCopy(4).length > 0);
   });
 

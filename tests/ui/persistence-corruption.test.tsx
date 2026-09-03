@@ -48,6 +48,7 @@ function activeAttempt(id: string) {
     startedAt: AT,
     segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
     postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+    preparation: null,
     completionAcknowledged: false,
     createdAt: AT,
     updatedAt: AT,

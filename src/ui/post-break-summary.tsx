@@ -5,7 +5,8 @@
 // only, with no return-to-use controls.
 
 import type { PostBreakPlan } from '../application/break/post-break-plan.ts';
-import { POST_BREAK_GUIDANCE, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS } from './break-copy.ts';
+import { POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS } from './break-copy.ts';
+import { presentPostBreakGuidance } from '../application/presentation/break-guidance.ts';
 
 export function PostBreakSummary({ plan }: { readonly plan: PostBreakPlan }) {
   const option = POST_BREAK_MODE_COPY.find((entry) => entry.id === plan.mode);
@@ -14,12 +15,15 @@ export function PostBreakSummary({ plan }: { readonly plan: PostBreakPlan }) {
     <div className="post-break-summary" data-testid="post-break-summary" data-mode={plan.mode}>
       <p className="body">{option?.title ?? plan.mode}</p>
       {plan.mode === 'continue_abstinence' ? (
-        <p className="meta">Staying off THC — no return-to-use controls.</p>
+        <p className="meta" data-testid="abstinence-post-break">
+          {presentPostBreakGuidance(plan).lead}
+        </p>
       ) : null}
       {returnMode ? (
         <>
           <p className="meta">{POST_BREAK_MESSAGES.lowerTolerance}</p>
           <p className="meta">{POST_BREAK_MESSAGES.notASafeRestartAmount}</p>
+          <p className="meta">{POST_BREAK_MESSAGES.previousIsNotRestart}</p>
           {plan.mode === 'occasional' ? (
             <p className="meta">
               {`${POST_BREAK_SETTINGS.maxDaysWeek}: ${plan.maxUseDaysPerWeek}`}
@@ -33,8 +37,8 @@ export function PostBreakSummary({ plan }: { readonly plan: PostBreakPlan }) {
               <li>{`${POST_BREAK_SETTINGS.quantityStrategy}: ${plan.quantityStrategy}`}</li>
             </ul>
           ) : null}
-          <ul className="guidance-chips">
-            {POST_BREAK_GUIDANCE.map((line) => (
+          <ul className="guidance-chips" data-testid="return-principles">
+            {presentPostBreakGuidance(plan).principles.map((line) => (
               <li key={line} className="chip">
                 {line}
               </li>

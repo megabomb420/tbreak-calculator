@@ -10,6 +10,7 @@ import type { Instant } from '../../domain/schemas/time.ts';
 import type { AbstinenceTrack } from '../../domain/breaks/abstinence-track.ts';
 import { firstById, isInstantNumber, isRecord } from './record-codec.ts';
 import { isValidSegment } from './break-attempt-record.ts';
+import { decodePreparation, type BreakPreparation } from '../break/preparation.ts';
 
 export const TRACKING_RECORDS_SCHEMA_VERSION = 'tracking-records-v1' as const;
 export const TRACKING_RECORDS_KEY = 'tbreak.tracking-records.v1';
@@ -17,6 +18,8 @@ export const TRACKING_RECORDS_KEY = 'tbreak.tracking-records.v1';
 /** A stored tracking record: the domain open-ended machine plus record
  * timestamps for ordering. */
 export interface StoredTrack extends AbstinenceTrack {
+  /** Optional trigger / if-then plan. Absent on v0.4.x records. */
+  readonly preparation: BreakPreparation | null;
   readonly createdAt: Instant;
   readonly updatedAt: Instant;
 }
@@ -64,7 +67,9 @@ function readRecord(adapter: StorageAdapter, key: string): TrackingRecordsRecord
     adapter.removeItem(key);
     return null;
   }
-  const records = firstById(parsed.records.filter(isValidStoredTrack));
+  const records = firstById(
+    parsed.records.map(normalizeStoredTrack).filter((row): row is StoredTrack => row !== null),
+  );
   return { schemaVersion: TRACKING_RECORDS_SCHEMA_VERSION, records };
 }
 
@@ -99,5 +104,14 @@ export function isValidStoredTrack(value: unknown): value is StoredTrack {
     if (previous === undefined || current === undefined) return false;
     if (previous.endedAt !== null && current.startedFromLastUseAt < previous.endedAt) return false;
   }
+  const preparation = decodePreparation(value.preparation);
+  if (!preparation.ok) return false;
   return isInstantNumber(value.createdAt) && isInstantNumber(value.updatedAt);
+}
+
+function normalizeStoredTrack(value: unknown): StoredTrack | null {
+  if (!isValidStoredTrack(value)) return null;
+  const preparation = decodePreparation((value as { preparation?: unknown }).preparation);
+  if (!preparation.ok) return null;
+  return { ...value, preparation: preparation.preparation };
 }

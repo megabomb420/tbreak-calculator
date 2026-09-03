@@ -35,6 +35,7 @@ describe('history model', () => {
             startedAt: AT,
             segments: [{ startedFromLastUseAt: AT, endedAt: AT, endReason: 'completed' }],
             postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 1 },
+            preparation: null,
             completionAcknowledged: true,
             createdAt: AT,
             updatedAt: AT,

@@ -27,6 +27,7 @@ function storedAttempt(overrides: Partial<StoredAttempt> = {}): StoredAttempt {
     startedAt: C0,
     segments: [{ startedFromLastUseAt: toInstant(C0 - 3 * MILLIS_PER_DAY), endedAt: null, endReason: null }],
     postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+    preparation: null,
     completionAcknowledged: false,
     createdAt: C0,
     updatedAt: C0,
@@ -127,6 +128,7 @@ describe('tracking records + check-in record stores', () => {
       status: 'tracking' as const,
       startedAt: C0,
       segments: [{ startedFromLastUseAt: toInstant(C0 - 2 * MILLIS_PER_DAY), endedAt: null, endReason: null }],
+      preparation: null,
       createdAt: C0,
       updatedAt: C0,
     };

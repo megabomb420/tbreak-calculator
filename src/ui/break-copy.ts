@@ -71,11 +71,14 @@ export const PLANNED_CARD = {
 export const POST_BREAK_MESSAGES = {
   lowerTolerance: 'Your tolerance may be lower than before the break.',
   notASafeRestartAmount: 'Your previous amount is not a safe restart amount.',
+  previousIsNotRestart: 'After a meaningful break, the old amount and pattern may feel substantially stronger. Previous exposure is not restart exposure.',
 } as const;
 
 export const POST_BREAK_GUIDANCE = [
-  'Prefer lower potency where practical',
-  'Go slow with concentrates',
+  'Favour lower-potency products where practical',
+  'Be especially cautious with concentrates',
+  'Use substantially less than the old pattern',
+  'Avoid stacking doses before the effect is clear',
   'Edibles take longer to take effect',
 ] as const;
 
@@ -185,6 +188,8 @@ export const TRACKING_CARD = {
   stop: 'Stop tracking',
   stopConfirmTitle: 'Stop tracking?',
   stopConfirmBody: 'Stopping ends this timeline. Your history stays on this device.',
+  companionTitle: 'Your tracking',
+  viewGuidance: 'Roadmap & triggers',
 } as const;
 
 export function trackingDayTitle(day: number): string {
@@ -205,3 +210,36 @@ export const PROFILE_NO_BREAK = {
 } as const;
 
 export const MODE_ORDER: readonly PostBreakMode[] = POST_BREAK_MODES;
+
+export const GUIDANCE_CHROME = {
+  mayNotice: 'What you may notice',
+  canHelp: 'What can help today',
+  comesNext: 'What commonly comes next',
+  context: 'Context',
+  why: 'Why this matters',
+  roadmap: 'Break roadmap',
+  overlap: 'These windows overlap on purpose — they are not exclusive phases.',
+  futureExpectation: 'Expectation, not a guarantee.',
+  beyondTarget: 'Beyond this plan’s target',
+  triggers: 'Triggers and replacements',
+  triggersHelper: 'Optional. Start without this if you want — you can fill it in later.',
+  replacementLabel: 'Replacement activity',
+  replacementPlaceholder: 'A walk, a shower, a game without THC…',
+  fallbackLabel: 'If that is not possible',
+  fallbackPlaceholder: 'Text a friend, make tea, go to another room…',
+  customTriggerLabel: 'Another trigger',
+  customTriggerPlaceholder: 'e.g. after dinner',
+  savePrep: 'Save',
+  skipPrep: 'Skip for now',
+  detox: 'Detox claims',
+  detoxLead: 'Helpful for wellbeing is not the same as proven to speed THC elimination.',
+  openDetox: 'About common detox claims',
+  closeDetox: 'Close detox notes',
+  thenNow: 'Then → Now',
+  intentions: 'If-then plan',
+  distinctions: 'These are different questions',
+  cb1Title: 'About CB1 and tolerance',
+  recoveryNote: 'What to do next',
+  backToToday: 'Back to Today',
+  openEndedNote: 'This timeline has no finish line — including not at day 28.',
+} as const;

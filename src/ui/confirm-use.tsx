@@ -2,9 +2,11 @@ import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { DateControl } from './questionnaire-controls.tsx';
-import { INTERRUPTION, RESTART_COPY_BREAK, RESTART_COPY_TRACKING, RESTART_DONE, RESTART_RECALCULATE } from './break-copy.ts';
+import { INTERRUPTION, RESTART_COPY_BREAK, RESTART_COPY_TRACKING, RESTART_DONE, RESTART_RECALCULATE, GUIDANCE_CHROME } from './break-copy.ts';
 import { CloseIcon, PauseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import { presentUnplannedUseRecovery } from '../application/presentation/break-guidance.ts';
+import { implementationIntentions, type BreakPreparation } from '../application/break/preparation.ts';
 
 export type ConfirmScope = 'attempt' | 'tracking';
 
@@ -17,9 +19,10 @@ export interface ConfirmUseProps {
   readonly onClose: () => void;
   /** Explicit recalculation, never automatic (UX_SPEC 10.3.4). */
   readonly onRecalculate: () => void;
+  readonly preparation?: BreakPreparation | null;
 }
 
-export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRecalculate }: ConfirmUseProps) {
+export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRecalculate, preparation = null }: ConfirmUseProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onClose);
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
             <p className="body" data-testid="restart-copy">
               {scope === 'attempt' ? RESTART_COPY_BREAK : RESTART_COPY_TRACKING}
             </p>
+            <RecoveryNote preparation={preparation} />
           </div>
         ) : (
           <div className="stack">
@@ -98,6 +102,29 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
           </button>
         )}
       </footer>
+    </div>
+  );
+}
+
+function RecoveryNote({ preparation }: { readonly preparation: BreakPreparation | null }) {
+  const recovery = presentUnplannedUseRecovery();
+  const intentions = implementationIntentions(preparation);
+  return (
+    <div className="guidance-block" data-testid="use-recovery">
+      <h3 className="guidance-kicker">{GUIDANCE_CHROME.recoveryNote}</h3>
+      <p className="body">{recovery.lead}</p>
+      <ul className="guidance-list">
+        {recovery.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ul>
+      {intentions.length > 0 ? (
+        <ul className="guidance-list intention-list">
+          {intentions.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

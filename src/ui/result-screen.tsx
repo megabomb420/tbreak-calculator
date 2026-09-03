@@ -20,6 +20,7 @@ import { CloseIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -260,6 +261,16 @@ function ResultBody({
             <h3 className="card-title">{RESULT.whatHelpsHeading}</h3>
             <p className="body">{view.whatHelps}</p>
           </section>
+          <details className="card guidance-why" data-testid="detection-education-result">
+            <summary className="card-title">{DETECTION_EDUCATION_V1.title}</summary>
+            <p className="body">{DETECTION_EDUCATION_V1.lead}</p>
+            <ul className="guidance-list">
+              {DETECTION_EDUCATION_V1.points.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <p className="meta">{DETECTION_EDUCATION_V1.deferred}</p>
+          </details>
           <FooterLinks onDetection={onBreakRecommendation} onNominalThc={onOpenNominalThc} detection />
         </div>
       );

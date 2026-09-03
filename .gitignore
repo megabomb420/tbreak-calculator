@@ -16,3 +16,7 @@ screenshots/
 server/
 artifacts/
 startup.sh
+src/lib/
+src/components/
+migrations/
+eslint.config.mjs

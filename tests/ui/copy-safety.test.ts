@@ -17,6 +17,7 @@ import * as resultCopy from '../../src/ui/result-copy.ts';
 import * as breakCopy from '../../src/ui/break-copy.ts';
 import { MESSAGE_TEMPLATES } from '../../src/application/presentation/message-templates.ts';
 import { DETECTION_BANNER, DETECTION_WHAT_HELPS } from '../../src/application/presentation/result-presentation.ts';
+import * as evidence from '../../src/domain/guidance/evidence-guidance-v1.ts';
 
 describe('UI copy invariants', () => {
   const dumped = JSON.stringify({
@@ -37,16 +38,20 @@ describe('UI copy invariants', () => {
     MESSAGE_TEMPLATES,
     DETECTION_BANNER,
     DETECTION_WHAT_HELPS,
+    evidence,
   });
 
   it('does not invent prohibited scientific claims', () => {
     expect(dumped).not.toMatch(/detoxed/i);
     expect(dumped).not.toMatch(/100%\s*reset/i);
     expect(dumped).not.toMatch(/reset complete/i);
-    expect(dumped).not.toMatch(/receptor/i);
-    expect(dumped).not.toMatch(/guaranteed/i);
+    expect(dumped).not.toMatch(/receptors?\s+fully restored/i);
+    expect(dumped).not.toMatch(/\d+\s*%\s*(reset|clean|recovered|recovery|detox|receptor|clearance)/i);
     expect(dumped).not.toMatch(/\d+%/);
     expect(dumped).not.toMatch(/\d+\s*mg/i);
+    expect(dumped).not.toMatch(/detox days remaining/i);
+    expect(dumped).not.toMatch(/clearance multiplier/i);
+    expect(dumped).not.toMatch(/clean countdown/i);
   });
 
   it('keeps the first-launch safety slot explicitly unfilled', () => {

@@ -5,13 +5,14 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.4.2** (iOS 26 Liquid Glass viewport fill; step 5 product is unchanged)
+- App version: **0.5.0** (evidence-guided T-break companion on the 0.4.2 shell)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
 - `UX_SPEC.md` (v1 UX; §12 is the current visual system; §16 is the implementation sequence)
 - `CALCULATOR_SPEC.md` (domain / engines; §4.4/4.7 amended for D5/D4)
+- `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1; research PDF interpretation)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
 
@@ -24,9 +25,8 @@ to make UI easier. Do not commit untracked review files.
 ## What is on main
 
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the
-Interval visual redesign, the **0.3.1 QA hardening** patch, the **0.3.2
-UX/product** patch, the **0.3.3 persistence** patch, and the **0.4.2
-viewport-fill** patch:
+Interval visual redesign, the **0.3.1–0.4.2** patches, and the **0.5.0
+evidence-guided companion**:
 
 | Step | Status |
 |---|---|
@@ -42,6 +42,7 @@ viewport-fill** patch:
 | 5. History + contextual flows + IndexedDB | done (0.4.0) |
 | 0.4.1 dynamic viewport fill (`100dvh`) | superseded by 0.4.2 |
 | 0.4.2 iOS 26 Liquid Glass viewport fill | **done** |
+| 0.5.0 evidence-guided T-break companion | **done** |
 
 Working product behaviour (unchanged from earlier steps):
 
@@ -50,6 +51,46 @@ Working product behaviour (unchanged from earlier steps):
 3. Completing the questionnaire opens the **result overlay**.
 4. App shell tab bar is in-flow inside a large-viewport column (`100lvh` / `100vh`; not `position: fixed`). Overlay chrome is padded with `--chrome-bleed`.
 5. Product vs route distinction preserved (`vape` product ≠ `vaping` route).
+
+## What 0.5.0 added (evidence-guided companion)
+
+Research source: *THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA*.
+Content version: `evidence-guidance-v1`. Spec: `EVIDENCE_CONTENT_SPEC.md`.
+
+Scientific engines, bands, coefficients, golden fixtures, the `breakDay`
+formula, History/IndexedDB, and the 0.4.2 viewport contract are unchanged.
+
+- **Today** during an active break or open-ended tracking shows the current
+  scientific window (what you may notice, what can help today, context, what
+  commonly comes next) from `breakDay`. Days 2–6 are the common peak window.
+- **Plan detail** is a roadmap of overlapping windows (Days 1–3 with 2–6, and
+  overlaps at 14 and 21). Past/current/future are visual states; future copy is
+  an expectation, not a guarantee. No biological recovery percentage.
+- **Optional preparation** (triggers, replacement, fallback, if-then lines)
+  lives on the attempt/tracking record. v0.4.x rows without the field remain
+  valid (`preparation: null`).
+- **Then → Now** from real check-ins in week two: null is not zero; no
+  interpolation; no recovery score; no causal claim.
+- **Detox claims** panel from Plan detail (not a tab): wellbeing vs elimination,
+  app-specific A–D scale labelled as not GRADE. Niacin is not recommended; no
+  doses; hydration/exercise/sauna/fasting are not proven flushes.
+- **CB1 education** and concept distinctions (withdrawal ≠ tolerance ≠
+  detectability). Approximately four weeks is a biological reference, not a
+  personal reset day.
+- **Post-break:** previous exposure ≠ restart exposure. Abstinence mode shows
+  no return-to-use guidance. Return modes show conservative lower-exposure
+  principles and still no safe restart dose.
+- **Unplanned use** keeps “Plan restarted from your latest use” and adds
+  trigger/replacement recovery copy. No shame, no punitive streaks.
+- **Open-ended tracking** uses the same guidance with no finish at day 28.
+  Tracking Today opens a companion overlay (roadmap, triggers, detox, CB1)
+  without post-break return-to-use or a completion CTA.
+- **Detection:** qualitative educational notes only. No numeric window.
+
+The engine withdrawal strip on plan detail still uses the exclusive
+CALCULATOR_SPEC anchors (1–6 / 7–14 / 15–28). The companion roadmap uses the
+PDF's overlapping windows. That discrepancy is intentional in this slice:
+engine coefficients were not rewritten to match the PDF.
 
 ## What 0.4.2 fixed (iOS 26 Liquid Glass)
 
@@ -324,19 +365,21 @@ introduce a second palette.
 
 ```text
 src/domain/
-  breaks/            break-attempt.ts (finite machine), abstinence-track.ts (D4),
-                     break-time.ts (single day-counter formula)
+  guidance/          evidence-guidance-v1.ts (versioned companion content)
+  breaks/            break-attempt.ts, abstinence-track.ts, break-time.ts
   validation/        profile-validation.ts, checkin-validation.ts (D5)
 src/application/
   break/             break-session.ts (pure plan/tracking/check-in ops),
                      post-break-plan.ts, today-model.ts (facts from records)
-  presentation/      result-presentation.ts, plan-presentation.ts (day/target/
-                     phase/withdrawal views — no UI math)
+  presentation/      result-presentation.ts, plan-presentation.ts,
+                     break-guidance.ts, checkin-comparison.ts
+  break/             break-session.ts, post-break-plan.ts, preparation.ts,
   progress/          questionnaire stores + break-attempt-record.ts,
                      tracking-record.ts, checkin-store.ts, record-codec.ts
 src/ui/              app.tsx (flow router), today-screen.tsx, break-start-sheet,
-                     checkin-flow, confirm-use, plan-detail, plan-ring,
-                     post-break-summary, break-copy.ts
+                     checkin-flow, confirm-use, plan-detail, tracking-detail,
+                     today-guidance, break-roadmap, preparation-card,
+                     detox-evidence, plan-ring, post-break-summary, break-copy.ts
 tests/unit|golden|ui
 .github/workflows/pages.yml
 ```
@@ -397,13 +440,18 @@ Corrupt calculation / previous-break / IndexedDB rows become History
 
 ## Exact next slice
 
-Step 5 is done. Do **not** start UX_SPEC §16 step 6 or runtime AI from this
-handoff. Remaining product follow-ups if a later slice is commissioned:
+0.5.0 is done. Do **not** start UX_SPEC §16 step 6 or runtime AI from this
+handoff. Remaining follow-ups if a later slice is commissioned:
 
 - Commissioned/reviewed first-launch safety copy in `safety_first_launch`.
 - Accidental-Yes undo (not in current specs).
 - Check-in trend chart (explicitly deferred, §15.3).
 - One IndexedDB transaction for attempt/track + check-in + snapshot `lastUseAt`.
+- Quantitative Detection Engine (own science-policy slice; not hidden in companion copy).
+- Formal GRADE-style evidence review (the A–D scale is app-specific).
+- Dedicated science-policy review of engine withdrawal anchors (exclusive 1–6 /
+  7–14 / 15–28) vs the PDF overlapping windows (1–3 / 2–6 / 7–14 / 14–21 /
+  21–28). Current product shows both; do not silently change golden fixtures.
 
 ## Today facts model (changed in 0.3.0)
 

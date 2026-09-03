@@ -29,6 +29,7 @@ import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { StoredAttempt } from '../progress/break-attempt-record.ts';
 import type { StoredTrack } from '../progress/tracking-record.ts';
 import { defaultPostBreakPlan, type PostBreakPlan } from './post-break-plan.ts';
+import { isValidPreparation, type BreakPreparation } from './preparation.ts';
 
 export interface BreakSessionState {
   /** Stored finite-break attempts, newest first. */
@@ -69,6 +70,7 @@ export interface NewBreakPlanInput {
   readonly now: Instant;
   /** Authoritative last-use anchor; required to open the first segment. */
   readonly anchor: Instant | null;
+  readonly preparation?: BreakPreparation | null;
 }
 
 export interface NewTrackingInput {
@@ -76,6 +78,7 @@ export interface NewTrackingInput {
   readonly calculationRecordId: string | null;
   readonly startedAt: Instant;
   readonly anchor: Instant;
+  readonly preparation?: BreakPreparation | null;
 }
 
 export interface CheckinSymptoms {
@@ -109,6 +112,7 @@ export function createBreakPlan(state: BreakSessionState, input: NewBreakPlanInp
   const stored: StoredAttempt = {
     ...(started ?? attempt),
     postBreakPlan: defaultPostBreakPlan(input.mode),
+    preparation: input.preparation ?? null,
     completionAcknowledged: false,
     createdAt: input.now,
     updatedAt: input.now,
@@ -126,6 +130,7 @@ export function createTracking(state: BreakSessionState, input: NewTrackingInput
       startedAt: input.startedAt,
       anchor: input.anchor,
     }),
+    preparation: input.preparation ?? null,
     createdAt: input.startedAt,
     updatedAt: input.startedAt,
   };
@@ -301,6 +306,46 @@ export function updatePostBreakPlan(
     updatedAt: input.now,
   };
   return { ok: true, state: replaceAttempt(state, index, next) };
+}
+
+/** Updates optional trigger / if-then preparation. Editable while planned or active. */
+export function updateBreakPreparation(
+  state: BreakSessionState,
+  id: string,
+  input: { readonly preparation: BreakPreparation | null; readonly now: Instant },
+): SessionOutcome<SessionErrorCode> {
+  const index = state.attempts.findIndex((attempt) => attempt.id === id);
+  if (index < 0) return { ok: false, code: 'attempt_not_found' };
+  const stored = state.attempts[index]!;
+  if (stored.status !== 'planned' && stored.status !== 'active') return { ok: false, code: 'not_editable' };
+  if (input.preparation !== null && !isValidPreparation(input.preparation)) return { ok: false, code: 'not_editable' };
+  const next: StoredAttempt = {
+    ...stored,
+    preparation: input.preparation,
+    updatedAt: input.now,
+  };
+  return { ok: true, state: replaceAttempt(state, index, next) };
+}
+
+/** Updates optional trigger / if-then preparation on open-ended tracking. */
+export function updateTrackingPreparation(
+  state: BreakSessionState,
+  id: string,
+  input: { readonly preparation: BreakPreparation | null; readonly now: Instant },
+): SessionOutcome<SessionErrorCode> {
+  const index = state.tracking.findIndex((track) => track.id === id);
+  if (index < 0) return { ok: false, code: 'tracking_not_found' };
+  const stored = state.tracking[index]!;
+  if (stored.status !== 'tracking' && stored.status !== 'interrupted_time_needed') {
+    return { ok: false, code: 'expected_tracking' };
+  }
+  if (input.preparation !== null && !isValidPreparation(input.preparation)) return { ok: false, code: 'not_editable' };
+  const next: StoredTrack = {
+    ...stored,
+    preparation: input.preparation,
+    updatedAt: input.now,
+  };
+  return { ok: true, state: replaceTrack(state, index, next) };
 }
 
 /** Removes a planned (future) attempt that has not started yet. */

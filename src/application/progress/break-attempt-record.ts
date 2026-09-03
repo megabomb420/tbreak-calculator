@@ -3,9 +3,10 @@
 // One versioned envelope holds every stored attempt (current + finished) so a
 // new plan never deletes an earlier attempt's segments. Stored attempts add
 // plan-lifetime fields to the domain `BreakAttempt`: the user's post-break
-// plan, the completion acknowledgement flag, and record timestamps. The
-// repository interface mirrors the documented IndexedDB `breakAttempts`
-// store; the key-value backing is replaced when that persistence slice lands.
+// plan, optional trigger preparation, the completion acknowledgement flag,
+// and record timestamps. The repository interface mirrors the documented
+// IndexedDB `breakAttempts` store; the key-value backing is replaced when
+// that persistence slice lands.
 
 import type { StorageAdapter } from '../../infrastructure/storage/storage-adapter.ts';
 import type { Instant } from '../../domain/schemas/time.ts';
@@ -17,6 +18,7 @@ import {
   postBreakPlanMatchesMode,
   type PostBreakPlan,
 } from '../break/post-break-plan.ts';
+import { decodePreparation, type BreakPreparation } from '../break/preparation.ts';
 import { firstById, isInstantNumber, isOptionalInstantNumber, isRecord } from './record-codec.ts';
 
 export const BREAK_ATTEMPTS_SCHEMA_VERSION = 'break-attempts-v1' as const;
@@ -26,6 +28,8 @@ export const BREAK_ATTEMPTS_KEY = 'tbreak.break-attempts.v1';
  * fields the UI and later History need. */
 export interface StoredAttempt extends BreakAttempt {
   readonly postBreakPlan: PostBreakPlan | null;
+  /** Optional trigger / if-then plan. Absent on v0.4.x records. */
+  readonly preparation: BreakPreparation | null;
   /** True once a completed attempt's completion card has been acknowledged. */
   readonly completionAcknowledged: boolean;
   readonly createdAt: Instant;
@@ -78,8 +82,10 @@ function readRecord(adapter: StorageAdapter, key: string): BreakAttemptsRecord |
   }
   // A corrupt attempt row is dropped in isolation: the remaining attempts and
   // every unrelated record stay usable (UX_SPEC 13.3). Duplicate ids keep the
-  // first (newest) row.
-  const attempts = firstById(parsed.attempts.filter(isValidStoredAttempt));
+  // first (newest) row. Missing preparation on v0.4.x rows becomes null.
+  const attempts = firstById(
+    parsed.attempts.map(normalizeStoredAttempt).filter((row): row is StoredAttempt => row !== null),
+  );
   return { schemaVersion: BREAK_ATTEMPTS_SCHEMA_VERSION, attempts };
 }
 
@@ -126,9 +132,18 @@ export function isValidStoredAttempt(value: unknown): value is StoredAttempt {
   } else {
     if (!isValidPostBreakPlan(plan) || !postBreakPlanMatchesMode(plan, body.postBreakMode as never)) return false;
   }
+  const preparation = decodePreparation(body.preparation);
+  if (!preparation.ok) return false;
   if (typeof body.completionAcknowledged !== 'boolean') return false;
   if (body.status !== 'completed' && body.completionAcknowledged === true) return false;
   return isInstantNumber(body.createdAt) && isInstantNumber(body.updatedAt);
+}
+
+function normalizeStoredAttempt(value: unknown): StoredAttempt | null {
+  if (!isValidStoredAttempt(value)) return null;
+  const preparation = decodePreparation((value as { preparation?: unknown }).preparation);
+  if (!preparation.ok) return null;
+  return { ...value, preparation: preparation.preparation };
 }
 
 function isValidSegments(value: unknown): boolean {

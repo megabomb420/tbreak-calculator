@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.2.0  
+Version: 0.5.0  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -30,6 +30,7 @@ Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/i
 - nominal flower THC calculator;
 - branching questionnaire;
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
+- versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
 - IndexedDB persistence and complete local deletion; and
 - PWA shell/offline support.
 
@@ -85,10 +86,13 @@ src/
     detection/
     nominal-thc/
     policies/
+    guidance/          evidence-guidance-v1 (deterministic companion content)
   application/
     progress/
     settings/
     shell/
+    presentation/      plan, result, break-guidance, check-in comparison
+    break/             session ops, post-break plan, optional preparation
   infrastructure/
     storage/
     clock.ts

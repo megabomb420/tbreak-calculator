@@ -546,10 +546,17 @@ Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` w
 
 - Day ring: "Day 12 of 28", labelled **plan progress** — never biological progress. Target date beneath.
 - Current withdrawal phase strip (§9.7 condensed).
-- Phase focus block, keyed to `breakDay` (static versioned copy; UI selects by phase, never invents phases):
-  - **Days 1–6:** routine, regular sleep times, normal food and hydration, trigger avoidance, one replacement activity, short daily check-in.
-  - **Days 7–14:** acute symptoms easing ≠ tolerance goal met — feeling better is not the finish line.
-  - **Days 15–28:** habits and trigger management; explicitly not "detox" framing.
+- Phase focus block, keyed to `breakDay` via **EvidenceGuidanceV1** (see `EVIDENCE_CONTENT_SPEC.md`). The UI selects by abstinence day and never invents copy. Scientific windows **overlap** (Days 1–3 with 2–6, and at days 14 and 21); they are not mutually exclusive phases.
+  - **Preparation / Day 0:** optional triggers, replacement, fallback, if-then plan.
+  - **Days 1–3:** withdrawal may begin (craving, irritability, anxiety/tension, sleep difficulty, reduced appetite — may/can/commonly, not “you will”).
+  - **Days 2–6:** commonly observed stronger period; feeling worse does not mean the break is failing.
+  - **Days 7–14:** acute symptoms commonly ease; feeling better ≠ tolerance goal met.
+  - **Days 14–21:** habits, cues, evening/weekend routines — not detox framing.
+  - **Days 21–28:** ~four-week CB1 PET reference in chronic users; not a personal reset day.
+  - **After 28:** maintenance / personal goals; no continuing reset percentage. Open-ended tracking has no finish line.
+- Compact **Today** guidance: what you may notice, what can help today, context, what commonly comes next. Detail and the overlapping roadmap live on **Plan detail**. Open-ended tracking uses the same windows and a companion overlay; it has no completion CTA and no finish at day 28.
+- Optional Then → Now from real check-ins in week two (null ≠ 0; no interpolation; no recovery score).
+- Detox-claims panel from Plan detail (not a tab): wellbeing vs elimination, app-specific A–D scale (not GRADE).
 - Post-break settings (mode + limits, §8), editable.
 - Overflow: **End break early** (confirm dialog; neutral resulting state), **Recalculate profile**.
 

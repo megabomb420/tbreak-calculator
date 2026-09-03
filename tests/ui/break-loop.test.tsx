@@ -15,7 +15,7 @@ import {
   createBreakAttemptsStore,
   type StoredAttempt,
 } from '../../src/application/progress/break-attempt-record.ts';
-import { createTrackingRecordsStore } from '../../src/application/progress/tracking-record.ts';
+import { createTrackingRecordsStore, type StoredTrack } from '../../src/application/progress/tracking-record.ts';
 import { createCheckinsStore } from '../../src/application/progress/checkin-store.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
@@ -68,6 +68,7 @@ function storedAttempt(overrides: Partial<StoredAttempt> = {}): StoredAttempt {
     startedAt: AT,
     segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
     postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+    preparation: null,
     completionAcknowledged: false,
     createdAt: AT,
     updatedAt: AT,
@@ -77,6 +78,24 @@ function storedAttempt(overrides: Partial<StoredAttempt> = {}): StoredAttempt {
 
 function seedAttempt(storage: StorageAdapter, attempt: StoredAttempt): void {
   createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [attempt] });
+}
+
+function seedTrack(storage: StorageAdapter, track: StoredTrack): void {
+  createTrackingRecordsStore(storage).save({ schemaVersion: 'tracking-records-v1', records: [track] });
+}
+
+function storedTrack(overrides: Partial<StoredTrack> = {}): StoredTrack {
+  return {
+    id: 'track-1',
+    calculationRecordId: 'run-1',
+    status: 'tracking',
+    startedAt: AT,
+    segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
+    preparation: null,
+    createdAt: AT,
+    updatedAt: AT,
+    ...overrides,
+  };
 }
 
 function attemptsOf(storage: StorageAdapter): StoredAttempt[] {
@@ -440,6 +459,7 @@ describe('open-ended abstinence tracking (D4)', () => {
           status: 'interrupted_time_needed',
           startedAt: AT,
           segments: [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
+          preparation: null,
           createdAt: AT,
           updatedAt: AT,
         },
@@ -451,3 +471,163 @@ describe('open-ended abstinence tracking (D4)', () => {
     expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('tracking');
   });
 });
+
+describe('evidence-guided companion', () => {
+  it('shows stage-appropriate Today guidance on a peak day', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    const guidance = screen.getByTestId('today-guidance');
+    expect(guidance.getAttribute('data-window')).toBe('days_2_6');
+    expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
+    expect(screen.getByTestId('guidance-help').textContent).toMatch(/thirst/i);
+    expect(screen.getByTestId('guidance-context').textContent).toMatch(/does not mean the break is failing/i);
+  });
+
+  it('renders an overlapping roadmap on plan detail', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('break-roadmap')).toBeTruthy();
+    expect(screen.getByTestId('roadmap-stage-days_2_6').getAttribute('data-status')).toBe('current');
+    expect(screen.getByTestId('roadmap-stage-days_1_3').getAttribute('data-status')).toBe('past');
+    expect(screen.getByTestId('roadmap-stage-days_7_14').getAttribute('data-status')).toBe('future');
+  });
+
+  it('shows overlapping windows honestly on day 3', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    const day3 = toInstant(AT - 2 * DAY_MS);
+    seedAttempt(storage, storedAttempt({ segments: [{ startedFromLastUseAt: day3, endedAt: null, endReason: null }] }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('roadmap-stage-days_2_6').getAttribute('data-status')).toBe('current');
+    expect(screen.getByTestId('roadmap-stage-days_1_3').getAttribute('data-status')).toBe('current-overlap');
+  });
+
+  it('persists an optional trigger plan from plan detail', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    fireEvent.click(screen.getByTestId('trigger-evening_after_work'));
+    fireEvent.input(screen.getByTestId('replacement-action'), { target: { value: 'go for a walk' } });
+    fireEvent.blur(screen.getByTestId('replacement-action'));
+    const attempt = attemptsOf(storage)[0];
+    expect(attempt?.preparation?.triggerIds).toContain('evening_after_work');
+    expect(attempt?.preparation?.replacementAction).toBe('go for a walk');
+    expect(screen.getByTestId('intention-preview').textContent).toMatch(/after work/i);
+  });
+
+  it('compares earliest and latest check-in ratings in week two', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    const longAnchor = toInstant(AT - 10 * DAY_MS);
+    seedAttempt(storage, storedAttempt({ segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }] }));
+    createCheckinsStore(storage).save({
+      schemaVersion: 'checkins-v1',
+      checkins: [
+        {
+          recordedAt: '2026-08-10T00:00:00.000Z',
+          craving: 8,
+          sleep: 3,
+          irritability: null,
+          anxiety: null,
+          appetite: null,
+          usedThc: false,
+          usedAt: null,
+          note: null,
+        },
+        {
+          recordedAt: '2026-08-18T00:00:00.000Z',
+          craving: 3,
+          sleep: 6,
+          irritability: null,
+          anxiety: null,
+          appetite: null,
+          usedThc: false,
+          usedAt: null,
+          note: null,
+        },
+      ],
+    });
+    renderApp(storage);
+    expect(screen.getByTestId('checkin-comparison')).toBeTruthy();
+    expect(screen.getByTestId('checkin-comparison').textContent).toMatch(/Craving is lower/);
+    expect(screen.getByTestId('checkin-comparison').textContent).toMatch(/Sleep rating is higher/);
+  });
+
+  it('opens detox evidence from plan detail with the app-specific scale', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    fireEvent.click(screen.getByTestId('open-detox-evidence'));
+    const panel = screen.getByTestId('detox-evidence');
+    expect(panel).toBeTruthy();
+    expect(screen.getByTestId('evidence-scale-disclaimer').textContent).toMatch(/not formal GRADE/);
+    expect(screen.getByTestId('detox-niacin').getAttribute('data-wellbeing')).toBe('harmful_risk');
+    expect(screen.getByTestId('detox-exercise').getAttribute('data-speeds')).toBe('false');
+    expect(screen.getByTestId('detox-sauna').getAttribute('data-speeds')).toBe('false');
+    expect(screen.getByTestId('detox-fasting').getAttribute('data-speeds')).toBe('false');
+    expect(screen.getByTestId('detox-normal_hydration').textContent).toMatch(/does not mean faster THC elimination/i);
+  });
+
+  it('does not show return-to-use principles for continued abstinence', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt({ postBreakMode: 'continue_abstinence', postBreakPlan: { mode: 'continue_abstinence' } }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('abstinence-post-break').textContent).toMatch(/stay off/i);
+    expect(screen.queryByTestId('return-principles')).toBeNull();
+    expect(screen.queryByTestId('post-break-guidance')).toBeNull();
+  });
+
+  it('shows the same guidance on open-ended tracking without a finish line', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, {
+      ...toleranceProfile(),
+      goal: 'abstinence',
+      breakRequested: false,
+    });
+    seedTrack(storage, storedTrack());
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
+    expect(screen.getByTestId('today-guidance').getAttribute('data-window')).toBe('days_2_6');
+    fireEvent.click(screen.getByTestId('open-tracking-detail'));
+    expect(screen.getByTestId('tracking-detail')).toBeTruthy();
+    expect(screen.getByTestId('open-ended-note').textContent).toMatch(/no finish line/i);
+    expect(screen.getByTestId('break-roadmap')).toBeTruthy();
+    expect(screen.queryByTestId('mark-complete')).toBeNull();
+    expect(screen.queryByTestId('post-break-card')).toBeNull();
+    fireEvent.click(screen.getByTestId('trigger-weekend'));
+    fireEvent.input(screen.getByTestId('replacement-action'), { target: { value: 'make tea' } });
+    const tracking = createTrackingRecordsStore(storage).load()?.records[0];
+    expect(tracking?.preparation?.triggerIds).toContain('weekend');
+    expect(tracking?.preparation?.replacementAction).toBe('make tea');
+  });
+
+  it('does not complete open-ended tracking at day 28', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, {
+      ...toleranceProfile(),
+      goal: 'abstinence',
+      breakRequested: false,
+    });
+    const longAnchor = toInstant(AT - 29 * DAY_MS);
+    seedTrack(storage, storedTrack({ segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }] }));
+    renderApp(storage);
+    expect(screen.getByTestId('today-guidance').getAttribute('data-window')).toBe('beyond_28');
+    expect(screen.queryByTestId('mark-complete-cta')).toBeNull();
+    fireEvent.click(screen.getByTestId('open-tracking-detail'));
+    expect(screen.getByTestId('roadmap-stage-beyond_28').getAttribute('data-status')).toBe('current');
+    expect(screen.queryByTestId('mark-complete')).toBeNull();
+  });
+});
+

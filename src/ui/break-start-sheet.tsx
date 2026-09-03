@@ -4,10 +4,12 @@ import { toInstant } from '../domain/schemas/time.ts';
 import { MILLIS_PER_DAY } from '../domain/schemas/time.ts';
 import type { PostBreakMode } from '../domain/schemas/enums.ts';
 import { localIsoDate } from '../application/questionnaire/date-answers.ts';
-import { BREAK_START, POST_BREAK_MODE_COPY, clockAlreadyRunningNote } from './break-copy.ts';
+import { BREAK_START, POST_BREAK_MODE_COPY, GUIDANCE_CHROME, clockAlreadyRunningNote } from './break-copy.ts';
 import { planForTarget } from './result-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import { PreparationCard } from './preparation-card.tsx';
+import type { BreakPreparation } from '../application/break/preparation.ts';
 
 export interface BreakStartSheetProps {
   /** Planning target from the deterministic result (preferredTargetDays). */
@@ -15,7 +17,7 @@ export interface BreakStartSheetProps {
   /** Current abstinence day at start; > 1 shows the clock note. */
   readonly breakDayAtStart: number;
   readonly now: Instant;
-  readonly onStart: (mode: PostBreakMode, startAt: Instant) => void;
+  readonly onStart: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
   readonly onClose: () => void;
 }
 
@@ -28,6 +30,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
   const [picked, setPicked] = useState('');
   const [mode, setMode] = useState<PostBreakMode | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [preparation, setPreparation] = useState<BreakPreparation | null>(null);
 
   const todayIso = localIsoDate(now);
   const maxIso = localIsoDate((now + FUTURE_WINDOW_DAYS * MILLIS_PER_DAY) as Instant);
@@ -145,6 +148,10 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
             </div>
             <p className="meta">{BREAK_START.helper}</p>
           </section>
+          <details className="prep-disclosure" data-testid="prep-disclosure">
+            <summary className="card-title">{GUIDANCE_CHROME.triggers}</summary>
+            <PreparationCard value={preparation} onSave={setPreparation} allowSkip />
+          </details>
         </div>
       </div>
       <footer className="questionnaire-footer">
@@ -156,7 +163,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
           onClick={() => {
             if (mode !== null && start !== null && !submitted) {
               setSubmitted(true);
-              onStart(mode, start);
+              onStart(mode, start, preparation);
             }
           }}
         >

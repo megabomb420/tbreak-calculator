@@ -25,6 +25,7 @@ function attemptState(
         startedAt: C0,
         segments: status === 'planned' ? [] : [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
         postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+        preparation: null,
         completionAcknowledged: acknowledged,
         createdAt: C0,
         updatedAt: C0,
@@ -46,6 +47,7 @@ function trackState(status: 'tracking' | 'interrupted_time_needed' | 'ended'): B
         segments: status === 'ended'
           ? [{ startedFromLastUseAt: ANCHOR, endedAt: C0, endReason: 'user_ended' }]
           : [{ startedFromLastUseAt: ANCHOR, endedAt: null, endReason: null }],
+        preparation: null,
         createdAt: C0,
         updatedAt: C0,
       },

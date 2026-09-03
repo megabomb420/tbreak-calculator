@@ -48,6 +48,7 @@ describe('durable persistence', () => {
         startedAt: AT,
         segments: [{ startedFromLastUseAt: AT, endedAt: AT, endReason: 'user_ended' }],
         postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+        preparation: null,
         completionAcknowledged: false,
         createdAt: AT,
         updatedAt: AT,
