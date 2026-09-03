@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { TOLERANCE_WITHDRAWAL_ANCHORS } from '../../src/domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_WITHDRAWAL_ANCHORS } from '../../src/domain/policies/tolerance-policy-v2.ts';
 import { computeWithdrawalDisplay } from '../../src/domain/tolerance/withdrawal.ts';
 import type { WithdrawalDisplay } from '../../src/domain/schemas/result.ts';
 import { toInstant, MILLIS_PER_DAY, MILLIS_PER_HOUR, type Instant } from '../../src/domain/schemas/time.ts';

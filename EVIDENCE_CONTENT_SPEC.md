@@ -1,7 +1,8 @@
 # Evidence content specification
 
-Status: **evidence-guidance-v1** + **break-outlook-v1**  
-App version: 0.6.0  
+Status: **evidence-guidance-v1** + **break-outlook-v2**  
+App version: 0.7.0  
+Revision note (0.7.0): the tolerance-v2 target rule lives in the Tolerance Engine, not this layer (see `CALCULATOR_SPEC.md` §7.3). This file's outlook content version moved to `break-outlook-v2` because the exposure-tone personalisation note now distinguishes recently established heavy patterns from long-established ones. Window copy, tone tiers, and the day roadmap are otherwise unchanged.  
 Authoritative research source: *THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA* (project research PDF).  
 Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs companion **guidance copy and product interpretation**, not bands, coefficients, or day formulae.
 
@@ -10,9 +11,9 @@ Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs compa
 `EvidenceGuidanceV1` is a deterministic, versioned, local, offline content layer. It is the only place research-derived companion copy lives. UI selects and renders. There is no runtime LLM, no network science, and no numeric engine read of this layer.
 
 Module: `src/domain/guidance/evidence-guidance-v1.ts`  
-Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v1`)  
+Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v2`; BreakOutlookV1 architecture unchanged)  
 Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`  
-Version strings: `evidence-guidance-v1`, `break-outlook-v1`
+Version strings: `evidence-guidance-v1`, `break-outlook-v2`
 
 ## 2. Source distinctions (preserved)
 
@@ -139,9 +140,9 @@ Qualitative education only. Cutoff matters; matrices differ; urine can fluctuate
 
 Same withdrawal guidance. No finite target, completion percentage, return-to-use encouragement, or automatic finish at day 28. Later guidance shifts to habits, triggers, and maintenance.
 
-## 12. Break outlook (break-outlook-v1)
+## 12. Break outlook (break-outlook-v2)
 
-`BreakOutlookV1` is a presentation layer over EvidenceGuidanceV1. It does not replace the Tolerance Engine.
+`BreakOutlookV1` (architecture) is a presentation layer over EvidenceGuidanceV1. It does not replace the Tolerance Engine.
 
 For every inspectable day from Day 1 through the planning target (or Days 1–28 when open-ended), derive:
 
@@ -164,8 +165,8 @@ Tone is copy-only. It MUST NOT change `recommendedRangeDays` or `preferredTarget
 
 Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey.
 
-Current-pattern duration may change outlook wording and Why-this-result copy. The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented.
+Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v2 target rule — the planning target inside the unchanged recommended range. The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
 ## 13. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v1` (or replace with v2) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.

@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.6.0  
+Version: 0.7.0  
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -60,7 +60,7 @@ Domain core
   schemas | validation | tolerance | qualitative detection | nominal THC
        |
 Static versioned policies
-  tolerance-policy-v1 | detection-copy-policy-v1
+  tolerance-policy-v2 | detection-copy-policy-v1
 
 Infrastructure adapters
   Web Storage (transient draft) | explicit clock | service worker
@@ -87,7 +87,7 @@ src/
     detection/
     nominal-thc/
     policies/
-    guidance/          evidence-guidance-v1, break-outlook-v1
+    guidance/          evidence-guidance-v1, break-outlook-v2
   application/
     progress/
     settings/
@@ -141,17 +141,17 @@ V1 uses small, reviewable, versioned policy modules rather than a general pack p
 
 ### 5.1 Tolerance policy
 
-The tolerance policy contains only:
+The tolerance policy (`tolerance-policy-v2.ts`, version `tolerance-v2`) contains only:
 
 - the accepted 30-day use-frequency boundaries;
 - the single frequent-use intensity rule;
-- preferred-target selection;
-- uniform v1 confidence values and uncertainty code;
+- the within-range preferred-target anchor rule (recently established pattern → lower anchor; established or missing duration → upper anchor) labelled `heuristic_duration_target_within_range_v2`;
+- uniform v2 confidence values and uncertainty code;
 - withdrawal anchors;
 - history-inference predicates; and
 - driver/limitation message codes.
 
-Every non-source threshold is labelled `product_heuristic`. A policy change creates a new version and new golden fixtures. Historical records retain the version used.
+Every non-source threshold is labelled `product_heuristic`. The broad ranges and the intensity rule are unchanged from tolerance-v1; the new duration-aware target selection is the reason for the version bump. A policy change creates a new version and new golden fixtures. Historical records retain the version used.
 
 ### 5.2 Qualitative detection policy
 
@@ -201,7 +201,7 @@ goal
 
 The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break timing. Detection v1 does not need it because it emits no numeric elapsed-time interpretation; if the screen shows elapsed time for general orientation, it references the same profile field and does not copy it into `DetectionRequest`.
 
-`currentPatternDuration` is collected as exposure context. It MUST NOT change recommended ranges. Legacy profiles without the field remain valid.
+`currentPatternDuration` is collected as exposure context. Under tolerance-v2 it may move the deterministic *planning target* to the lower anchor of the unchanged evidence range (recently established pattern) or keep it at the upper anchor (established or missing duration). It MUST NOT change recommended ranges, and no duration-to-days formula exists. Legacy profiles without the field remain valid.
 
 V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 
@@ -310,12 +310,12 @@ Example shape:
 
 ```text
 Recommended T-Break: 21–28 days
-Strong planning target: 28 days
+Planning target: 21 days — the lower end of your range (recently established pattern)
 Limited certainty: this is a broad product heuristic, and individual response varies.
 Why: frequent use + multiple sessions/high-potency concentrate route
 ```
 
-The card MUST NOT say reset complete, 100% reset, detoxed, or safe to resume the previous exposure.
+The card MUST NOT say reset complete, 100% reset, detoxed, or safe to resume the previous exposure. The recommended range stays the only evidence-claiming number; the planning target is a labelled heuristic choice inside it.
 
 ### 10.2 Withdrawal and progress
 

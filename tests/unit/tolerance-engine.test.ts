@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { TOLERANCE_POLICY_V1, type TolerancePolicyV1 } from '../../src/domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2, type TolerancePolicyV2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
 import type { PreviousBreakInput } from '../../src/domain/schemas/profile.ts';
@@ -8,7 +8,7 @@ import type { Instant } from '../../src/domain/schemas/time.ts';
 import { C0, sampleProfile, userValue, absent } from '../helpers.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
-const POLICY = TOLERANCE_POLICY_V1;
+const POLICY = TOLERANCE_POLICY_V2;
 
 /** Withdrawal display for the sample profile (last use 2 h before C0). */
 function withdrawalDisplayAtDay1() {
@@ -61,7 +61,7 @@ const nullResultFields = (kind: ToleranceResult['kind']): ToleranceResult => ({
   drivers: [],
   historyInsight: null,
   limitations: [],
-  policyVersion: 'tolerance-v1',
+  policyVersion: 'tolerance-v2',
   calculatedAt: C0,
 });
 
@@ -316,18 +316,93 @@ describe('Tolerance Engine: uniform confidence and target invariants (spec 7.6, 
     }
   });
 
-  it('preferred target always equals the range maximum and never exceeds 28', () => {
+  it('keeps the preferred target inside the selected range for every use-day count', () => {
     const inputs: ReturnType<typeof sampleProfile>[] = [];
     for (let d = 1; d <= 30; d += 1) {
       inputs.push(sampleProfile({ thcUseDaysLast30: userValue(d) }));
       inputs.push(sampleProfile({ thcUseDaysLast30: userValue(d), sessionsPerUseDay: userValue(3) }));
       inputs.push(sampleProfile({ thcUseDaysLast30: userValue(d), products: ['concentrate'] }));
+      inputs.push(
+        sampleProfile({
+          thcUseDaysLast30: userValue(d),
+          currentPatternDuration: userValue(d % 2 === 0 ? 'under_1_month' : '5_plus_years'),
+        }),
+      );
     }
     for (const input of inputs) {
       const result = resultOf(input);
-      if (result.kind !== 'tolerance_result') continue;
-      assert.equal(result.preferredTargetDays, result.recommendedRangeDays?.max);
+      if (result.kind !== 'tolerance_result' || result.recommendedRangeDays === null) continue;
+      // Deterministic anchor choice: never outside the range, never above 28.
       assert.ok(result.preferredTargetDays !== null && result.preferredTargetDays <= 28);
+      assert.ok(
+        result.preferredTargetDays === result.recommendedRangeDays.min ||
+          result.preferredTargetDays === result.recommendedRangeDays.max,
+      );
+    }
+  });
+
+  it('maps a missing duration (legacy) to the upper anchor, the tolerance-v1 default', () => {
+    for (let d = 1; d <= 30; d += 1) {
+      const result = resultOf(sampleProfile({ thcUseDaysLast30: userValue(d) }));
+      if (result.kind !== 'tolerance_result' || result.recommendedRangeDays === null) continue;
+      assert.equal(result.preferredTargetDays, result.recommendedRangeDays.max, `use days ${d}`);
+    }
+  });
+
+  it('maps recent patterns to the lower anchor and established patterns to the upper anchor', () => {
+    for (const useDays of [2, 10, 20, 27]) {
+      const recent = resultOf(
+        sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('under_1_month') }),
+      );
+      const fewMonths = resultOf(
+        sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('1_to_6_months') }),
+      );
+      const established = resultOf(
+        sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('6_to_24_months') }),
+      );
+      const long = resultOf(
+        sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('5_plus_years') }),
+      );
+      assert.equal(recent.kind, 'tolerance_result');
+      assert.equal(fewMonths.kind, 'tolerance_result');
+      assert.equal(established.kind, 'tolerance_result');
+      assert.equal(long.kind, 'tolerance_result');
+      if (
+        recent.kind !== 'tolerance_result' ||
+        fewMonths.kind !== 'tolerance_result' ||
+        established.kind !== 'tolerance_result' ||
+        long.kind !== 'tolerance_result' ||
+        recent.recommendedRangeDays === null
+      ) {
+        continue;
+      }
+      const range = recent.recommendedRangeDays;
+      assert.equal(recent.preferredTargetDays, range.min, `use days ${useDays} recent`);
+      assert.equal(fewMonths.preferredTargetDays, range.min, `use days ${useDays} few months`);
+      assert.equal(established.preferredTargetDays, range.max, `use days ${useDays} established`);
+      assert.equal(long.preferredTargetDays, range.max, `use days ${useDays} long`);
+      // Duration never widens the range: identical across every duration tier.
+      assert.deepEqual(established.recommendedRangeDays, range);
+      assert.deepEqual(long.recommendedRangeDays, range);
+    }
+  });
+
+  it('never treats long duration as extra days beyond the evidence range', () => {
+    // The maximum possible target for long-established use stays the range's
+    // upper anchor: 7 / 14 / 21 / 28 by frequency band, never more.
+    const cases: ReadonlyArray<{ useDays: number; expectedMax: number }> = [
+      { useDays: 3, expectedMax: 7 },
+      { useDays: 15, expectedMax: 14 },
+      { useDays: 25, expectedMax: 21 },
+      { useDays: 30, expectedMax: 28 },
+    ];
+    for (const { useDays, expectedMax } of cases) {
+      const result = resultOf(
+        sampleProfile({ thcUseDaysLast30: userValue(useDays), currentPatternDuration: userValue('5_plus_years') }),
+      );
+      assert.equal(result.kind, 'tolerance_result');
+      if (result.kind !== 'tolerance_result') continue;
+      assert.ok(result.preferredTargetDays !== null && result.preferredTargetDays <= expectedMax, `use days ${useDays}`);
     }
   });
 });
@@ -358,7 +433,7 @@ describe('Tolerance Engine: determinism and validation failure', () => {
   });
 
   it('is not affected by a different policy id appearing in a validation_error result', () => {
-    const otherPolicy: TolerancePolicyV1 = { ...POLICY, id: 'tolerance-v2-fake' };
+    const otherPolicy: TolerancePolicyV2 = { ...POLICY, id: 'tolerance-v2-fake' };
     const result = calculateTolerance(sampleProfile({ thcUseDaysLast30: userValue(31) }), otherPolicy, C0);
     assert.equal(result.policyVersion, 'tolerance-v2-fake');
   });

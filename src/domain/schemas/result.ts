@@ -27,7 +27,9 @@ export type DriverCode =
   | 'dabbing_route_use'
   | 'baseline_tolerance_likely_low';
 
-export type LimitationCode = 'heuristic_frequency_intensity_v1';
+export type LimitationCode =
+  | 'heuristic_frequency_intensity_v1'
+  | 'heuristic_duration_target_within_range_v2';
 
 export type WithdrawalAnchorCode = 'onset' | 'common_peak' | 'substantial_improvement' | 'sleep_disturbance';
 

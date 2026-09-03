@@ -5,7 +5,7 @@
 // anchor as upcoming / current / past. The UI renders these engine-supplied
 // positions and must not recalculate them.
 
-import type { WithdrawalAnchor } from '../policies/tolerance-policy-v1.ts';
+import type { WithdrawalAnchor } from '../policies/tolerance-policy-v2.ts';
 import type { WithdrawalAnchorState, WithdrawalDisplay } from '../schemas/result.ts';
 import { MILLIS_PER_HOUR, type Instant } from '../schemas/time.ts';
 import { abstinenceDayAt } from '../breaks/break-time.ts';

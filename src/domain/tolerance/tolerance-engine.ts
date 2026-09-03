@@ -1,13 +1,20 @@
-// Pure v1 Tolerance Engine (CALCULATOR_SPEC section 7).
+// Pure v2 Tolerance Engine (CALCULATOR_SPEC section 7).
 //
 // Deterministic: equal raw input, policy and calculation time produce
 // structurally equal results. The engine validates and normalises its input,
 // routes by goal/breakRequested, selects the base band, applies the single
-// frequency/intensity override, derives the previous-break history insight
-// (7.7) and attaches the elapsed withdrawal display (7.8), then emits the v1
-// result contract. Withdrawal and history never change the range or target.
+// frequency/intensity override, selects the preferred planning target inside
+// the range (product heuristic, never a duration-to-days formula), derives
+// the previous-break history insight (7.7) and attaches the elapsed
+// withdrawal display (7.8), then emits the v2 result contract. Withdrawal and
+// history never change the range or target.
 
-import { assessIntensity, selectBaseBand, type TolerancePolicyV1 } from '../policies/tolerance-policy-v1.ts';
+import {
+  assessIntensity,
+  selectBaseBand,
+  selectPreferredTargetDays,
+  type TolerancePolicyV2,
+} from '../policies/tolerance-policy-v2.ts';
 import type { UseProfileInput } from '../schemas/profile.ts';
 import type { DriverCode, LimitationCode, ToleranceResult, WithdrawalDisplay } from '../schemas/result.ts';
 import type { Instant } from '../schemas/time.ts';
@@ -34,13 +41,13 @@ function emptyResult(kind: ToleranceResult['kind'], policyVersion: string, calcu
 }
 
 /**
- * Runs the v1 Tolerance Engine decision procedure (spec 7.5) on a raw use
+ * Runs the v2 Tolerance Engine decision procedure (spec 7.5) on a raw use
  * profile. `calculationTime` is the explicit reference instant used for both
  * validation and the result.
  */
 export function calculateTolerance(
   input: UseProfileInput,
-  policy: TolerancePolicyV1,
+  policy: TolerancePolicyV2,
   calculationTime: Instant,
 ): ToleranceResult {
   const outcome = validateAndNormalizeProfile(input, calculationTime);
@@ -93,13 +100,26 @@ export function calculateTolerance(
     ? policy.intensityRule.recommendedRangeDays
     : band.recommendedRangeDays;
 
+  // Spec 7.3/7.5 step 7: deterministic preferred-target selection inside the
+  // selected evidence range. How long the current pattern has been typical
+  // chooses the lower anchor (recently established) or the upper anchor
+  // (established or missing). The target is a planning choice; the range is
+  // the evidence-conservative output and is never widened by duration.
+  const preferredTargetDays = selectPreferredTargetDays(
+    recommendedRangeDays,
+    profile.currentPatternDuration.value,
+  );
+
   const drivers: DriverCode[] = [band.driver, ...intensity.drivers];
-  const limitations: LimitationCode[] = intensity.applies ? [policy.intensityRule.limitation] : [];
+  const limitations: LimitationCode[] = [
+    ...(intensity.applies ? [policy.intensityRule.limitation] : []),
+    ...(preferredTargetDays < recommendedRangeDays.max ? [policy.targetRule.limitation] : []),
+  ];
 
   return {
     kind: 'tolerance_result',
     recommendedRangeDays,
-    preferredTargetDays: recommendedRangeDays.max,
+    preferredTargetDays,
     recommendationStatus: policy.recommendationStatus,
     evidenceConfidence: policy.evidenceConfidence,
     personalisationConfidence: policy.personalisationConfidence,
@@ -118,7 +138,7 @@ export function calculateTolerance(
 function withdrawalForProfile(
   lastUseAt: Instant | null,
   calculationTime: Instant,
-  policy: TolerancePolicyV1,
+  policy: TolerancePolicyV2,
 ): WithdrawalDisplay | null {
   return lastUseAt !== null
     ? computeWithdrawalDisplay(lastUseAt, calculationTime, policy.withdrawalAnchors)

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TOLERANCE_POLICY_V1 } from '../../src/domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 import type { UseProfileInput } from '../../src/domain/schemas/profile.ts';
@@ -28,45 +28,69 @@ describe('golden tolerance fixtures (boundaries, intensity override, goal routin
 
   it('freezes a fixed calculation time across every case', () => {
     for (const golden of fixture.cases) {
-      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       assert.equal(result.calculatedAt, fixture.calculatedAtMs, golden.name);
     }
   });
 
   it('reproduces the frozen expected result for every golden case', () => {
     for (const golden of fixture.cases) {
-      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       assert.deepEqual(result, golden.expected, golden.name);
     }
   });
 
   it('is deterministic across repeated runs with identical inputs', () => {
     for (const golden of fixture.cases) {
-      const a = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
-      const b = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const a = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
+      const b = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       assert.deepEqual(a, b, golden.name);
     }
   });
 
   it('enforces the tolerance_result invariants on every golden range', () => {
     for (const golden of fixture.cases) {
-      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       if (result.kind !== 'tolerance_result') continue;
-      assert.equal(result.preferredTargetDays, result.recommendedRangeDays?.max, golden.name);
+      const range = result.recommendedRangeDays;
+      assert.ok(range !== null, golden.name);
+      // Spec invariant 7: the preferred target is a deterministic planning
+      // choice inside the selected range (an endpoint anchor), never outside
+      // it and never above 28. It no longer always equals the range maximum.
+      assert.ok(
+        result.preferredTargetDays === range.min || result.preferredTargetDays === range.max,
+        `${golden.name} target must be an anchor of the selected range`,
+      );
       assert.ok(result.preferredTargetDays !== null && result.preferredTargetDays <= 28, golden.name);
       assert.equal(result.evidenceConfidence, 'low', golden.name);
       assert.equal(result.personalisationConfidence, 'low', golden.name);
       assert.equal(result.recommendationStatus, 'heuristic', golden.name);
       assert.equal(result.uncertaintySummaryCode, 'broad_heuristic_individual_response_varies', golden.name);
-      assert.equal(result.policyVersion, 'tolerance-v1', golden.name);
+      assert.equal(result.policyVersion, 'tolerance-v2', golden.name);
       // Withdrawal is attached to every range result (spec 7.5 step 12).
       assert.ok(result.withdrawal !== null && result.withdrawal.breakDay >= 1, golden.name);
     }
   });
 
+  it('lets duration move the target between the anchors but never the range', () => {
+    const recent = fixture.cases.find((c) => c.name === 'use_days_27_recent_under_1_month_lower_target');
+    const established = fixture.cases.find((c) => c.name === 'use_days_27_long_established_upper_target');
+    assert.ok(recent !== undefined && established !== undefined);
+    const recentResult = calculateTolerance(recent.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
+    const establishedResult = calculateTolerance(
+      established.profile,
+      TOLERANCE_POLICY_V2,
+      toInstant(fixture.calculatedAtMs),
+    );
+    assert.deepEqual(recentResult.recommendedRangeDays, establishedResult.recommendedRangeDays);
+    assert.notEqual(recentResult.preferredTargetDays, establishedResult.preferredTargetDays);
+    assert.equal(recentResult.preferredTargetDays, recentResult.recommendedRangeDays?.min);
+    assert.equal(establishedResult.preferredTargetDays, establishedResult.recommendedRangeDays?.max);
+  });
+
   it('never lets history mutate a golden range or target', () => {
     for (const golden of fixture.cases) {
-      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       if (result.kind !== 'tolerance_result') continue;
       assert.deepEqual(result.historyInsight, golden.expected.historyInsight, golden.name);
       assert.equal(result.recommendedRangeDays?.min, golden.expected.recommendedRangeDays?.min, golden.name);
@@ -78,7 +102,7 @@ describe('golden tolerance fixtures (boundaries, intensity override, goal routin
   it('never emits a forbidden scientific claim in any golden result', () => {
     const forbiddenKeys = ['detoxed', 'resetPercent', 'individualHalfLifeDays', 'guaranteedNegativeDate'];
     for (const golden of fixture.cases) {
-      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V1, toInstant(fixture.calculatedAtMs));
+      const result = calculateTolerance(golden.profile, TOLERANCE_POLICY_V2, toInstant(fixture.calculatedAtMs));
       assert.ok(result.recommendedRangeDays === null || result.recommendedRangeDays.max <= 28, golden.name);
       for (const key of forbiddenKeys) {
         assert.ok(!(key in result), `${golden.name} must not expose ${key}`);

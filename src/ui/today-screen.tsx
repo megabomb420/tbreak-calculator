@@ -389,7 +389,7 @@ function ToleranceSummary(props: TodayScreenProps) {
     <article className="today-plan-card" data-testid="state-profile-no-break">
       <p className="eyebrow">{PROFILE_NO_BREAK.eyebrow}</p>
       <h2 className="hero-range compact">{`${view.rangeDays.min}–${view.rangeDays.max} days`}</h2>
-      <p className="meta">{planForTarget(view.preferredTargetDays)}</p>
+      <p className="meta">{planForTarget(view.preferredTargetDays, view.rangeDays)}</p>
       <RangeBand min={view.rangeDays.min} max={view.rangeDays.max} preferred={view.preferredTargetDays} />
       <button type="button" className="cta-primary" data-testid="today-start-break" onClick={props.onStartBreak}>
         {PROFILE_NO_BREAK.startThisBreak}

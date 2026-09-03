@@ -29,9 +29,25 @@ describe('§14 message-code template layer', () => {
     );
   });
 
+  it('fills target-rationale placeholders from the immutable range and target', () => {
+    assert.equal(
+      renderMessageCode('preferred_target_recent_lower_end', { min: 21, max: 28, target: 21 }),
+      'Your current pattern is recent, so the planner selects 21 days — the lower end of the same 21–28 day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+    );
+    assert.equal(
+      renderMessageCode('preferred_target_established_upper_end', { min: 2, max: 7, target: 7 }),
+      'This current pattern has been established for a while, so the planner selects 7 days — the upper end of the same 2–7 day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+    );
+    assert.equal(
+      renderMessageCode('pattern_duration_context_only'),
+      'How long this pattern has lasted is useful context. It does not change the recommended day range.',
+    );
+  });
+
   it('returns null for an unknown code instead of inventing copy', () => {
     assert.equal(renderMessageCode('not_a_real_code'), null);
     assert.equal(renderMessageCode('heuristic_frequency_intensity_v1'), null);
+    assert.equal(renderMessageCode('heuristic_duration_target_within_range_v2'), null);
   });
 
   it('does not emit prohibited scientific claims', () => {

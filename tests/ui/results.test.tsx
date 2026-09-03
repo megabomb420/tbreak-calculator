@@ -40,22 +40,25 @@ describe('result screens from engine output', () => {
     const result = screen.getByTestId('result-screen');
     expect(result.getAttribute('data-kind')).toBe('tolerance_result');
     expect(screen.getByRole('heading', { name: recommendedBreakTitle(7, 14) })).toBeTruthy();
-    expect(result.textContent ?? '').toMatch(/Plan for 14 days/);
+    // 10 use days + "1–6 months" is a recently established regular pattern:
+    // the planner targets the lower anchor (7) of the same 7–14 range.
+    expect(result.textContent ?? '').toMatch(/Plan for 7 days/);
+    expect(result.textContent ?? '').toMatch(/the lower end of your range/);
     expect(result.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
     expect(result.textContent ?? '').not.toMatch(/100%/);
     expect(result.textContent ?? '').not.toMatch(/reset complete/i);
     expect(screen.getByTestId('break-outlook')).toBeTruthy();
     expect(screen.getByTestId('outlook-day-strip')).toBeTruthy();
-    expect(screen.getByTestId('outlook-day-14')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-day-15')).toBeNull();
+    expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-8')).toBeNull();
     expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
-    expect(result.textContent ?? '').toMatch(/does not change the recommended day range/);
+    expect(result.textContent ?? '').toMatch(/lower end of the same 7–14 day evidence range/);
     expect(screen.getByTestId('cb1-note')).toBeTruthy();
   });
 
-  it('shows exactly Days 1–7 for infrequent use', () => {
-    const rare = createMemoryStorage();
-    renderApp(rare);
+  it('shows exactly Days 1–2 for a recent infrequent pattern and Days 1–7 for a long-established one', () => {
+    const rareStorage = createMemoryStorage();
+    const rare = renderApp(rareStorage);
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '2' } });
@@ -64,10 +67,28 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /Less than 1 month/ }));
+    // Recent pattern: lower anchor of the 2–7 evidence range.
+    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('2');
+    expect(screen.getByTestId('outlook-day-2')).toBeTruthy();
+    expect(screen.queryByTestId('outlook-day-3')).toBeNull();
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/weeks rather than years/);
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/lower end/);
+    rare.unmount();
+
+    // Same infrequent frequency, long-established: upper anchor of 2–7.
+    renderApp(createMemoryStorage());
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    flow = screen.getByTestId('questionnaire-flow');
+    fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
+    fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /5\+ years/ }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
     expect(screen.getByTestId('outlook-day-7')).toBeTruthy();
     expect(screen.queryByTestId('outlook-day-8')).toBeNull();
-    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/weeks rather than years/);
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/upper end of the same 2–7 day evidence range/);
   });
 
   it('shows exactly Days 1–28 for daily use', () => {

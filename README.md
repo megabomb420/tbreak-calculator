@@ -4,12 +4,7 @@ Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
 no runtime AI in v1.
 
-Version **0.6.0** — current-pattern duration question plus a full Day 1 →
-planning-target break outlook, reused on Result, Today, and Plan Detail.
-Duration is contextual only: it does not change recommended ranges. The
-old “First weeks” result block is replaced by the outlook. Engines, bands,
-golden fixtures, History/IndexedDB, Interval, and the iOS 26 viewport-fill
-contract from 0.4.2/0.5.0 are unchanged.
+Version **0.7.0** — `currentPatternDuration` is no longer decorative. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged, evidence-supported recommended range (recently established patterns target the lower end; established or missing ones the upper end). Recommended ranges, engines' bands, History/IndexedDB, Interval, and the iOS 26 viewport-fill contract are unchanged; there is still no duration-to-days formula. Old historical results stay frozen.
 
 Live PWA: https://megabomb420.github.io/tbreak-calculator/
 
@@ -45,22 +40,32 @@ npm run typecheck
 `npm test` runs the Node domain/application suite (incl. golden fixtures) and
 the UI component tests.
 
-## Capabilities (0.6.0)
+## Capabilities (0.7.0)
 
 - Questionnaire (goals, branching, resume) and deterministic result screens
   with the §14 template layer, nominal-THC sheet, detection-only flow.
 - **Q6 current-pattern duration:** “How long has this level of THC use been
   typical for you?” — five product UX bands, asked after last use when
   use-days ≥ 1 and on abstinence. Skipped for 0 days, reduction-no-break,
-  and detection. Q4/Q5 still only appear at ≥16 use-days.
-- **Why this result** names frequency, sessions, concentrate/dabbing, and
-  how long the current pattern has been typical. Duration copy always says
-  it does not change the recommended day range.
+  and detection. Q4/Q5 still only appear at ≥16 use-days (below that they
+  change neither the range nor the target).
+- **Planning target inside the range:** duration now picks the anchor —
+  recently established (under 1 month / 1–6 months) → the lower end of the
+  recommended range (e.g. 21 days of 21–28); established (6+ months) or
+  missing legacy duration → the upper end (28 days). The recommended range
+  itself never moves, and duration is never a days-added formula. This is a
+  labelled product heuristic, not a reset prediction.
+- **Why this result** names frequency, sessions, concentrate/dabbing, how
+  long the current pattern has been typical, and — when duration moved the
+  target — which end of the range the planner chose and why. A short
+  planning-context note says which answers shaped the target without claiming
+  higher scientific certainty.
 - **Your break outlook:** every planned day from Day 1 through the
-  7 / 14 / 21 / 28 target is inspectable before Start this break (day-chip
+  2 / 7 / 14 / 21 / 28 target is inspectable before Start this break (day-chip
   strip + inspector, not 28 giant cards). Overlapping evidence windows are
   preserved. Result previews the journey; Today shows only now; Plan Detail
-  shows the running journey. Same BreakOutlookV1 source.
+  shows the running journey. Same BreakOutlookV1 source (content
+  break-outlook-v2).
 - **Reduction plan:** user-defined weekly limits persist on device and show on
   Today. "See your break range" stays a secondary cross-sell, not the only action.
 - **Break start sheet**: Start now or pick a date (today + 14 days) and a

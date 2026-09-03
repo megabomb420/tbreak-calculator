@@ -1,17 +1,29 @@
-// Static versioned v1 tolerance policy (ARCHITECTURE section 5.1,
-// CALCULATOR_SPEC sections 7.2-7.3, 7.8).
+// Static versioned v2 tolerance policy (ARCHITECTURE section 5.1,
+// CALCULATOR_SPEC sections 7.2-7.3, 7.5, 7.8).
 //
-// This module owns every numeric boundary and code the v1 Tolerance Engine
+// This module owns every numeric boundary and code the v2 Tolerance Engine
 // may emit: the 30-day use-frequency bands, the single frequent-use
-// intensity override, the withdrawal anchors, uniform low/low confidence,
-// the uncertainty summary code, and the driver/limitation message codes. A
-// scientific or product rule change here requires a new policy version and
-// new golden fixtures.
+// intensity override, the within-range preferred-target heuristic, the
+// withdrawal anchors, uniform low/low confidence, the uncertainty summary
+// code, and the driver/limitation message codes. A scientific or product
+// rule change here requires a new policy version and new golden fixtures.
+//
+// tolerance-v2 vs tolerance-v1: the broad evidence-supported ranges and the
+// frequency/intensity override are unchanged. What is new is the deterministic
+// preferred-target selection inside the selected range: how long the *current*
+// pattern has been typical now moves `preferredTargetDays` to the lower or
+// upper anchor of the same range. That choice is a labelled product heuristic,
+// never a duration-to-days formula or a biological reset claim.
 
-import type { ProductKind, Route } from '../schemas/enums.ts';
-import type { DriverCode, LimitationCode, RecommendedRangeDays, WithdrawalAnchorCode } from '../schemas/result.ts';
+import type { CurrentPatternDurationBand, ProductKind, Route } from '../schemas/enums.ts';
+import type {
+  DriverCode,
+  LimitationCode,
+  RecommendedRangeDays,
+  WithdrawalAnchorCode,
+} from '../schemas/result.ts';
 
-export const TOLERANCE_POLICY_VERSION = 'tolerance-v1';
+export const TOLERANCE_POLICY_VERSION = 'tolerance-v2';
 
 export interface ToleranceBaseBand {
   readonly minUseDays: number;
@@ -22,6 +34,7 @@ export interface ToleranceBaseBand {
 
 // Source anchors mapped to product heuristics (CALCULATOR_SPEC 7.3). The
 // 26-30 row is the near-daily/daily profile; the frequent-use row is 16-25.
+// The ranges themselves are unchanged from tolerance-v1.
 export const TOLERANCE_BASE_BANDS: readonly ToleranceBaseBand[] = [
   { minUseDays: 1, maxUseDays: 3, recommendedRangeDays: { min: 2, max: 7 }, driver: 'very_infrequent_use' },
   { minUseDays: 4, maxUseDays: 15, recommendedRangeDays: { min: 7, max: 14 }, driver: 'regular_nondaily_use' },
@@ -75,10 +88,57 @@ export const TOLERANCE_INTENSITY_RULE: ToleranceIntensityRule = {
   limitation: 'heuristic_frequency_intensity_v1',
 };
 
-export interface TolerancePolicyV1 {
+/**
+ * Preferred-target heuristic (CALCULATOR_SPEC 7.3, product heuristic
+ * `heuristic_duration_target_within_range_v2`). `preferredTargetDays` is a
+ * planning choice inside the already-selected evidence range. It never widens,
+ * narrows, or moves that range, and it never exceeds the range's upper anchor.
+ *
+ * Deterministic mapping of the current-pattern-duration bands to an anchor:
+ *
+ * - `under_1_month` and `1_to_6_months` (recently established) -> lower anchor
+ *   of the range (the "lower point" of the same broad evidence range);
+ * - `6_to_24_months`, `2_to_5_years`, `5_plus_years` -> upper anchor;
+ * - missing (legacy profile) -> upper anchor, exactly the tolerance-v1
+ *   default, so a legacy recalculation never invents a new default.
+ *
+ * These are product UX tiers over the collected duration bands, not medical
+ * cut-points and not a duration-to-days equation ("5 years = +7 days" is not
+ * implemented and stays prohibited).
+ */
+export const RECENT_PATTERN_DURATION_BANDS: readonly CurrentPatternDurationBand[] = [
+  'under_1_month',
+  '1_to_6_months',
+];
+
+export interface ToleranceTargetRule {
+  readonly limitation: LimitationCode;
+  readonly recentPatternBands: readonly CurrentPatternDurationBand[];
+}
+
+export const TOLERANCE_TARGET_RULE: ToleranceTargetRule = {
+  limitation: 'heuristic_duration_target_within_range_v2',
+  recentPatternBands: RECENT_PATTERN_DURATION_BANDS,
+};
+
+/**
+ * Selects the deterministic planning target inside a selected range. Pure and
+ * policy-independent so callers never depend on module initialisation order.
+ */
+export function selectPreferredTargetDays(
+  range: RecommendedRangeDays,
+  duration: CurrentPatternDurationBand | null,
+): number {
+  return duration !== null && RECENT_PATTERN_DURATION_BANDS.includes(duration)
+    ? range.min
+    : range.max;
+}
+
+export interface TolerancePolicyV2 {
   readonly id: string;
   readonly baseBands: readonly ToleranceBaseBand[];
   readonly intensityRule: ToleranceIntensityRule;
+  readonly targetRule: ToleranceTargetRule;
   readonly withdrawalAnchors: readonly WithdrawalAnchor[];
   readonly evidenceConfidence: 'low';
   readonly personalisationConfidence: 'low';
@@ -87,10 +147,11 @@ export interface TolerancePolicyV1 {
   readonly baselineLowDriver: DriverCode;
 }
 
-export const TOLERANCE_POLICY_V1: TolerancePolicyV1 = {
+export const TOLERANCE_POLICY_V2: TolerancePolicyV2 = {
   id: TOLERANCE_POLICY_VERSION,
   baseBands: TOLERANCE_BASE_BANDS,
   intensityRule: TOLERANCE_INTENSITY_RULE,
+  targetRule: TOLERANCE_TARGET_RULE,
   withdrawalAnchors: TOLERANCE_WITHDRAWAL_ANCHORS,
   evidenceConfidence: 'low',
   personalisationConfidence: 'low',
@@ -101,7 +162,7 @@ export const TOLERANCE_POLICY_V1: TolerancePolicyV1 = {
 
 /** Selects the base band for a use-day count in 1..30, or undefined at 0. */
 export function selectBaseBand(
-  policy: TolerancePolicyV1,
+  policy: TolerancePolicyV2,
   useDays: number,
 ): ToleranceBaseBand | undefined {
   return policy.baseBands.find((band) => useDays >= band.minUseDays && useDays <= band.maxUseDays);
@@ -116,7 +177,7 @@ export interface IntensityAssessment {
 /** Applies the 7.3 override predicate. It only ever fires at >= 16 use days;
  * below that, isolate concentrate/dabbing use is not treated as heavy. */
 export function assessIntensity(
-  policy: TolerancePolicyV1,
+  policy: TolerancePolicyV2,
   useDays: number,
   sessionsPerUseDay: number | null,
   products: readonly ProductKind[],

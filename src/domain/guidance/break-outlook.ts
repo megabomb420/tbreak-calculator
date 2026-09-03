@@ -1,16 +1,17 @@
-// BreakOutlookV1 — deterministic per-day guidance from Day 1 through the
-// planning target. Result, Today, and Plan Detail all read this module.
+// BreakOutlookV1 architecture — deterministic per-day guidance from Day 1
+// through the planning target (content version break-outlook-v2). Result,
+// Today, and Plan Detail all read this module.
 //
 // Authoritative research source:
 //   "THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA"
 //
 // Windows overlap on purpose. This layer does not invent exclusive
 // day-specific biology, recovery percentages, or a duration-to-days formula.
-// Numeric ranges stay in the Tolerance Engine / tolerance-v1 policy.
+// Numeric ranges stay in the Tolerance Engine / tolerance-v2 policy.
 
 import type { CurrentPatternDurationBand, ProductKind, Route } from '../schemas/enums.ts';
 import type { UseProfileInput } from '../schemas/profile.ts';
-import { assessIntensity, TOLERANCE_POLICY_V1 } from '../policies/tolerance-policy-v1.ts';
+import { assessIntensity, TOLERANCE_POLICY_V2 } from '../policies/tolerance-policy-v2.ts';
 import {
   milestonesForDay,
   primaryWindowForDay,
@@ -21,7 +22,7 @@ import {
   type WithdrawalWindowId,
 } from './evidence-guidance-v1.ts';
 
-export const BREAK_OUTLOOK_VERSION = 'break-outlook-v1' as const;
+export const BREAK_OUTLOOK_VERSION = 'break-outlook-v2' as const;
 
 export type ExposureTone = 'lighter' | 'typical' | 'heavier';
 
@@ -98,7 +99,7 @@ export function exposureTone(context: ExposureContext): ExposureTone {
     context.products.includes('concentrate') || context.routes.includes('dabbing');
   const intensity =
     days !== null
-      ? assessIntensity(TOLERANCE_POLICY_V1, days, context.sessionsPerUseDay, context.products, context.routes)
+      ? assessIntensity(TOLERANCE_POLICY_V2, days, context.sessionsPerUseDay, context.products, context.routes)
           .applies
       : false;
 
@@ -116,6 +117,11 @@ export function personalisationNote(context: ExposureContext, tone: ExposureTone
     return 'A lighter or infrequent pattern is less often associated with severe withdrawal. You may notice little. How long this pattern has lasted is useful context and does not change the recommended day range.';
   }
   if (tone === 'heavier') {
+    const recent =
+      context.currentPatternDuration === 'under_1_month' || context.currentPatternDuration === '1_to_6_months';
+    if (recent) {
+      return 'A high-frequency or high-intensity pattern can make stronger withdrawal or longer sleep disturbance more plausible, even when the pattern is recent. This is not a personal prediction, and it does not change the recommended day range.';
+    }
     return 'A frequent, multiple-session, concentrate, or long-established pattern can make stronger withdrawal or longer sleep disturbance more plausible. This is not a personal prediction, and it does not change the recommended day range.';
   }
   if (context.currentPatternDuration === '2_to_5_years' || context.currentPatternDuration === '5_plus_years') {

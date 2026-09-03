@@ -57,6 +57,8 @@ export interface ToleranceResultView {
   readonly rangeDays: RecommendedRangeDays;
   readonly preferredTargetDays: number;
   readonly uncertainty: string;
+  /** Plain-language profile-completeness context (never a confidence %). */
+  readonly contextNote: string | null;
   readonly drivers: readonly string[];
   readonly history: string | null;
   readonly withdrawal: WithdrawalView | null;
@@ -174,7 +176,8 @@ export function presentToleranceResult(result: ToleranceResult, profile: UseProf
     rangeDays: result.recommendedRangeDays,
     preferredTargetDays: result.preferredTargetDays,
     uncertainty: renderMessageCode(result.uncertaintySummaryCode ?? '') ?? '',
-    drivers: presentDrivers(result.drivers, profile),
+    contextNote: personalisationContextLine(profile),
+    drivers: presentDrivers(result.drivers, profile, result.recommendedRangeDays, result.preferredTargetDays),
     history: presentHistory(result.historyInsight),
     withdrawal: presentWithdrawal(result.withdrawal),
     outlook: presentOutlookForProfile({
@@ -229,21 +232,81 @@ function statusLabel(status: WithdrawalAnchorStatus | null): WithdrawalStopView[
   return null;
 }
 
-function presentDrivers(engineDrivers: readonly string[], profile: UseProfileInput): readonly string[] {
+function presentDrivers(
+  engineDrivers: readonly string[],
+  profile: UseProfileInput,
+  rangeDays: RecommendedRangeDays,
+  preferredTargetDays: number,
+): readonly string[] {
   const fromEngine = engineDrivers
     .map((code) => renderMessageCode(code))
     .filter((line): line is string => line !== null);
-  const durationCodes = durationDriverCodes(profile);
-  const fromDuration = durationCodes
-    .map((code) => renderMessageCode(code))
-    .filter((line): line is string => line !== null);
-  return [...fromEngine, ...fromDuration];
+  const band = profile.currentPatternDuration?.value ?? null;
+  const lines: string[] = [...fromEngine];
+  if (band !== null) {
+    const bandLine = renderMessageCode(`current_pattern_${band}`);
+    if (bandLine !== null) lines.push(bandLine);
+  }
+  const rationale = targetRationaleCode(rangeDays, preferredTargetDays, band);
+  if (rationale !== null) {
+    const rendered = renderMessageCode(rationale, {
+      min: rangeDays.min,
+      max: rangeDays.max,
+      target: preferredTargetDays,
+    });
+    if (rendered !== null) lines.push(rendered);
+  }
+  return lines;
 }
 
-function durationDriverCodes(profile: UseProfileInput): readonly string[] {
-  const band = profile.currentPatternDuration?.value;
-  if (band === null || band === undefined) return [];
-  return [`current_pattern_${band}`, 'current_pattern_duration_contextual_only'];
+type TargetRationaleCode =
+  | 'preferred_target_recent_lower_end'
+  | 'preferred_target_established_upper_end'
+  | 'pattern_duration_context_only';
+
+/**
+ * Deterministic rationale for the stored planning target, derived from the
+ * immutable range/target plus the stored duration band at display time. This
+ * stays truthful for frozen historical records: a record whose stored target
+ * sits at the lower anchor of its range can only have been produced by the v2
+ * recent-pattern rule, and one whose target sits at the upper anchor with a
+ * recent band predates that rule (duration was contextual only then).
+ */
+function targetRationaleCode(
+  rangeDays: RecommendedRangeDays,
+  preferredTargetDays: number,
+  band: CurrentPatternDurationBand | null,
+): TargetRationaleCode | null {
+  if (band === null) return null;
+  const recent = band === 'under_1_month' || band === '1_to_6_months';
+  if (preferredTargetDays === rangeDays.min && recent) {
+    return 'preferred_target_recent_lower_end';
+  }
+  if (preferredTargetDays === rangeDays.max) {
+    return recent ? 'pattern_duration_context_only' : 'preferred_target_established_upper_end';
+  }
+  return null;
+}
+
+/**
+ * Profile-completeness context (UX_SPEC 9.1): distinguishes how much of the
+ * individual pattern was collected without inventing a statistical confidence.
+ * Evidence confidence stays uniformly low; more answers add planning context
+ * for the target choice, not scientific certainty.
+ */
+function personalisationContextLine(profile: UseProfileInput): string | null {
+  const hasDuration = profile.currentPatternDuration?.value != null;
+  const hasIntensityContext =
+    (profile.sessionsPerUseDay?.value ?? null) !== null ||
+    profile.products.length > 0 ||
+    profile.routes.length > 0;
+  if (hasDuration && hasIntensityContext) {
+    return 'Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. Fuller context can shape the planning target inside the range — it does not raise scientific certainty.';
+  }
+  if (hasDuration) {
+    return 'Planning context: use frequency and how long the current pattern has lasted. That context can shape the planning target inside the range — it does not raise scientific certainty.';
+  }
+  return null;
 }
 
 function presentHistory(insight: HistoryInsight | null): string | null {

@@ -11,7 +11,7 @@ import { plannedTargetDate } from '../../domain/breaks/break-attempt.ts';
 import { abstinenceDayAt } from '../../domain/breaks/break-time.ts';
 import type { AbstinenceTrack } from '../../domain/breaks/abstinence-track.ts';
 import { computeWithdrawalDisplay } from '../../domain/tolerance/withdrawal.ts';
-import { TOLERANCE_POLICY_V1 } from '../../domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2 } from '../../domain/policies/tolerance-policy-v2.ts';
 import { phaseFocusCopy, phaseKeyForDay, presentWithdrawal, type PlanPhaseKey } from './result-presentation.ts';
 import type { WithdrawalView } from './result-presentation.ts';
 
@@ -70,7 +70,7 @@ export function activeBreakView(attempt: BreakAttempt, now: Instant): ActiveBrea
     pastTarget: day > attempt.targetDurationDays,
     phase: phaseKeyForDay(day),
     phaseCopy: phaseFocusCopy(day),
-    withdrawal: presentWithdrawal(computeWithdrawalDisplay(anchor, now, TOLERANCE_POLICY_V1.withdrawalAnchors)),
+    withdrawal: presentWithdrawal(computeWithdrawalDisplay(anchor, now, TOLERANCE_POLICY_V2.withdrawalAnchors)),
   };
 }
 

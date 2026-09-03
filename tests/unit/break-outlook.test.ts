@@ -10,7 +10,7 @@ import {
 } from '../../src/domain/guidance/break-outlook.ts';
 import { presentBreakOutlook } from '../../src/application/presentation/break-outlook.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
-import { TOLERANCE_POLICY_V1 } from '../../src/domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
 import { sampleProfile, C0 } from '../helpers.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
@@ -133,7 +133,7 @@ describe('break outlook span', () => {
 
   it('derives outlook for a legacy profile with no duration without rewriting numeric results', () => {
     const profile = sampleProfile();
-    const result = calculateTolerance(profile, TOLERANCE_POLICY_V1, C0);
+    const result = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
     const outlook = deriveBreakOutlook({
       targetDays: result.preferredTargetDays,
       openEnded: false,

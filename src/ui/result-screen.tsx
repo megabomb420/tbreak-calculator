@@ -167,13 +167,18 @@ function ResultBody({
                 <span className="hero-unit">days</span>
               </span>
             </h2>
-            <p className="meta">{planForTarget(view.preferredTargetDays)}</p>
+            <p className="meta">{planForTarget(view.preferredTargetDays, view.rangeDays)}</p>
             <RangeBand
               min={view.rangeDays.min}
               max={view.rangeDays.max}
               preferred={view.preferredTargetDays}
             />
             <p className="body">{view.uncertainty}</p>
+            {view.contextNote !== null ? (
+              <p className="meta" data-testid="planning-context">
+                {view.contextNote}
+              </p>
+            ) : null}
           </header>
           <section className="result-section">
             <h3 className="card-title">{RESULT.whyHeading}</h3>

@@ -13,7 +13,16 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   current_pattern_6_to_24_months: 'This current pattern has been typical for about 1–2 years',
   current_pattern_2_to_5_years: 'This current pattern has been typical for a few years',
   current_pattern_5_plus_years: 'This current pattern has been typical for many years',
-  current_pattern_duration_contextual_only:
+  // Duration moved the planning target inside the range (tolerance-v2 product
+  // heuristic). The range itself is unchanged; the target is a planning choice,
+  // not a biological reset date. `pattern_duration_context_only` only appears
+  // on frozen historical records produced before the v2 target rule, where the
+  // stored target is the top of the range and duration was contextual only.
+  preferred_target_recent_lower_end:
+    'Your current pattern is recent, so the planner selects {target} days — the lower end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+  preferred_target_established_upper_end:
+    'This current pattern has been established for a while, so the planner selects {target} days — the upper end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+  pattern_duration_context_only:
     'How long this pattern has lasted is useful context. It does not change the recommended day range.',
   broad_heuristic_individual_response_varies:
     'Limited certainty: this is a broad planning heuristic, and individual response varies.',
@@ -46,10 +55,18 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
 export interface MessageVars {
   readonly short?: number;
   readonly long?: number;
+  readonly min?: number;
+  readonly max?: number;
+  readonly target?: number;
 }
 
 export function renderMessageCode(code: string, vars: MessageVars = {}): string | null {
   const template = MESSAGE_TEMPLATES[code];
   if (template === undefined) return null;
-  return template.replace('{long}', String(vars.long ?? '')).replace('{short}', String(vars.short ?? ''));
+  return template
+    .replace('{long}', String(vars.long ?? ''))
+    .replace('{short}', String(vars.short ?? ''))
+    .replace('{min}', String(vars.min ?? ''))
+    .replace('{max}', String(vars.max ?? ''))
+    .replace('{target}', String(vars.target ?? ''));
 }

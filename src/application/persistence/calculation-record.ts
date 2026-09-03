@@ -9,11 +9,11 @@ import type { StorageAdapter } from '../../infrastructure/storage/storage-adapte
 import type { DetectionResult, ToleranceResult } from '../../domain/schemas/result.ts';
 import type { Instant } from '../../domain/schemas/time.ts';
 import { DETECTION_POLICY_VERSION } from '../../domain/policies/detection-copy-policy-v1.ts';
-import { TOLERANCE_POLICY_VERSION } from '../../domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_VERSION } from '../../domain/policies/tolerance-policy-v2.ts';
 import { PROFILE_SCHEMA_VERSION } from '../../domain/schemas/profile.ts';
 import { explainDetection } from '../../domain/detection/detection-engine.ts';
 import { DETECTION_COPY_POLICY_V1 } from '../../domain/policies/detection-copy-policy-v1.ts';
-import { TOLERANCE_POLICY_V1 } from '../../domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2 } from '../../domain/policies/tolerance-policy-v2.ts';
 import { calculateTolerance } from '../../domain/tolerance/tolerance-engine.ts';
 import { computeWithdrawalDisplay } from '../../domain/tolerance/withdrawal.ts';
 import { parseSubmittedTimestamp } from '../../domain/schemas/time.ts';
@@ -196,14 +196,14 @@ export function freezeCalculation(
       result: { type: 'detection', value },
     };
   }
-  let value = calculateTolerance(snapshot.profile, TOLERANCE_POLICY_V1, calculatedAt);
+  let value = calculateTolerance(snapshot.profile, TOLERANCE_POLICY_V2, calculatedAt);
   if (value.kind === 'not_applicable' && value.withdrawal === null) {
     const lastUse = snapshot.profile.lastUseAt.value;
     const instant = lastUse === null ? null : parseSubmittedTimestamp(lastUse);
     if (instant !== null) {
       value = {
         ...value,
-        withdrawal: computeWithdrawalDisplay(instant, calculatedAt, TOLERANCE_POLICY_V1.withdrawalAnchors),
+        withdrawal: computeWithdrawalDisplay(instant, calculatedAt, TOLERANCE_POLICY_V2.withdrawalAnchors),
       };
     }
   }

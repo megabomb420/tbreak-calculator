@@ -6,7 +6,7 @@ import {
 } from '../../src/application/presentation/result-presentation.ts';
 import { calculateTolerance } from '../../src/domain/tolerance/tolerance-engine.ts';
 import { explainDetection } from '../../src/domain/detection/detection-engine.ts';
-import { TOLERANCE_POLICY_V1 } from '../../src/domain/policies/tolerance-policy-v1.ts';
+import { TOLERANCE_POLICY_V2 } from '../../src/domain/policies/tolerance-policy-v2.ts';
 import { DETECTION_COPY_POLICY_V1 } from '../../src/domain/policies/detection-copy-policy-v1.ts';
 import { sampleProfile, userValue, absent, C0 } from '../helpers.ts';
 import type { UseProfileInput } from '../../src/domain/schemas/profile.ts';
@@ -16,7 +16,7 @@ import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
 describe('result presentation copies engine values and does not recompute them', () => {
   it('passes the engine range and target through verbatim, even when they match no band', () => {
     const forged: ToleranceResult = {
-      ...calculateTolerance(sampleProfile({ thcUseDaysLast30: userValue(10) }), TOLERANCE_POLICY_V1, C0),
+      ...calculateTolerance(sampleProfile({ thcUseDaysLast30: userValue(10) }), TOLERANCE_POLICY_V2, C0),
       recommendedRangeDays: { min: 3, max: 5 },
       preferredTargetDays: 5,
     };
@@ -35,7 +35,7 @@ describe('result presentation copies engine values and does not recompute them',
       products: [],
       routes: [],
     });
-    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V1, C0);
+    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
     const view = presentToleranceResult(engine, profile);
     assert.equal(engine.kind, 'tolerance_result');
     assert.equal(view.kind, 'tolerance_result');
@@ -57,7 +57,7 @@ describe('result presentation copies engine values and does not recompute them',
       products: [],
       routes: [],
     });
-    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V1, C0);
+    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
     const view = presentToleranceResult(engine, profile);
     assert.equal(engine.kind, 'planning_only');
     assert.equal(view.kind, 'abstinence_planning');
@@ -76,7 +76,7 @@ describe('result presentation copies engine values and does not recompute them',
       routes: [],
       lastUseAt: absent(),
     });
-    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V1, C0);
+    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
     const view = presentToleranceResult(engine, profile);
     assert.equal(engine.kind, 'planning_only');
     assert.equal(engine.withdrawal, null);
@@ -94,7 +94,7 @@ describe('result presentation copies engine values and does not recompute them',
       routes: [],
       lastUseAt: absent(),
     });
-    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V1, C0);
+    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V2, C0);
     const view = presentToleranceResult(engine, profile);
     assert.equal(engine.kind, 'not_applicable');
     assert.equal(view.kind, 'baseline_low');

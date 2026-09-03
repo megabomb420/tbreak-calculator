@@ -67,8 +67,13 @@ export function recommendedBreakTitle(min: number, max: number): string {
   return `Your recommended break: ${min}–${max} days`;
 }
 
-export function planForTarget(days: number): string {
-  return `Plan for ${days} days — the top of your range.`;
+export function planForTarget(days: number, range?: { readonly min: number; readonly max: number }): string {
+  const base = `Plan for ${days} days`;
+  if (range !== undefined) {
+    if (days >= range.max) return `${base} — the top of your range.`;
+    if (days <= range.min) return `${base} — the lower end of your range.`;
+  }
+  return `${base}.`;
 }
 
 export function aroundDay(breakDay: number): string {

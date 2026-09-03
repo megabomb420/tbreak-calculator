@@ -7,6 +7,8 @@ Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, hi
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
+Revision note (0.7.0): `currentPatternDuration` (Q6) is no longer contextual only. Under the tolerance-v2 target rule it selects the **planning target** inside the unchanged evidence range — a recently established pattern (less than 1 month / 1–6 months) targets the lower anchor of the range, an established pattern (6–24 months / 2–5 years / 5+ years) or a missing legacy duration targets the upper anchor. The recommended range never moves, and duration is still never a days-added formula. “Why this result” explains the target choice; the outlook and the planning-context note follow. Questionnaire routing is unchanged from 0.6.0.
+
 Revision note (0.6.0): added `currentPatternDuration` (Q6) as exposure context only — it never changes recommended ranges — and replaced the shallow “first weeks” result block with a full Day 1 → planning-target break outlook reused by Result, Today, and Plan Detail. Q4/Q5 remain restricted to use-days ≥ 16.
 
 Revision note (0.1.0 → 0.2.0): reordered the questionnaire to ask use frequency before last use; removed previous-break and post-break questions from the initial calculation; restricted sessions/products/routes to the band where they can change the result; simplified the result hierarchy to one hero range; collapsed the shell to two tabs; redesigned the check-in around the THC-use question first; removed the elapsed-time line from detection results; pinned down clock semantics and the abstinence tracking state.
@@ -33,7 +35,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 1. **Fast to an answer.** The shortest useful path is 2 questions; the longest is 7. A daily user reaches a recommended range in under a minute.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
-4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes Why-this-result copy and break-outlook wording; it MUST NOT change the numeric range.
+4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v2 anchor rule), Why-this-result copy, and break-outlook wording; it MUST NOT change the recommended range itself.
 5. **Honest by construction.** No reset percentage, detox percentage, guaranteed clean date, exact universal reset date, or numeric detection window — these outputs do not exist in the engines and MUST NOT be simulated visually (no fake "receptor recovery" rings).
 6. **Tolerance ≠ detection ≠ impairment.** Separate goals, separate flows, separate result cards, visually and verbally separated.
 7. **Estimates are first-class.** Users remember "about two weeks ago," not ISO timestamps. Every date question offers coarse, human answers; the UI converts them to the required timestamp shape.
@@ -247,7 +249,7 @@ Field mapping:
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
 
-Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v1`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. Q6 is asked more broadly because duration is exposure context for Why-this-result and outlook wording; it still MUST NOT change `recommendedRangeDays` or `preferredTargetDays`. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
+Q4/Q5 are restricted to the 16–30 band because the intensity rule reads them only there (`tolerance-policy-v2`: `minUseDays = 16`). Asking a weekends-only user about concentrates cannot change their 7–14 result. Q6 is asked more broadly because duration is exposure context for Why-this-result, outlook wording, and — under tolerance-v2 — the planning-target anchor inside the range; it still MUST NOT change `recommendedRangeDays`. A 4–15 use-day profile that also involves concentrate or multi-session use is not routed to Q4/Q5: below 16 use-days neither the range rule nor the target heuristic reads those fields, and the rationale explains the frequency band as the driver. **This flow depends on validation change D1 (§15)** — current validation rule 7 requires these fields for *any* positive use-days.
 
 ### 5.2 Step-by-step copy deck
 
@@ -307,7 +309,7 @@ Presets set the slider (which can then be fine-tuned). No "I don't know" — the
 >
 > Helper: "Not how long you have ever used — how long this current pattern has been your usual level."
 
-This is **not** lifetime cannabis use. The answer changes Why-this-result copy and break-outlook wording. It MUST NOT add, subtract, or multiply recommended days.
+This is **not** lifetime cannabis use. The answer changes the planning target inside the recommended range (a recently established pattern — under 1 month / 1–6 months — targets the lower end; a pattern established for 6+ months, or a legacy profile with no answer, targets the upper end), plus Why-this-result copy and break-outlook wording. It MUST NOT add, subtract, or multiply days as a formula, and it MUST NOT move the recommended range itself.
 
 **Q4 — Sessions** (chips `1` `2` `3+`; stepper escape hatch up to 9)
 
@@ -474,18 +476,21 @@ Single reading screen, cards in scroll order:
    > Plan for **28 days** — the top of your range.
    > Limited certainty: this is a broad planning heuristic, and individual response varies.
 
-   The range is the only hero element. The planning target is a supporting line in meta type, not a second headline ("strong target" as a separate tier implied a precision the engine doesn't have). The uncertainty sentence is exactly one plain line — no badges, no meters (spec §7.6).
+   The range is the only hero element. The planning target is a supporting line in meta type, not a second headline ("strong target" as a separate tier implied a precision the engine doesn't have). The target line is position-aware: when the engine's deterministic target sits at the lower anchor of the range (a recently established pattern), it reads "Plan for **21 days** — the lower end of your range."; at the upper anchor it reads "Plan for **28 days** — the top of your range." The uncertainty sentence is exactly one plain line — no badges, no meters (spec §7.6). A short **planning-context** meta line (spec §7.6) may follow it, e.g. "Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. Fuller context can shape the planning target inside the range — it does not raise scientific certainty." Never a percentage.
 
-2. **Why this result** — driver list mapped via §14, e.g.:
-   > - You use THC most days
+2. **Why this result** — driver list mapped via §14, e.g. for a long-established daily user:
+   > - You use THC daily or nearly daily
    > - Multiple sessions per day
-   > - Concentrates in the mix
    > - This current pattern has been typical for many years
-   > - How long this pattern has lasted is useful context. It does not change the recommended day range.
+   > - This current pattern has been established for a while, so the planner selects 28 days — the upper end of the same 21–28 day evidence range. That is a planning choice inside the range, not a predicted reset date.
 
-   Duration drivers are presentation-layer only. They MUST NOT appear as Tolerance Engine driver codes.
+   And for a recently established daily user (same 21–28 range, lower target):
+   > - This current pattern is recent — weeks rather than years
+   > - Your current pattern is recent, so the planner selects 21 days — the lower end of the same 21–28 day evidence range. That is a planning choice inside the range, not a predicted reset date.
 
-3. **Your break outlook** — full Day 1 → planning-target roadmap from BreakOutlookV1 (§9.7). A 7 / 14 / 21 / 28 day target shows exactly those days. Every planned day is inspectable before **Start this break**. Not 28 giant cards: a compact day-chip strip plus one inspector, plus overlapping evidence windows.
+   Duration drivers and target-rationale lines are presentation-layer only. They MUST NOT appear as Tolerance Engine driver codes. A frozen pre-0.7.0 record whose stored target is the top of the range keeps the historical contextual line ("How long this pattern has lasted is useful context. It does not change the recommended day range.") and never claims a lower-end choice.
+
+3. **Your break outlook** — full Day 1 → planning-target roadmap from BreakOutlookV1 (§9.7). A 2 / 7 / 14 / 21 / 28 day target shows exactly those days. Every planned day is inspectable before **Start this break**. Not 28 giant cards: a compact day-chip strip plus one inspector, plus overlapping evidence windows.
 
 4. **Useful withdrawal / tolerance context** — expandable CB1 / concept note from EvidenceGuidanceV1. Approximately four weeks is a research reference in chronic users, not a personal reset day.
 
@@ -548,13 +553,13 @@ Prohibited: X–Y windows, pass/fail, "clean date", cutoff numbers, jurisdiction
 
 Shared by Result, Today, and Plan Detail. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation.
 
-- Finite planning target: exactly Days 1–`preferredTargetDays` (7 / 14 / 21 / 28). No duplicates, no gaps, no extra days.
+- Finite planning target: exactly Days 1–`preferredTargetDays` (2 / 7 / 14 / 21 / 28). No duplicates, no gaps, no extra days.
 - Open-ended tracking: Days 1–28 inspectable plus the After-28 window. No finish percentage at day 28.
 - Mobile-first: horizontal day-chip strip + one inspector (stage, may notice, can help, what matters, what usually comes next) + overlapping window roadmap. Not a wall of cards.
 - Result previews the whole journey before Start this break. Today shows only the current day. Plan Detail shows past / current / future days, windows, milestones, and stored check-in ratings on the days they belong to.
 - A day may sit in more than one evidence window. Overlaps MUST stay visible.
 - Lighter / infrequent / recently established copy MUST NOT present severe withdrawal as expected. Frequent / multiple-session / concentrate / long-established copy MAY say stronger withdrawal or longer sleep disturbance may be more plausible. Always: may / can / commonly / more plausible.
-- Duration is contextual only. Outlook tone may change; the numeric range must not.
+- Duration may change the planning target inside the range (tolerance-v2 anchor rule) and the outlook tone; the recommended range must not.
 - Check-in observations are factual stored ratings. Null ≠ 0. Missing days are skipped. No recovery score.
 - Historical calculation records stay frozen. Outlook is derived at display from the stored profile and stored target.
 
@@ -743,6 +748,14 @@ One template module maps engine codes to the copy quoted here. Components MUST N
 | `multiple_sessions_per_day` | Multiple sessions per day |
 | `concentrate_product_use` | Concentrates in the mix |
 | `dabbing_route_use` | Dabbing in the mix |
+| `current_pattern_under_1_month` | This current pattern is recent — weeks rather than years |
+| `current_pattern_1_to_6_months` | This current pattern has been typical for a few months |
+| `current_pattern_6_to_24_months` | This current pattern has been typical for about 1–2 years |
+| `current_pattern_2_to_5_years` | This current pattern has been typical for a few years |
+| `current_pattern_5_plus_years` | This current pattern has been typical for many years |
+| `preferred_target_recent_lower_end` | Your current pattern is recent, so the planner selects {target} days — the lower end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date. |
+| `preferred_target_established_upper_end` | This current pattern has been established for a while, so the planner selects {target} days — the upper end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date. |
+| `pattern_duration_context_only` | How long this pattern has lasted is useful context. It does not change the recommended day range. |
 | `baseline_tolerance_likely_low` | Your baseline tolerance is likely already low |
 | `broad_heuristic_individual_response_varies` | Limited certainty: this is a broad planning heuristic, and individual response varies. |
 | `history_directional_observation` | In your previous breaks, you reported a higher tolerance reduction at {long} days than at {short} days. |
@@ -777,6 +790,7 @@ A code missing from this table renders nothing and is logged locally — never f
 - **R6 — Detection elapsed-time implication.** Resolved: the personal "days since last use" line is removed from detection results (§9.6).
 - **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–7 steps. Q6 is the only added contextual question; Q4/Q5 stay at ≥16.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
+- **R9 — "The duration question feels pointless" (0.7.0).** Resolved by the tolerance-v2 target rule (`CALCULATOR_SPEC.md` §7.3): duration now selects the planning target anchor inside the unchanged evidence range — recently established (`under_1_month`, `1_to_6_months`) → lower anchor; established (≥ 6 months) or legacy-missing → upper anchor. The range never moves and no duration-to-days formula exists. UX wiring: position-aware "Plan for N days" line, duration + target-rationale driver bullets, and a deterministic planning-context note (never a percentage). Q6 routing is unchanged.
 
 ### 15.2 Requires domain/spec change (small, explicit — must land before the affected UI ships)
 

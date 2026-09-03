@@ -1,5 +1,5 @@
 {
-  "description": "Golden fixtures for the v1 Tolerance Engine (CALCULATOR_SPEC 7). Reference instant C0 = 2026-08-20T00:00:00.000Z (epoch ms 1787184000000). Equality is structural domain equality: kind, range, target, confidence, uncertainty code, drivers, limitations, policyVersion, calculatedAt.",
+  "description": "Golden fixtures for the v2 Tolerance Engine (CALCULATOR_SPEC 7). Reference instant C0 = 2026-08-20T00:00:00.000Z (epoch ms 1787184000000). Equality is structural domain equality: kind, range, target, confidence, uncertainty code, drivers, limitations, policyVersion, calculatedAt.",
   "calculatedAtMs": 1787184000000,
   "lastUseIso": "2026-08-19T22:00:00Z",
   "cases": [
@@ -28,7 +28,7 @@
         "drivers": ["baseline_tolerance_likely_low"],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -66,7 +66,7 @@
         },
         "drivers": ["very_infrequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -104,7 +104,7 @@
         },
         "drivers": ["very_infrequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -142,7 +142,7 @@
         },
         "drivers": ["regular_nondaily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -180,7 +180,7 @@
         },
         "drivers": ["regular_nondaily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -218,7 +218,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -256,7 +256,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -294,7 +294,7 @@
         },
         "drivers": ["near_daily_or_daily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -332,7 +332,7 @@
         },
         "drivers": ["near_daily_or_daily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -370,7 +370,7 @@
         },
         "drivers": ["frequent_use", "multiple_sessions_per_day"],
         "limitations": ["heuristic_frequency_intensity_v1"],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -408,7 +408,7 @@
         },
         "drivers": ["frequent_use", "concentrate_product_use"],
         "limitations": ["heuristic_frequency_intensity_v1"],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -446,7 +446,7 @@
         },
         "drivers": ["frequent_use", "dabbing_route_use"],
         "limitations": ["heuristic_frequency_intensity_v1"],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -484,7 +484,7 @@
         },
         "drivers": ["regular_nondaily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -522,7 +522,7 @@
         },
         "drivers": ["frequent_use", "multiple_sessions_per_day", "concentrate_product_use", "dabbing_route_use"],
         "limitations": ["heuristic_frequency_intensity_v1"],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -551,7 +551,7 @@
         "drivers": [],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -589,7 +589,7 @@
         "drivers": [],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -618,7 +618,7 @@
         "drivers": [],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -656,7 +656,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -694,7 +694,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -754,7 +754,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -814,7 +814,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -871,7 +871,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -928,7 +928,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -974,7 +974,7 @@
         },
         "drivers": ["frequent_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -1012,7 +1012,7 @@
         },
         "drivers": ["regular_nondaily_use"],
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -1050,7 +1050,7 @@
         "drivers": [],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     },
@@ -1079,9 +1079,165 @@
         "drivers": [],
         "historyInsight": null,
         "limitations": [],
-        "policyVersion": "tolerance-v1",
+        "policyVersion": "tolerance-v2",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_27_recent_under_1_month_lower_target",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 27, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "currentPatternDuration": { "value": "under_1_month", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 21,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "historyInsight": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": ["near_daily_or_daily_use"],
+        "limitations": ["heuristic_duration_target_within_range_v2"],
+        "policyVersion": "tolerance-v2",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_27_long_established_upper_target",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 27, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "currentPatternDuration": { "value": "5_plus_years", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 28,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "historyInsight": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": ["near_daily_or_daily_use"],
+        "limitations": [],
+        "policyVersion": "tolerance-v2",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_20_multi_session_recent_lower_target_within_override",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 3, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "currentPatternDuration": { "value": "under_1_month", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 21, "max": 28 },
+        "preferredTargetDays": 21,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "historyInsight": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": ["frequent_use", "multiple_sessions_per_day"],
+        "limitations": ["heuristic_frequency_intensity_v1", "heuristic_duration_target_within_range_v2"],
+        "policyVersion": "tolerance-v2",
+        "calculatedAt": 1787184000000
+      }
+    },
+    {
+      "name": "use_days_20_legacy_missing_duration_keeps_upper_target",
+      "profile": {
+        "goal": "tolerance_reset",
+        "breakRequested": true,
+        "postBreakMode": null,
+        "thcUseDaysLast30": { "value": 20, "provenance": "user_estimate" },
+        "sessionsPerUseDay": { "value": 1, "provenance": "user_estimate" },
+        "products": ["flower"],
+        "routes": ["smoking"],
+        "lastUseAt": { "value": "2026-08-19T22:00:00Z", "provenance": "user_estimate" },
+        "previousBreaks": []
+      },
+      "expected": {
+        "kind": "tolerance_result",
+        "recommendedRangeDays": { "min": 14, "max": 21 },
+        "preferredTargetDays": 21,
+        "recommendationStatus": "heuristic",
+        "evidenceConfidence": "low",
+        "personalisationConfidence": "low",
+        "uncertaintySummaryCode": "broad_heuristic_individual_response_varies",
+        "historyInsight": null,
+        "withdrawal": {
+          "breakDay": 1,
+          "elapsedHours": 2,
+          "anchors": [
+            { "anchor": "onset", "status": "current" },
+            { "anchor": "common_peak", "status": "upcoming" },
+            { "anchor": "substantial_improvement", "status": "upcoming" },
+            { "anchor": "sleep_disturbance", "status": null }
+          ]
+        },
+        "drivers": ["frequent_use"],
+        "limitations": [],
+        "policyVersion": "tolerance-v2",
         "calculatedAt": 1787184000000
       }
     }
+
   ]
 }
