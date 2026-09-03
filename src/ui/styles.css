@@ -2294,3 +2294,119 @@ details.card > summary::-webkit-details-marker {
 
 
 
+
+/* ---------------------------------------------------------------------------
+   Native-feel interaction polish (0.8.1).
+   App-like touch + selection contract. Controls and chrome text are not
+   accidentally selectable; inputs, textareas, selects, editable fields and
+   long educational/evidence copy stay selectable. Focus-visible, pressed and
+   selected states are untouched (see existing :focus-visible / :active and
+   prefers-reduced-motion blocks above). Viewport/iOS 26 contract untouched.
+--------------------------------------------------------------------------- */
+
+/* Remove the Safari tap flash on everything; interaction feedback still comes
+   from the deliberate pressed/selected/focus-visible states. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Interactive controls: no accidental text selection, no iOS long-press web
+   callout, immediate (non-zooming) taps. `touch-action: manipulation` keeps
+   vertical scrolling, sliders and native form interaction intact. */
+button,
+[role='button'],
+summary,
+label,
+.choice-card,
+.chip,
+.tile,
+.stepper-button,
+.stepper-value,
+.text-back,
+.icon-button,
+.tab-button,
+.hold-delete,
+.cta-primary,
+.cta-secondary {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Clickable cards used as controls (Today / plan / history cards are rendered
+   as <button> elements and are covered above; keep the interaction contract
+   for any non-button clickable surface). */
+.settings-entry {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Chrome text: headings, labels, progress elements and numeric readouts are
+   UI, not copy. Long-form body/evidence copy below is left selectable. */
+.title,
+.screen-title,
+.card-title,
+.flow-title,
+.choice-title,
+.settings-entry-title,
+.micro-label,
+.eyebrow,
+.hero-range,
+.hero-num,
+.hero-unit,
+.slider-readout,
+.slider-unit,
+.slider-ticks,
+.progress-track,
+.progress-fill,
+.sheet-handle,
+.today-note {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Icons / decorative SVG and images must not behave like draggable web
+   assets. Actual controls keep their native behaviour. */
+svg,
+img,
+.brand-mark {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+svg {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Copy / edit exceptions: native cursor + selection inside editable fields,
+   and explicitly selectable content. Long educational/evidence paragraphs
+   (`.body`, `.meta`, `.banner`, `.driver-item`, `.settings-steps`,
+   evidence panels) keep their default selectable behaviour — no rule above
+   disables them. */
+input,
+textarea,
+select,
+[contenteditable='true'],
+[contenteditable=''],
+.copyable,
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Overscroll: the app shell owns scrolling; inner panes should not trigger
+   webpage-style pull-to-refresh, rubber-band the page chrome, or drift
+   horizontally. Vertical scrolling inside each pane is preserved. */
+.app-main,
+.questionnaire-body,
+.modal-sheet {
+  overscroll-behavior-y: contain;
+}
+
+.outlook-strip {
+  overscroll-behavior-x: contain;
+}

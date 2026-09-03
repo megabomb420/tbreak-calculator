@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.8.0** (tolerance-v3 exposure classification + active reduction tracking — on top of 0.7.2's PWA polish, 0.7.1's duration-first questionnaire, and 0.7.0's duration-aware planning target under tolerance policy `tolerance-v2`)
+- App version: **0.8.1** (interaction polish: app-like touch/selection behaviour on top of 0.8.0's tolerance-v3 exposure classification + active reduction tracking)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.8.0 revision note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; 0.8.0 note covers tone from 4 use-days up)
 - `ARCHITECTURE.md`
@@ -42,7 +42,8 @@ tolerance-v3 + active-reduction revision.
 | 0.7.0 duration-aware planning target (tolerance-v2) | done |
 | 0.7.1 duration asked first on consuming routes + compact Q6 rows | done |
 | 0.7.2 Settings update state + gear icon + grouped Break Outlook | **done** |
-| 0.8.0 tolerance-v3 exposure classification + active reduction tracking (reduction-records-v2) | **done** |
+| 0.8.0 tolerance-v3 exposure classification + active reduction tracking (reduction-records-v2) | done |
+| 0.8.1 interaction polish (selection/touch/callout/tap/overscroll) | **done** |
 | 6. Runtime AI / DeepSeek | **not started** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
@@ -50,6 +51,35 @@ result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
 
 ## What 0.8.0 added
+## What 0.8.1 added (interaction polish; no science/engine change)
+
+App-like touch and selection behaviour lives in one appended block at the end
+of `src/ui/styles.css` ("Native-feel interaction polish (0.8.1)"). The contract:
+
+- **Selection:** app controls (buttons, `[role=button]`, summaries, labels,
+  chips, tiles, steppers, tab buttons, choice cards, hold-delete, text-back)
+  and chrome text (headings, eyebrows, micro-labels, hero/slider/progress
+  readouts) are `user-select: none`. Editable fields (`input`, `textarea`,
+  `select`, `[contenteditable]`) and long educational/evidence paragraphs
+  (`.body`, `.meta`, `.banner`, `.driver-item`, evidence panels) remain fully
+  selectable — no blanket lock on body text.
+- **Touch:** `-webkit-touch-callout: none` on controls (no iOS long-press web
+  callouts), `-webkit-tap-highlight-color: transparent` (flash removed while
+  pressed / `:focus-visible` / selected states stay), and
+  `touch-action: manipulation` on tappables (no accidental double-tap zoom).
+- **Overscroll:** scroll panes (`.app-main`, `.questionnaire-body`,
+  `.modal-sheet`) use `overscroll-behavior-y: contain`; the outlook strip uses
+  `overscroll-behavior-x: contain`. Vertical scrolling inside every pane is
+  untouched; no scroll traps, no `position: fixed` chrome.
+- **Drag:** icons/`svg`/`img` get `-webkit-user-drag: none`.
+- **Accessibility kept:** strong `:focus-visible`, pressed/selected states and
+  the `prefers-reduced-motion` block are untouched; the iOS 26 viewport
+  contract (`--app-height`, `--chrome-bleed`, `viewport-fit=cover`,
+  `viewport.ts`) is unchanged; no UA sniffing or device pixel tables.
+- Regression guards: `tests/ui/interaction-polish.test.tsx` asserts the CSS
+  contract (controls non-selectable, exceptions selectable, no blanket lock,
+  feedback states present) plus a shell smoke test.
+
 
 Versions: tolerance policy **`tolerance-v3`** (engine for all new
 calculations); reduction tracker schema **`reduction-records-v2`** (legacy
