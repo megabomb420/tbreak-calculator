@@ -10,7 +10,13 @@ export function applyViewportCss(style: CSSStyleDeclaration, css: ViewportCss): 
     return;
   }
   style.setProperty('--app-height', `${css.appHeightPx}px`);
-  style.setProperty('--chrome-bleed', `${css.chromeBleedPx}px`);
+  // Writing 0px would override the stylesheet fallback and clip the
+  // in-flow tab bar / overlay footers on home-indicator phones.
+  if (css.chromeBleedPx === 0) {
+    style.removeProperty('--chrome-bleed');
+  } else {
+    style.setProperty('--chrome-bleed', `${css.chromeBleedPx}px`);
+  }
 }
 
 export function readViewportBox(win: Window): ViewportBox {
