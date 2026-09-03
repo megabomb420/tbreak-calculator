@@ -738,7 +738,7 @@ Everything in v1: questionnaire, both engines, nominal THC, results, plans, chec
 - No offline banners, no reconnect toasts — nothing v1 does needs a network.
 - One neutral Settings line: "Fully offline-capable · all data on this device".
 - Service worker caches shell + static policies/templates at install; updates download passively and apply on next launch, never mid-flow.
-- A future AI interpretation layer degrades as an absent optional card ("Enhanced explanation unavailable offline") with the deterministic result untouched. Its placeholder MUST NOT be built in v1.
+- Runtime generative AI is intentionally out of scope: result explanations, Recovery Intelligence, evidence summaries, and personal-history insights are deterministic and local. There is no "enhanced explanation" card placeholder and no runtime inference dependency.
 
 ### 13.3 Storage failure modes
 
@@ -838,6 +838,6 @@ Domain prerequisites from §15.2 must land first (D1–D5 are small validation/s
 3. **Result screens** (§9) from real engine output + the §14 template layer.
 4. **Break loop** (§8, §10): break-start sheet, plan detail, use-first check-in, interruption — wired to the break state machine.
 5. **History + contextual flows** (§7), settings, deletion, offline hardening (§13).
-6. **Runtime AI / DeepSeek** — not started. Companion copy stays deterministic local EvidenceGuidanceV1 + BreakOutlookV1.
+6. **(Cancelled) Runtime AI / DeepSeek** — intentionally not part of the product architecture. No runtime generative AI step exists; explanations and companion copy stay deterministic and local.
 
 Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output, plan, history record, or result-explanation.

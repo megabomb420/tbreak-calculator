@@ -2,7 +2,16 @@
 
 Mobile-first, local-first PWA for THC tolerance-break planning. Deterministic
 engines own every scientific/numeric output. No account, no network science,
-no runtime AI in v1.
+and no runtime generative AI: every explanation, Recovery Outlook and personal
+summary is deterministic and computed on-device.
+
+Version **0.9.1** — deterministic-only architecture cleanup. Runtime generative
+AI is intentionally out of scope and was removed from the product roadmap:
+no LLM, no provider inference layer, no AI consent flow, no runtime prompt
+infrastructure, and no "enhanced explanation" card. Explanations, Recovery
+Intelligence, evidence summaries and personal-history insights remain
+deterministic, local, offline and derived from reviewed structured data. No
+scientific values, engine behaviour, persistence or UI changed.
 
 Version **0.9.0** — Recovery Intelligence. Tolerance results now separate **your plan** from an evidence-informed **“Predicted reset”** view: a segmented control keeps the plan-first reading screen and adds a deterministic, non-engine recovery outlook (`tolerance-recovery-outlook-v1`) built on the four-week biological reference from PET studies — explicitly “not a 100% reset” — with TIME milestones, your own scored break history kept separate from research, optional recorded check-in facts, and a “Why four weeks?” evidence disclosure. A completed break can be scored once after you actually return to THC (0–10 tolerance reduction, never a reset percentage), and the active-reduction card can show a deterministic “Your tracked pattern has moved.” trajectory when a newer frozen result exists. No engine numbers changed; no percentages or exact reset dates were added.
 

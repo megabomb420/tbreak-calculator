@@ -54,7 +54,7 @@ V1 includes:
 - break planning, check-ins, history, and qualitative post-break planning; and
 - local persistence.
 
-V1 does not include numeric detection windows, cutoff or laboratory interpretation, jurisdiction rules, runtime AI, telemetry, or export/import. Their future extension boundaries are defined without building their machinery now.
+V1 does not include numeric detection windows, cutoff or laboratory interpretation, jurisdiction rules, runtime generative AI (section 11), telemetry, or export/import. Only the deferred non-AI items receive future extension boundaries; none of their machinery is built now.
 
 ## 4. Types and provenance
 
@@ -581,13 +581,11 @@ Active reduction tracking is a behavioural precommitment product, not a medical 
 
 Break attempts themselves retain manual review and pause at any time: they have no automatic repeated-exceedance threshold — the automatic review rule above lives in reduction tracking only.
 
-## 11. Future DeepSeek interpretation boundary
+## 11. Runtime generative AI decision
 
-Runtime AI is deferred beyond v1. DeepSeek V4 Flash Thinking remains the source-preferred future interpretation model, using standard/medium reasoning by default, but the eventual model identifier MUST be configurable rather than embedded in scientific logic.
+Runtime generative AI is intentionally out of scope. This specification defines no runtime model, no model identifier, no provider inference layer, no AI consent or retention requirements, no AI response schema, and no runtime prompt infrastructure. User-facing explanations, Recovery Intelligence, evidence summaries, and personal-history insights are deterministic and derived from reviewed structured data stored or computed locally.
 
-If implemented later, AI may explain deterministic results, prioritise a break plan, interpret relevant history/check-ins, suggest implementation intentions, and explain uncertainty. It MUST NOT invent or change ranges, targets, withdrawal anchors, cutoffs, grades, confidence, half-lives, multipliers, reset percentages, or negative-test dates.
-
-The future feature requires explicit consent, data minimisation, legal/privacy review, and a schema that has no scientific numeric output fields. Only enumerated structured user fields—not numbers found in free text—may be whitelisted for literal repetition. The deterministic application remains complete without AI.
+The deterministic application is complete without any runtime interpretation layer. The coding-agent restriction in section 1 (no coding agent may add a scientific number absent from this specification or a later reviewed evidence rule) remains in force: it governs development tooling, not product runtime.
 
 ## 12. Required invariants and tests
 
@@ -632,7 +630,7 @@ Golden fixtures freeze `calculatedAt`; equality is domain-structural rather than
 - **Repeated plan exceedance — resolved for 0.8.0:** active reduction tracking derives `review_recommended` from two distinct breach days inside the rolling 7-day window and shows the “consider a 3–7 day pause and review” product rule (section 10.1); the state auto-returns to `active` when the breach days age out. Break attempts themselves keep manual review only.
 - **Reduction records — resolved for 0.8.0:** `reduction-records-v2` is the persisted envelope for active reduction plans (statuses `active` / `review_recommended` / `paused` / `ended`, origins `direct` / `post_break`). Legacy `reduction-plan-v1` limit rows stay readable and migrate into a new plan's baseline when a v2 plan starts from them.
 - **Adaptive recalculation — resolved for 0.8.0:** logged use never adds “+N days”. The app re-runs the full tolerance-v3 engine on an observed profile and freezes a NEW `CalculationRecord` (old records immutable); with under 30 days of tracked coverage it asks for a minimal refresh instead of fabricating a 30-day profile.
-- **Architecture scope — resolved:** numeric packs, AI runtime, telemetry, and export/import are deferred.
+- **Architecture scope — resolved:** numeric detection packs, telemetry, and export/import are deferred; runtime generative AI is intentionally removed from scope (section 11) rather than postponed.
 
 ## 14. Remaining blockers and deferred features
 
@@ -649,7 +647,6 @@ These do not block implementation of schemas and pure deterministic engines.
 
 - numeric Detection Engine evidence rules, cutoffs, laboratory strata, controlled test vocabularies, and non-overlap validation;
 - Ireland or any other jurisdiction pack;
-- runtime DeepSeek integration and its legal/privacy review;
 - formal evidence-grading recalibration;
 - cloud sync, telemetry, and export/import;
 - any range or target effect from amount or numeric potency;

@@ -121,7 +121,7 @@ function profileWording(
 
 /**
  * Pure deterministic outlook builder. Consumes only frozen/validated data;
- * never reads a clock, a network or an LLM. Returns null when there is no
+ * never reads a clock, a network or runtime generative AI. Returns null when there is no
  * tolerance result to build on (planning-only / not-applicable / detection).
  */
 export function buildToleranceRecoveryOutlook(input: {

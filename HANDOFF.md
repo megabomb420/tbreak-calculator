@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.9.0** (“Recovery Intelligence”: plan vs predicted-reset separation + post-break outcome capture + reduction trajectory; on top of 0.8.1 interaction polish and 0.8.0’s tolerance-v3 exposure classification + active reduction tracking)
+- App version: **0.9.1** (deterministic-only architecture cleanup: runtime generative AI removed from the roadmap; on top of 0.9.0 Recovery Intelligence, 0.8.1 interaction polish and 0.8.0’s tolerance-v3 exposure classification + active reduction tracking)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; recovery-outlook content version `tolerance-recovery-outlook-v1` in §13; 0.8.0 note covers tone from 4 use-days up)
 - `ARCHITECTURE.md`
@@ -27,7 +27,8 @@ to make UI easier. Do not commit untracked review files.
 UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
-tolerance-v3 + active-reduction revision, and the **0.9.0** Recovery Intelligence revision.
+tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, and the **0.9.1**
+deterministic-only architecture cleanup.
 
 | Step | Status |
 |---|---|
@@ -45,7 +46,7 @@ tolerance-v3 + active-reduction revision, and the **0.9.0** Recovery Intelligenc
 | 0.8.0 tolerance-v3 exposure classification + active reduction tracking (reduction-records-v2) | done |
 | 0.8.1 interaction polish (selection/touch/callout/tap/overscroll) | **done** |
 | 0.9.0 Recovery Intelligence: plan/predicted-reset result, frozen-history outlook, outcome capture, reduction trajectory | done |
-| 6. Runtime AI / DeepSeek | **not started** |
+| 0.9.1 deterministic-only architecture cleanup (runtime generative AI intentionally out of scope) | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
@@ -394,6 +395,31 @@ stays qualitative. The engine withdrawal strip still uses the exclusive
 CALCULATOR_SPEC anchors (1–6 / 7–14 / 15–28); the companion outlook uses the
 PDF’s overlapping windows. That discrepancy is intentional.
 
+## What 0.9.1 added (deterministic-only architecture cleanup)
+
+No feature work. Runtime generative AI is intentionally out of scope and was
+removed as an unfinished next step:
+
+- ARCHITECTURE §12 is now the positive decision ("Runtime generative AI
+  decision") instead of a "Future DeepSeek boundary"; the obsolete provider
+  inference / consent / response-schema / allow-list / fallback extension
+  points were deleted, and no extension point is retained "just in case".
+- CALCULATOR_SPEC §11 is the same decision in calculator terms; the deferred
+  lists no longer name runtime DeepSeek. §1's coding-agent scientific-number
+  restriction remains (it governs development tooling).
+- UX_SPEC §16 step 6 is marked cancelled; the §13.2 "future AI explanation
+  card" placeholder is gone (explanations are deterministic and local).
+- README describes the shipped product as deterministic, local-first,
+  offline-capable, private/on-device and not dependent on runtime generative
+  AI, without anti-AI marketing.
+- App version is 0.9.1. No tolerance-v3, Recovery Outlook, Reduction,
+  Detection, science, persistence/schema, UI, CSS or viewport behaviour
+  changed. `sources/` untouched.
+
+Future implementers must treat runtime generative AI as intentionally not part
+of the product architecture and must not resurrect it from stale source,
+review, or history text.
+
 ## Invariants that still apply
 
 - UI never computes `breakDay`. `abstinenceDayAt` is the only clock.
@@ -422,16 +448,18 @@ PDF’s overlapping windows. That discrepancy is intentional.
 - Golden fixtures are regenerated deliberately, never blindly; old frozen
   calculations are immutable.
 - Product vs route (`vape` ≠ concentrate, `vape` ≠ `vaping`).
+- Runtime generative AI is intentionally out of scope; user-facing explanations, Recovery Intelligence, evidence summaries, and personal-history insights are deterministic and local.
 
 ## What not to do next
 
-- Do not start UX_SPEC §16 step 6 / runtime AI unless explicitly asked.
+- Runtime generative AI is intentionally not part of the product architecture (UX_SPEC §16 step 6 is cancelled). Do not resurrect a runtime AI / DeepSeek step from stale source, spec, review, or handoff text.
 - Do not turn the recovery outlook into a numeric engine: no reset/detox
   percentages, no exact reset date, no personalised biological reset day, and
   no invented reset percentage after day 28 — it stays a deterministic
   presentation layer (`tolerance-recovery-outlook-v1`).
-- Do not add a numeric Detection Engine or a runtime AI interpretation layer
-  yet.
+- Do not add a numeric Detection Engine. Runtime AI stays out of scope by
+  decision, not by deferral: no model layer, no provider inference, no
+  “enhanced explanation” card.
 - Do not add age, sex, BMI, hydration, exercise, liver/kidney, medications, or
   “fast metabolism”.
 - Do not reintroduce a duration × days formula, a “one dab/vape = +N days”

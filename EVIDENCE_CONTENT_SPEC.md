@@ -10,7 +10,7 @@ Numeric engines remain governed by `CALCULATOR_SPEC.md`. This file governs compa
 
 ## 1. Role
 
-`EvidenceGuidanceV1` is a deterministic, versioned, local, offline content layer. It is the only place research-derived companion copy lives. UI selects and renders. There is no runtime LLM, no network science, and no numeric engine read of this layer.
+`EvidenceGuidanceV1` is a deterministic, versioned, local, offline content layer. It is the only place research-derived companion copy lives. UI selects and renders. There is no runtime generative AI, no network science, and no numeric engine read of this layer.
 
 Module: `src/domain/guidance/evidence-guidance-v1.ts`  
 Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v2`; BreakOutlookV1 architecture unchanged)  

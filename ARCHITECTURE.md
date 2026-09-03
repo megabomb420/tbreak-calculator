@@ -11,7 +11,7 @@ Companion specification: `CALCULATOR_SPEC.md`
 
 ## 1. Architecture objective
 
-Build a mobile-first, local-first PWA whose useful v1 behaviour is deterministic and offline-capable. The architecture prevents UI, persistence, or future AI code from inventing scientific outputs.
+Build a mobile-first, local-first PWA whose useful v1 behaviour is deterministic and offline-capable. The architecture prevents UI, persistence, or any non-reviewed code from inventing scientific outputs.
 
 ```text
 branching questionnaire
@@ -22,7 +22,7 @@ branching questionnaire
   -> local persistence
 ```
 
-Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/import are not v1 components.
+Runtime generative AI is intentionally not part of the product architecture (see §12). Numeric detection rules, jurisdiction packs, telemetry, and export/import are not v1 components.
 
 ## 2. V1 component boundary
 
@@ -45,7 +45,6 @@ Runtime AI, numeric detection rules, jurisdiction packs, telemetry, and export/i
 - quantitative Detection Packs and pack-loader/plugin machinery;
 - cutoff, analyte, laboratory, device, or jurisdiction schemas;
 - Ireland-specific rules;
-- runtime DeepSeek integration;
 - telemetry;
 - export/import and cloud sync; and
 - a runtime evidence registry.
@@ -110,7 +109,7 @@ tests/
   ui/
 ```
 
-There is no v1 `deepseek`, `telemetry`, `import-export`, `evidence-registry`, or detection-pack directory.
+There is no v1 `telemetry`, `import-export`, `evidence-registry`, or detection-pack directory.
 
 ## 4. Domain interfaces
 
@@ -363,7 +362,7 @@ Post-break modes remain user-chosen and qualitative. The system records limits t
 
 The PWA shell, static policies, message templates, and local flows are available offline after installation.
 
-V1 makes no scientific network request and includes no AI or remote telemetry. Failure behaviour:
+V1 makes no scientific network request and includes no runtime generative AI and no remote telemetry. Failure behaviour:
 
 - invalid input -> field-level correction, no result;
 - invalid core result -> safe calculation error, no range;
@@ -374,21 +373,17 @@ V1 makes no scientific network request and includes no AI or remote telemetry. F
 
 Before public release, security/privacy review must cover content security policy, dependency/network allow-list, local deletion, logs without notes/use histories, storage claims, and service-worker update behaviour.
 
-## 12. Future DeepSeek boundary
+## 12. Runtime generative AI decision
 
-DeepSeek V4 Flash Thinking remains the preferred future optional interpretation layer from the source context, with standard/medium reasoning as the default. It is not a v1 dependency and its eventual `modelId` is configurable.
+Runtime generative AI is intentionally out of scope. The shipped PWA contains
+no LLM, no model configuration, no provider inference layer, no AI consent
+flow, no response-schema validation, and no runtime prompt infrastructure.
 
-Before runtime AI is enabled, a separate design and legal/privacy review must approve:
-
-- explicit consent and data minimisation;
-- provider retention and transfer terms;
-- a stateless credential proxy where required;
-- a response schema with no scientific numeric output fields;
-- deterministic fact references for ranges and anchors;
-- literal-number allow-listing from enumerated structured fields only, never free text; and
-- complete deterministic fallback.
-
-AI output is interpretation only and can never be promoted into a policy or overwrite a deterministic result.
+User-facing explanations, Recovery Intelligence, evidence summaries, and
+personal-history insights are deterministic and derived from reviewed
+structured data that is stored or computed locally. No extension point is
+retained "just in case"; if the product direction ever changes, that decision
+is revisited explicitly, not assumed through leftover scaffolding.
 
 ## 13. Testing strategy
 
@@ -408,7 +403,7 @@ Generate profiles to prove that prohibited inputs cannot affect ranges, toleranc
 
 Test migrations, local deletion, unavailable storage, offline calculation, policy-version history preservation, keyboard/screen-reader flow, color contrast, touch targets, narrow viewports, reduced motion, and error recovery. Uncertainty must not rely on color alone.
 
-AI contract tests, pack conflict tests, controlled device vocabularies, telemetry tests, and import/export tests are added only when those deferred features enter scope.
+Pack conflict tests, controlled device vocabularies, telemetry tests, and import/export tests are added only when those deferred features enter scope. Runtime generative AI has no contract tests because it is not part of the product architecture (section 12).
 
 ## 14. Versioning and change control
 
@@ -468,5 +463,4 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 
 - numeric detection and its rule infrastructure;
 - Ireland jurisdiction rules;
-- runtime DeepSeek and its legal/privacy approval;
 - telemetry, export/import, cloud sync, formal evidence registry, and confidence recalibration.
