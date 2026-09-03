@@ -6,16 +6,18 @@ export function BreakRoadmap({
   stages,
   selectedId,
   onSelect,
+  compact = false,
 }: {
   readonly stages: readonly RoadmapStageView[];
   readonly selectedId: RoadmapStageView['id'] | null;
   readonly onSelect?: (id: RoadmapStageView['id']) => void;
+  readonly compact?: boolean;
 }) {
   const selected = selectedId === null ? null : windowById(selectedId);
   return (
-    <section className="roadmap" data-testid="break-roadmap">
-      <h3 className="card-title">{GUIDANCE_CHROME.roadmap}</h3>
-      <p className="meta">{GUIDANCE_CHROME.overlap}</p>
+    <section className={compact ? 'roadmap is-compact' : 'roadmap'} data-testid="break-roadmap">
+      <h3 className={compact ? 'guidance-kicker' : 'card-title'}>{GUIDANCE_CHROME.roadmap}</h3>
+      {compact ? null : <p className="meta">{GUIDANCE_CHROME.overlap}</p>}
       <ol className="roadmap-list">
         {stages.map((stage) => (
           <li key={stage.id}>
@@ -40,7 +42,7 @@ export function BreakRoadmap({
           </li>
         ))}
       </ol>
-      {selected !== null ? (
+      {!compact && selected !== null ? (
         <article className="roadmap-detail" data-testid="roadmap-detail" data-window={selected.id}>
           <h4 className="guidance-headline">{selected.headline}</h4>
           <p className="body">{selected.context}</p>
