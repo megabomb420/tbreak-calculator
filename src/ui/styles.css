@@ -3413,23 +3413,15 @@ details.card.guidance-why summary.card-title,
 .plan-detail-inner > .plan-hero,
 .plan-detail-inner > .preparation-card,
 .plan-detail-inner > .plan-post-break,
-.plan-detail-inner > .plan-evidence,
-.plan-detail-inner > .plan-overflow {
+.plan-detail-inner > .plan-reference,
+.plan-detail-inner > .plan-detail-actions {
   padding: var(--space-6) 0;
 }
 
 .plan-detail-inner > .preparation-card,
 .plan-detail-inner > .plan-post-break,
-.plan-detail-inner > .plan-evidence,
-.plan-detail-inner > .plan-overflow {
+.plan-detail-inner > .plan-reference {
   border-top: 1px solid var(--hairline);
-}
-
-/* Neutralise any leftover filled-card surface inside the document. */
-.plan-detail-inner > .preparation-card,
-.plan-detail-inner > .plan-post-break,
-.plan-detail-inner > .plan-evidence,
-.plan-detail-inner > .plan-overflow {
   background: transparent;
   box-shadow: none;
   border-radius: 0;
@@ -3498,13 +3490,20 @@ details.card.guidance-why summary.card-title,
   margin: 0;
 }
 
+/* The extended state note must stay a flat left-rule callout like every
+   other notice; its old tinted fill loses to the one-callout rule. */
+.today-state-note.is-extended {
+  background: transparent;
+  box-shadow: none;
+}
+
 /* --- Support areas: an inline preference line, not a bolted-on card ------- */
 
 .plan-support {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .plan-support-head {
@@ -3516,6 +3515,10 @@ details.card.guidance-why summary.card-title,
 
 .plan-support-head .micro-label {
   margin: 0;
+}
+
+.plan-support-head .text-link {
+  min-height: 32px;
 }
 
 .plan-support .plan-support-line {
@@ -3601,101 +3604,8 @@ details.card.guidance-why summary.card-title,
   box-shadow: none;
 }
 
-/* --- Section headings inside the document -------------------------------- */
-
-.plan-detail-inner .preparation-card > .card-title,
-.plan-detail-inner .plan-post-break > .card-title {
-  margin: 0 0 var(--space-3);
-}
-
-/* Post-break mode picker: quiet rows instead of stacked raised cards. */
-.plan-detail-inner .plan-post-break .choice-card {
-  min-height: 48px;
-  background: transparent;
-  box-shadow: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-}
-
-.plan-detail-inner .plan-post-break .choice-card::before {
-  display: none;
-}
-
-.plan-detail-inner .plan-post-break .choice-card.selected {
-  background: color-mix(in oklab, var(--accent) 8%, transparent);
-  box-shadow: none;
-  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
-}
-
-/* Save changes: a quiet, clearly secondary control. */
-.plan-detail-inner .plan-post-break .plan-save {
-  align-self: flex-start;
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  margin-top: var(--space-4);
-  background: transparent;
-  color: var(--fg-muted);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
-}
-
-.plan-detail-inner .plan-post-break .plan-save:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-/* --- Evidence references: CB1 disclosure + detox link as one quiet group -- */
-
-.plan-detail-inner .plan-evidence {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.plan-detail-inner .plan-evidence details.guidance-why {
-  border: 0;
-  padding: 0;
-}
-
-.plan-detox-link {
-  align-self: flex-start;
-  text-align: left;
-  padding: 0;
-  min-height: 44px;
-}
-
-/* More: the overflow menu is already a hairline disclosure; keep it at the
-   very bottom of the document, visually smallest. */
-.plan-detail-inner > .plan-overflow {
-  padding-top: var(--space-4);
-  padding-bottom: var(--space-1);
-}
-
-.plan-detail-inner .plan-overflow summary {
-  color: var(--fg-muted);
-  font-size: 1rem;
-}
-
-.plan-detail-inner .plan-overflow summary .card-title {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.plan-detail-inner .overflow-actions .text-back {
-  font-size: 15px;
-}
-
-/* --- 0.14.1 refinements from the 430×932 visual QA ------------------------- */
-
-/* The extended state note must stay a flat left-rule callout like every other
-   notice; its old tinted fill loses to the one-callout rule. */
-.today-state-note.is-extended {
-  background: transparent;
-  box-shadow: none;
+.plan-detail-body .roadmap-stage.is-past {
+  opacity: 0.8;
 }
 
 /* The ring carries its own "Day N of M" text and an accessible label; the
@@ -3704,64 +3614,132 @@ details.card.guidance-why summary.card-title,
   display: none;
 }
 
-/* Support preference line: keep the head + areas pairing tight. */
-.plan-support {
-  gap: var(--space-1);
+/* --- Section headings inside the document -------------------------------- */
+
+.plan-detail-inner .preparation-card > .card-title,
+.plan-detail-inner .plan-post-break > .card-title {
+  margin: 0 0 var(--space-3);
 }
 
-.plan-support-head .text-link {
-  min-height: 32px;
+/* Post-break mode picker: one hairline list, no raised cards or boxes. */
+.plan-detail-inner .plan-post-break .choice-list {
+  gap: 0;
 }
 
-/* Past roadmap rows were ghosted below legibility in the reading column. */
-.plan-detail-body .roadmap-stage.is-past {
-  opacity: 0.8;
-}
-
-/* Return principles read as a quiet dot list, matching every other guidance
-   list in the document, instead of full-width raised pills. */
-.plan-detail-inner .plan-post-break .guidance-chips {
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.plan-detail-inner .plan-post-break .guidance-chips .chip {
-  position: relative;
-  min-height: auto;
-  padding: 2px 0 2px var(--space-4);
+.plan-detail-inner .plan-post-break .choice-card {
+  min-height: 52px;
+  padding: var(--space-3) 0;
   background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
   border-radius: 0;
-  font-size: var(--text-base);
-  font-weight: 400;
-  color: var(--fg-muted);
-  text-align: left;
 }
 
-.plan-detail-inner .plan-post-break .guidance-chips .chip::before {
+.plan-detail-inner .plan-post-break .choice-card:last-child {
+  border-bottom: 0;
+}
+
+.plan-detail-inner .plan-post-break .choice-card::before {
+  display: none;
+}
+
+.plan-detail-inner .plan-post-break .choice-card.selected {
+  background: transparent;
+  box-shadow: none;
+}
+
+.plan-detail-inner .plan-post-break .choice-card.selected .choice-title {
+  color: var(--accent-strong);
+}
+
+/* Post-break caution messages read as quiet notes, never boxes. */
+.plan-detail-inner .plan-post-break .post-break-guidance {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-4);
+}
+
+.plan-detail-inner .plan-post-break .post-break-guidance .body {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Return principles read as a quiet dot list like every other guidance list. */
+.plan-detail-inner .plan-post-break .guidance-list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-4);
+}
+
+.plan-detail-inner .plan-post-break .guidance-list li {
+  position: relative;
+  padding-left: var(--space-4);
+  color: var(--fg-muted);
+}
+
+.plan-detail-inner .plan-post-break .guidance-list li::before {
   content: '';
   position: absolute;
   left: 2px;
-  top: 0.72em;
+  top: 0.7em;
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: color-mix(in oklab, var(--accent) 50%, transparent);
 }
 
-/* Detox link matches the small accent text-link voice of Edit support. */
+/* --- Reference: CB1 education + detox claims as one dedicated section ----- */
+
+.plan-reference {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-reference > .micro-label {
+  margin: 0 0 var(--space-1);
+  color: var(--fg-faint);
+}
+
+.plan-reference details.guidance-why {
+  border: 0;
+  padding: 0;
+}
+
+.plan-reference .guidance-why summary {
+  padding-top: var(--space-1);
+}
+
 .plan-detox-link {
+  align-self: flex-start;
   min-height: 32px;
   padding: 0;
 }
 
-/* Tighten the vertical rhythm around the quiet Save control so it does not
-   float in a dead zone before the evidence section. */
-.plan-detail-inner > .plan-post-break {
-  padding-bottom: var(--space-5);
+/* --- Bottom plan actions: quiet rows, no More menu ------------------------ */
+
+.plan-detail-inner > .plan-detail-actions {
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
-.plan-detail-inner .plan-post-break .plan-save {
-  margin-top: var(--space-3);
+.plan-detail-actions .text-back {
+  text-align: left;
+  padding: 0;
+  min-height: 44px;
+  font-size: 15px;
 }

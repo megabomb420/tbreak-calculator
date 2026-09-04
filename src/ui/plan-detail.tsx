@@ -18,7 +18,7 @@ import { activeBreakView, plannedBreakView } from '../application/presentation/p
 import { formatLocalDay } from './format.ts';
 import { PlanRing } from './plan-ring.tsx';
 import { PLAN_DETAIL, PLAN_STATE_NOTES, POST_BREAK_MESSAGES, POST_BREAK_MODE_COPY, POST_BREAK_SETTINGS, POTENCY_STRATEGY_OPTIONS, QUANTITY_STRATEGY_OPTIONS, PLANNED_CARD, GUIDANCE_CHROME } from './break-copy.ts';
-import { BackIcon, CloseIcon, MoreIcon } from './icons.tsx';
+import { BackIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { TodayGuidance } from './today-guidance.tsx';
 import { BreakOutlook } from './break-outlook.tsx';
@@ -58,7 +58,6 @@ export function PlanDetail(props: PlanDetailProps) {
   const active = attempt.status === 'active' ? activeBreakView(attempt, props.now) : null;
   const planned = attempt.status === 'planned' ? plannedBreakView(attempt, props.anchor) : null;
   const [confirm, setConfirm] = useState<'end-early' | 'cancel' | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [showDetox, setShowDetox] = useState(false);
   const exposure = props.profile === null ? null : exposureFromProfile(props.profile);
   const bundle = presentBreakGuidance({
@@ -98,16 +97,6 @@ export function PlanDetail(props: PlanDetailProps) {
           <BackIcon />
         </button>
         <h2 className="flow-title">{attempt.status === 'planned' ? PLANNED_CARD.eyebrow : PLAN_DETAIL.title}</h2>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={PLAN_DETAIL.more}
-          aria-expanded={moreOpen}
-          data-testid="plan-more"
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          <MoreIcon />
-        </button>
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
         <div className="plan-detail-inner">
@@ -128,32 +117,28 @@ export function PlanDetail(props: PlanDetailProps) {
             attempt={attempt}
             onUpdate={(mode, plan) => props.onUpdatePostBreak(attempt.id, mode, plan)}
           />
-          <section className="plan-evidence">
+          <section className="plan-reference">
+            <p className="micro-label">{PLAN_DETAIL.referenceHeading}</p>
             <Cb1Note />
             <button type="button" className="text-link plan-detox-link" data-testid="open-detox-evidence" onClick={() => setShowDetox(true)}>
               {GUIDANCE_CHROME.openDetox}
             </button>
           </section>
-          <details className="plan-overflow" data-testid="plan-overflow" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
-            <summary className="overflow-summary">
-              <span className="card-title">{PLAN_DETAIL.more}</span>
-            </summary>
-            <div className="overflow-actions">
-              {attempt.status === 'planned' ? (
-                <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirm('cancel')}>
-                  {PLAN_DETAIL.cancelPlanTitle}
-                </button>
-              ) : null}
-              {attempt.status === 'active' ? (
-                <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirm('end-early')}>
-                  {PLAN_DETAIL.endEarly}
-                </button>
-              ) : null}
-              <button type="button" className="text-back" data-testid="recalculate-profile" onClick={props.onRecalculate}>
-                {PLAN_DETAIL.recalculate}
+          <section className="plan-detail-actions" aria-label={PLAN_DETAIL.actionsLabel}>
+            {attempt.status === 'planned' ? (
+              <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirm('cancel')}>
+                {PLAN_DETAIL.cancelPlanTitle}
               </button>
-            </div>
-          </details>
+            ) : null}
+            {attempt.status === 'active' ? (
+              <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirm('end-early')}>
+                {PLAN_DETAIL.endEarly}
+              </button>
+            ) : null}
+            <button type="button" className="text-back" data-testid="recalculate-profile" onClick={props.onRecalculate}>
+              {PLAN_DETAIL.recalculate}
+            </button>
+          </section>
         </div>
       </div>
       <footer className="questionnaire-footer">
@@ -306,13 +291,11 @@ function PostBreakCard({
 }) {
   const mode = attempt.postBreakMode;
   const [draft, setDraft] = useState<PostBreakPlan>(() => attempt.postBreakPlan ?? defaultPostBreakPlan(mode ?? 'undecided'));
-  const [savedMode, setSavedMode] = useState<PostBreakMode>(mode ?? draft.mode);
-  const dirty = savedMode !== draft.mode || JSON.stringify(attempt.postBreakPlan) !== JSON.stringify(draft);
 
+  // Every control persists immediately, so there is no separate Save action.
   function persist(next: PostBreakPlan) {
     setDraft(next);
     onUpdate(next.mode, next);
-    setSavedMode(next.mode);
   }
 
   function changeMode(nextMode: PostBreakMode) {
@@ -396,26 +379,12 @@ function PostBreakCard({
         </p>
       ) : null}
       {returnMode ? (
-        <ul className="guidance-chips" data-testid="return-principles">
+        <ul className="guidance-list" data-testid="return-principles">
           {presentPostBreakGuidance(draft).principles.map((line) => (
-            <li key={line} className="chip">
-              {line}
-            </li>
+            <li key={line}>{line}</li>
           ))}
         </ul>
       ) : null}
-      <button
-        type="button"
-        className="plan-save"
-        disabled={!dirty}
-        data-testid="save-post-break"
-        onClick={() => {
-          onUpdate(draft.mode, draft);
-          setSavedMode(draft.mode);
-        }}
-      >
-        Save changes
-      </button>
     </section>
   );
 }

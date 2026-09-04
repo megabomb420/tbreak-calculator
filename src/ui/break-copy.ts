@@ -49,6 +49,8 @@ export const PLAN_DETAIL = {
   postBreakHeading: 'After this break',
   settingsHelper: BREAK_START.helper,
   markComplete: 'Mark complete',
+  referenceHeading: 'Reference',
+  actionsLabel: 'Plan actions',
   more: 'More',
   endEarly: 'End break early',
   recalculate: 'Recalculate profile',

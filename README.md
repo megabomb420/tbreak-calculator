@@ -11,6 +11,12 @@ progress-ring hero with quiet fact rows, an inline support-area line, scannable
 dot-marked guidance, and clearly secondary controls. Presentation only — no
 science, taxonomy, routing, or persistence change.
 
+Version **0.14.2** — Plan Detail follow-up: the redundant Save button and the
+More menu are removed (End break early / Recalculate stay as plain bottom
+rows), the after-this-break controls and notes are flattened to one hairline
+list, and CB1/detox background info sits in one quiet Reference section.
+Presentation only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

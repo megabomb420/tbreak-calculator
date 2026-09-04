@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.14.1** (Plan Detail / "Your break" presentation composition; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.14.2** (Plan Detail follow-up: flattened frames, Reference section, More removed); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, and the **0.14.1** Plan Detail presentation composition.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, and the **0.14.2** Plan Detail follow-up.
 
 | Step | Status |
 |---|---|
@@ -56,10 +56,32 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.13.0 independent multi-select companion personalisation | **done** |
 | 0.14.0 support-area taxonomy refinement (grouped, explicit physical symptoms) | **done** |
 | 0.14.1 Plan Detail / "Your break" presentation composition | **done** |
+| 0.14.2 Plan Detail follow-up (flattened frames, Reference section, More removed) | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.14.2 added (Plan Detail follow-up; no science change)
+
+Same scope as 0.14.1 — presentation only, no behaviour/copy/routing/science
+change beyond the deliberate control removals below.
+
+- **Save changes removed.** The "After this break" controls already persist on
+  every change, so the separate Save button was dead UI; its border-framed
+  block of copy is gone with it.
+- **After-this-break flattened.** The mode picker is one hairline list (no
+  raised cards/boxes); the tolerance caution messages and return principles are
+  quiet dot-marked notes, not framed text.
+- **Dedicated Reference section.** "Tolerance is not a percentage" (CB1
+  education) and "About common detox claims" now live under one quiet
+  `Reference` heading instead of floating between random content.
+- **More menu removed.** End break early / Cancel scheduled break and
+  Recalculate profile are pinned as plain rows at the very bottom of the
+  screen; the More disclosure and its header button are gone.
+- Tests updated in `tests/ui/break-loop.test.tsx` (immediate-persist save,
+  direct end-early); full `npm test` + typecheck + build green; QA captured at
+  430×932.
 
 ## What 0.14.1 added (Plan Detail presentation composition; no science change)
 

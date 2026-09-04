@@ -214,9 +214,8 @@ describe('plan detail', () => {
     expect(screen.getByTestId('target-date')).toBeTruthy();
     expect(screen.getByTestId('phase-focus')).toBeTruthy();
     expect(screen.getByTestId('post-break-card')).toBeTruthy();
-    // Change the mode to reduced regular use and save.
+    // Change the mode to reduced regular use; it persists immediately.
     fireEvent.click(within(detail).getByRole('button', { name: /Regular use, but less than before/ }));
-    fireEvent.click(screen.getByTestId('save-post-break'));
     const attempt = attemptsOf(storage)[0];
     expect(attempt?.postBreakMode).toBe('reduced_regular_use');
     expect(attempt?.postBreakPlan?.mode).toBe('reduced_regular_use');
@@ -242,7 +241,6 @@ describe('plan detail', () => {
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
     fireEvent.click(screen.getByTestId('open-plan-detail'));
-    fireEvent.click(screen.getByTestId('plan-more'));
     fireEvent.click(screen.getByTestId('end-early'));
     fireEvent.click(screen.getByTestId('confirm-action'));
     expect(screen.queryByTestId('plan-detail')).toBeNull();
