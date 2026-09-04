@@ -1,6 +1,6 @@
 {
   "name": "tbreak-calculator",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "Local-first T-Break calculator PWA. Deterministic domain core; browser shell.",

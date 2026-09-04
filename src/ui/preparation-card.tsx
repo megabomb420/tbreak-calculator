@@ -51,18 +51,21 @@ export function PreparationCard({
     <section className="card preparation-card" data-testid="preparation-card">
       <h3 className="card-title">{GUIDANCE_CHROME.triggers}</h3>
       <p className="meta">{GUIDANCE_CHROME.triggersHelper}</p>
-      <div className="chip-row wrap" data-testid="trigger-chips">
-        {TRIGGER_CATALOG_V1.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            className={draft.triggerIds.includes(entry.id) ? 'chip selected' : 'chip'}
-            data-testid={`trigger-${entry.id}`}
-            onClick={() => toggle(entry.id)}
-          >
-            {entry.label}
-          </button>
-        ))}
+      <div className="prep-step">
+        <p className="micro-label">{GUIDANCE_CHROME.triggerStepLabel}</p>
+        <div className="chip-row wrap" data-testid="trigger-chips">
+          {TRIGGER_CATALOG_V1.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className={draft.triggerIds.includes(entry.id) ? 'chip selected' : 'chip'}
+              data-testid={`trigger-${entry.id}`}
+              onClick={() => toggle(entry.id)}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
       </div>
       <label className="prep-field">
         <span className="meta">{GUIDANCE_CHROME.customTriggerLabel}</span>
@@ -110,11 +113,15 @@ export function PreparationCard({
         />
       </label>
       {intentions.length > 0 ? (
-        <ul className="guidance-list intention-list" data-testid="intention-preview">
-          {intentions.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+        <div className="urge-plan">
+          <p className="micro-label">{GUIDANCE_CHROME.urgePlanLabel}</p>
+          <p className="meta">{GUIDANCE_CHROME.urgePlanHint}</p>
+          <ul className="guidance-list intention-list" data-testid="intention-preview">
+            {intentions.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {allowSkip ? (
         <button type="button" className="text-back" data-testid="skip-prep" onClick={() => onSave(null)}>

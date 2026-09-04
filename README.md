@@ -21,6 +21,12 @@ Version **0.14.3** — the Reference links are uniform: "Tolerance is not a
 percentage" now looks exactly like "About common detox claims" and opens its
 own reference page with the same design as the detox page. Presentation only.
 
+Version **0.15.0** — "Triggers and replacements" now writes a plain-language
+urge plan: natural sentences for each trigger ("Most evenings after work, the
+urge to use shows up on its own…"), a concrete first move instead of THC, and
+a reassess step. The section is organised into named steps with a titled
+"Your urge plan" preview. Copy/UI only — no science or data change.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

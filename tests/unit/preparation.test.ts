@@ -26,17 +26,29 @@ describe('optional trigger preparation', () => {
     assert.equal(isValidPreparation({ triggerIds: ['evening_after_work'], customTrigger: 1 }), false);
   });
 
-  it('builds if-then lines without a medical duration', () => {
+  it('builds plain-language urge plan lines without a medical duration', () => {
     const lines = implementationIntentions({
       triggerIds: ['evening_after_work'],
       customTrigger: null,
       replacementAction: 'go for a walk',
       fallbackPlan: 'make tea',
     });
-    assert.ok(lines[0]?.includes('after work'));
+    assert.ok(lines[0]?.startsWith('Most evenings after work'));
     assert.ok(lines[0]?.includes('go for a walk'));
     assert.ok(lines.some((line) => /make tea/.test(line)));
     assert.doesNotMatch(lines.join(' '), /\d+\s*minutes required/i);
+    assert.doesNotMatch(lines.join(' '), /automatically want THC/i);
+  });
+
+  it('writes the custom cue without broken grammar', () => {
+    const lines = implementationIntentions({
+      triggerIds: [],
+      customTrigger: 'after dinner',
+      replacementAction: 'make tea',
+      fallbackPlan: null,
+    });
+    assert.ok(lines[0]?.startsWith('I also named one more moment: after dinner.'));
+    assert.ok(lines[0]?.includes('make tea'));
   });
 
   it('persists on a new plan and can be edited later', () => {
