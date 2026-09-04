@@ -263,6 +263,7 @@ export const GUIDANCE_CHROME = {
   detoxLead: 'Helpful for wellbeing is not the same as proven to speed THC elimination.',
   openDetox: 'About common detox claims',
   closeDetox: 'Close detox notes',
+  closeReference: 'Close reference',
   thenNow: 'Then → Now',
   intentions: 'If-then plan',
   distinctions: 'These are different questions',

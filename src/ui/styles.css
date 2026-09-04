@@ -3711,19 +3711,16 @@ details.card.guidance-why summary.card-title,
   color: var(--fg-faint);
 }
 
-.plan-reference details.guidance-why {
-  border: 0;
-  padding: 0;
-}
-
-.plan-reference .guidance-why summary {
-  padding-top: var(--space-1);
-}
-
-.plan-detox-link {
+/* Both reference links look identical: small accent text links opening their
+   dedicated reference pages. */
+.plan-reference-link {
   align-self: flex-start;
   min-height: 32px;
   padding: 0;
+}
+
+.plan-reference .plan-reference-link + .plan-reference-link {
+  margin-top: var(--space-1);
 }
 
 /* --- Bottom plan actions: quiet rows, no More menu ------------------------ */

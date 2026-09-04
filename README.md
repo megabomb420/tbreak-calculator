@@ -17,6 +17,10 @@ rows), the after-this-break controls and notes are flattened to one hairline
 list, and CB1/detox background info sits in one quiet Reference section.
 Presentation only.
 
+Version **0.14.3** — the Reference links are uniform: "Tolerance is not a
+percentage" now looks exactly like "About common detox claims" and opens its
+own reference page with the same design as the detox page. Presentation only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**
