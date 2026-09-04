@@ -320,10 +320,10 @@ function personalisationContextLine(profile: UseProfileInput): string | null {
     profile.products.length > 0 ||
     profile.routes.length > 0;
   if (hasDuration && hasIntensityContext) {
-    return 'Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. That exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty.';
+    return 'Based on use frequency, pattern duration, sessions, products, and routes. These details shape the recommendation but do not make it more certain.';
   }
   if (hasDuration) {
-    return 'Planning context: use frequency and how long the current pattern has lasted. That exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty.';
+    return 'Based on use frequency and pattern duration. These details shape the recommendation but do not make it more certain.';
   }
   return null;
 }

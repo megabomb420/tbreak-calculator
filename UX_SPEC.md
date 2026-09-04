@@ -7,6 +7,8 @@ Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, hi
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
+Revision note (0.16.6): app-wide copy polish only. User-facing text on Today, Your break, check-ins, personalisation, result, recovery, and reference surfaces is shorter and more literal; redundant compact-Today milestone copy is hidden. The generated urge plan now labels selected **Triggers**, **Plan**, and **Fallback** instead of inventing first-person statements. User-entered alternatives remain quoted as entered. First person is reserved for explicit choices and user-authored text. The science explainer no longer presents a craving spike as evidence that a break is “working”; it describes it only as a common population pattern. No layout, calculator science, policy, schema, stored data, or engine behaviour changed.
+
 Revision note (0.14.0): support-area taxonomy refinement — presentation only, no science or domain change. `supportAreas[]` becomes a bounded, grouped set of real THC-break problems: **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid dreams), **cravings & habits** (cravings, routine, boredom), and **body** (appetite, nausea, headaches). `physical_discomfort` is replaced by explicit `headaches` and `nausea`; `not_sure` is replaced by an empty list (general guidance). The editor and Your Plan summary group by category, the first selected area leads, and every selection stays visible. Legacy v1 `supportFocus` and the interim 0.13 area names migrate on read without rewriting scientific snapshots/history. Check-ins remain independent. No tolerance-v3, Recovery Outlook v2, Reduction, Detection, History semantics, persistence, tabs, or viewport-contract change.
 
 Revision note (0.13.0): companion personalisation is an optional preference flow after calculation, never a questionnaire step. `companion-personalisation-v2` stores multi-select `supportAreas[]` independently from scientific snapshots and calculation history; legacy v1 `supportFocus` migrates to a one-item array without rewriting either. **Personalise your plan** / **Edit support** opens a compact flow with no questionnaire progress; Back/Close returns to its opener. Your Plan may acknowledge every selected area; Today uses at most the first two deterministic guidance items. Check-ins remain a separate record of what the user experiences today. No numeric science changed.
@@ -506,7 +508,7 @@ Post-break plan presentation (after completion, and from History), by mode:
 | `reduced_regular_use` | Four user-defined settings: max use days/week, max sessions/use day, potency strategy (`Lower` / `Same` / `Mixed`), quantity strategy (`Smaller` / `Same`) |
 | `undecided` | Qualitative options list; nothing to set |
 
-Every post-break screen leads with the two mandated messages (spec §10): "Your tolerance may be lower than before the break" and "Your previous amount is not a safe restart amount." No numeric dose anywhere. Guidance chips: prefer lower potency, go slow with concentrates, edibles hit later. Manual review/pause only — no automatic exceedance threshold, no nag states.
+Every post-break screen leads with two direct messages (spec §10): "Tolerance may be lower after the break" and "Do not treat your previous amount as a restart amount." No numeric dose anywhere. Guidance chips: prefer lower potency, go slow with concentrates, edibles hit later. Manual review/pause only — no automatic exceedance threshold, no nag states.
 
 ---
 

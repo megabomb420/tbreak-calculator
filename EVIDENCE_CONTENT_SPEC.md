@@ -116,11 +116,15 @@ Optional fields on stored attempts and tracking records (`preparation`, absent �
 - replacement action
 - fallback plan
 
-Generated implementation intention:
+Generated plan copy labels the selected input without speaking as the user:
 
-> If [trigger], I will first [replacement] and then reassess the craving.
+> Triggers: [selected triggers].
+>
+> Plan: When an urge shows up, use “[user-written replacement]” first, then reassess.
+>
+> Fallback: If the first move is not possible, [user-written fallback].
 
-No duration is claimed as medically required. Editing after start is allowed. Interruption/restart preserves the plan.
+First person is reserved for text the user actually wrote or an implementation intention they deliberately authored. No duration is claimed as medically required. Editing after start is allowed. Interruption/restart preserves the plan.
 
 ## 8. Check-in comparison
 

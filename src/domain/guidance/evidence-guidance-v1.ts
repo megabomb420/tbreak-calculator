@@ -81,7 +81,6 @@ export interface DetoxMethodContent {
 export interface TriggerCatalogEntry {
   readonly id: string;
   readonly label: string;
-  readonly ifClause: string;
 }
 
 export interface PostBreakPrinciple {
@@ -105,21 +104,15 @@ export const EVIDENCE_SCALE: Readonly<Record<EvidenceScaleGrade, string>> = {
 // --- Trigger catalog (expandable later; ids are stable) --------------------
 
 export const TRIGGER_CATALOG_V1: readonly TriggerCatalogEntry[] = [
-  { id: 'evening_after_work', label: 'Evening after work', ifClause: 'I automatically want THC after work' },
-  { id: 'gaming', label: 'Gaming', ifClause: 'I automatically want THC while gaming' },
-  { id: 'sleep_difficulty', label: 'Difficulty sleeping', ifClause: 'I automatically want THC because I am having trouble sleeping' },
-  { id: 'weekend', label: 'Weekend', ifClause: 'I automatically want THC at the weekend' },
-  { id: 'alcohol', label: 'Alcohol', ifClause: 'I automatically want THC with alcohol' },
-  { id: 'boredom', label: 'Boredom', ifClause: 'I automatically want THC when I am bored' },
-  { id: 'stress', label: 'Stress', ifClause: 'I automatically want THC when I am stressed' },
-  { id: 'social', label: 'Around people who use', ifClause: 'I automatically want THC around people who use' },
+  { id: 'evening_after_work', label: 'Evening after work' },
+  { id: 'gaming', label: 'Gaming' },
+  { id: 'sleep_difficulty', label: 'Difficulty sleeping' },
+  { id: 'weekend', label: 'Weekend' },
+  { id: 'alcohol', label: 'Alcohol' },
+  { id: 'boredom', label: 'Boredom' },
+  { id: 'stress', label: 'Stress' },
+  { id: 'social', label: 'Around people who use' },
 ];
-
-export const IMPLEMENTATION_INTENTION_TEMPLATE =
-  'If {ifClause}, I will first {replacement} and then reassess the craving.';
-
-export const IMPLEMENTATION_INTENTION_FALLBACK_TEMPLATE =
-  'If that is not possible, {fallback}.';
 
 // --- Withdrawal windows (overlapping on purpose) ---------------------------
 //
@@ -138,17 +131,14 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
     dayEnd: null,
     kind: 'product_heuristic',
     headline: 'A light plan before you start',
-    mayNotice: [
-      'You may already be thinking about when and why you usually use THC.',
-    ],
+    mayNotice: [],
     canHelp: [
       'Name one or two likely triggers.',
       'Choose a replacement activity for the time you would normally use THC.',
       'Decide a simple fallback if the replacement is not possible.',
-      'You can skip this and start — it stays editable later.',
     ],
     context:
-      'If-then plans (“If this trigger, then I will do this first”) are a practical way to handle automatic use cues. This is behavioural planning, not a medical intake.',
+      'A simple if-then plan links a known trigger to an alternative chosen in advance.',
     comesNext:
       'Cannabis withdrawal may begin during the first three days after last use. Not everyone notices every symptom.',
     whyThisMatters: null,
@@ -175,9 +165,9 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Cut down on avoidable triggers for these first days.',
     ],
     context:
-      'Cannabis withdrawal can begin around 24–72 hours after last use. Some people notice little; others notice several of these. None of this is required, and none of it means the break is failing.',
+      'Cannabis withdrawal can begin around 24–72 hours after last use. Some people notice little; others notice several symptoms.',
     comesNext:
-      'Days 2–6 are commonly among the harder days. An increase in craving or discomfort then is a known pattern, not a sign that the plan has stopped working.',
+      'Symptoms often peak during days 2–6. More craving or discomfort during that period does not show whether the break is succeeding or failing.',
     whyThisMatters: null,
   },
   {
@@ -199,11 +189,11 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Drink to thirst.',
       'Keep sleep and wake times reasonably regular.',
       'Keep a simple replacement activity ready for the time you would normally use THC.',
-      'If you made an if-then plan, use it first and then reassess the craving.',
+      'Use your planned alternative first, then reassess the craving.',
       'Cut down on avoidable triggers while this stretch lasts.',
     ],
     context:
-      'Clinical research commonly observes the greatest withdrawal intensity around days 2–6. Feeling worse during this window does not mean the break is failing. This is a population pattern, not an exact personal prediction.',
+      'Withdrawal intensity commonly peaks around days 2–6. This is a population pattern, not a personal prediction.',
     comesNext:
       'Most acute symptoms commonly begin easing across the first two weeks. Sleep problems can last longer than the other acute symptoms.',
     whyThisMatters: null,
@@ -224,14 +214,14 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Keep regular sleep and meal timing.',
       'Stay with the replacement activity at usual use times.',
       'Notice which cues still prompt a craving even as the acute wave eases.',
-      'If you have a few check-ins, compare how you rated the first days with today — without treating that as a score.',
+      'If you have earlier check-ins, compare them with today. The ratings describe symptoms, not recovery.',
     ],
     context:
       'Most acute withdrawal symptoms commonly improve substantially across about the first two weeks. Feeling better is not the same as completing a tolerance goal. Withdrawal easing and tolerance adaptation are different processes. Sleep disruption can continue for three to four weeks.',
     comesNext:
       'Later days shift toward habits, cues and automatic thoughts about THC, more than toward a new wave of acute withdrawal.',
     whyThisMatters:
-      'If your planning target is longer than two weeks, continuing can still make sense for the tolerance goal even after you feel more like yourself.',
+      'Withdrawal may ease before a longer tolerance-break target is complete.',
   },
   {
     id: 'days_14_21',
@@ -246,13 +236,12 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Evening, weekend, or other routine cues',
     ],
     canHelp: [
-      'Separate habit from perceived need: notice the cue, then use the replacement first.',
-      'Watch evening and weekend routines especially.',
-      'Keep using your if-then plan rather than renegotiating it in the moment.',
-      'This stage is not a detox protocol.',
+      'Notice the cue, then use the planned alternative first.',
+      'Pay attention to evening, weekend, and social routines.',
+      'Keep the same fallback available for recurring triggers.',
     ],
     context:
-      'As the acute wave recedes, remaining difficulty is often the old pattern — time of day, people, boredom, stress — rather than a new biological crisis. That does not mean tolerance has finished adapting.',
+      'As acute symptoms ease, difficulty may come from familiar cues such as time of day, boredom, stress, or social situations. Tolerance may still be adapting.',
     comesNext:
       'Around four weeks, human CB1 imaging in chronic users is an important biological reference — not a personal reset day.',
     whyThisMatters: null,
@@ -269,9 +258,9 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Habit cues more than acute withdrawal',
     ],
     canHelp: [
-      'Keep the trigger plan in place through the familiar high-risk hours.',
-      'Treat this week as a reference point, not a finish-line ceremony.',
-      'If you intend to stay off, decide that as a goal of its own — not as a score.',
+      'Keep the trigger plan available during the times you usually used THC.',
+      'Treat four weeks as a research reference, not a guaranteed finish line.',
+      'Choose whether to continue abstinence or follow the return plan you set.',
     ],
     context:
       'PET studies in chronic, heavy cannabis users make approximately four weeks of abstinence an important human biological reference for CB1 availability. CB1 adaptation can begin reversing earlier than four weeks. This does not prove an exact personal reset day, fully restored CB1 availability, or that subjective tolerance has returned to a pre-use baseline. Subjective response is not the same as receptor availability.',
@@ -292,15 +281,15 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'Craving can return in familiar situations without a new acute wave',
     ],
     canHelp: [
-      'Keep using the replacement at old use times if those cues still fire.',
-      'Review which triggers were hardest, and keep the fallback.',
-      'If you planned a return to THC, read the post-break notes before changing course.',
+      'Keep using the alternative at old use times if those cues remain.',
+      'Review which triggers were hardest and keep the fallback available.',
+      'If you plan to return to THC, review the post-break guidance first.',
     ],
     context:
       'There is no continuing biological reset percentage after four weeks. Additional abstinence can still serve behavioural goals, continued abstinence, habit change, or personal aims. Open-ended tracking has no finish line here.',
     comesNext: null,
     whyThisMatters:
-      'Staying off longer is a choice about the life you want, not a way to chase a hidden recovery number.',
+      'Longer abstinence can support personal or behavioural goals, but the app does not assign it an extra recovery score.',
   },
 ];
 
@@ -561,7 +550,7 @@ export const POST_BREAK_RETURN_PRINCIPLES_V1: readonly PostBreakPrinciple[] = [
 // --- Interruption recovery (not shame, not a biological reset) -------------
 
 export const UNPLANNED_USE_RECOVERY_V1 = {
-  lead: 'Unplanned use is useful history, not a moral failure.',
+  lead: 'Unplanned use is recorded as part of the break.',
   steps: [
     'If you can, note what triggered it.',
     'Return to the replacement plan at the next usual cue.',

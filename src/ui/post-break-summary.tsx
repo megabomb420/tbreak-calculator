@@ -1,7 +1,7 @@
 // Post-break plan summary (UX_SPEC 8 post-break presentation).
 //
 // Renders the user-chosen mode and limits. Return-to-use modes lead with the
-// two mandated messages and the guidance chips; abstinence shows progress
+// two direct safety messages and the guidance chips; abstinence shows progress
 // only, with no return-to-use controls.
 
 import type { PostBreakPlan } from '../application/break/post-break-plan.ts';
@@ -23,7 +23,6 @@ export function PostBreakSummary({ plan }: { readonly plan: PostBreakPlan }) {
         <>
           <p className="meta">{POST_BREAK_MESSAGES.lowerTolerance}</p>
           <p className="meta">{POST_BREAK_MESSAGES.notASafeRestartAmount}</p>
-          <p className="meta">{POST_BREAK_MESSAGES.previousIsNotRestart}</p>
           {plan.mode === 'occasional' ? (
             <p className="meta">
               {`${POST_BREAK_SETTINGS.maxDaysWeek}: ${plan.maxUseDaysPerWeek}`}

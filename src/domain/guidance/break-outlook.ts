@@ -63,17 +63,17 @@ export interface BreakOutlook {
 
 const WHAT_MATTERS: Readonly<Record<Exclude<WithdrawalWindowId, 'preparation'>, string>> = {
   days_1_3:
-    'Get through today with regular meals, ordinary hydration, and fewer triggers. Withdrawal may begin — it is not required.',
+    'Keep meals, hydration, and sleep timing regular, and reduce avoidable triggers. Withdrawal may begin, but it may not.',
   days_2_6:
-    'This is commonly a harder stretch. An increase in craving or discomfort does not mean the plan is failing.',
+    'Symptoms often peak during this period. Stronger craving or discomfort does not show whether the plan is succeeding or failing.',
   days_7_14:
     'Acute symptoms commonly ease here. Feeling better is not the same as finishing a tolerance goal.',
   days_14_21:
-    'Attention is more useful on habits, cues, and automatic thoughts than on waiting for a new acute wave.',
+    'Focus on habits, cues, and automatic thoughts rather than expecting another acute wave.',
   days_21_28:
     'Treat approximately four weeks as a research reference in chronic users — not a personal reset day.',
   beyond_28:
-    'Further days can serve habits or continued abstinence. There is no extra reset percentage.',
+    'Further days can support habit change or continued abstinence. The app does not assign an extra reset percentage.',
 };
 
 const LIGHTER_EARLY =
@@ -119,30 +119,30 @@ export function exposureTone(context: ExposureContext): ExposureTone {
 
 export function personalisationNote(context: ExposureContext, tone: ExposureTone): string | null {
   if (tone === 'lighter') {
-    return 'A lighter or infrequent pattern is less often associated with severe withdrawal. You may notice little.';
+    return 'Severe withdrawal is less common with a lighter or infrequent pattern. You may notice little.';
   }
   if (tone === 'heavier') {
     const recent =
       context.currentPatternDuration === 'under_1_month' || context.currentPatternDuration === '1_to_6_months';
     if (recent) {
-      return 'A high-frequency or high-intensity pattern can make stronger withdrawal or longer sleep disturbance more plausible, even when the pattern is recent. This is not a personal prediction.';
+      return 'A recent but high-frequency or high-intensity pattern may still bring stronger withdrawal or longer sleep disturbance. This is not a personal prediction.';
     }
-    return 'A frequent, multiple-session, concentrate, or long-established pattern can make stronger withdrawal or longer sleep disturbance more plausible. This is not a personal prediction.';
+    return 'A frequent, multiple-session, concentrate, or long-established pattern may bring stronger withdrawal or longer sleep disturbance. This is not a personal prediction.';
   }
   if (context.currentPatternDuration === '2_to_5_years' || context.currentPatternDuration === '5_plus_years') {
-    return 'This current pattern has been typical for years. The planner treats a long-established pattern as heavier exposure context, not as a biological prediction.';
+    return 'This pattern has lasted for years, so it is treated as heavier exposure context. That is not a biological prediction.';
   }
   if (context.currentPatternDuration === '6_to_24_months') {
-    return 'This current pattern has been typical for about 1–2 years. That context shapes the plan but is not a biological prediction.';
+    return 'This pattern has lasted about 1–2 years. That shapes the plan but is not a biological prediction.';
   }
   if (context.currentPatternDuration === '1_to_6_months' || context.currentPatternDuration === 'under_1_month') {
-    return 'This current pattern is relatively recent. That context shapes the plan but is not a biological prediction.';
+    return 'This pattern is relatively recent. That shapes the plan but is not a biological prediction.';
   }
   return null;
 }
 
 export const LAST_PLANNED_DAY_NEXT =
-  'This is the last planned day. Completing the plan is a choice you make — not a biological percentage.';
+  'This is the last planned day. You can complete or extend the plan; it is not a biological finish line.';
 
 export function outlookDayCount(input: {
   readonly targetDays: number | null;

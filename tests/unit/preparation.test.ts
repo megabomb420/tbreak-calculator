@@ -33,11 +33,14 @@ describe('optional trigger preparation', () => {
       replacementAction: 'go for a walk',
       fallbackPlan: 'make tea',
     });
-    assert.ok(lines[0]?.startsWith('Most evenings after work'));
-    assert.ok(lines[0]?.includes('go for a walk'));
-    assert.ok(lines.some((line) => /make tea/.test(line)));
+    assert.deepEqual(lines, [
+      'Triggers: Evening after work.',
+      'Plan: When an urge shows up, use “go for a walk” first, then reassess.',
+      'Fallback: If the first move is not possible, make tea.',
+    ]);
     assert.doesNotMatch(lines.join(' '), /\d+\s*minutes required/i);
     assert.doesNotMatch(lines.join(' '), /automatically want THC/i);
+    assert.doesNotMatch(lines.join(' '), /\bI\b|\bmy\b/i);
   });
 
   it('writes the custom cue without broken grammar', () => {
@@ -47,8 +50,10 @@ describe('optional trigger preparation', () => {
       replacementAction: 'make tea',
       fallbackPlan: null,
     });
-    assert.ok(lines[0]?.startsWith('I also named one more moment: after dinner.'));
-    assert.ok(lines[0]?.includes('make tea'));
+    assert.deepEqual(lines, [
+      'Triggers: after dinner.',
+      'Plan: When an urge shows up, use “make tea” first, then reassess.',
+    ]);
   });
 
   it('persists on a new plan and can be edited later', () => {

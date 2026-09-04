@@ -39,12 +39,12 @@ export function YourPlanGuide({
         <div className="section-heading-row">
           <div>
             <p className="micro-label">Plan essentials</p>
-            <h3 id="plan-essentials-title" className="card-title">What to do, not just when to finish</h3>
+            <h3 id="plan-essentials-title" className="card-title">Before, during, and after the break</h3>
           </div>
         </div>
         <div className="plan-essential-grid">
           <details className="result-disclosure" open>
-            <summary>Prepare for the hard moment</summary>
+            <summary>Before the break</summary>
             {view.areas.length > 0 ? (
               view.areas.map((area) => (
                 <p className="body" key={area}>{supportAreasView([area]).primary.preparation}</p>
@@ -55,14 +55,14 @@ export function YourPlanGuide({
             <p className="meta">Days 2–6 are commonly among the harder days. That is a planning cue, not a prediction of how you will feel.</p>
           </details>
           <details className="result-disclosure">
-            <summary>Know what to watch</summary>
+            <summary>During the break</summary>
             <p className="body">Watch for changes in sleep, mood, cravings, appetite, stomach comfort, and headaches. You may notice none, some, or several.</p>
             <p className="meta">Feeling better is useful information, but it is not proof that tolerance has fully reset.</p>
           </details>
           <details className="result-disclosure">
             <summary>{`At Day ${targetDays}`}</summary>
-            <p className="body">Reassess the goal you started with, mark the break complete if you are ready, and decide how you want THC to fit into life afterwards.</p>
-            <p className="meta">If you return, tolerance may be lower and your previous amount is not a safe restart amount. The app does not prescribe a dose.</p>
+            <p className="body">Review your original goal. Then complete or extend the break and confirm your post-break plan.</p>
+            <p className="meta">If you return, tolerance may be lower. Do not treat your previous amount as a restart amount; the app does not prescribe a dose.</p>
           </details>
         </div>
       </section>

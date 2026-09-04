@@ -31,7 +31,7 @@ export function TodayGuidance({
       <p className="guidance-headline" data-testid="guidance-headline">
         {view.headline}
       </p>
-      {view.milestone !== null ? (
+      {view.milestone !== null && !compact ? (
         <p className="guidance-milestone" data-testid="guidance-milestone">
           <span className="guidance-milestone-title">{view.milestone.title}.</span> {view.milestone.body}
         </p>

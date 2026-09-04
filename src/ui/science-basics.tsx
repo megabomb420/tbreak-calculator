@@ -27,7 +27,7 @@ const SCIENCE_SECTIONS: readonly ScienceSection[] = [
     title: 'Withdrawal is its own timeline',
     body: [
       'Withdrawal symptoms usually begin within the first days, most commonly peak around days 2–6, and largely ease across the first couple of weeks. Sleep-related symptoms can take longer in heavier users.',
-      'A craving spike during the peak window is statistically common — it is a sign the break is working as expected, not that it is failing.',
+      'A craving spike during the peak window is common. It does not show whether the break is succeeding or failing.',
     ],
   },
   {

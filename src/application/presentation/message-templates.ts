@@ -21,9 +21,9 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   // never shown raw) and explain why the broad evidence range sits one band
   // above what frequency alone suggests.
   range_lifted_by_intensity:
-    'Multiple sessions, concentrates, or dabbing push the exposure profile above what frequency alone suggests, so the broad evidence range is {min}–{max} days.',
+    'Multiple sessions, concentrates, or dabbing place this pattern in the {min}–{max}-day range.',
   range_lifted_by_chronicity:
-    'Because this level of use has been established for years, the planner uses the upper evidence band for chronic use: {min}–{max} days.',
+    'Because this pattern has lasted for years, the planner uses the chronic-use range: {min}–{max} days.',
   history_target_override_tail:
     'Your {long}-day observation sits inside the current {min}–{max} day range, so the planner used that observed anchor as the planning target. History never widens or narrows the evidence range.',
   // Duration moved the planning target inside the range (tolerance-v2/v3
@@ -33,9 +33,9 @@ export const MESSAGE_TEMPLATES: Readonly<Record<string, string>> = {
   // where the stored target is the top of the range and duration was
   // contextual only.
   preferred_target_recent_lower_end:
-    'Your current pattern is recent, so the planner selects {target} days — the lower end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+    'Because this pattern is recent, {target} days is the lower end of the {min}–{max}-day range. It is a planning target, not a predicted reset date.',
   preferred_target_established_upper_end:
-    'This current pattern has been established for a while, so the planner selects {target} days — the upper end of the same {min}–{max} day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+    'Because this pattern is well established, {target} days is the upper end of the {min}–{max}-day range. It is a planning target, not a predicted reset date.',
   pattern_duration_context_only:
     'How long this pattern has lasted is useful context. It does not change the recommended day range.',
   broad_heuristic_individual_response_varies:

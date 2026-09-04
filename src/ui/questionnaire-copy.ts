@@ -32,7 +32,7 @@ export const STEP_COPY: Record<QuestionnaireStepId, StepCopy> = {
   },
   Q2: {
     title: 'In the last 30 days, on how many days did you use THC?',
-    helper: 'Count any day you used, even once. A rough number is all the calculator uses.',
+    helper: 'Count any day you used, even once. An estimate is fine.',
   },
   Q3: {
     title: 'When did you last use THC?',
@@ -48,7 +48,7 @@ export const STEP_COPY: Record<QuestionnaireStepId, StepCopy> = {
   },
   Q6: {
     title: 'How long has this level of THC use been typical for you?',
-    helper: 'Not how long you have ever used — how long this current pattern has been your usual level.',
+    helper: 'Answer for your current pattern, not your lifetime use.',
   },
   Q4: {
     title: 'On a day you used, how many separate sessions?',
@@ -64,7 +64,7 @@ export const STEP_COPY: Record<QuestionnaireStepId, StepCopy> = {
   },
   Q3D: {
     title: "What's the situation?",
-    helper: 'This only changes which notes we show you — it never changes the science.',
+    helper: 'This only selects relevant notes. It does not change the result.',
   },
 };
 

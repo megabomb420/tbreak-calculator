@@ -41,8 +41,8 @@ export function PersonalisationFlow({
       <div className="questionnaire-body flow-body">
         <section className="stack">
           <header>
-            <h3 id="personalisation-title" className="title">Where would support help?</h3>
-            <p className="meta">Choose any that fit. This only tailors guidance — it never changes your recommended days.</p>
+            <h3 id="personalisation-title" className="title">What would you like help with?</h3>
+            <p className="meta">Choose any that apply. This tailors guidance but does not change your recommended days.</p>
           </header>
           <div className="support-areas-control" data-testid="support-area-cards">
             {SUPPORT_AREA_GROUPS.map((group) => (

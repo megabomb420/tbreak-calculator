@@ -573,7 +573,7 @@ Before starting, the user may choose a start date, target duration from the engi
 
 During days 1–6 the deterministic plan prioritises routine, sleep schedule, normal eating/hydration, trigger avoidance, replacement activity, and a short check-in. During days 7–14 it distinguishes symptom improvement from the tolerance goal. During days 14–28 it focuses increasingly on habits rather than “detox.” These sections use `breakDay` from section 7.8.
 
-Post-break guidance remains in v1 because the source defines it as core. It MUST say that previous exposure is not a restart exposure and that tolerance may be lower. It gives no numeric dose.
+Post-break guidance remains in v1 because the source defines it as core. It MUST say that tolerance may be lower and that the previous amount must not be treated as a restart amount. It gives no numeric dose.
 
 - `continue_abstinence`: maintain progress/history; no return-to-use controls.
 - `occasional`: the user defines their own maximum use days per week.

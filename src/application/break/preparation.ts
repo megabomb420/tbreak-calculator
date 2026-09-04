@@ -63,62 +63,33 @@ export function triggerLabel(id: TriggerId): string {
   return TRIGGER_CATALOG_V1.find((entry) => entry.id === id)?.label ?? id;
 }
 
-/** Natural-language "when" opener per catalog trigger, written as a full
- * sentence so the generated urge plan never starts with awkward fragments. */
-const URGE_OPENERS: Record<TriggerId, string> = {
-  evening_after_work: 'Most evenings after work, the urge to use shows up on its own.',
-  gaming: 'When I game, the urge to use tends to show up on its own.',
-  sleep_difficulty: 'When I cannot fall asleep, the urge to use tends to show up.',
-  weekend: 'At the weekend, the urge to use tends to show up on its own.',
-  alcohol: 'When alcohol is around, the urge to use tends to show up.',
-  boredom: 'When I am bored, the urge to use tends to show up.',
-  stress: 'When I am stressed, the urge to use tends to show up.',
-  social: 'When I am around people who use, the urge to use tends to show up.',
-};
-
-/** One closing line, appended once when the plan exists, that frames a strong
- * urge as information rather than failure — consistent with the withdrawal
- * window guidance ("a spike does not mean the break is not working"). */
-const URGE_PLAN_CLOSER =
-  'If the urge is still strong after that, see it as a signal for the next moment — not as proof the break is not working.';
-
-const GENERIC_URGE_OPENER = 'Sometimes the urge to use shows up on its own.';
-
-function urgeStep(opener: string, replacement: string): string {
-  const move = replacement.trim();
-  return `${opener} When that happens, my first move is to ${move}, and only after that do I check whether the urge is still there.`;
-}
-
 /**
- * Generated urge-plan lines. Deliberately plain-language: each line names the
- * moment in a full sentence, then one concrete first move, then a reassess
- * step. No duration or medical claim is ever generated.
+ * Generated urge-plan lines. The app labels the user's selections instead of
+ * inventing first-person statements on their behalf. User-written actions are
+ * preserved verbatim inside quotation marks.
  */
 export function implementationIntentions(preparation: BreakPreparation | null | undefined): readonly string[] {
   if (preparation == null) return [];
-  const replacement = preparation.replacementAction?.trim() || 'do my chosen alternative';
   const lines: string[] = [];
-
-  for (const id of preparation.triggerIds) {
-    lines.push(urgeStep(URGE_OPENERS[id] ?? GENERIC_URGE_OPENER, replacement));
-  }
-
+  const triggers = preparation.triggerIds.map(triggerLabel);
   const custom = preparation.customTrigger?.trim();
+
   if (custom !== null && custom !== undefined && custom !== '') {
-    lines.push(urgeStep(`I also named one more moment: ${custom}.`, replacement));
+    triggers.push(custom);
   }
 
-  if (lines.length === 0 && preparation.replacementAction !== null && preparation.replacementAction.trim() !== '') {
-    lines.push(urgeStep(GENERIC_URGE_OPENER, replacement));
+  if (triggers.length > 0) {
+    lines.push(`Triggers: ${triggers.join('; ')}.`);
+  }
+
+  const replacement = preparation.replacementAction?.trim();
+  if (replacement !== null && replacement !== undefined && replacement !== '') {
+    lines.push(`Plan: When an urge shows up, use “${replacement}” first, then reassess.`);
   }
 
   const fallback = preparation.fallbackPlan?.trim();
   if (fallback !== null && fallback !== undefined && fallback !== '' && lines.length > 0) {
-    lines.push(`If that first move is not possible, ${fallback}.`);
-  }
-
-  if (lines.length > 0) {
-    lines.push(URGE_PLAN_CLOSER);
+    lines.push(`Fallback: If the first move is not possible, ${fallback}.`);
   }
 
   return lines;

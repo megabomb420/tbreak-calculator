@@ -18,7 +18,7 @@ export const FIRST_LAUNCH = {
   // UX_SPEC §3.3: the block ships in place; reviewed wording is a release
   // blocker and is not invented here.
   safetyPending:
-    'Reviewed safety and eligibility copy is not available yet and is not shown.',
+    'Planning guidance only — not medical advice or a guaranteed drug-test result.',
 } as const;
 
 export const GOAL_CHIPS = [
@@ -63,7 +63,7 @@ export const OPEN_SETTINGS = 'Settings';
 
 export const HISTORY = {
   emptyTitle: HISTORY_EMPTY,
-  emptyBody: 'Past calculations and breaks will collect here.',
+  emptyBody: 'Past calculations and breaks appear here.',
   pastBreaks: 'Past breaks',
   addPastBreak: 'Add a past break',
   timeline: 'Activity',

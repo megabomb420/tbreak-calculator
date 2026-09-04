@@ -219,7 +219,7 @@ describe('plan detail', () => {
     const attempt = attemptsOf(storage)[0];
     expect(attempt?.postBreakMode).toBe('reduced_regular_use');
     expect(attempt?.postBreakPlan?.mode).toBe('reduced_regular_use');
-    expect(screen.getByText('Your tolerance may be lower than before the break.')).toBeTruthy();
+    expect(screen.getByText('Tolerance may be lower after the break.')).toBeTruthy();
   });
 
   it('keeps a post-break mode change if the user leaves without tapping Save', () => {
@@ -503,7 +503,7 @@ describe('evidence-guided companion', () => {
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
     expect(screen.getByTestId('guidance-primary-action').textContent).toBeTruthy();
-    expect(screen.getByTestId('guidance-context').textContent).toMatch(/does not mean the break is failing/i);
+    expect(screen.getByTestId('guidance-context').textContent).toMatch(/population pattern, not a personal prediction/i);
   });
 
   it('renders an overlapping roadmap on plan detail', () => {

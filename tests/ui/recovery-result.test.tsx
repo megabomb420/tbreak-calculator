@@ -124,7 +124,7 @@ describe('predicted reset panel content', () => {
     completeTolerance(createMemoryStorage(), { useDays: '2', duration: /Less than 1 month/ });
     openResetMode();
     const wording = screen.getByTestId('reset-wording').textContent ?? '';
-    expect(wording).toContain('Your profile-sensitive prediction remains relatively short.');
+    expect(wording).toContain('Your predicted window is relatively short.');
     expect(screen.getByTestId('reset-window-value').textContent).toBe('2–7 days');
     // It never claims the plan reaches the strongest chronic-use reference.
     expect(screen.getByTestId('reset-light-reference-note').textContent ?? '').toMatch(/does not mean.*Day 28/i);

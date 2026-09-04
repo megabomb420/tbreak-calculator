@@ -336,7 +336,6 @@ function PostBreakCard({
         <div className="post-break-guidance" data-testid="post-break-guidance">
           <p className="body">{POST_BREAK_MESSAGES.lowerTolerance}</p>
           <p className="body">{POST_BREAK_MESSAGES.notASafeRestartAmount}</p>
-          <p className="body">{POST_BREAK_MESSAGES.previousIsNotRestart}</p>
         </div>
       ) : (
         <p className="meta" data-testid="abstinence-post-break">
@@ -500,5 +499,4 @@ function ConfirmDialog({
 function slug(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
-
 

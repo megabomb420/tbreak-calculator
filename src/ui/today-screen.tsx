@@ -453,7 +453,7 @@ const REDUCTION_CARD = {
   concentrateLogged:
     'A concentrate was logged \u2014 your plan says avoid concentrates.',
   refreshRecommendation: 'Update your break recommendation',
-  trajectoryMoved: 'Your tracked pattern has moved.',
+  trajectoryMoved: 'Your tracked use is now in a different planning band.',
   trajectoryStarted: 'Started reduction: {0}/30 use days \u00b7 plan target {1} days',
   trajectoryCurrent: 'Current tracked: {0}/30 use days \u00b7 plan target {1} days',
   trajectorySameBand:

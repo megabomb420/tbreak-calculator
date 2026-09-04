@@ -20,7 +20,7 @@ export const RESULT = {
   whatMatters: 'What matters today',
   historyHeading: 'Your history',
   historyPrompt:
-    'Taken a tolerance break before? Add it — next time, your result can include what your own history suggests.',
+    'Add a past tolerance break so future results can show what your history suggests.',
   addPastBreak: 'Add a past break',
   recalculateWithHistory: 'Recalculate with history',
   historicalNote: 'This is the result that was calculated at the time. It is not recalculated.',
@@ -32,11 +32,11 @@ export const RESULT = {
   abstinenceTitle: 'Staying off THC — your plan.',
   reductionTitle: 'Cutting down — without a full break.',
   reductionBody:
-    'Set your own weekly limit, favour lower potency, avoid rapid repeat dosing, and remember that edibles take longer to take effect.',
+    'Set weekly limits in advance. Favour lower potency, avoid rapid repeat dosing, and allow for the delayed onset of edibles.',
   reductionSoft:
     'A full break resets tolerance faster than cutting down — see your break range.',
   abstinenceTodayBody:
-    "There's no end date to chase — start tracking if you want a daily check-in.",
+    'Open-ended tracking adds a daily check-in without setting an end date.',
   unavailableTitle: 'This calculation is unavailable.',
   unavailableBody: 'The saved answers could not produce a result. You can start the questionnaire again.',
   startOver: 'Start over',
@@ -64,7 +64,7 @@ export function reductionSessionsLine(sessions: number): string {
  * the one planning target with the same vocabulary. */
 export const PLAN_LENS = {
   eyebrow: 'Your practical plan',
-  summary: 'A clear target for the break you can act on now.',
+  summary: 'Your target within the recommended range.',
 } as const;
 
 export const WITHDRAWAL_STOP_LABELS = {

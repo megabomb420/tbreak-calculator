@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.16.5** (Today guidance: "What matters today" + "What can help today" merged into one section); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
+- App version: **0.16.6** (app-wide user-facing copy polish; generated urge plan no longer speaks in the user's voice); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -33,7 +33,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, the **0.16.1** urge-plan dedupe, the **0.16.2** reference-page separation fix, the **0.16.3** Today/Your-break guidance-content fix, the **0.16.4** Your-break knowledge-section merge, and the **0.16.5** Today guidance-section merge.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, the **0.16.1** urge-plan dedupe, the **0.16.2** reference-page separation fix, the **0.16.3** Today/Your-break guidance-content fix, the **0.16.4** Your-break knowledge-section merge, the **0.16.5** Today guidance-section merge, and the **0.16.6** app-wide copy polish.
 
 | Step | Status |
 |---|---|
@@ -70,10 +70,24 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.16.3 Today/Your-break guidance content + reading flow grounded in the science PDF | **done** |
 | 0.16.4 Your-break knowledge section: merged "How these things differ" explainer | **done** |
 | 0.16.5 Today guidance: merged "What matters today" / "What can help today" | **done** |
+| 0.16.6 app-wide user-facing copy polish | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.16.6 added (app-wide copy polish; no logic change)
+
+- Reviewed user-facing copy across Today, Your break, check-ins,
+  personalisation, results, recovery, reference, history, and reduction flows.
+  Shortened or removed coaching-style filler, repeated disclaimers, internal
+  implementation language, and redundant compact-Today milestone text.
+- The generated urge plan now renders neutral `Triggers`, `Plan`, and
+  `Fallback` lines. It no longer invents first-person statements; user-written
+  alternatives and fallbacks remain visibly their own input.
+- Corrected the science explainer so a craving spike is described as a common
+  withdrawal pattern, not evidence that the break is working. Calculator
+  policy, numeric results, schemas, persistence, and stored data are unchanged.
 
 ## What 0.16.2 added (reference-page separation; no science change)
 
@@ -471,7 +485,7 @@ no new tolerance policy version — tolerance-v3 numeric behaviour is unchanged.
   only — highest-craving day; sleep first→later. Null is never zero; sparse
   data omits the block.
 - **Reduction trajectory.** The active-reduction card may show a deterministic
-  “Your tracked pattern has moved.” line (baseline vs current use-days, plan
+  “Your tracked use is now in a different planning band.” line (baseline vs current use-days, plan
   target, and range from actual frozen records) or a neutral “same planning
   band” line — only when full-coverage adaptive recalculation produced a newer
   frozen tolerance record (`src/application/presentation/reduction-trajectory.ts`).

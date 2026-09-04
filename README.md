@@ -56,6 +56,14 @@ Version **0.16.5** — Today guidance merges "What matters today" and
 recommendations for the day; "What commonly comes next" stays separate.
 The old duplicated summary paragraph was removed. Copy/UI only.
 
+Version **0.16.6** — app-wide copy polish. User-facing text is shorter and
+more literal across Today, Your break, check-ins, personalisation, results,
+recovery, and reference screens. The generated urge plan now labels
+**Triggers**, **Plan**, and **Fallback** without inventing first-person
+statements. Compact Today no longer repeats milestone copy, and the science
+explainer describes craving spikes as a common withdrawal pattern rather than
+evidence that the break is working. No calculator logic or stored data changed.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**
@@ -229,7 +237,7 @@ the UI component tests.
   History.
 - **Reduction trajectory (0.9.0):** when full-coverage adaptive recalculation
   from tracked use froze a newer tolerance result, the reduction card can show
-  “Your tracked pattern has moved.” (baseline vs current use-days / plan target)
+  “Your tracked use is now in a different planning band.” (baseline vs current use-days / plan target)
   or a neutral “same planning band” line — always from actual frozen records,
   never fabricated.
 - **Why this result** names frequency, sessions, concentrate/dabbing, how

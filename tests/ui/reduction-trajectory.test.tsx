@@ -167,7 +167,7 @@ describe('reduction trajectory on the active card', () => {
     const card = screen.getByTestId('reduction-card');
     const trajectory = screen.getByTestId('reduction-trajectory');
     expect(trajectory.getAttribute('data-state')).toBe('moved');
-    expect(card.textContent).toContain('Your tracked pattern has moved.');
+    expect(card.textContent).toContain('Your tracked use is now in a different planning band.');
     expect(trajectory.textContent).toContain(`Started reduction: ${baselineUse}/30 use days · plan target ${targetBaseline} days`);
     expect(trajectory.textContent).toContain(`Current tracked: ${currentUse}/30 use days · plan target ${targetCurrent} days`);
   });

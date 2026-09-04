@@ -32,11 +32,11 @@ describe('§14 message-code template layer', () => {
   it('fills target-rationale placeholders from the immutable range and target', () => {
     assert.equal(
       renderMessageCode('preferred_target_recent_lower_end', { min: 21, max: 28, target: 21 }),
-      'Your current pattern is recent, so the planner selects 21 days — the lower end of the same 21–28 day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+      'Because this pattern is recent, 21 days is the lower end of the 21–28-day range. It is a planning target, not a predicted reset date.',
     );
     assert.equal(
       renderMessageCode('preferred_target_established_upper_end', { min: 2, max: 7, target: 7 }),
-      'This current pattern has been established for a while, so the planner selects 7 days — the upper end of the same 2–7 day evidence range. That is a planning choice inside the range, not a predicted reset date.',
+      'Because this pattern is well established, 7 days is the upper end of the 2–7-day range. It is a planning target, not a predicted reset date.',
     );
     assert.equal(
       renderMessageCode('pattern_duration_context_only'),

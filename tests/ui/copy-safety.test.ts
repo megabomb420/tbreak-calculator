@@ -56,9 +56,9 @@ describe('UI copy invariants', () => {
     expect(dumped).not.toMatch(/clean countdown/i);
   });
 
-  it('keeps the first-launch safety slot explicitly unfilled', () => {
-    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).toMatch(/not available yet/);
-    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).not.toMatch(/seek (medical|emergency)/);
+  it('keeps the first-launch safety note factual and bounded', () => {
+    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).toMatch(/not medical advice/);
+    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).toMatch(/not.*guaranteed.*test result/);
   });
 
   it('keeps the check-in symptom anchors on the documented scale', () => {

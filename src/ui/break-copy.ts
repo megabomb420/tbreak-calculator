@@ -70,11 +70,10 @@ export const PLANNED_CARD = {
 
 // --- Post-break plan (UX_SPEC 8, 10) ---------------------------------------
 
-/** Mandated leading messages on every post-break surface with a return mode. */
+/** Direct safety messages on every post-break surface with a return mode. */
 export const POST_BREAK_MESSAGES = {
-  lowerTolerance: 'Your tolerance may be lower than before the break.',
-  notASafeRestartAmount: 'Your previous amount is not a safe restart amount.',
-  previousIsNotRestart: 'After a meaningful break, the old amount and pattern may feel substantially stronger. Previous exposure is not restart exposure.',
+  lowerTolerance: 'Tolerance may be lower after the break.',
+  notASafeRestartAmount: 'Do not treat your previous amount as a restart amount.',
 } as const;
 
 export const POST_BREAK_GUIDANCE = [
@@ -250,16 +249,16 @@ export const GUIDANCE_CHROME = {
   futureExpectation: 'Expectation, not a guarantee.',
   beyondTarget: 'Beyond this plan’s target',
   triggers: 'Triggers and replacements',
-  triggersHelper: 'Optional, but it pays off: pick the moments where the urge usually appears and name one move that is not THC — the app writes the plan from your answers.',
+  triggersHelper: 'Choose when the urge usually appears, then add an alternative and a fallback.',
   triggerStepLabel: 'When the urge usually shows up',
-  replacementLabel: 'My first move instead of THC',
+  replacementLabel: 'First move instead of THC',
   replacementPlaceholder: 'go for a walk, take a shower, make tea…',
   fallbackLabel: 'If that first move is not possible',
   fallbackPlaceholder: 'text a friend, go to another room…',
   customTriggerLabel: 'Another moment that triggers the urge',
   customTriggerPlaceholder: 'e.g. after dinner',
   urgePlanLabel: 'Your urge plan',
-  urgePlanHint: 'This gives you a moment between the urge and the decision — not a promise that the urge disappears.',
+  urgePlanHint: 'Built from the triggers and alternatives you selected.',
   savePrep: 'Save',
   skipPrep: 'Skip for now',
   detox: 'Detox claims',
