@@ -66,7 +66,7 @@ describe('result screens from engine output', () => {
     expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
     expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
     expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
-    expect(result.textContent ?? '').toMatch(/lower end of the same 7–14 day evidence range/);
+    expect(result.textContent ?? '').toMatch(/lower end of the 7–14-day range/);
     expect(screen.getByTestId('cb1-note')).toBeTruthy();
   });
 
@@ -102,7 +102,7 @@ describe('result screens from engine output', () => {
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
     expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
     expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
-    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/upper end of the same 2–7 day evidence range/);
+    expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/upper end of the 2–7-day range/);
   });
 
   it('shows exactly Days 1–28 for daily use', () => {
@@ -148,7 +148,7 @@ describe('result screens from engine output', () => {
     expect(within(card).queryByRole('heading', { name: '7–14 days' })).toBeNull();
     expect(within(card).getByText('Evidence range: 7–14 days')).toBeTruthy();
     expect(within(card).getByRole('img', { name: 'Recommended break 7 to 14 days, plan for 7 days' })).toBeTruthy();
-    expect(within(card).getByText('A clear target for the break you can act on now.')).toBeTruthy();
+    expect(within(card).getByText('Your target within the recommended range.')).toBeTruthy();
     // The planning-heuristic caveat stays visible in the compact card.
     expect(card.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
     // Start-this-break stays the primary action; Recalculate and View result
