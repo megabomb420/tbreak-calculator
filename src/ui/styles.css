@@ -3727,7 +3727,7 @@ details.card.guidance-why summary.card-title,
   background: color-mix(in oklab, var(--accent) 50%, transparent);
 }
 
-/* --- Reference: CB1 education + detox claims as one dedicated section ----- */
+/* --- Reference: "How these things differ" + detox claims ------------------- */
 
 .plan-reference {
   display: flex;
@@ -3741,7 +3741,7 @@ details.card.guidance-why summary.card-title,
 }
 
 /* Both reference links look identical: small accent text links opening their
-   dedicated reference pages. */
+   dedicated reading pages. */
 .plan-reference-link {
   align-self: flex-start;
   min-height: 32px;

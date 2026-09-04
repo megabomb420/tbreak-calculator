@@ -629,6 +629,29 @@ describe('evidence-guided companion', () => {
     expect(screen.getByTestId('detox-normal_hydration').textContent).toMatch(/does not mean faster THC elimination/i);
   });
 
+  it('shows one merged “How these things differ” explainer in the plan reference section', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    const plan = screen.getByTestId('plan-detail');
+    // The section heading is natural, and the two knowledge entries are the
+    // merged explainer plus the unchanged detox page.
+    expect(within(plan).getByText('Understand your break')).toBeTruthy();
+    expect(within(plan).getByTestId('open-how-things-differ')).toBeTruthy();
+    expect(within(plan).getByTestId('open-detox-evidence')).toBeTruthy();
+    expect(within(plan).queryByTestId('open-cb1-reference')).toBeNull();
+    expect(within(plan).queryByTestId('open-concept-distinctions')).toBeNull();
+    fireEvent.click(within(plan).getByTestId('open-how-things-differ'));
+    const explainer = screen.getByTestId('how-things-differ');
+    expect(within(explainer).getByTestId('how-things-differ-lead').textContent).toMatch(/different questions/i);
+    // A Q&A answer, not a bare definition list: withdrawal vs tolerance reads
+    // as a concrete sentence with a "because"-style reason.
+    expect(within(explainer).getByTestId('explainer-withdrawal-vs-tolerance').textContent).toMatch(/Withdrawal is how you may feel/i);
+    expect(within(explainer).getByTestId('explainer-no-guaranteed-negative-date').textContent).toMatch(/single guaranteed date would be invented/i);
+  });
+
   it('does not show return-to-use principles for continued abstinence', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());

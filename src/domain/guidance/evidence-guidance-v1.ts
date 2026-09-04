@@ -510,14 +510,6 @@ export const CB1_EDUCATION_V1 = {
   kind: 'biological_reference' as const,
 };
 
-export const CONCEPT_DISTINCTIONS_V1 = [
-  'Withdrawal — how you may feel after stopping.',
-  'Tolerance — how strongly THC is likely to affect you after a break; a planning heuristic, not a lab value.',
-  'CB1 adaptation — a biological reference from imaging studies, not a personal recovery meter.',
-  'Detectability — whether a test at a given cutoff might still report a metabolite; not a measure of impairment or tolerance.',
-  'Intoxication and impairment — present effects, not the same as a trace finding later.',
-] as const;
-
 // --- Post-break principles -------------------------------------------------
 
 export const POST_BREAK_CORE_V1 = {
@@ -592,6 +584,62 @@ export const DETECTION_EDUCATION_V1 = {
   deferred:
     'A richer quantitative detection engine would need its own reviewed science-policy slice. It is not hidden in this companion.',
 } as const;
+
+// --- Concept explainer (Q&A; one merged reference page) --------------------
+
+export interface ConceptExplainerItem {
+  readonly id: string;
+  readonly question: string;
+  readonly answer: string;
+}
+
+export const CONCEPT_EXPLAINER_LEAD =
+  'Withdrawal, tolerance, CB1 adaptation, detectability and impairment are different questions. This page explains what each one is and why the app never merges them.';
+
+export const CONCEPT_EXPLAINER_V1: readonly ConceptExplainerItem[] = [
+  {
+    id: 'withdrawal-vs-tolerance',
+    question: 'What is the difference between withdrawal and tolerance?',
+    answer:
+      'Withdrawal is how you may feel in the first days after stopping: craving, irritability, sleep trouble, lower appetite and anxiety. It commonly starts around days 1–3, peaks around days 2–6, and largely eases over the first couple of weeks. Tolerance is a separate process: how strongly THC is likely to feel after a break. Feeling better after acute withdrawal is not the same as finishing a tolerance goal.',
+  },
+  {
+    id: 'tolerance-vs-cb1',
+    question: 'Is tolerance the same as CB1 adaptation?',
+    answer:
+      'No. CB1 adaptation is a biological reference from imaging studies: regular heavy use lowers CB1 availability, and in chronic users it was comparable to controls after around four weeks of monitored abstinence. Subjective tolerance is how strong the next use feels. The four-week figure is a human reference point, not an exact personal reset day.',
+  },
+  {
+    id: 'tolerance-vs-intoxication',
+    question: 'Does tolerance tell you if you are intoxicated or impaired?',
+    answer:
+      'No. Intoxication and impairment are present effects while using. Tolerance describes how the body has adapted after regular use. A low tolerance does not mean you are currently impaired, and feeling sober does not prove a test is negative.',
+  },
+  {
+    id: 'tolerance-vs-detectability',
+    question: 'How is tolerance different from detectability?',
+    answer:
+      'Detectability is about whether a test at a given cutoff could still report a metabolite — not about how strong the effect is. Metabolites can remain detectable long after effects and CB1 recovery have moved on. The app treats tolerance and detection as separate questions.',
+  },
+  {
+    id: 'why-tolerance-is-not-a-percentage',
+    question: 'Why is tolerance not shown as a percentage?',
+    answer:
+      'No validated model turns your use pattern into an exact percentage of reset. Research supports ranges and reference points — for example around four weeks for chronic users — not a precise number. A percentage would be invented precision.',
+  },
+  {
+    id: 'no-guaranteed-negative-date',
+    question: 'Why is there no guaranteed negative-test date?',
+    answer:
+      'A negative result depends on the matrix, the cutoff, the method and your own history. Even in monitored studies the range is wide with a long tail, so a single guaranteed date would be invented. Detection guidance here stays qualitative.',
+  },
+  {
+    id: 'matrix-and-cutoff',
+    question: 'Why do the matrix and cutoff matter so much?',
+    answer:
+      'Urine, blood, oral fluid and hair measure different things on different timescales, and the same person can be reported differently at different cutoffs. Without a known cutoff, the only honest answer is a broad range with lower confidence.',
+  },
+];
 
 // --- Check-in comparison copy ----------------------------------------------
 

@@ -44,6 +44,13 @@ science PDF: the absurd personalised "avoid: Stress…" line is gone, meta copy
 concrete "What can help today" list for the current stage instead of repeating
 the full urge plan every day. Copy/UI only — no science or data change.
 
+Version **0.16.4** — the "Your break" knowledge section is renamed
+"Understand your break" and holds two entries: **How these things differ**
+(one Q&A explainer covering withdrawal, tolerance, CB1 adaptation,
+impairment, detectability, matrix/cutoff — replacing the separate
+"Tolerance is not a percentage" / "These are different questions" pages) and
+the unchanged **About common detox claims**. Copy/UI only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

@@ -5,7 +5,8 @@ import type { BreakPreparation } from '../break/preparation.ts';
 import { implementationIntentions } from '../break/preparation.ts';
 import {
   CB1_EDUCATION_V1,
-  CONCEPT_DISTINCTIONS_V1,
+  CONCEPT_EXPLAINER_LEAD,
+  CONCEPT_EXPLAINER_V1,
   DETOX_FRAMING,
   DETOX_METHODS_V1,
   EVIDENCE_GUIDANCE_VERSION,
@@ -22,6 +23,7 @@ import {
   primaryWindowIdForDay,
   windowById,
   windowsContainingDay,
+  type ConceptExplainerItem,
   type DetoxMethodContent,
   type MilestoneContent,
   type WithdrawalWindowContent,
@@ -229,8 +231,11 @@ export function presentCb1Education(): typeof CB1_EDUCATION_V1 {
   return CB1_EDUCATION_V1;
 }
 
-export function presentConceptDistinctions(): readonly string[] {
-  return CONCEPT_DISTINCTIONS_V1;
+export function presentConceptExplainer(): {
+  readonly lead: string;
+  readonly items: readonly ConceptExplainerItem[];
+} {
+  return { lead: CONCEPT_EXPLAINER_LEAD, items: CONCEPT_EXPLAINER_V1 };
 }
 
 export function presentUnplannedUseRecovery(): typeof UNPLANNED_USE_RECOVERY_V1 {
