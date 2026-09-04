@@ -317,7 +317,7 @@ describe('result rationale and outlook follow the duration-aware target', () => 
     if (view.kind !== 'tolerance_result') return;
     assert.equal(view.preferredTargetDays, 21);
     assert.ok(view.drivers.some((line) => /weeks rather than years/.test(line)));
-    assert.ok(view.drivers.some((line) => /lower end of the same 21–28 day evidence range/.test(line)));
+    assert.ok(view.drivers.some((line) => /lower end of the 21–28-day range/.test(line)));
     assert.equal(view.drivers.some((line) => /predicted reset date/.test(line)), true);
     assert.notEqual(view.contextNote, null);
     assert.equal(view.outlook?.days.length, 21);
@@ -332,7 +332,7 @@ describe('result rationale and outlook follow the duration-aware target', () => 
     if (view.kind !== 'tolerance_result') return;
     assert.equal(view.preferredTargetDays, 28);
     assert.ok(view.drivers.some((line) => /many years/.test(line)));
-    assert.ok(view.drivers.some((line) => /upper end of the same 21–28 day evidence range/.test(line)));
+    assert.ok(view.drivers.some((line) => /upper end of the 21–28-day range/.test(line)));
     assert.equal(view.outlook?.days.length, 28);
   });
 
