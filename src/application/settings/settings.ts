@@ -11,7 +11,7 @@ import {
   type DurablePersistence,
 } from '../persistence/durable.ts';
 
-export const APP_VERSION = '0.16.2';
+export const APP_VERSION = '0.16.3';
 
 /**
  * PWA update freshness for Settings. `current` is only ever produced by a

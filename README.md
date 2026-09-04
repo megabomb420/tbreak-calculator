@@ -38,6 +38,12 @@ Version **0.16.1** — the urge plan shows once (top guidance) on the plan
 screen, the social trigger reads "Around people who use", and every urge plan
 closes with a reassurance line. Copy/UI only.
 
+Version **0.16.3** — Today / Your break guidance content is grounded in the
+science PDF: the absurd personalised "avoid: Stress…" line is gone, meta copy
+("Keep today's check-in short.") was removed, and Today now leads with a short
+concrete "What can help today" list for the current stage instead of repeating
+the full urge plan every day. Copy/UI only — no science or data change.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

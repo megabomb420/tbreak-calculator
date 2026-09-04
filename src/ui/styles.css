@@ -3164,6 +3164,35 @@ select,
   border-top: 1px solid var(--hairline);
 }
 
+/* Compact Today guidance list: the concrete "what can help today" steps use
+   the quiet accent-dot markers of Plan Detail, not default bullets. */
+.today-plan-card .today-guidance .guidance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.today-plan-card .today-guidance .guidance-list li {
+  position: relative;
+  padding-left: var(--space-4);
+  color: var(--fg-muted);
+}
+
+.today-plan-card .today-guidance .guidance-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 50%, transparent);
+}
+
+.today-plan-card .today-guidance .guidance-list li + li {
+  margin-top: var(--space-1);
+}
+
 
 /* 0.12.0 — unified visual system ---------------------------------------------
    The Predicted Reset result language (ResultLensHero / ResultInsight) becomes

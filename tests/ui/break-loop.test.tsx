@@ -548,6 +548,32 @@ describe('evidence-guided companion', () => {
     expect(screen.queryByTestId('intention-preview')).toBeNull();
   });
 
+  it('keeps Today guidance to the stage’s concrete help list, not the urge plan', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(
+      storage,
+      storedAttempt({
+        preparation: {
+          triggerIds: ['evening_after_work'],
+          customTrigger: null,
+          replacementAction: 'go for a walk',
+          fallbackPlan: null,
+        },
+      }),
+    );
+    renderApp(storage);
+    const guidance = screen.getByTestId('today-guidance');
+    expect(guidance.getAttribute('data-window')).toBe('days_2_6');
+    // The compact card surfaces concrete stage recommendations...
+    const help = within(guidance).getByTestId('guidance-help');
+    expect(help.textContent).toMatch(/go for a walk/i);
+    // ...without the repeated urge-plan block, and without an absurd
+    // personalised “avoid: Stress” line.
+    expect(within(guidance).queryByTestId('guidance-intentions')).toBeNull();
+    expect(guidance.textContent).not.toMatch(/Where practical, avoid/i);
+  });
+
   it('compares earliest and latest check-in ratings in week two', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());

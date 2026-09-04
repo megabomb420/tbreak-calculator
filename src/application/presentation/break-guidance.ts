@@ -2,7 +2,7 @@
 // `abstinenceDayAt`; this module only selects versioned evidence content.
 
 import type { BreakPreparation } from '../break/preparation.ts';
-import { implementationIntentions, triggerLabel } from '../break/preparation.ts';
+import { implementationIntentions } from '../break/preparation.ts';
 import {
   CB1_EDUCATION_V1,
   CONCEPT_DISTINCTIONS_V1,
@@ -126,7 +126,7 @@ export function presentTodayGuidance(input: {
   return {
     ...view,
     headline: day.headline,
-    mayNotice: personalizeHelp(day.mayNotice, input.preparation),
+    mayNotice: day.mayNotice,
     canHelp: personalizeHelp(day.canHelp, input.preparation),
     comesNext: lastPlannedDay ? LAST_PLANNED_DAY_NEXT : day.comesNext,
     whyThisMatters: day.whatMatters,
@@ -279,21 +279,16 @@ function assemble(
 
 function personalizeHelp(base: readonly string[], preparation: BreakPreparation | null | undefined): readonly string[] {
   if (preparation == null) return base;
-  const extra: string[] = [];
-  if (preparation.replacementAction !== null) {
-    extra.push(`Use “${preparation.replacementAction}” at the time you would normally use THC.`);
-  }
-  if (preparation.triggerIds.length > 0) {
-    const labels = preparation.triggerIds.map(triggerLabel).join(', ');
-    extra.push(`Where practical, avoid: ${labels}.`);
-  }
-  if (extra.length === 0) return base;
+  const replacement = preparation.replacementAction?.trim();
+  if (replacement === undefined || replacement === null || replacement === '') return base;
+  // Fold the user's own first move into the generic "replacement activity"
+  // line so the stage guidance stays concrete without a trigger-avoid list.
   const withoutGeneric = base.filter(
     (line) =>
       !line.toLowerCase().includes('replacement activity') &&
       !line.toLowerCase().includes('strongest'),
   );
-  return [...extra, ...withoutGeneric];
+  return [`Use “${replacement}” at the time you would normally use THC.`, ...withoutGeneric];
 }
 
 function overlappingLabels(window: WithdrawalWindowContent): readonly string[] {

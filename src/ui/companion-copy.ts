@@ -13,7 +13,7 @@ export const SUPPORT_AREA_COPY: Record<SupportArea, SupportAreaCopy> = {
     label: 'Anxiety or racing thoughts',
     shortLabel: 'Anxiety',
     planLead: 'Give anxious thoughts somewhere to land before they spiral.',
-    todayAction: 'Write down one worry and one small next step, then move your body for a few minutes.',
+    todayAction: 'Keep today regular: normal meals, a short walk, and a set sleep time.',
     preparation: 'Decide one grounding routine you can start when your mind speeds up.',
   },
   irritability: {
@@ -27,7 +27,7 @@ export const SUPPORT_AREA_COPY: Record<SupportArea, SupportAreaCopy> = {
     label: 'Low mood or feeling flat',
     shortLabel: 'Low mood',
     planLead: 'Keep small, easy wins in reach when motivation dips.',
-    todayAction: 'Do one small thing that used to feel good, without judging how well it goes.',
+    todayAction: 'Keep one small routine going today — a meal, a walk, or a task — even if it feels flat.',
     preparation: 'Pick one tiny activity that reliably gives you even a small lift.',
   },
   sleep: {
@@ -41,7 +41,7 @@ export const SUPPORT_AREA_COPY: Record<SupportArea, SupportAreaCopy> = {
     label: 'Vivid dreams',
     shortLabel: 'Dreams',
     planLead: 'Expect dreams to feel different without treating every vivid night as a setback.',
-    todayAction: 'Keep the morning after a vivid night gentle and jot down anything you want out of your head.',
+    todayAction: 'After a vivid night, keep the morning ordinary and move on with the day.',
     preparation: 'Leave a note app or notebook ready for vivid dreams, then move on with the morning.',
   },
   cravings: {

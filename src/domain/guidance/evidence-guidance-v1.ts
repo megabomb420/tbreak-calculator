@@ -170,10 +170,9 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
     canHelp: [
       'Keep sleep and wake times reasonably regular.',
       'Eat normally even if appetite is reduced.',
-      'Drink according to thirst — extra water does not flush THC faster.',
-      'Avoid your strongest known trigger where practical.',
-      'Use a replacement activity at the time you would normally use THC.',
-      'Keep today’s check-in short.',
+      'Drink to thirst — more water does not flush THC faster.',
+      'Keep a simple replacement activity ready for the time you would normally use THC.',
+      'Cut down on avoidable triggers for these first days.',
     ],
     context:
       'Cannabis withdrawal can begin around 24–72 hours after last use. Some people notice little; others notice several of these. None of this is required, and none of it means the break is failing.',
@@ -197,12 +196,11 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
     ],
     canHelp: [
       'Eat normally even if appetite is reduced.',
-      'Drink according to thirst.',
+      'Drink to thirst.',
       'Keep sleep and wake times reasonably regular.',
-      'Avoid your strongest trigger where practical.',
-      'Use your replacement activity during the time you normally use THC.',
+      'Keep a simple replacement activity ready for the time you would normally use THC.',
       'If you made an if-then plan, use it first and then reassess the craving.',
-      'Keep the daily check-in short.',
+      'Cut down on avoidable triggers while this stretch lasts.',
     ],
     context:
       'Clinical research commonly observes the greatest withdrawal intensity around days 2–6. Feeling worse during this window does not mean the break is failing. This is a population pattern, not an exact personal prediction.',

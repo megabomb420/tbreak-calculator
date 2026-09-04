@@ -14,9 +14,15 @@ export function TodayGuidance({
   readonly supportAreas?: readonly SupportArea[];
 }) {
   const notice = compact ? view.mayNotice.slice(0, 3) : view.mayNotice;
-  const help = compact ? view.canHelp.slice(0, 2) : view.canHelp;
+  const help = compact ? view.canHelp.slice(0, 3) : view.canHelp;
   const personalised = supportAreas.length > 0;
   const focus = supportAreasView(supportAreas).primary;
+  const primaryAction = personalised
+    ? focus.todayAction
+    : view.whyThisMatters ?? view.canHelp[0] ?? view.context;
+  // On Today the concrete help list stands on its own: do not repeat the line
+  // that is already the primary action.
+  const compactHelp = compact ? help.filter((line) => line !== primaryAction) : help;
   return (
     <section className="today-guidance" data-testid="today-guidance" data-window={view.windowId}>
       <p className="guidance-headline" data-testid="guidance-headline">
@@ -30,11 +36,17 @@ export function TodayGuidance({
       {compact ? (
         <div className="guidance-block guidance-primary">
           <h3 className="guidance-kicker">What matters today</h3>
-          {personalised ? (
-            <p className="body" data-testid="guidance-primary-action">{focus.todayAction}</p>
-          ) : (
-            <p className="body" data-testid="guidance-primary-action">{view.whyThisMatters ?? help[0] ?? view.context}</p>
-          )}
+          <p className="body" data-testid="guidance-primary-action">{primaryAction}</p>
+        </div>
+      ) : null}
+      {compactHelp.length > 0 && compact ? (
+        <div className="guidance-block">
+          <h3 className="guidance-kicker">{GUIDANCE_CHROME.canHelp}</h3>
+          <ul className="guidance-list" data-testid="guidance-help">
+            {compactHelp.slice(0, 3).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </div>
       ) : null}
       {notice.length > 0 && !compact ? (
@@ -57,7 +69,7 @@ export function TodayGuidance({
           </ul>
         </div>
       ) : null}
-      {view.intentions.length > 0 ? (
+      {view.intentions.length > 0 && !compact ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.intentions}</h3>
           <ul className="guidance-list intention-list" data-testid="guidance-intentions">
