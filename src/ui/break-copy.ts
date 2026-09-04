@@ -267,6 +267,9 @@ export const GUIDANCE_CHROME = {
   openDetox: 'About common detox claims',
   closeDetox: 'Close detox notes',
   closeReference: 'Close reference',
+  openScience: 'What\u2019s the science behind this calculator?',
+  scienceLead:
+    'This calculator is deterministic and local: it turns research ranges into a planning interval, not a prediction of an exact personal reset day.',
   thenNow: 'Then → Now',
   intentions: 'Your urge plan',
   distinctions: 'These are different questions',

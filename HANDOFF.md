@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.15.0** ("Triggers and replacements" rewritten as a plain-language urge plan); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
+- App version: **0.16.0** (in-app "What's the science behind this calculator?" + original Polish science PDF archived in `references/tbreak-science-project.pdf`); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -15,6 +15,11 @@ Authoritative docs:
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
 - `README.md` (how to run and deploy)
+- `references/tbreak-science-project.pdf` — the original Polish science brief
+  ("THC Tolerance Break Calculator — projekt naukowo ugruntowanego PWA").
+  Archived for future implementers; the English working context it summarises
+  lives in `sources/TBREAK_PROJECT_CONTEXT.md`. The app UI itself is English
+  only and does not surface this file.
 
 Do not invent scientific numbers, reset/detox percentages, detection windows,
 or medical/legal copy. Do not change engine coefficients, bands, or thresholds
@@ -28,7 +33,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, and the **0.15.0** urge-plan copy rewrite.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, and the **0.16.0** science explainer.
 
 | Step | Status |
 |---|---|
@@ -59,10 +64,23 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.14.2 Plan Detail follow-up (flattened frames, Reference section, More removed) | **done** |
 | 0.14.3 Reference pages (CB1 reference opens its own page, detox-style) | **done** |
 | 0.15.0 urge-plan copy rewrite ("Triggers and replacements" reads naturally) | **done** |
+| 0.16.0 science explainer (Settings → About) + archived science PDF | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.16.0 added (science explainer + archived PDF)
+
+- **Settings → About → "What's the science behind this calculator?"** opens an
+  English explainer page (`ScienceBasicsPanel`, `science-basics.tsx`) covering:
+  ranges not exact days; the four-week human CB1 reference; the withdrawal
+  timeline; detectability being a separate question; unsupported detox claims;
+  and deterministic on-device computation. No runtime AI; not medical advice.
+- **Archived the original Polish science brief** at
+  `references/tbreak-science-project.pdf` for future implementers (the English
+  working context it summarises is `sources/TBREAK_PROJECT_CONTEXT.md`).
+- Content only; no science, taxonomy, schema, or persistence change.
 
 ## What 0.15.0 added ("Triggers and replacements" urge plan; no science change)
 

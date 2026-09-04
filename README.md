@@ -27,6 +27,13 @@ urge to use shows up on its own…"), a concrete first move instead of THC, and
 a reassess step. The section is organised into named steps with a titled
 "Your urge plan" preview. Copy/UI only — no science or data change.
 
+Version **0.16.0** — Settings → About gains "What's the science behind this
+calculator?", an English explainer of how the ranges, the four-week CB1
+reference, withdrawal timing, detection and deterministic on-device rules fit
+together. The original Polish science brief is archived at
+`references/tbreak-science-project.pdf` for reference; the app itself stays
+English only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

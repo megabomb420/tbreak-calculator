@@ -18,6 +18,8 @@ export interface SettingsModalProps {
   readonly updateStatus?: PwaUpdateStatus;
   /** Applies the available update through the same mechanism as the snackbar. */
   readonly onUpdateNow?: () => void;
+  /** Opens the in-app "science behind the calculator" explainer. */
+  readonly onOpenScience?: () => void;
   readonly onClose: () => void;
   readonly onDeleteEverything: () => void;
 }
@@ -27,6 +29,7 @@ export function SettingsModal({
   persistent = true,
   updateStatus,
   onUpdateNow,
+  onOpenScience,
   onClose,
   onDeleteEverything,
 }: SettingsModalProps) {
@@ -75,6 +78,7 @@ export function SettingsModal({
               persistent={persistent}
               updateStatus={id === 'app-info' ? updateStatus : undefined}
               onUpdateNow={id === 'app-info' ? onUpdateNow : undefined}
+              onOpenScience={id === 'app-info' ? onOpenScience : undefined}
               onDeleteEverything={onDeleteEverything}
             />
           ))}
@@ -89,12 +93,14 @@ function SettingsEntry({
   persistent,
   updateStatus,
   onUpdateNow,
+  onOpenScience,
   onDeleteEverything,
 }: {
   readonly id: SettingsMenuId;
   readonly persistent: boolean;
   readonly updateStatus?: PwaUpdateStatus;
   readonly onUpdateNow?: () => void;
+  readonly onOpenScience?: () => void;
   readonly onDeleteEverything: () => void;
 }) {
   switch (id) {
@@ -122,6 +128,11 @@ function SettingsEntry({
           <h3 className="settings-entry-title">{SETTINGS.appInfoTitle}</h3>
           <p className="body">{SETTINGS.appInfoVersion}</p>
           <p className="meta">Version {APP_VERSION}</p>
+          {onOpenScience !== undefined ? (
+            <button type="button" className="text-link" data-testid="settings-science" onClick={onOpenScience}>
+              {SETTINGS.scienceAction}
+            </button>
+          ) : null}
           {updateStatus !== undefined ? <UpdateStatus status={updateStatus} onUpdateNow={onUpdateNow} /> : null}
         </section>
       );

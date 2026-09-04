@@ -46,6 +46,7 @@ export const SETTINGS = {
   storageUnavailable: "This session can't be saved — results will vanish when you close the app.",
   appInfoTitle: 'About',
   appInfoVersion: 'T-Break Calculator',
+  scienceAction: "What's the science behind this calculator?",
   updateTitle: 'App update',
   updateChecking: 'Checking for updates…',
   updateCurrent: 'Up to date',

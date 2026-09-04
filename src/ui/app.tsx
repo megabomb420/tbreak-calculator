@@ -111,6 +111,7 @@ import { QuestionnaireFlow } from './questionnaire-flow.tsx';
 import { ResultScreen } from './result-screen.tsx';
 import { RESULT } from './result-copy.ts';
 import { SettingsModal } from './settings-modal.tsx';
+import { ScienceBasicsPanel } from './science-basics.tsx';
 import { Shell } from './shell.tsx';
 import { LogUseSheet } from './log-use.tsx';
 import { OutcomeCapture } from './outcome-capture.tsx';
@@ -195,6 +196,7 @@ export function App({
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
   const [personalisationOpen, setPersonalisationOpen] = useState(false);
+  const [scienceOpen, setScienceOpen] = useState(false);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -1374,17 +1376,25 @@ export function App({
           onClose={() => setPersonalisationOpen(false)}
         />
       ) : null}
+      {scienceOpen ? (
+        <ScienceBasicsPanel onClose={() => setScienceOpen(false)} />
+      ) : null}
       <SettingsModal
         open={shell.settingsOpen}
         persistent={persistent}
         updateStatus={updateStatus}
         onUpdateNow={() => onUpdateNow?.()}
+        onOpenScience={() => {
+          dispatch({ type: 'close_settings' });
+          setScienceOpen(true);
+        }}
         onClose={() => dispatch({ type: 'close_settings' })}
         onDeleteEverything={() => {
           deleteAllLocalData(storage, durable);
           setSession(null);
           setFlow(null);
           setPersonalisationOpen(false);
+          setScienceOpen(false);
           refresh();
           dispatch({ type: 'close_settings' });
         }}
