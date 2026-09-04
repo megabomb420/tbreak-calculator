@@ -2975,7 +2975,6 @@ select,
 }
 
 .today-now .guidance-headline { font-size: clamp(1.35rem, 6vw, 1.75rem); color: var(--fg); }
-.today-now .guidance-primary { padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--accent) 9%, var(--bg-raised)); }
 .guidance-notice-line { color: var(--fg-muted); }
 .today-live-card .today-actions { padding: 0 var(--space-5) var(--space-2); }
 .today-plan-link { align-self: center; margin-bottom: var(--space-3); text-align: center; }
@@ -3126,17 +3125,6 @@ select,
 }
 
 .today-screen .today-plan-card .guidance-milestone .guidance-milestone-title {
-  color: var(--fg);
-}
-
-.today-screen .today-plan-card .guidance-primary {
-  padding: 0 0 0 var(--space-3);
-  border-radius: 0;
-  background: transparent;
-  border-left: 2px solid color-mix(in oklab, var(--accent-strong) 50%, transparent);
-}
-
-.today-screen .today-plan-card .guidance-primary .body {
   color: var(--fg);
 }
 

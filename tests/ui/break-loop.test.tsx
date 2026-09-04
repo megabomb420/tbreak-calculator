@@ -565,11 +565,13 @@ describe('evidence-guided companion', () => {
     renderApp(storage);
     const guidance = screen.getByTestId('today-guidance');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
-    // The compact card surfaces concrete stage recommendations...
+    // The compact card merges the day's recommendations under one heading...
+    expect(within(guidance).getByText('What matters today')).toBeTruthy();
     const help = within(guidance).getByTestId('guidance-help');
     expect(help.textContent).toMatch(/go for a walk/i);
-    // ...without the repeated urge-plan block, and without an absurd
-    // personalised “avoid: Stress” line.
+    // ...without a duplicated "what can help today" heading, without the
+    // repeated urge-plan block, and without an absurd "avoid: Stress" line.
+    expect(within(guidance).queryByText('What can help today')).toBeNull();
     expect(within(guidance).queryByTestId('guidance-intentions')).toBeNull();
     expect(guidance.textContent).not.toMatch(/Where practical, avoid/i);
   });

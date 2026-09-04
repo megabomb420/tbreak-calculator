@@ -51,6 +51,11 @@ impairment, detectability, matrix/cutoff — replacing the separate
 "Tolerance is not a percentage" / "These are different questions" pages) and
 the unchanged **About common detox claims**. Copy/UI only.
 
+Version **0.16.5** — Today guidance merges "What matters today" and
+"What can help today" into one section that shows a few concrete
+recommendations for the day; "What commonly comes next" stays separate.
+The old duplicated summary paragraph was removed. Copy/UI only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

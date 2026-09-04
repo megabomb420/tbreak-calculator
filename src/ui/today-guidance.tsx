@@ -17,12 +17,15 @@ export function TodayGuidance({
   const help = compact ? view.canHelp.slice(0, 3) : view.canHelp;
   const personalised = supportAreas.length > 0;
   const focus = supportAreasView(supportAreas).primary;
-  const primaryAction = personalised
-    ? focus.todayAction
-    : view.whyThisMatters ?? view.canHelp[0] ?? view.context;
-  // On Today the concrete help list stands on its own: do not repeat the line
-  // that is already the primary action.
-  const compactHelp = compact ? help.filter((line) => line !== primaryAction) : help;
+  // Today = one "What matters today" section of a few concrete steps. The
+  // first-selected support action leads when present; otherwise the stage's
+  // own recommendations do. The full context ("why this matters") stays on
+  // the detail screens rather than repeating the same bullet points here.
+  const todayLead = personalised ? focus.todayAction : view.canHelp[0];
+  const todaySteps = compact
+    ? [...new Set([todayLead, ...view.canHelp].filter((line) => line !== undefined && line !== null && line !== ''))]
+        .slice(0, 3)
+    : [];
   return (
     <section className="today-guidance" data-testid="today-guidance" data-window={view.windowId}>
       <p className="guidance-headline" data-testid="guidance-headline">
@@ -33,18 +36,14 @@ export function TodayGuidance({
           <span className="guidance-milestone-title">{view.milestone.title}.</span> {view.milestone.body}
         </p>
       ) : null}
-      {compact ? (
-        <div className="guidance-block guidance-primary">
-          <h3 className="guidance-kicker">What matters today</h3>
-          <p className="body" data-testid="guidance-primary-action">{primaryAction}</p>
-        </div>
-      ) : null}
-      {compactHelp.length > 0 && compact ? (
+      {compact && todaySteps.length > 0 ? (
         <div className="guidance-block">
-          <h3 className="guidance-kicker">{GUIDANCE_CHROME.canHelp}</h3>
+          <h3 className="guidance-kicker">What matters today</h3>
           <ul className="guidance-list" data-testid="guidance-help">
-            {compactHelp.slice(0, 3).map((line) => (
-              <li key={line}>{line}</li>
+            {todaySteps.map((line, index) => (
+              <li key={line} data-testid={index === 0 ? 'guidance-primary-action' : undefined}>
+                {line}
+              </li>
             ))}
           </ul>
         </div>

@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.16.4** (Your break knowledge section: one "How these things differ" Q&A + detox claims); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
+- App version: **0.16.5** (Today guidance: "What matters today" + "What can help today" merged into one section); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -33,7 +33,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, the **0.16.1** urge-plan dedupe, the **0.16.2** reference-page separation fix, the **0.16.3** Today/Your-break guidance-content fix, and the **0.16.4** Your-break knowledge-section merge.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, the **0.16.1** urge-plan dedupe, the **0.16.2** reference-page separation fix, the **0.16.3** Today/Your-break guidance-content fix, the **0.16.4** Your-break knowledge-section merge, and the **0.16.5** Today guidance-section merge.
 
 | Step | Status |
 |---|---|
@@ -69,6 +69,7 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.16.2 independent reference pages | **done** |
 | 0.16.3 Today/Your-break guidance content + reading flow grounded in the science PDF | **done** |
 | 0.16.4 Your-break knowledge section: merged "How these things differ" explainer | **done** |
+| 0.16.5 Today guidance: merged "What matters today" / "What can help today" | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
@@ -122,6 +123,21 @@ in-flow tab bar, product-vs-route distinction.
   presentation-only; engines and stored science untouched).
 - Content/UI only. No tolerance-v3, Recovery Outlook v2, taxonomy, persistence,
   check-in, Reduction, or Detection change.
+
+## What 0.16.5 added (Today guidance-section merge; no science change)
+
+- Today (compact guidance) no longer repeats two sections per stage. The
+  duplicated "What matters today" paragraph + "What can help today" bullet list
+  are merged into **one "What matters today" section** that leads with the
+  first-selected support action (or the stage's first step) and lists a few
+  concrete recommendations underneath. "What commonly comes next" stays its own
+  separate section. The `whyThisMatters`-style summary paragraph is dropped from
+  the compact card (it duplicated the bullets and remains available on the
+  detail screens).
+- The old `.guidance-primary` left-rule callout styling was removed with the
+  merged section; the compact card keeps the quiet dot-marker list style.
+- Content/UI only; no science, engine, taxonomy, persistence, check-in,
+  Reduction, or Detection change.
 
 
 ## What 0.16.1 added (urge-plan dedupe; no science change)
