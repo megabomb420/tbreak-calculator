@@ -114,7 +114,11 @@ export function PlanDetail(props: PlanDetailProps) {
           ) : planned !== null ? (
             <PlannedPlanContent planned={planned} outlook={outlook} />
           ) : null}
-          <PreparationCard value={attempt.preparation} onSave={(next) => props.onUpdatePreparation(attempt.id, next)} />
+          <PreparationCard
+            value={attempt.preparation}
+            onSave={(next) => props.onUpdatePreparation(attempt.id, next)}
+            showUrgePlan={false}
+          />
           <PostBreakCard
             attempt={attempt}
             onUpdate={(mode, plan) => props.onUpdatePostBreak(attempt.id, mode, plan)}

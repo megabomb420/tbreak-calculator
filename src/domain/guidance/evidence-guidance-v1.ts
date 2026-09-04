@@ -112,7 +112,7 @@ export const TRIGGER_CATALOG_V1: readonly TriggerCatalogEntry[] = [
   { id: 'alcohol', label: 'Alcohol', ifClause: 'I automatically want THC with alcohol' },
   { id: 'boredom', label: 'Boredom', ifClause: 'I automatically want THC when I am bored' },
   { id: 'stress', label: 'Stress', ifClause: 'I automatically want THC when I am stressed' },
-  { id: 'social', label: 'A specific social situation', ifClause: 'I automatically want THC in that social situation' },
+  { id: 'social', label: 'Around people who use', ifClause: 'I automatically want THC around people who use' },
 ];
 
 export const IMPLEMENTATION_INTENTION_TEMPLATE =

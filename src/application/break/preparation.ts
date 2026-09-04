@@ -73,8 +73,14 @@ const URGE_OPENERS: Record<TriggerId, string> = {
   alcohol: 'When alcohol is around, the urge to use tends to show up.',
   boredom: 'When I am bored, the urge to use tends to show up.',
   stress: 'When I am stressed, the urge to use tends to show up.',
-  social: 'In that social situation, the urge to use tends to show up.',
+  social: 'When I am around people who use, the urge to use tends to show up.',
 };
+
+/** One closing line, appended once when the plan exists, that frames a strong
+ * urge as information rather than failure — consistent with the withdrawal
+ * window guidance ("a spike does not mean the break is not working"). */
+const URGE_PLAN_CLOSER =
+  'If the urge is still strong after that, see it as a signal for the next moment — not as proof the break is not working.';
 
 const GENERIC_URGE_OPENER = 'Sometimes the urge to use shows up on its own.';
 
@@ -109,6 +115,10 @@ export function implementationIntentions(preparation: BreakPreparation | null | 
   const fallback = preparation.fallbackPlan?.trim();
   if (fallback !== null && fallback !== undefined && fallback !== '' && lines.length > 0) {
     lines.push(`If that first move is not possible, ${fallback}.`);
+  }
+
+  if (lines.length > 0) {
+    lines.push(URGE_PLAN_CLOSER);
   }
 
   return lines;

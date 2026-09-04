@@ -34,6 +34,10 @@ together. The original Polish science brief is archived at
 `references/tbreak-science-project.pdf` for reference; the app itself stays
 English only.
 
+Version **0.16.1** — the urge plan shows once (top guidance) on the plan
+screen, the social trigger reads "Around people who use", and every urge plan
+closes with a reassurance line. Copy/UI only.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

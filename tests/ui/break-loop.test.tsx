@@ -541,7 +541,11 @@ describe('evidence-guided companion', () => {
     const attempt = attemptsOf(storage)[0];
     expect(attempt?.preparation?.triggerIds).toContain('evening_after_work');
     expect(attempt?.preparation?.replacementAction).toBe('go for a walk');
-    expect(screen.getByTestId('intention-preview').textContent).toMatch(/after work/i);
+    // The urge plan is rendered once, in the plan's guidance block above
+    // (the repeated block inside the triggers card is hidden on this screen).
+    const plan = screen.getByTestId('plan-detail');
+    expect(within(plan).getByTestId('guidance-intentions').textContent).toMatch(/after work/i);
+    expect(screen.queryByTestId('intention-preview')).toBeNull();
   });
 
   it('compares earliest and latest check-in ratings in week two', () => {

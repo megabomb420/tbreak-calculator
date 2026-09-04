@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.16.0** (in-app "What's the science behind this calculator?" + original Polish science PDF archived in `references/tbreak-science-project.pdf`); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
+- App version: **0.16.1** (urge plan shown once on Plan Detail; "Around people who use" trigger clarified); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -33,7 +33,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, and the **0.16.0** science explainer.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, and the **0.16.1** urge-plan dedupe.
 
 | Step | Status |
 |---|---|
@@ -65,10 +65,26 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.14.3 Reference pages (CB1 reference opens its own page, detox-style) | **done** |
 | 0.15.0 urge-plan copy rewrite ("Triggers and replacements" reads naturally) | **done** |
 | 0.16.0 science explainer (Settings → About) + archived science PDF | **done** |
+| 0.16.1 urge plan dedupe + clearer social trigger | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.16.1 added (urge-plan dedupe; no science change)
+
+- The "Your urge plan" now appears once on Plan Detail, in the plan's
+  guidance block near the top; the repeated block inside the "Triggers and
+  replacements" card is hidden there (`PreparationCard showUrgePlan={false}`).
+  The live preview still shows in the break-start sheet, where nothing else
+  renders the plan.
+- The social trigger is now concrete: "Around people who use" instead of
+  "A specific social situation", so the generated line ("When I am around
+  people who use…") reads clearly without extra explanation.
+- Every generated urge plan closes with one honest line: a strong remaining
+  urge is a signal for the next moment, not proof the break is failing.
+- Tests updated in `tests/ui/break-loop.test.tsx` (plan asserted from the top
+  guidance block, repeated preview asserted absent); full suite green.
 
 ## What 0.16.0 added (science explainer + archived PDF)
 

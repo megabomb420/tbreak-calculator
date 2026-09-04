@@ -13,10 +13,14 @@ export function PreparationCard({
   value,
   onSave,
   allowSkip = false,
+  showUrgePlan = true,
 }: {
   readonly value: BreakPreparation | null;
   readonly onSave: (next: BreakPreparation | null) => void;
   readonly allowSkip?: boolean;
+  /** Hide the live "Your urge plan" preview (e.g. when the page already
+   * renders the plan higher up in its guidance). */
+  readonly showUrgePlan?: boolean;
 }) {
   const [draft, setDraft] = useState<BreakPreparation>(value ?? emptyPreparation());
   const [custom, setCustom] = useState(value?.customTrigger ?? '');
@@ -112,7 +116,7 @@ export function PreparationCard({
           }}
         />
       </label>
-      {intentions.length > 0 ? (
+      {showUrgePlan && intentions.length > 0 ? (
         <div className="urge-plan">
           <p className="micro-label">{GUIDANCE_CHROME.urgePlanLabel}</p>
           <p className="meta">{GUIDANCE_CHROME.urgePlanHint}</p>
