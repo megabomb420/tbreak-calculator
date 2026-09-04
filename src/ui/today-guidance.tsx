@@ -2,7 +2,7 @@ import type { TodayGuidanceView } from '../application/presentation/break-guidan
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { CheckinComparisonBlock } from './checkin-comparison.tsx';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
-import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
+import { supportAreasView } from './companion-copy.ts';
 
 export function TodayGuidance({
   view,
@@ -16,7 +16,7 @@ export function TodayGuidance({
   const notice = compact ? view.mayNotice.slice(0, 3) : view.mayNotice;
   const help = compact ? view.canHelp.slice(0, 2) : view.canHelp;
   const personalised = supportAreas.length > 0;
-  const todayAreas = effectiveSupportAreas(supportAreas);
+  const focus = supportAreasView(supportAreas).primary;
   return (
     <section className="today-guidance" data-testid="today-guidance" data-window={view.windowId}>
       <p className="guidance-headline" data-testid="guidance-headline">
@@ -31,9 +31,7 @@ export function TodayGuidance({
         <div className="guidance-block guidance-primary">
           <h3 className="guidance-kicker">What matters today</h3>
           {personalised ? (
-            <ul className="guidance-list" data-testid="guidance-primary-action">
-              {todayAreas.map((area) => <li key={area}>{supportAreaCopy(area).todayAction}</li>)}
-            </ul>
+            <p className="body" data-testid="guidance-primary-action">{focus.todayAction}</p>
           ) : (
             <p className="body" data-testid="guidance-primary-action">{view.whyThisMatters ?? help[0] ?? view.context}</p>
           )}

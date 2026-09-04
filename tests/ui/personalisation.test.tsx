@@ -40,7 +40,7 @@ describe('independent companion personalisation flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sleep or winding down' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cravings in the moment' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Anxiety or restlessness' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Anxiety or racing thoughts' }));
     fireEvent.click(screen.getByTestId('save-support-areas'));
 
     expect(screen.queryByTestId('personalisation-flow')).toBeNull();
@@ -69,7 +69,7 @@ describe('independent companion personalisation flow', () => {
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
   });
 
-  it('keeps Today focused on the first two selected deterministic actions', () => {
+  it('keeps Today focused on the first selected deterministic action', () => {
     const view = presentTodayGuidance({
       breakDay: 3,
       targetDays: 14,
@@ -80,9 +80,8 @@ describe('independent companion personalisation flow', () => {
     });
     render(<TodayGuidance view={view} compact supportAreas={['sleep', 'cravings', 'anxiety']} />);
     const actions = screen.getByTestId('guidance-primary-action');
-    expect(actions.querySelectorAll('li')).toHaveLength(2);
     expect(actions.textContent).toContain(SUPPORT_AREA_COPY.sleep.todayAction);
-    expect(actions.textContent).toContain(SUPPORT_AREA_COPY.cravings.todayAction);
+    expect(actions.textContent).not.toContain(SUPPORT_AREA_COPY.cravings.todayAction);
     expect(actions.textContent).not.toContain(SUPPORT_AREA_COPY.anxiety.todayAction);
   });
 });

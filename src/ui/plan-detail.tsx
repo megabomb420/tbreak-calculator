@@ -31,7 +31,7 @@ import { currentSegmentAnchor } from '../application/presentation/plan-presentat
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import type { BreakOutlookView } from '../application/presentation/break-outlook.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
-import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
+import { supportAreasView } from './companion-copy.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -231,7 +231,9 @@ function ActivePlanContent({
       <section className="plan-focus-card" data-testid="plan-focus-card">
         <p className="micro-label">{supportAreas.length > 0 ? 'Your support areas' : 'Plan support'}</p>
         <p className="body">
-          {effectiveSupportAreas(supportAreas).map((area) => supportAreaCopy(area).shortLabel).join(' · ')}
+          {supportAreas.length > 0
+            ? supportAreas.map((area) => supportAreasView([area]).primary.shortLabel).join(' · ')
+            : supportAreasView(supportAreas).primary.shortLabel}
         </p>
         {onEditSupport ? <button type="button" className="text-link" data-testid="plan-edit-support" onClick={onEditSupport}>{supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}</button> : null}
       </section>

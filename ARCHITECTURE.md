@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.13.0
+Version: 0.14.0
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -14,6 +14,8 @@ Companion specification: `CALCULATOR_SPEC.md`
 **0.10.0 note:** result presentation now uses one shared `ResultLensHero` / `ResultInsight` visual and type system for Your Plan and Predicted Reset. `supportFocus` is a separately versioned companion value (`companion-personalisation-v1`) attached beside, never inside, the `UseProfileInput`; it may select deterministic action copy but is never passed to tolerance-v3 or Recovery Outlook v2. Today derives a named visual phase from existing break/tracking state and renders CSS-only decorative atmosphere; it introduces no recovery score, percentage, or scientific state.
 
 **0.13.0 note:** new calculations contain scientific questionnaire data only. Companion preferences live under their own `companion-personalisation-v2` key as multi-select `supportAreas[]`; loading migrates the newest legacy v1 `supportFocus` to a one-item array without rewriting the saved profile or calculation history. The dedicated UI flow can be opened/closed independently and saving it never invokes a calculator.
+
+**0.14.0 note:** `supportAreas[]` uses a bounded, grouped taxonomy — mind & mood (anxiety, irritability, low mood), sleep (sleep, vivid dreams), cravings & habits (cravings, routine, boredom), body (appetite, nausea, headaches). Legacy v1 `supportFocus` and interim 0.13 area names migrate on read; `physical_discomfort` → `headaches` + `nausea`, `not_sure` → empty. The first selected area leads deterministic guidance; no calculator or scientific record is touched.
 
 ## 1. Architecture objective
 

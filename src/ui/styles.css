@@ -2872,6 +2872,47 @@ select,
   font-size: .78rem;
 }
 
+.support-areas-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.support-area-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.support-area-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.support-area-card {
+  position: relative;
+  min-height: 88px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.support-area-card .choice-check { flex: 0 0 auto; opacity: 0; }
+.support-area-card[aria-pressed="true"] .choice-check { opacity: 1; }
+
+.support-area-card.selected,
+.support-area-card[aria-pressed="true"] {
+  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg-card));
+}
+
 .questionnaire-stage-label {
   margin: 0;
   color: var(--fg-faint);
@@ -2971,6 +3012,8 @@ select,
   .result-lens-summary { font-size: .94rem; }
   .support-focus-grid { grid-template-columns: 1fr; }
   .support-focus-card { min-height: 72px; flex-direction: row; align-items: center; justify-content: flex-start; }
+  .support-area-grid { grid-template-columns: 1fr; }
+  .support-area-card { min-height: 72px; }
   .today-phase-hero { grid-template-columns: 1fr; }
   .today-hero-mark { display: none; }
 }

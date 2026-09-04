@@ -1,5 +1,5 @@
 import type { SupportArea } from '../application/questionnaire/companion.ts';
-import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
+import { supportAreasView } from './companion-copy.ts';
 
 export function YourPlanGuide({
   targetDays,
@@ -14,20 +14,19 @@ export function YourPlanGuide({
   readonly supportAreas: readonly SupportArea[];
   readonly onEditSupport?: () => void;
 }) {
-  const areas = supportAreas.length === 0 ? effectiveSupportAreas(supportAreas) : supportAreas;
-  const primary = supportAreaCopy(areas[0]!);
-  const hasPersonalisation = supportAreas.length > 0;
+  const view = supportAreasView(supportAreas);
+  const hasPersonalisation = view.areas.length > 0;
   return (
     <>
       <section className="plan-priority" data-testid="plan-priority">
         <div>
           <p className="micro-label">{hasPersonalisation ? 'Your support areas' : 'Start here'}</p>
-          <h3 className="plan-priority-title">{primary.planLead}</h3>
+          <h3 className="plan-priority-title">{view.primary.planLead}</h3>
           {hasPersonalisation ? (
             <ul className="support-area-summary" data-testid="support-area-summary">
-              {supportAreas.map((area) => <li key={area}>{supportAreaCopy(area).shortLabel}</li>)}
+              {view.areas.map((area) => <li key={area}>{supportAreasView([area]).primary.shortLabel}</li>)}
             </ul>
-          ) : <p className="body">{primary.todayAction}</p>}
+          ) : <p className="body">{view.primary.todayAction}</p>}
         </div>
         {onEditSupport ? (
           <button type="button" className="text-link" data-testid="edit-support" onClick={onEditSupport}>
@@ -46,12 +45,18 @@ export function YourPlanGuide({
         <div className="plan-essential-grid">
           <details className="result-disclosure" open>
             <summary>Prepare for the hard moment</summary>
-            {areas.map((area) => <p className="body" key={area}>{supportAreaCopy(area).preparation}</p>)}
+            {view.areas.length > 0 ? (
+              view.areas.map((area) => (
+                <p className="body" key={area}>{supportAreasView([area]).primary.preparation}</p>
+              ))
+            ) : (
+              <p className="body">{view.primary.preparation}</p>
+            )}
             <p className="meta">Days 2–6 are commonly among the harder days. That is a planning cue, not a prediction of how you will feel.</p>
           </details>
           <details className="result-disclosure">
             <summary>Know what to watch</summary>
-            <p className="body">Watch for changes in craving, sleep, mood, appetite, and automatic routines. You may notice none, some, or several.</p>
+            <p className="body">Watch for changes in sleep, mood, cravings, appetite, stomach comfort, and headaches. You may notice none, some, or several.</p>
             <p className="meta">Feeling better is useful information, but it is not proof that tolerance has fully reset.</p>
           </details>
           <details className="result-disclosure">

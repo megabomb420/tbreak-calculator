@@ -5,6 +5,14 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
+**mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
+dreams), **cravings & habits** (cravings, routine, boredom), and **body**
+(appetite, nausea, headaches). The first selected area leads Your Plan and
+Today guidance; every selected area stays visible. Editing remains a separate
+flow outside the scientific questionnaire, and check-ins stay independent. No
+numeric science changed.
+
 Version **0.13.0** — companion personalisation is now an optional multi-select
 preference flow outside the scientific questionnaire. `supportAreas[]` are
 stored independently, can be edited without recalculation, and only select or

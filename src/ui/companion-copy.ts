@@ -9,12 +9,40 @@ export interface SupportAreaCopy {
 }
 
 export const SUPPORT_AREA_COPY: Record<SupportArea, SupportAreaCopy> = {
+  anxiety: {
+    label: 'Anxiety or racing thoughts',
+    shortLabel: 'Anxiety',
+    planLead: 'Give anxious thoughts somewhere to land before they spiral.',
+    todayAction: 'Write down one worry and one small next step, then move your body for a few minutes.',
+    preparation: 'Decide one grounding routine you can start when your mind speeds up.',
+  },
+  irritability: {
+    label: 'Irritability or short temper',
+    shortLabel: 'Irritability',
+    planLead: 'Leave extra room around moments that already feel demanding.',
+    todayAction: 'Lower one avoidable demand and pause before acting on a sharp mood shift.',
+    preparation: 'Tell one trusted person you may want a little more space or patience.',
+  },
+  low_mood: {
+    label: 'Low mood or feeling flat',
+    shortLabel: 'Low mood',
+    planLead: 'Keep small, easy wins in reach when motivation dips.',
+    todayAction: 'Do one small thing that used to feel good, without judging how well it goes.',
+    preparation: 'Pick one tiny activity that reliably gives you even a small lift.',
+  },
   sleep: {
     label: 'Sleep or winding down',
     shortLabel: 'Sleep',
     planLead: 'Protect a repeatable wind-down instead of chasing perfect sleep.',
     todayAction: 'Choose a realistic sleep and wake time, then keep the hour before bed simple.',
     preparation: 'Decide what replaces THC in the hour before bed.',
+  },
+  dreams: {
+    label: 'Vivid dreams',
+    shortLabel: 'Dreams',
+    planLead: 'Expect dreams to feel different without treating every vivid night as a setback.',
+    todayAction: 'Keep the morning after a vivid night gentle and jot down anything you want out of your head.',
+    preparation: 'Leave a note app or notebook ready for vivid dreams, then move on with the morning.',
   },
   cravings: {
     label: 'Cravings in the moment',
@@ -30,54 +58,71 @@ export const SUPPORT_AREA_COPY: Record<SupportArea, SupportAreaCopy> = {
     todayAction: 'Change one use-linked part of today—place, timing, or the activity around it.',
     preparation: 'Choose a specific replacement for your usual use window.',
   },
-  mood: {
-    label: 'Mood or irritability',
-    shortLabel: 'Mood',
-    planLead: 'Leave extra room around the parts of the day that already feel demanding.',
-    todayAction: 'Lower one avoidable demand and pause before acting on a sharp mood shift.',
-    preparation: 'Tell one trusted person that you may want a little more space or patience.',
-  },
-  anxiety: {
-    label: 'Anxiety or restlessness',
-    shortLabel: 'Anxiety & restlessness',
-    planLead: 'Give restless energy somewhere simple and predictable to go.',
-    todayAction: 'Choose one short grounding or movement break you can repeat if restlessness rises.',
-    preparation: 'Pick a low-effort calming activity and keep it easy to start.',
+  boredom: {
+    label: 'Boredom or filling idle time',
+    shortLabel: 'Boredom',
+    planLead: 'Plan the empty windows before they tempt you.',
+    todayAction: 'Line up one hands-on task for your most predictable idle stretch.',
+    preparation: 'Pick a short, absorbing alternative for the moment you would usually reach for THC.',
   },
   appetite: {
-    label: 'Appetite, nausea or stomach discomfort',
-    shortLabel: 'Appetite & stomach',
+    label: 'Appetite or eating changes',
+    shortLabel: 'Appetite',
     planLead: 'Make ordinary food easy to reach even if appetite changes.',
     todayAction: 'Set up one simple meal or snack before you need to decide what to eat.',
     preparation: 'Keep a few familiar, easy foods available for the early days.',
   },
-  dreams: {
-    label: 'Vivid dreams',
-    shortLabel: 'Dreams',
-    planLead: 'Expect dreams to feel different without treating every vivid night as a setback.',
-    todayAction: 'Keep the morning after a vivid night gentle and jot down anything you want out of your head.',
-    preparation: 'Leave a note app or notebook ready for vivid dreams, then move on with the morning.',
+  nausea: {
+    label: 'Stomach discomfort or nausea',
+    shortLabel: 'Nausea',
+    planLead: 'Keep things gentle: small, plain food and slow hydration.',
+    todayAction: 'Eat something small and plain, and sip water through the day instead of gulping.',
+    preparation: 'Stock a few plain, easy-to-stomach foods and keep water close.',
   },
-  physical_discomfort: {
-    label: 'Headache or physical discomfort',
-    shortLabel: 'Physical discomfort',
-    planLead: 'Keep basic comfort measures easy to reach and avoid overloading the day.',
-    todayAction: 'Prioritise water, a regular meal and one comfortable low-effort activity today.',
-    preparation: 'Set up water, simple food and a low-demand fallback for an uncomfortable day.',
+  headaches: {
+    label: 'Headaches',
+    shortLabel: 'Headaches',
+    planLead: 'Take tension off early: water, rest, and a pause from bright screens.',
+    todayAction: 'Drink some water, step away from bright screens for a bit, and rest if you can.',
+    preparation: 'Keep a quiet, dim space ready for the times headaches tend to hit.',
   },
-  not_sure: {
-    label: 'I’m not sure yet',
-    shortLabel: 'Start simple',
-    planLead: 'Start with routine, meals, and sleep; adjust when you see what actually feels hard.',
-    todayAction: 'Keep today ordinary: one regular meal, a clear evening plan, and a steady bedtime.',
-    preparation: 'Notice the first moment you automatically reach for the old routine.',
-  },
+};
+
+export const SUPPORT_AREA_GROUPS: ReadonlyArray<{
+  readonly id: string;
+  readonly label: string;
+  readonly areas: readonly SupportArea[];
+}> = [
+  { id: 'mind', label: 'Mind & mood', areas: ['anxiety', 'irritability', 'low_mood'] },
+  { id: 'sleep', label: 'Sleep', areas: ['sleep', 'dreams'] },
+  { id: 'habits', label: 'Cravings & habits', areas: ['cravings', 'routine', 'boredom'] },
+  { id: 'body', label: 'Body', areas: ['appetite', 'nausea', 'headaches'] },
+];
+
+/** Neutral fallback for an empty support list ("no specific focus"). */
+export const GENERAL_SUPPORT_COPY: SupportAreaCopy = {
+  label: 'No specific focus yet',
+  shortLabel: 'Start simple',
+  planLead: 'Start with routine, meals, and sleep; adjust when you see what actually feels hard.',
+  todayAction: 'Keep today ordinary: one regular meal, a clear evening plan, and a steady bedtime.',
+  preparation: 'Notice the first moment you automatically reach for the old routine.',
 };
 
 export function supportAreaCopy(area: SupportArea): SupportAreaCopy {
   return SUPPORT_AREA_COPY[area];
 }
 
-export function effectiveSupportAreas(areas: readonly SupportArea[]): readonly SupportArea[] {
-  return areas.length === 0 ? ['not_sure'] : areas.slice(0, 2);
+export interface SupportAreasView {
+  readonly primary: SupportAreaCopy;
+  readonly areas: readonly SupportArea[];
+}
+
+export function supportAreasView(
+  areas: readonly SupportArea[] | null | undefined,
+): SupportAreasView {
+  const list = areas ?? [];
+  return {
+    primary: list[0] === undefined ? GENERAL_SUPPORT_COPY : SUPPORT_AREA_COPY[list[0]],
+    areas: list,
+  };
 }

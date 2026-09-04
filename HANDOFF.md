@@ -5,12 +5,12 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.13.0** (independent multi-select companion personalisation; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.14.0** (support-area taxonomy refinement — grouped real-problem areas incl. nausea/headaches/dreams; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
 
-- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.12.0 note covers the app-wide visual unification on the Predicted Reset language; 0.11.1 note covers the Today visual-polish release — page background removed, Today guidance de-carded; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
+- `UX_SPEC.md` (v1 UX; §16 is the implementation sequence; 0.14.0 note covers the support-area taxonomy refinement — grouped mind & mood / sleep / cravings & habits / body; 0.13.0 note covers the independent multi-select companion personalisation; 0.12.0 note covers the app-wide visual unification on the Predicted Reset language; 0.11.1 note covers the Today visual-polish release — page background removed, Today guidance de-carded; 0.11.0 note covers the Today phase-system completion and Plan Detail / check-in alignment; 0.10.1 note covers the Today profile-no-break result-lens consistency patch; 0.9.1 note covers the deterministic-only decision; 0.9.0 note covers the plan|predicted-reset result modes, frozen-history outlook, outcome capture, and the reduction trajectory; 0.8.1 note covers the interaction/touch contract; 0.8.0 note covers the tolerance-v3 result hero and the reduction-active flow; 0.7.2 note covers update state, gear icon, outlook grouping; 0.7.1 note covers the Q6-first reorder + compact duration rows; 0.7.0 note covers the duration-aware planning target; 0.6.0 note covers Q6 + outlook)
 - `CALCULATOR_SPEC.md` (domain / engines; tolerance-v3 classification in §7.3, procedure in §7.5, history override in §7.7, confidence in §7.6, reduction tracker in §10.1, recovery outlook in §7.11; `sourceAttemptId` in §4.4; Q6 routing/order in §4.3)
 - `EVIDENCE_CONTENT_SPEC.md` (EvidenceGuidanceV1 + BreakOutlookV1 architecture, outlook content version `break-outlook-v2`; current recovery-outlook content version `tolerance-recovery-outlook-v2` in §13; v1 retained for historical records)
 - `ARCHITECTURE.md`
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, and the **0.13.0** companion-personalisation redesign.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, and the **0.14.0** support-area taxonomy refinement.
 
 | Step | Status |
 |---|---|
@@ -54,10 +54,36 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.11.1 Today visual polish (page background removed, guidance de-carded) | **done** |
 | 0.12.0 visual unification (Predicted Reset language app-wide) | **done** |
 | 0.13.0 independent multi-select companion personalisation | **done** |
+| 0.14.0 support-area taxonomy refinement (grouped, explicit physical symptoms) | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.14.0 added (support-area taxonomy refinement; no science change)
+
+Refines the 0.13.0 companion-personalisation layer without touching
+tolerance-v3, Recovery Outlook v2, Reduction, Detection, scientific
+persistence, tabs, or the viewport contract.
+
+- **Grouped real-problem taxonomy.** `supportAreas[]` is now a bounded,
+  grouped set of 11 real THC-break problems instead of the earlier flat list:
+  **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, dreams),
+  **cravings & habits** (cravings, routine, boredom), and **body** (appetite,
+  nausea, headaches). `physical_discomfort` is replaced by explicit
+  `headaches` and `nausea`; `not_sure` is replaced by an empty list = general
+  guidance.
+- **Editor and summary group by category.** The personalisation flow and Your
+  Plan summary show the same grouped taxonomy; the first selected area leads
+  Your Plan and Today guidance, and every selected area stays visible.
+- **Migration is read-time and non-destructive.** Legacy v1 `supportFocus`
+  maps to the new taxonomy (`mood` → `irritability`, `not_sure` → empty), and
+  the interim 0.13 area names (`physical_discomfort`, `not_sure`) migrate
+  forward (`physical_discomfort` → headaches + nausea). No stored preference
+  is silently dropped.
+- Tests: `tests/unit/companion-personalisation.test.ts` (store + migration)
+  and `tests/ui/personalisation.test.tsx` (grouped editor + guidance) updated;
+  check-in independence (`tests/ui/today-phases.test.tsx`) unchanged.
 
 ## What 0.13.0 added (no science change)
 

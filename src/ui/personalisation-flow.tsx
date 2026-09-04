@@ -1,9 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
-import {
-  SUPPORT_AREA_VALUES,
-  type SupportArea,
-} from '../application/questionnaire/companion.ts';
-import { SUPPORT_AREA_COPY } from './companion-copy.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
+import { SUPPORT_AREA_COPY, SUPPORT_AREA_GROUPS } from './companion-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
@@ -21,11 +18,9 @@ export function PersonalisationFlow({
   useFocusTrap(true, rootRef, onClose);
 
   function toggle(area: SupportArea): void {
-    setAreas((current) => {
-      if (current.includes(area)) return current.filter((item) => item !== area);
-      if (area === 'not_sure') return ['not_sure'];
-      return [...current.filter((item) => item !== 'not_sure'), area];
-    });
+    setAreas((current) =>
+      current.includes(area) ? current.filter((item) => item !== area) : [...current, area],
+    );
   }
 
   return (
@@ -49,24 +44,30 @@ export function PersonalisationFlow({
             <h3 id="personalisation-title" className="title">Where would support help?</h3>
             <p className="meta">Choose any that fit. This only tailors guidance — it never changes your recommended days.</p>
           </header>
-          <div className="support-focus-grid" data-testid="support-area-cards">
-            {SUPPORT_AREA_VALUES.map((area) => {
-              const selected = areas.includes(area);
-              return (
-                <button
-                  key={area}
-                  type="button"
-                  className={selected ? 'support-focus-card selected' : 'support-focus-card'}
-                  data-support-area={area}
-                  aria-pressed={selected}
-                  onClick={() => toggle(area)}
-                >
-                  <span className={`support-focus-symbol is-${area}`} aria-hidden="true" />
-                  <span className="choice-title">{SUPPORT_AREA_COPY[area].label}</span>
-                  <span className="choice-check"><CheckIcon size={16} /></span>
-                </button>
-              );
-            })}
+          <div className="support-areas-control" data-testid="support-area-cards">
+            {SUPPORT_AREA_GROUPS.map((group) => (
+              <div key={group.id} className="support-area-group" data-support-group={group.id}>
+                <p className="micro-label">{group.label}</p>
+                <div className="support-area-grid">
+                  {group.areas.map((area) => {
+                    const selected = areas.includes(area);
+                    return (
+                      <button
+                        key={area}
+                        type="button"
+                        className={selected ? 'support-area-card selected' : 'support-area-card'}
+                        data-support-area={area}
+                        aria-pressed={selected}
+                        onClick={() => toggle(area)}
+                      >
+                        <span className="choice-title">{SUPPORT_AREA_COPY[area].label}</span>
+                        <span className="choice-check"><CheckIcon size={16} /></span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </div>

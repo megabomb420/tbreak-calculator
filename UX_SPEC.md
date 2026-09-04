@@ -7,6 +7,8 @@ Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, hi
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
+Revision note (0.14.0): support-area taxonomy refinement — presentation only, no science or domain change. `supportAreas[]` becomes a bounded, grouped set of real THC-break problems: **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid dreams), **cravings & habits** (cravings, routine, boredom), and **body** (appetite, nausea, headaches). `physical_discomfort` is replaced by explicit `headaches` and `nausea`; `not_sure` is replaced by an empty list (general guidance). The editor and Your Plan summary group by category, the first selected area leads, and every selection stays visible. Legacy v1 `supportFocus` and the interim 0.13 area names migrate on read without rewriting scientific snapshots/history. Check-ins remain independent. No tolerance-v3, Recovery Outlook v2, Reduction, Detection, History semantics, persistence, tabs, or viewport-contract change.
+
 Revision note (0.13.0): companion personalisation is an optional preference flow after calculation, never a questionnaire step. `companion-personalisation-v2` stores multi-select `supportAreas[]` independently from scientific snapshots and calculation history; legacy v1 `supportFocus` migrates to a one-item array without rewriting either. **Personalise your plan** / **Edit support** opens a compact flow with no questionnaire progress; Back/Close returns to its opener. Your Plan may acknowledge every selected area; Today uses at most the first two deterministic guidance items. Check-ins remain a separate record of what the user experiences today. No numeric science changed.
 
 Revision note (0.12.0): visual-unification release — presentation only, no science or domain change. The Predicted Reset result language becomes the shared surface contract app-wide: top-level Today cards use the result-lens surface (hairline border, quiet accent wash, `--radius-xl`); filled `details.card` disclosures become hairline `.result-disclosure`-style sections with Fraunces summaries and +/– markers; the outlook inspector, roadmap detail, Plan Detail "After this break", the Plan Detail preparation editor and detox-method entries read as open hairline-divided sections instead of nested filled boxes; notices (`.banner`, `.clock-note`, `.warning`, `.today-state-note`) share one left-rule editorial callout colour-coded by intent; check-in symptom sliders are hairline-separated rows; History is one hairline-divided list. No tolerance-v3, Recovery Outlook v2, Reduction, Detection, History semantics, persistence, copy, routing, tab or viewport-contract change; all `data-testid` hooks unchanged.
@@ -361,23 +363,21 @@ This is **not** lifetime cannabis use. The answer selects the planning target in
 
 **Vape (cart / pod / disposable)** is a product form (`ProductKind = vape`). **Vaping** remains a route. V1 does not map vapes onto concentrate intensity, potency, dose, or PK.
 
-**Companion personalisation — separate optional flow** (multi-select cards)
+**Companion personalisation — separate optional flow** (multi-select grouped cards)
 
 > **Where would support help?**
 >
-> - **Sleep or winding down**
-> - **Cravings in the moment**
-> - **Mood or irritability**
-> - **Anxiety or restlessness**
-> - **Appetite, nausea or stomach discomfort**
-> - **Routine or boredom**
-> - **Vivid dreams**
-> - **Headache or physical discomfort**
-> - **I’m not sure yet**
+> *Mind & mood*: **Anxiety or racing thoughts** · **Irritability or short temper** · **Low mood or feeling flat**
+>
+> *Sleep*: **Sleep or winding down** · **Vivid dreams**
+>
+> *Cravings & habits*: **Cravings in the moment** · **Breaking the usual routine** · **Boredom or filling idle time**
+>
+> *Body*: **Appetite or eating changes** · **Stomach discomfort or nausea** · **Headaches**
 >
 > Helper: "Choose any that fit. This only tailors guidance — it never changes your recommended days."
 
-This flow has its own Close/Back and no questionnaire progress UI. It stores `supportAreas[]` in `companion-personalisation-v2`, outside scientific profile and history records. Saving never recalculates. "Not sure" is exclusive with specific areas. The plan may acknowledge every selection; Today deterministically limits itself to the first two. The daily check-in remains independent.
+This flow has its own Close/Back and no questionnaire progress UI. It stores `supportAreas[]` in `companion-personalisation-v2`, outside scientific profile and history records. Saving never recalculates. The first selected area leads Your Plan and Today guidance; every selected area stays visible as a secondary chip. An empty list means general guidance. The daily check-in remains independent.
 
 **Q2D — Test type** (single-select cards)
 
