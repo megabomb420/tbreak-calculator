@@ -130,7 +130,9 @@ import {
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import type { CompanionPersonalisationV1, SupportArea } from '../application/questionnaire/companion.ts';
+import { createCompanionPersonalisationStore } from '../application/progress/companion-personalisation.ts';
+import { PersonalisationFlow } from './personalisation-flow.tsx';
 
 export type Flow =
   | { readonly kind: 'break-start' }
@@ -172,6 +174,7 @@ export function App({
   const [shell, dispatch] = useReducer(shellReducer, INITIAL_SHELL_STATE);
   const progress = useMemo(() => createQuestionnaireProgressStore(storage), [storage]);
   const resultViews = useMemo(() => createResultViewStore(storage), [storage]);
+  const companionPreferences = useMemo(() => createCompanionPersonalisationStore(storage), [storage]);
   const durable = useMemo(
     () =>
       durableProp ??
@@ -191,6 +194,7 @@ export function App({
   /** Completed break awaiting the one-time 0-10 outcome rating after a return
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
+  const [personalisationOpen, setPersonalisationOpen] = useState(false);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -225,6 +229,11 @@ export function App({
   const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
   const durableSnap = useMemo(() => durable.load(), [durable, factsEpoch]);
+  const companionRecord = useMemo(
+    () => companionPreferences.loadOrMigrate(findLegacyCompanion(durableSnap)),
+    [companionPreferences, durableSnap],
+  );
+  const supportAreas = companionRecord.supportAreas;
   const attemptsRecord = durableSnap.attempts;
   const trackingRecord = durableSnap.tracking;
   const checkinsRecord = durableSnap.checkins;
@@ -357,10 +366,7 @@ export function App({
       snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
         ? exposureFromProfile(snapshotRecord.snapshot.profile)
         : null,
-    supportFocus:
-      snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
-        ? snapshotRecord.snapshot.companion?.supportFocus ?? null
-        : null,
+    supportAreas,
   };
   const profileData: TodayProfileData = {
     resultView: profileView,
@@ -555,6 +561,12 @@ export function App({
 
   function openPlanDetail(): void {
     setFlow({ kind: 'plan-detail' });
+  }
+
+  function saveSupportAreas(areas: readonly SupportArea[]): void {
+    companionPreferences.saveAreas(areas);
+    setPersonalisationOpen(false);
+    refresh();
   }
 
   function openTrackingDetail(): void {
@@ -1162,7 +1174,7 @@ export function App({
     liveAttempt?.status === 'active' || liveAttempt?.status === 'planned' ? liveAttempt : null;
 
   const overlayOpen =
-    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen;
+    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || personalisationOpen;
   const showInstallHint =
     !overlayOpen &&
     !installHintDismissed &&
@@ -1204,6 +1216,7 @@ export function App({
             onConfirmWhen={confirmWhen}
             onOpenPlanDetail={openPlanDetail}
             onOpenTrackingDetail={openTrackingDetail}
+            onEditSupport={() => setPersonalisationOpen(true)}
             onMarkComplete={markComplete}
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
@@ -1247,7 +1260,7 @@ export function App({
           onSkip={skipOptionalLastUse}
         />
       ) : null}
-      {resultModel !== null && flow === null ? (
+      {resultModel !== null && flow === null && !personalisationOpen ? (
         <ResultScreen
           view={resultModel}
           onAcknowledge={acknowledgeResult}
@@ -1283,9 +1296,11 @@ export function App({
             resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
           }
           onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
+          supportAreas={supportAreas}
+          onEditSupport={() => setPersonalisationOpen(true)}
         />
       ) : null}
-      {flow !== null && flow.kind !== 'previous-break' ? (
+      {flow !== null && flow.kind !== 'previous-break' && !personalisationOpen ? (
         <FlowRenderer
           flow={flow}
           targetDays={breakSheetTarget ?? 0}
@@ -1315,11 +1330,8 @@ export function App({
               ? snapshotRecord.snapshot.profile
               : null
           }
-          supportFocus={
-            snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
-              ? snapshotRecord.snapshot.companion?.supportFocus ?? null
-              : null
-          }
+          supportAreas={supportAreas}
+          onEditSupport={() => setPersonalisationOpen(true)}
           reductionPlan={liveReductionPlan}
           utcOffsetMinutes={utcOffsetMinutes}
           onStartReduction={startReductionFromProfile}
@@ -1355,6 +1367,13 @@ export function App({
           onClose={() => setOutcomeAttempt(null)}
         />
       ) : null}
+      {personalisationOpen ? (
+        <PersonalisationFlow
+          initialAreas={supportAreas}
+          onSave={saveSupportAreas}
+          onClose={() => setPersonalisationOpen(false)}
+        />
+      ) : null}
       <SettingsModal
         open={shell.settingsOpen}
         persistent={persistent}
@@ -1365,6 +1384,7 @@ export function App({
           deleteAllLocalData(storage, durable);
           setSession(null);
           setFlow(null);
+          setPersonalisationOpen(false);
           refresh();
           dispatch({ type: 'close_settings' });
         }}
@@ -1406,7 +1426,8 @@ function FlowRenderer({
   checkins,
   preparation,
   profile,
-  supportFocus,
+  supportAreas,
+  onEditSupport,
   reductionPlan,
   utcOffsetMinutes,
   onStartReduction,
@@ -1438,7 +1459,8 @@ function FlowRenderer({
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;
-  readonly supportFocus: SupportFocus | null;
+  readonly supportAreas: readonly SupportArea[];
+  readonly onEditSupport: () => void;
   readonly reductionPlan: ReductionPlan | null;
   readonly utcOffsetMinutes: number;
   readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
@@ -1475,7 +1497,8 @@ function FlowRenderer({
           onUpdatePreparation={onUpdatePreparation}
           checkins={checkins}
           profile={profile}
-          supportFocus={supportFocus}
+          supportAreas={supportAreas}
+          onEditSupport={onEditSupport}
         />
       ) : null;
     case 'tracking-detail':
@@ -1493,7 +1516,6 @@ function FlowRenderer({
       return checkInDay !== null ? (
         <CheckInFlow
           day={checkInDay}
-          supportFocus={supportFocus}
           onNoUseSave={onCheckInNo}
           onUseReported={onUseReported}
           onSymptomsSave={onCheckInSymptoms}
@@ -1552,6 +1574,18 @@ function FlowRenderer({
         />
       ) : null;
   }
+}
+
+function findLegacyCompanion(snapshot: ReturnType<DurablePersistence['load']>): CompanionPersonalisationV1 | null {
+  if (snapshot.snapshot?.snapshot.kind === 'use_profile' && snapshot.snapshot.snapshot.companion !== undefined) {
+    return snapshot.snapshot.snapshot.companion;
+  }
+  for (const calculation of snapshot.calculations) {
+    if (calculation.snapshot.kind === 'use_profile' && calculation.snapshot.companion !== undefined) {
+      return calculation.snapshot.companion;
+    }
+  }
+  return null;
 }
 
 /** Preferred-target days from a tolerance result view, or null. */

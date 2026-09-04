@@ -35,6 +35,8 @@ import { PredictedResetPanel } from './predicted-reset.tsx';
 import { RESET_MODE } from './recovery-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { YourPlanGuide } from './your-plan-guide.tsx';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
+import { supportAreaCopy } from './companion-copy.ts';
 
 export interface ResultScreenProps {
   readonly view: ResultView;
@@ -66,6 +68,8 @@ export interface ResultScreenProps {
   readonly onRecalculateWithHistory?: () => void;
   readonly onRecalculate?: () => void;
   readonly onDelete?: () => void;
+  readonly supportAreas?: readonly SupportArea[];
+  readonly onEditSupport?: () => void;
 }
 
 export function ResultScreen({
@@ -89,6 +93,8 @@ export function ResultScreen({
   onRecalculateWithHistory,
   onRecalculate,
   onDelete,
+  supportAreas = [],
+  onEditSupport,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -126,6 +132,8 @@ export function ResultScreen({
           checkinFacts={checkinFacts}
           onAddPastBreak={historical ? undefined : onAddPastBreak}
           onRecalculateWithHistory={historical ? undefined : onRecalculateWithHistory}
+          supportAreas={supportAreas}
+          onEditSupport={historical ? undefined : onEditSupport}
         />
       </div>
       <footer className="questionnaire-footer">
@@ -162,6 +170,8 @@ function ResultBody({
   checkinFacts,
   onAddPastBreak,
   onRecalculateWithHistory,
+  supportAreas,
+  onEditSupport,
 }: {
   readonly view: ResultView;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
@@ -179,6 +189,8 @@ function ResultBody({
   readonly checkinFacts: RecoveryCheckinFactsView | null;
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
+  readonly supportAreas: readonly SupportArea[];
+  readonly onEditSupport?: () => void;
 }) {
   // Predicted-reset segment: default is the actionable plan. The mode resets
   // to "plan" whenever the underlying record changes so a reused component
@@ -192,10 +204,6 @@ function ResultBody({
     setResetMode(false);
   }
   const legacyReset = historical && outlook?.version === RECOVERY_OUTLOOK_V1_VERSION;
-  const supportFocus =
-    outlookRecord?.snapshot.kind === 'use_profile'
-      ? outlookRecord.snapshot.companion?.supportFocus ?? null
-      : null;
 
   switch (view.kind) {
     case 'tolerance_result': {
@@ -230,8 +238,8 @@ function ResultBody({
             targetDays={view.preferredTargetDays}
             drivers={view.drivers}
             contextNote={view.contextNote}
-            supportFocus={supportFocus}
-            onEditFocus={historical ? undefined : () => onEditStep('Q7')}
+            supportAreas={supportAreas}
+            onEditSupport={onEditSupport}
           />
           {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : null}
           <Cb1ContextNote />
@@ -282,6 +290,22 @@ function ResultBody({
             {view.withdrawal ? <p className="body">{aroundDay(view.withdrawal.breakDay)}</p> : null}
             <p className="meta">{view.phaseCopy}</p>
           </header>
+          {onEditSupport ? (
+            <section className="plan-priority" data-testid="abstinence-support">
+              <div>
+                <p className="micro-label">Personalise your plan</p>
+                <p className="body">Choose the areas where practical support would help. This does not change the calculation.</p>
+                {supportAreas.length > 0 ? (
+                  <ul className="support-area-summary" data-testid="support-area-summary">
+                    {supportAreas.map((area) => <li key={area}>{supportAreaCopy(area).shortLabel}</li>)}
+                  </ul>
+                ) : null}
+              </div>
+              <button type="button" className="text-link" data-testid="edit-support" onClick={onEditSupport}>
+                {supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+              </button>
+            </section>
+          ) : null}
           {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
           <Cb1ContextNote />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />

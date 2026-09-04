@@ -46,7 +46,6 @@ function completeTolerance(storage: StorageAdapter, opts: { useDays: string; dur
     fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
 }
 
 function openResetMode(): void {

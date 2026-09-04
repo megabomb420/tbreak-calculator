@@ -21,7 +21,7 @@ import { presentTodayGuidance } from '../application/presentation/break-guidance
 import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
 
 export interface TodayLiveData {
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
@@ -32,7 +32,7 @@ export interface TodayLiveData {
   readonly reduction: { readonly plan: ReductionPlan; readonly state: ReductionPlanState } | null;
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
-  readonly supportFocus: SupportFocus | null;
+  readonly supportAreas: readonly SupportArea[];
 }
 
 export interface TodayProfileData {
@@ -63,6 +63,7 @@ export interface TodayScreenProps {
   readonly onConfirmWhen: () => void;
   readonly onOpenPlanDetail: () => void;
   readonly onOpenTrackingDetail: () => void;
+  readonly onEditSupport: () => void;
   readonly onMarkComplete: (id: string) => void;
   readonly onAcknowledgeComplete: () => void;
   readonly onStopTracking: () => void;
@@ -243,7 +244,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
       <section className="today-now" aria-label="Today’s guidance">
         <TodayGuidance
           compact
-          supportFocus={props.live.supportFocus}
+          supportAreas={props.live.supportAreas}
           view={presentTodayGuidance({
             breakDay: view.day,
             targetDays: view.targetDays,
@@ -267,6 +268,9 @@ function ActiveBreakCard(props: TodayScreenProps) {
       </div>
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenPlanDetail}>
         {ACTIVE_BREAK_CARD.viewPlan}
+      </button>
+      <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
+        {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
       </button>
     </article>
   );
@@ -347,7 +351,7 @@ function TrackingCard(props: TodayScreenProps) {
       {tracking.view !== null ? (
         <TodayGuidance
           compact
-          supportFocus={props.live.supportFocus}
+          supportAreas={props.live.supportAreas}
           view={presentTodayGuidance({
             breakDay: tracking.view.day,
             targetDays: null,
@@ -368,6 +372,9 @@ function TrackingCard(props: TodayScreenProps) {
         </button>
       </div>
       <span className="today-note meta">{TRACKING_CARD.viewGuidance}</span>
+      <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
+        {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+      </button>
       {confirmStop ? (
         <ConfirmDialog
           title={TRACKING_CARD.stopConfirmTitle}

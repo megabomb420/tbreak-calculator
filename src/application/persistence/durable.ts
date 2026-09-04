@@ -47,6 +47,7 @@ import {
   QUESTIONNAIRE_SNAPSHOT_KEY,
   type QuestionnaireSnapshotRecord,
 } from '../progress/questionnaire-snapshot.ts';
+import { COMPANION_PERSONALISATION_KEY } from '../progress/companion-personalisation.ts';
 import { QUESTIONNAIRE_PROGRESS_KEY } from '../progress/questionnaire-progress.ts';
 import { RESULT_VIEW_KEY } from '../progress/result-view.ts';
 import {
@@ -79,6 +80,7 @@ export const MIGRATION_MARKER_KEY = 'tbreak.durable-migration.v1';
 export const LOCAL_DATA_KEYS = [
   QUESTIONNAIRE_PROGRESS_KEY,
   QUESTIONNAIRE_SNAPSHOT_KEY,
+  COMPANION_PERSONALISATION_KEY,
   RESULT_VIEW_KEY,
   BREAK_ATTEMPTS_KEY,
   TRACKING_RECORDS_KEY,

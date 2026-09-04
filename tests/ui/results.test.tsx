@@ -39,7 +39,6 @@ function completeTolerance10Days(storage: StorageAdapter) {
   fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
   fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
   fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
   return rendered;
 }
 
@@ -82,7 +81,6 @@ describe('result screens from engine output', () => {
     let flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
     // Recent pattern: lower anchor of the 2–7 evidence range (target 2).
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('2');
     expect(screen.getByTestId('outlook-seg-2-2')).toBeTruthy();
@@ -101,7 +99,6 @@ describe('result screens from engine output', () => {
     flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
     expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
     expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
@@ -125,7 +122,6 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Flower (bud)' }));
     fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
     expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('28');
     // The 28-day journey is grouped into meaningful consecutive ranges; the
     // final milestone day stays a single Day 28 and nothing extends beyond it.

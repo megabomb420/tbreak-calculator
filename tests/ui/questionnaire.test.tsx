@@ -159,8 +159,6 @@ describe('last-use steps', () => {
     fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.stillUseToday }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q7');
-    fireEvent.click(screen.getByRole('button', { name: 'I’m not sure yet' }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
@@ -168,7 +166,7 @@ describe('last-use steps', () => {
     if (snapshot?.snapshot.kind === 'use_profile') {
       expect(snapshot.snapshot.profile.goal).toBe('abstinence');
       expect(snapshot.snapshot.profile.lastUseAt.value).not.toBeNull();
-      expect(snapshot.snapshot.companion?.supportFocus).toBe('not_sure');
+      expect(snapshot.snapshot.companion).toBeUndefined();
     }
   });
 
@@ -215,9 +213,6 @@ describe('Q5 vape product', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Vaping' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
 
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q7');
-    fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
-
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('tolerance_result');
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
@@ -225,10 +220,7 @@ describe('Q5 vape product', () => {
     if (snapshot?.snapshot.kind === 'use_profile') {
       expect(snapshot.snapshot.profile.products).toEqual(['vape']);
       expect(snapshot.snapshot.profile.routes).toEqual(['vaping']);
-      expect(snapshot.snapshot.companion).toEqual({
-        schemaVersion: 'companion-personalisation-v1',
-        supportFocus: 'routine',
-      });
+      expect(snapshot.snapshot.companion).toBeUndefined();
     }
   });
 });

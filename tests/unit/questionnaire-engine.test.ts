@@ -40,7 +40,6 @@ describe('declarative step map (UX_SPEC 4, 5.1)', () => {
       'Q4',
       'Q5',
       'Q6',
-      'Q7',
     ]);
     assert.equal(STEP_SPECS.Q1.answerType, 'single_select_advance');
     assert.equal(STEP_SPECS.Q2.answerType, 'slider');
@@ -52,7 +51,6 @@ describe('declarative step map (UX_SPEC 4, 5.1)', () => {
     assert.equal(STEP_SPECS.Q6.answerType, 'pattern_duration');
     assert.equal(STEP_SPECS.Q4.answerType, 'sessions');
     assert.equal(STEP_SPECS.Q5.answerType, 'products_routes');
-    assert.equal(STEP_SPECS.Q7.answerType, 'support_focus');
   });
 });
 
@@ -100,7 +98,6 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q6',
       'Q2',
       'Q3',
-      'Q7',
     ]);
     // From 4 use-days upward, intensity fields follow last use (tolerance-v3).
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }), [
@@ -110,7 +107,6 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q3',
       'Q4',
       'Q5',
-      'Q7',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }), [
       'Q1',
@@ -119,7 +115,6 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q3',
       'Q4',
       'Q5',
-      'Q7',
     ]);
   });
 
@@ -135,7 +130,6 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
       'Q3',
       'Q4',
       'Q5',
-      'Q7',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 20 }), [
       'Q1',
@@ -145,19 +139,19 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
   });
 
   it('asks abstinence for duration before last use, and detection only for matrix then context', () => {
-    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A', 'Q7']);
+    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A']);
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
   });
 
-  it('keeps the longest consuming path at 8 steps and never asks Q4/Q5 below 4 use-days', () => {
-    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }).length, 5);
-    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 7);
-    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }).length, 7);
+  it('keeps the longest scientific path at 7 steps and never asks Q4/Q5 below 4 use-days', () => {
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }).length, 4);
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 6);
+    assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }).length, 6);
     assert.equal(
       resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 30 }).length,
-      8,
+      7,
     );
-    assert.equal(resolvedPath({ goal: 'abstinence' }).length, 4);
+    assert.equal(resolvedPath({ goal: 'abstinence' }).length, 3);
     assert.equal(resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 20 }).length, 3);
   });
 });

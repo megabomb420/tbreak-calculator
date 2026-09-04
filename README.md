@@ -5,6 +5,13 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.13.0** — companion personalisation is now an optional multi-select
+preference flow outside the scientific questionnaire. `supportAreas[]` are
+stored independently, can be edited without recalculation, and only select or
+reorder deterministic guidance. Legacy single-focus preferences migrate
+without rewriting scientific profiles or history. Check-ins remain separate;
+no numeric science changed.
+
 Version **0.12.0** — visual unification. The Predicted Reset result language
 is now the shared surface contract across the app: one card surface (hairline
 border, quiet accent wash), one hairline disclosure pattern with Fraunces

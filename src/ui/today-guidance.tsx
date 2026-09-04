@@ -1,21 +1,22 @@
 import type { TodayGuidanceView } from '../application/presentation/break-guidance.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { CheckinComparisonBlock } from './checkin-comparison.tsx';
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
-import { supportFocusCopy } from './companion-copy.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
+import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
 
 export function TodayGuidance({
   view,
   compact = false,
-  supportFocus = null,
+  supportAreas = [],
 }: {
   readonly view: TodayGuidanceView;
   readonly compact?: boolean;
-  readonly supportFocus?: SupportFocus | null;
+  readonly supportAreas?: readonly SupportArea[];
 }) {
   const notice = compact ? view.mayNotice.slice(0, 3) : view.mayNotice;
   const help = compact ? view.canHelp.slice(0, 2) : view.canHelp;
-  const focus = supportFocusCopy(supportFocus);
+  const personalised = supportAreas.length > 0;
+  const todayAreas = effectiveSupportAreas(supportAreas);
   return (
     <section className="today-guidance" data-testid="today-guidance" data-window={view.windowId}>
       <p className="guidance-headline" data-testid="guidance-headline">
@@ -29,9 +30,13 @@ export function TodayGuidance({
       {compact ? (
         <div className="guidance-block guidance-primary">
           <h3 className="guidance-kicker">What matters today</h3>
-          <p className="body" data-testid="guidance-primary-action">
-            {supportFocus === null ? (view.whyThisMatters ?? help[0] ?? view.context) : focus.todayAction}
-          </p>
+          {personalised ? (
+            <ul className="guidance-list" data-testid="guidance-primary-action">
+              {todayAreas.map((area) => <li key={area}>{supportAreaCopy(area).todayAction}</li>)}
+            </ul>
+          ) : (
+            <p className="body" data-testid="guidance-primary-action">{view.whyThisMatters ?? help[0] ?? view.context}</p>
+          )}
         </div>
       ) : null}
       {notice.length > 0 && !compact ? (

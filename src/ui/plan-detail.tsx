@@ -30,8 +30,8 @@ import { presentOutlookForProfile } from '../application/presentation/break-outl
 import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import type { BreakOutlookView } from '../application/presentation/break-outlook.ts';
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
-import { supportFocusCopy } from './companion-copy.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
+import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
 
 export interface PlanDetailProps {
   readonly attempt: StoredAttempt;
@@ -47,7 +47,8 @@ export interface PlanDetailProps {
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly DailyCheckin[];
   readonly profile: UseProfileInput | null;
-  readonly supportFocus?: SupportFocus | null;
+  readonly supportAreas?: readonly SupportArea[];
+  readonly onEditSupport?: () => void;
 }
 
 export function PlanDetail(props: PlanDetailProps) {
@@ -114,7 +115,8 @@ export function PlanDetail(props: PlanDetailProps) {
             active={active}
             guidance={bundle}
             outlook={outlook}
-            supportFocus={props.supportFocus ?? null}
+            supportAreas={props.supportAreas ?? []}
+            onEditSupport={props.onEditSupport}
             clockStart={currentSegmentAnchor(attempt.segments)}
           />
         ) : planned !== null ? (
@@ -190,13 +192,15 @@ function ActivePlanContent({
   active,
   guidance,
   outlook,
-  supportFocus,
+  supportAreas,
+  onEditSupport,
   clockStart,
 }: {
   readonly active: ActiveBreakView;
   readonly guidance: ReturnType<typeof presentBreakGuidance>;
   readonly outlook: BreakOutlookView;
-  readonly supportFocus: SupportFocus | null;
+  readonly supportAreas: readonly SupportArea[];
+  readonly onEditSupport?: () => void;
   readonly clockStart: Instant | null;
 }) {
   const stateNote = active.pastTarget
@@ -225,10 +229,13 @@ function ActivePlanContent({
         </p>
       ) : null}
       <section className="plan-focus-card" data-testid="plan-focus-card">
-        <p className="micro-label">Your focus · {supportFocusCopy(supportFocus).shortLabel}</p>
-        <p className="body">{supportFocusCopy(supportFocus).planLead}</p>
+        <p className="micro-label">{supportAreas.length > 0 ? 'Your support areas' : 'Plan support'}</p>
+        <p className="body">
+          {effectiveSupportAreas(supportAreas).map((area) => supportAreaCopy(area).shortLabel).join(' · ')}
+        </p>
+        {onEditSupport ? <button type="button" className="text-link" data-testid="plan-edit-support" onClick={onEditSupport}>{supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}</button> : null}
       </section>
-      <TodayGuidance view={guidance.today} supportFocus={supportFocus} />
+      <TodayGuidance view={guidance.today} supportAreas={supportAreas} />
       <BreakOutlook view={outlook} />
     </section>
   );

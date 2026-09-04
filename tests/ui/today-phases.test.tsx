@@ -1,7 +1,7 @@
 // 0.11.0 regression tests: completed Today state system.
 //
 // Covers the target-reached vs beyond-plan distinction, the interrupted
-// preserved-progress note, and the support-focus line on the check-in
+// preserved-progress note, and companion/check-in separation
 // symptoms step. Presentation-only; no engine/domain behaviour is asserted.
 
 import { fireEvent, render, screen } from '@testing-library/preact';
@@ -22,7 +22,6 @@ import {
   createBreakAttemptsStore,
   type StoredAttempt,
 } from '../../src/application/progress/break-attempt-record.ts';
-import { COMPANION_PERSONALISATION_VERSION } from '../../src/application/questionnaire/companion.ts';
 
 const AT: Instant = toInstant(1787184000000); // 2026-08-20T00:00:00Z
 const clock = fixedClock(AT);
@@ -141,12 +140,11 @@ describe('Today phase states (0.11)', () => {
     expect(screen.getByTestId('checkin-cta')).toBeTruthy();
   });
 
-  it('adds the support-focus line and leads with the matching symptom slider on the check-in', () => {
+  it('keeps the check-in symptom flow independent from companion preferences', () => {
     const storage = createMemoryStorage();
     const snapshot: RawAnswerSnapshot = {
       kind: 'use_profile',
       profile: profile('2026-08-17T00:00:00Z'),
-      companion: { schemaVersion: COMPANION_PERSONALISATION_VERSION, supportFocus: 'sleep' },
     };
     seedSnapshot(storage, snapshot);
     seedAttempt(storage, activeAttempt());
@@ -156,12 +154,10 @@ describe('Today phase states (0.11)', () => {
     fireEvent.click(screen.getByTestId('add-symptoms'));
     const flow = screen.getByTestId('checkin-flow');
     expect(flow.getAttribute('data-screen')).toBe('symptoms');
-    const focusLine = screen.getByTestId('checkin-focus-line');
-    expect(focusLine.textContent ?? '').toMatch(/Your focus · Sleep/);
-    // The support-focus-related field leads the slider list.
+    expect(screen.queryByTestId('checkin-focus-line')).toBeNull();
     const fields = [...flow.querySelectorAll('[data-testid^="symptom-"]')]
       .map((el) => el.getAttribute('data-testid'))
       .filter((id) => id !== null && /^symptom-(craving|sleep|irritability|anxiety|appetite)$/.test(id));
-    expect(fields[0]).toBe('symptom-sleep');
+    expect(fields[0]).toBe('symptom-craving');
   });
 });

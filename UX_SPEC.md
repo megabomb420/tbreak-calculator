@@ -7,6 +7,8 @@ Scope: questionnaire flow, result flow, app shell, break tracking, check-ins, hi
 
 Normative language: **MUST**, **MUST NOT**, **SHOULD**, **MAY** follow `CALCULATOR_SPEC.md`.
 
+Revision note (0.13.0): companion personalisation is an optional preference flow after calculation, never a questionnaire step. `companion-personalisation-v2` stores multi-select `supportAreas[]` independently from scientific snapshots and calculation history; legacy v1 `supportFocus` migrates to a one-item array without rewriting either. **Personalise your plan** / **Edit support** opens a compact flow with no questionnaire progress; Back/Close returns to its opener. Your Plan may acknowledge every selected area; Today uses at most the first two deterministic guidance items. Check-ins remain a separate record of what the user experiences today. No numeric science changed.
+
 Revision note (0.12.0): visual-unification release — presentation only, no science or domain change. The Predicted Reset result language becomes the shared surface contract app-wide: top-level Today cards use the result-lens surface (hairline border, quiet accent wash, `--radius-xl`); filled `details.card` disclosures become hairline `.result-disclosure`-style sections with Fraunces summaries and +/– markers; the outlook inspector, roadmap detail, Plan Detail "After this break", the Plan Detail preparation editor and detox-method entries read as open hairline-divided sections instead of nested filled boxes; notices (`.banner`, `.clock-note`, `.warning`, `.today-state-note`) share one left-rule editorial callout colour-coded by intent; check-in symptom sliders are hairline-separated rows; History is one hairline-divided list. No tolerance-v3, Recovery Outlook v2, Reduction, Detection, History semantics, persistence, copy, routing, tab or viewport-contract change; all `data-testid` hooks unchanged.
 
 Revision note (0.11.1): Today visual-polish release — Today-only, presentation only, no science or domain change. The page-level decorative orbit/interval artwork behind Today content is removed (Today now sits on the clean product surface; the only remaining geometry is contained inside specific components, e.g. the result lens, aria-hidden and pointer-events-free). Today's guidance is de-carded: the milestone reads as an editorial line, “what matters today” is a restrained left-rule callout instead of a filled rectangle, the compact headline is a supporting voice under the day/target hero, and the completed-break card presents its return plan as open text with a light rule instead of a nested panel. Open-ended tracking uses the same guidance rhythm as the active-break card. All state data, actions, `data-phase`, accessibility, reduced-motion handling, the two tabs and the iOS viewport contract are unchanged.
@@ -54,7 +56,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 
 ### 1.2 Design principles
 
-1. **Fast to an answer.** The shortest useful path is 3 questions; the longest is 8. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected; Q7 appears once at the end only when its guidance will be used.
+1. **Fast to an answer.** The shortest useful path is 3 questions; the longest is 7. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Companion preferences are offered only after the calculation.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
 4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v3 anchor rule), Why-this-result copy, and break-outlook wording — and, in the single bounded tolerance-v3 case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years), the recommended range itself by one band; it is never a days-added formula.
@@ -124,6 +126,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Break plan:** not a tab. The active-break card on `Today` *is* the plan summary; tapping it pushes a full plan detail screen (phases, focus blocks, target date, post-break settings). Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
+  - companion personalisation (optional after calculation and later through **Edit support**);
   - the daily check-in;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
@@ -244,14 +247,14 @@ Q1 goal
  ├─ tolerance_reset
  │    Q6 current-pattern duration → Q2 use days
  │      ├─ 0     → Q3-opt last use (optional, >30 days ago only) → TERMINAL baseline-low
- │      ├─ 1–3   → Q3 last use (≤30 days) → Q7 support focus → TERMINAL tolerance result
- │      └─ 4–30  → Q3 last use (≤30 days) → Q4 sessions → Q5 products & routes → Q7 support focus → TERMINAL tolerance result
+ │      ├─ 1–3   → Q3 last use (≤30 days) → TERMINAL tolerance result
+ │      └─ 4–30  → Q3 last use (≤30 days) → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
  ├─ reduction
  │    Q2R break wanted?
  │      ├─ Yes → Q6 current-pattern duration → identical to the tolerance_reset path from Q2
  │      └─ Not now → Q2 use days → TERMINAL reduction planning (no Q6)
  ├─ abstinence
- │    Q6 current-pattern duration → Q2A last use (any past date, or "I still use — today") → Q7 support focus → TERMINAL abstinence planning
+ │    Q6 current-pattern duration → Q2A last use (any past date, or "I still use — today") → TERMINAL abstinence planning
  └─ detection_information
       Q2D test type → Q3D situation → TERMINAL detection result (no Q6)
 ```
@@ -269,7 +272,6 @@ Field mapping:
 | Q2A / Q3 / Q3-opt | `lastUseAt` (`user_estimate`) | abstinence; use-days 1–30; optional when use-days = 0 |
 | Q4 | `sessionsPerUseDay` (`user_estimate`) | range-requested routes, use-days 4–30 only |
 | Q5 | `products[]`, `routes[]` | range-requested routes, use-days 4–30 only |
-| Q7 | companion `supportFocus` (`companion-personalisation-v1`) | positive-use tolerance/reduction-with-break and abstinence; skipped on zero-use baseline, reduction-no-break, and detection |
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
 
@@ -359,20 +361,23 @@ This is **not** lifetime cannabis use. The answer selects the planning target in
 
 **Vape (cart / pod / disposable)** is a product form (`ProductKind = vape`). **Vaping** remains a route. V1 does not map vapes onto concentrate intensity, potency, dose, or PK.
 
-**Q7 — Support focus** (single-select cards, tap advances)
+**Companion personalisation — separate optional flow** (multi-select cards)
 
-> **What would you most like help with?**
+> **Where would support help?**
 >
 > - **Sleep or winding down**
 > - **Cravings in the moment**
-> - **Breaking the usual routine**
 > - **Mood or irritability**
-> - **Appetite or regular meals**
+> - **Anxiety or restlessness**
+> - **Appetite, nausea or stomach discomfort**
+> - **Routine or boredom**
+> - **Vivid dreams**
+> - **Headache or physical discomfort**
 > - **I’m not sure yet**
 >
-> Helper: "This personalises your plan and daily guidance. It does not change the recommended days."
+> Helper: "Choose any that fit. This only tailors guidance — it never changes your recommended days."
 
-Q7 is companion personalisation, not scientific intake. It selects reviewed deterministic priority, preparation, and Today-action copy. The answer is versioned beside the use profile and is never passed to either numeric policy.
+This flow has its own Close/Back and no questionnaire progress UI. It stores `supportAreas[]` in `companion-personalisation-v2`, outside scientific profile and history records. Saving never recalculates. "Not sure" is exclusive with specific areas. The plan may acknowledge every selection; Today deterministically limits itself to the first two. The daily check-in remains independent.
 
 **Q2D — Test type** (single-select cards)
 
@@ -401,7 +406,6 @@ Helper: "This only changes which notes we show you — it never changes the scie
 - Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset`, after Q2R = Yes on reduction-with-a-break, and after Q1 on abstinence. Skipped on reduction-no-break and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
 - Q2 (use days) after Q6 on the tolerance route; Q3 (last use) only when use-days ∈ 1–30; replaced by optional Q3-opt when use-days = 0.
 - Q4/Q5 only on range-requested routes when use-days ∈ 4–30 (intensity can change the classification from 4 up); optional when present at 1–3, never asked at 0.
-- Q7 follows the last scientific question on positive-use tolerance/reduction-with-break and abstinence. It is skipped on the zero-use baseline, reduction-no-break, and detection.
 - Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording. **Depends on validation change D2 (§15).**
 - Reduction-no-break asks no last use and no duration: the engine attaches no withdrawal display and no target on this route, so those answers would be harvested and unused. **Depends on validation change D3 (§15).**
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
@@ -411,13 +415,13 @@ Helper: "This only changes which notes we show you — it never changes the scie
 
 | Goal | Min steps | Typical | Max |
 |---|---|---|---|
-| tolerance_reset | 3 (use-days 0, Q3-opt skipped) | 5 (use-days 1–3) or 7 (use-days 4–30) | 7 (use-days 4–30) |
-| reduction (break) | 4 | 6 (use-days 1–3) or 8 (use-days 4–30) | 8 (use-days 4–30) |
+| tolerance_reset | 3 (use-days 0, Q3-opt skipped) | 4 (use-days 1–3) or 6 (use-days 4–30) | 6 (use-days 4–30) |
+| reduction (break) | 4 | 5 (use-days 1–3) or 7 (use-days 4–30) | 7 (use-days 4–30) |
 | reduction (no break) | 3 | 3 | 3 |
-| abstinence | 4 | 4 | 4 |
+| abstinence | 3 | 3 | 3 |
 | detection_information | 3 | 3 | 3 |
 
-Duration (Q6) is counted in every consuming min/typical/max: it is the first use-profile question, before use-days. Q7 adds one final step to positive-use range routes and abstinence. Q4/Q5 are counted on range-requested routes from 4 use-days up (a 0-day tolerance_reset path remains 3 steps when optional Q3-opt is skipped, 4 when answered; 1–3 positive use-days is 5 steps; the longest reduction-with-break path is 8).
+Duration (Q6) is counted in every consuming min/typical/max: it is the first use-profile question, before use-days. Q4/Q5 are counted on range-requested routes from 4 use-days up (a 0-day tolerance_reset path remains 3 steps when optional Q3-opt is skipped, 4 when answered; the longest reduction-with-break path is 7). Companion personalisation is not counted because it is not part of the questionnaire.
 
 ---
 
@@ -836,7 +840,7 @@ The recovery-outlook (“Predicted reset”) content is separately versioned as 
 - **R4 — Today state precedence incl. resume and detection-only (was a blocker).** Pinned in §3.2 with explicit precedence and resume-card placement rules.
 - **R5 — Result hierarchy.** Resolved: one hero range; planning target demoted to a supporting meta line; single uncertainty sentence (§9.1).
 - **R6 — Detection elapsed-time implication.** Resolved: the personal "days since last use" line is removed from detection results (§9.6).
-- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–8 steps. Q7 is the sole companion question and appears only where its plan/daily copy is consumed; Q4/Q5 are asked from 4 use-days under tolerance-v3.
+- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8); companion preferences → optional post-calculation flow. Initial questionnaire is 2–7 steps; Q4/Q5 are asked from 4 use-days under tolerance-v3.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
 - **R9 — "The duration question feels pointless" (0.7.0).** Resolved by the tolerance-v2 target rule (`CALCULATOR_SPEC.md` §7.3): duration now selects the planning target anchor inside the unchanged evidence range — recently established (`under_1_month`, `1_to_6_months`) → lower anchor; established (≥ 6 months) or legacy-missing → upper anchor. The range never moves and no duration-to-days formula exists. UX wiring: position-aware "Plan for N days" line, duration + target-rationale driver bullets, and a deterministic planning-context note (never a percentage). Q6 routing is unchanged.
 

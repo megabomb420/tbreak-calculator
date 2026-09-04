@@ -20,7 +20,6 @@ import {
   MatrixCards,
   ProductsRoutesControl,
   SessionsControl,
-  SupportFocusCards,
   UseDaysSlider,
 } from './questionnaire-controls.tsx';
 import { QUESTIONNAIRE, STEP_COPY } from './questionnaire-copy.ts';
@@ -59,7 +58,7 @@ export function QuestionnaireFlow({
   const backTarget = previousStep(currentStep, answers);
   const fraction = progressFraction(currentStep, answers);
   const advance = spec.answerType === 'single_select_advance';
-  const autoAdvance = advance || spec.answerType === 'pattern_duration' || spec.answerType === 'support_focus';
+  const autoAdvance = advance || spec.answerType === 'pattern_duration';
   const percent = Math.round(fraction * 100);
 
   useEffect(() => {
@@ -147,7 +146,6 @@ export function QuestionnaireFlow({
 
 function questionnaireStage(step: QuestionnaireStepId): string {
   if (step === 'Q1' || step === 'Q2R') return 'Choose your direction';
-  if (step === 'Q7') return 'Personalise your plan';
   if (step === 'Q2D' || step === 'Q3D') return 'Detection basics';
   return 'Learn your pattern';
 }
@@ -197,13 +195,6 @@ function StepControl({
         <DurationCards
           selected={answers.currentPatternDuration}
           onSelect={(value) => onAdvance({ step: 'Q6', value })}
-        />
-      );
-    case 'Q7':
-      return (
-        <SupportFocusCards
-          selected={answers.supportFocus}
-          onSelect={(value) => onAdvance({ step: 'Q7', value })}
         />
       );
     case 'Q4':

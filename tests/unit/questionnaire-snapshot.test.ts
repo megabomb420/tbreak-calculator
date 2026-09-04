@@ -30,7 +30,6 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
       { step: 'Q2', value: 3 },
       { step: 'Q3', value: LAST_USE },
       { step: 'Q6', value: '1_to_6_months' },
-      { step: 'Q7', value: 'routine' },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');
@@ -47,10 +46,7 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     assert.deepEqual(profile.routes, []);
     assert.deepEqual(profile.lastUseAt, { value: LAST_USE, provenance: 'user_estimate' });
     assert.deepEqual(profile.previousBreaks, []);
-    assert.deepEqual(result.snapshot.companion, {
-      schemaVersion: 'companion-personalisation-v1',
-      supportFocus: 'routine',
-    });
+    assert.equal(result.snapshot.companion, undefined);
     const validated = validateAndNormalizeProfile(profile, NOW);
     assert.equal(validated.ok, true);
   });
@@ -76,7 +72,6 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
       { step: 'Q1', value: 'abstinence' },
       { step: 'Q2A', value: LAST_USE },
       { step: 'Q6', value: '2_to_5_years' },
-      { step: 'Q7', value: 'not_sure' },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');
@@ -111,7 +106,6 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
       { step: 'Q6', value: '6_to_24_months' },
       { step: 'Q4', value: 3 },
       { step: 'Q5', value: { products: ['flower', 'concentrate'], routes: ['smoking', 'dabbing'] } },
-      { step: 'Q7', value: 'cravings' },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');

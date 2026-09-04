@@ -398,7 +398,6 @@ describe('questionnaire routing for current pattern duration', () => {
       'Q6',
       'Q2',
       'Q3',
-      'Q7',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }), [
       'Q1',
@@ -407,7 +406,6 @@ describe('questionnaire routing for current pattern duration', () => {
       'Q3',
       'Q4',
       'Q5',
-      'Q7',
     ]);
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 20 }), [
       'Q1',
@@ -416,7 +414,6 @@ describe('questionnaire routing for current pattern duration', () => {
       'Q3',
       'Q4',
       'Q5',
-      'Q7',
     ]);
     // Zero use-days is only known after Q2; Q6 is already asked on the route.
     assert.deepEqual(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 0 }), [
@@ -425,14 +422,14 @@ describe('questionnaire routing for current pattern duration', () => {
       'Q2',
       'Q3-opt',
     ]);
-    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A', 'Q7']);
+    assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A']);
     assert.deepEqual(
       resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 10 }),
       ['Q1', 'Q2R', 'Q2'],
     );
     assert.deepEqual(
       resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 10 }),
-      ['Q1', 'Q2R', 'Q6', 'Q2', 'Q3', 'Q4', 'Q5', 'Q7'],
+      ['Q1', 'Q2R', 'Q6', 'Q2', 'Q3', 'Q4', 'Q5'],
     );
     // Detection never asks Q6.
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
@@ -446,7 +443,6 @@ describe('questionnaire routing for current pattern duration', () => {
       'Q6',
       'Q2',
       'Q3',
-      'Q7',
     ]);
     assert.ok(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }).includes('Q6'));
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 15 }).includes('Q4'), true);
@@ -459,7 +455,6 @@ describe('questionnaire routing for current pattern duration', () => {
     answers = applyAnswer(answers, { step: 'Q6', value: '1_to_6_months' }, C0);
     answers = applyAnswer(answers, { step: 'Q2', value: 3 }, C0);
     answers = applyAnswer(answers, { step: 'Q3', value: LAST_USE }, C0);
-    answers = applyAnswer(answers, { step: 'Q7', value: 'routine' }, C0);
     assert.equal(isFlowComplete(answers, C0), true);
     const finished = finishQuestionnaire(answers, C0);
     assert.equal(finished.status, 'complete');

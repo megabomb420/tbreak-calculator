@@ -1,7 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, Goal, ProductKind, Route } from '../domain/schemas/enums.ts';
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
 import {
   DATE_CHIPS,
   DAY_PARTS,
@@ -26,7 +25,6 @@ import {
   ROUTE_GROUP_LABEL,
   ROUTE_OPTIONS,
   SESSION_CHIPS,
-  SUPPORT_FOCUS_OPTIONS,
   USE_DAY_PRESETS,
 } from './questionnaire-copy.ts';
 import { GOAL_CHIPS } from './copy.ts';
@@ -120,32 +118,6 @@ export function DurationCards({
           <span className="choice-check">
             <CheckIcon size={16} />
           </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function SupportFocusCards({
-  selected,
-  onSelect,
-}: {
-  readonly selected?: SupportFocus;
-  readonly onSelect: (value: SupportFocus) => void;
-}) {
-  return (
-    <div className="support-focus-grid" data-testid="support-focus-cards">
-      {SUPPORT_FOCUS_OPTIONS.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={selected === option.id ? 'support-focus-card selected' : 'support-focus-card'}
-          data-support-focus={option.id}
-          onClick={() => onSelect(option.id)}
-        >
-          <span className={`support-focus-symbol is-${option.id}`} aria-hidden="true" />
-          <span className="choice-title">{option.title}</span>
-          <span className="choice-check"><CheckIcon size={16} /></span>
         </button>
       ))}
     </div>

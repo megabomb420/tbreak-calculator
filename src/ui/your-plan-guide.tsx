@@ -1,31 +1,37 @@
-import type { SupportFocus } from '../application/questionnaire/companion.ts';
-import { supportFocusCopy } from './companion-copy.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
+import { effectiveSupportAreas, supportAreaCopy } from './companion-copy.ts';
 
 export function YourPlanGuide({
   targetDays,
   drivers,
   contextNote,
-  supportFocus,
-  onEditFocus,
+  supportAreas,
+  onEditSupport,
 }: {
   readonly targetDays: number;
   readonly drivers: readonly string[];
   readonly contextNote: string | null;
-  readonly supportFocus: SupportFocus | null;
-  readonly onEditFocus?: () => void;
+  readonly supportAreas: readonly SupportArea[];
+  readonly onEditSupport?: () => void;
 }) {
-  const focus = supportFocusCopy(supportFocus);
+  const areas = supportAreas.length === 0 ? effectiveSupportAreas(supportAreas) : supportAreas;
+  const primary = supportAreaCopy(areas[0]!);
+  const hasPersonalisation = supportAreas.length > 0;
   return (
     <>
       <section className="plan-priority" data-testid="plan-priority">
         <div>
-          <p className="micro-label">Start here · {focus.shortLabel}</p>
-          <h3 className="plan-priority-title">{focus.planLead}</h3>
-          <p className="body">{focus.todayAction}</p>
+          <p className="micro-label">{hasPersonalisation ? 'Your support areas' : 'Start here'}</p>
+          <h3 className="plan-priority-title">{primary.planLead}</h3>
+          {hasPersonalisation ? (
+            <ul className="support-area-summary" data-testid="support-area-summary">
+              {supportAreas.map((area) => <li key={area}>{supportAreaCopy(area).shortLabel}</li>)}
+            </ul>
+          ) : <p className="body">{primary.todayAction}</p>}
         </div>
-        {onEditFocus ? (
-          <button type="button" className="text-link" onClick={onEditFocus}>
-            Change focus
+        {onEditSupport ? (
+          <button type="button" className="text-link" data-testid="edit-support" onClick={onEditSupport}>
+            {hasPersonalisation ? 'Edit support' : 'Personalise your plan'}
           </button>
         ) : null}
       </section>
@@ -40,7 +46,7 @@ export function YourPlanGuide({
         <div className="plan-essential-grid">
           <details className="result-disclosure" open>
             <summary>Prepare for the hard moment</summary>
-            <p className="body">{focus.preparation}</p>
+            {areas.map((area) => <p className="body" key={area}>{supportAreaCopy(area).preparation}</p>)}
             <p className="meta">Days 2–6 are commonly among the harder days. That is a planning cue, not a prediction of how you will feel.</p>
           </details>
           <details className="result-disclosure">

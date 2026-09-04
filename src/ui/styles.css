@@ -2842,14 +2842,35 @@ select,
 
 .support-focus-card .choice-check { position: absolute; top: 10px; right: 10px; }
 .support-focus-card.selected { border-color: color-mix(in oklab, var(--accent) 60%, transparent); background: color-mix(in oklab, var(--accent) 12%, var(--bg-card)); }
+.support-focus-card[aria-pressed="false"] .choice-check { opacity: 0; }
 .support-focus-symbol { width: 26px; height: 26px; border: 1px solid var(--accent); border-radius: 50%; opacity: .8; }
 .support-focus-symbol.is-sleep { border-radius: 50% 50% 50% 4px; transform: rotate(-25deg); }
 .support-focus-symbol.is-cravings { border-radius: 50% 8px 50% 50%; }
 .support-focus-symbol.is-routine { border-style: dashed; }
 .support-focus-symbol.is-mood { box-shadow: inset 0 -8px 0 color-mix(in oklab, var(--accent) 28%, transparent); }
 .support-focus-symbol.is-appetite { border-radius: 50% 12% 50% 12%; transform: rotate(35deg); }
+.support-focus-symbol.is-anxiety { border-style: double; }
+.support-focus-symbol.is-dreams { border-radius: 50% 50% 8px 50%; transform: rotate(-20deg); }
+.support-focus-symbol.is-physical_discomfort { border-radius: 8px 50% 8px 50%; }
 .support-focus-symbol.is-not_sure { border-color: var(--fg-faint); position: relative; }
 .support-focus-symbol.is-not_sure::after { content: '?'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: var(--fg-muted); }
+
+.support-area-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.support-area-summary li {
+  padding: 5px 9px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  font-size: .78rem;
+}
 
 .questionnaire-stage-label {
   margin: 0;

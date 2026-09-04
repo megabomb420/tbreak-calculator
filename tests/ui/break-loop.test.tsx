@@ -124,7 +124,6 @@ function completeToleranceFlow(storage: StorageAdapter) {
   fireEvent.click(within(q5).getByRole('button', { name: /Flower/ }));
   fireEvent.click(within(q5).getByRole('button', { name: 'Smoking' }));
   fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
-  fireEvent.click(screen.getByRole('button', { name: 'Breaking the usual routine' }));
   return rendered;
 }
 
@@ -461,7 +460,6 @@ describe('open-ended abstinence tracking (D4)', () => {
     const flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    fireEvent.click(screen.getByRole('button', { name: 'I’m not sure yet' }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('abstinence_planning');
     fireEvent.click(screen.getByTestId('start-tracking'));
     expect(screen.queryByTestId('result-screen')).toBeNull();
@@ -655,4 +653,3 @@ describe('evidence-guided companion', () => {
     expect(screen.queryByTestId('mark-complete')).toBeNull();
   });
 });
-

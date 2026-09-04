@@ -1,7 +1,7 @@
 # T-Break Application Architecture
 
 Status: minimal deterministic v1 architecture  
-Version: 0.10.0
+Version: 0.13.0
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Companion specification: `CALCULATOR_SPEC.md`
 
@@ -12,6 +12,8 @@ Companion specification: `CALCULATOR_SPEC.md`
 **0.9.2 note:** `tolerance-recovery-outlook-v2` adds an explicit profile-sensitive predicted window while keeping tolerance-v3 a separate, unchanged engine. The recovery builder is pure/local and reads only the frozen result plus existing profile signals. New tolerance records store `recoveryOutlookVersion`; missing/v1 values route to the retained v1 builder, while v2 routes to the new policy. No runtime AI, network, migration rewrite, percentage model, or prediction curve is introduced.
 
 **0.10.0 note:** result presentation now uses one shared `ResultLensHero` / `ResultInsight` visual and type system for Your Plan and Predicted Reset. `supportFocus` is a separately versioned companion value (`companion-personalisation-v1`) attached beside, never inside, the `UseProfileInput`; it may select deterministic action copy but is never passed to tolerance-v3 or Recovery Outlook v2. Today derives a named visual phase from existing break/tracking state and renders CSS-only decorative atmosphere; it introduces no recovery score, percentage, or scientific state.
+
+**0.13.0 note:** new calculations contain scientific questionnaire data only. Companion preferences live under their own `companion-personalisation-v2` key as multi-select `supportAreas[]`; loading migrates the newest legacy v1 `supportFocus` to a one-item array without rewriting the saved profile or calculation history. The dedicated UI flow can be opened/closed independently and saving it never invokes a calculator.
 
 ## 1. Architecture objective
 
@@ -190,7 +192,6 @@ goal
   |     -> current-pattern duration (first use-profile question)
   |     -> use days -> authoritative last use
   |        (sessions, products and routes only when use days are 4-30)
-  |     -> support focus (plan/daily copy only)
   |
   |-- reduction
   |     -> explicit breakRequested
@@ -200,7 +201,6 @@ goal
   |-- abstinence
   |     -> current-pattern duration (first use-profile question)
   |     -> authoritative last use
-  |     -> support focus (plan/daily copy only)
   |     -> no use days, sessions, products, or routes
   |     -> withdrawal/abstinence planning
   |     -> postBreakMode fixed to continue_abstinence
@@ -218,7 +218,7 @@ V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date,
 
 Flower grams and potency appear only when the user opens the nominal THC calculator. Check-in notes remain optional, local, unparsed, and user-visible.
 
-`supportFocus` is the sole companion intake question. It is asked only when a consuming break or abstinence plan will use it, and is stored in the raw snapshot as `{ schemaVersion: 'companion-personalisation-v1', supportFocus }`. The calculation coordinator strips this companion boundary before domain validation and engine calls. Detection, zero-use baseline, and reduction-without-a-break do not ask it.
+Companion personalisation is a separate optional preference flow, not intake. Its `supportAreas[]` may select or reorder reviewed deterministic guidance only. The calculation coordinator never receives this record. Check-ins continue to store only the user's current-day experience.
 
 ## 7. Calculation orchestration
 
