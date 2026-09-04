@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.14.0** (support-area taxonomy refinement — grouped real-problem areas incl. nausea/headaches/dreams; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
+- App version: **0.14.1** (Plan Detail / "Your break" presentation composition; tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged)
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -28,7 +28,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, and the **0.14.0** support-area taxonomy refinement.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, and the **0.14.1** Plan Detail presentation composition.
 
 | Step | Status |
 |---|---|
@@ -55,10 +55,37 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.12.0 visual unification (Predicted Reset language app-wide) | **done** |
 | 0.13.0 independent multi-select companion personalisation | **done** |
 | 0.14.0 support-area taxonomy refinement (grouped, explicit physical symptoms) | **done** |
+| 0.14.1 Plan Detail / "Your break" presentation composition | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.14.1 added (Plan Detail presentation composition; no science change)
+
+A presentation-only recomposition of the "Your break" / Plan Detail screen and
+its shared guidance/outlook primitives. No behaviour, copy, routing, support
+taxonomy, persistence, or science change; every `data-testid` used by the test
+suite is preserved.
+
+- **One editorial document.** The screen now reads as a single centred reading
+  column with one hairline section rhythm instead of stacked filled cards.
+  Equal block padding and single top rules connect the hero → Today guidance →
+  outlook → preparation → after-this-break → evidence → More as one flow.
+- **Clearer hero.** The progress ring is the anchor (duplicate floating caption
+  removed); target facts read as quiet label/value rows under it; the support
+  preference is an inline meta line (label + short areas + Edit) instead of a
+  bolted-on tinted card/pills; the extended state note keeps the flat left-rule
+  callout of every other notice.
+- **Guidance scans.** Blocks are separated by consistent rhythm with small
+  accent dot markers instead of wall-of-blobs lists; past roadmap rows are no
+  longer ghosted.
+- **Controls demoted.** "Save changes" is a small quiet pill; "After this
+  break" mode options are hairline rows instead of raised cards; return
+  principles read as a dot list; "About common detox claims" is a small accent
+  text link beside the CB1 disclosure; More stays the smallest item at the end.
+- Regression-safe: full `npm test`, `npm run typecheck`, `npm run build`
+  green; visual QA captured at 430×932.
 
 ## What 0.14.0 added (support-area taxonomy refinement; no science change)
 

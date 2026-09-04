@@ -5,6 +5,12 @@ engines own every scientific/numeric output. No account, no network science,
 and no runtime generative AI: every explanation, Recovery Outlook and personal
 summary is deterministic and computed on-device.
 
+Version **0.14.1** — the "Your break" plan screen is recomposed as one calm
+editorial document: a single reading column with hairline section rhythm, a
+progress-ring hero with quiet fact rows, an inline support-area line, scannable
+dot-marked guidance, and clearly secondary controls. Presentation only — no
+science, taxonomy, routing, or persistence change.
+
 Version **0.14.0** — support areas now use a grouped real-problem taxonomy:
 **mind & mood** (anxiety, irritability, low mood), **sleep** (sleep, vivid
 dreams), **cravings & habits** (cravings, routine, boredom), and **body**

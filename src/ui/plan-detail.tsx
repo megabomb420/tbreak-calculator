@@ -110,47 +110,51 @@ export function PlanDetail(props: PlanDetailProps) {
         </button>
       </header>
       <div className="questionnaire-body flow-body plan-detail-body">
-        {active !== null ? (
-          <ActivePlanContent
-            active={active}
-            guidance={bundle}
-            outlook={outlook}
-            supportAreas={props.supportAreas ?? []}
-            onEditSupport={props.onEditSupport}
-            clockStart={currentSegmentAnchor(attempt.segments)}
+        <div className="plan-detail-inner">
+          {active !== null ? (
+            <ActivePlanContent
+              active={active}
+              guidance={bundle}
+              outlook={outlook}
+              supportAreas={props.supportAreas ?? []}
+              onEditSupport={props.onEditSupport}
+              clockStart={currentSegmentAnchor(attempt.segments)}
+            />
+          ) : planned !== null ? (
+            <PlannedPlanContent planned={planned} outlook={outlook} />
+          ) : null}
+          <PreparationCard value={attempt.preparation} onSave={(next) => props.onUpdatePreparation(attempt.id, next)} />
+          <PostBreakCard
+            attempt={attempt}
+            onUpdate={(mode, plan) => props.onUpdatePostBreak(attempt.id, mode, plan)}
           />
-        ) : planned !== null ? (
-          <PlannedPlanContent planned={planned} outlook={outlook} />
-        ) : null}
-        <PreparationCard value={attempt.preparation} onSave={(next) => props.onUpdatePreparation(attempt.id, next)} />
-        <PostBreakCard
-          attempt={attempt}
-          onUpdate={(mode, plan) => props.onUpdatePostBreak(attempt.id, mode, plan)}
-        />
-        <Cb1Note />
-        <button type="button" className="cta-secondary" data-testid="open-detox-evidence" onClick={() => setShowDetox(true)}>
-          {GUIDANCE_CHROME.openDetox}
-        </button>
-        <details className="card plan-overflow" data-testid="plan-overflow" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
-          <summary className="overflow-summary">
-            <span className="card-title">{PLAN_DETAIL.more}</span>
-          </summary>
-          <div className="overflow-actions">
-            {attempt.status === 'planned' ? (
-              <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirm('cancel')}>
-                {PLAN_DETAIL.cancelPlanTitle}
-              </button>
-            ) : null}
-            {attempt.status === 'active' ? (
-              <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirm('end-early')}>
-                {PLAN_DETAIL.endEarly}
-              </button>
-            ) : null}
-            <button type="button" className="text-back" data-testid="recalculate-profile" onClick={props.onRecalculate}>
-              {PLAN_DETAIL.recalculate}
+          <section className="plan-evidence">
+            <Cb1Note />
+            <button type="button" className="text-link plan-detox-link" data-testid="open-detox-evidence" onClick={() => setShowDetox(true)}>
+              {GUIDANCE_CHROME.openDetox}
             </button>
-          </div>
-        </details>
+          </section>
+          <details className="plan-overflow" data-testid="plan-overflow" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
+            <summary className="overflow-summary">
+              <span className="card-title">{PLAN_DETAIL.more}</span>
+            </summary>
+            <div className="overflow-actions">
+              {attempt.status === 'planned' ? (
+                <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirm('cancel')}>
+                  {PLAN_DETAIL.cancelPlanTitle}
+                </button>
+              ) : null}
+              {attempt.status === 'active' ? (
+                <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirm('end-early')}>
+                  {PLAN_DETAIL.endEarly}
+                </button>
+              ) : null}
+              <button type="button" className="text-back" data-testid="recalculate-profile" onClick={props.onRecalculate}>
+                {PLAN_DETAIL.recalculate}
+              </button>
+            </div>
+          </details>
+        </div>
       </div>
       <footer className="questionnaire-footer">
         {attempt.status === 'active' && active?.atOrPastTargetDate === true ? (
@@ -208,36 +212,47 @@ function ActivePlanContent({
     : active.atOrPastTargetDate
       ? PLAN_STATE_NOTES.reached(active.targetDays)
       : null;
+  const supportView = supportAreasView(supportAreas);
   return (
     <section className="plan-hero" data-testid="active-plan-content">
-      <PlanRing day={active.day} targetDays={active.targetDays} />
-      <dl className="plan-facts">
-        <div className="plan-fact">
-          <dt className="meta">{PLAN_DETAIL.targetDateLabel}</dt>
-          <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
-        </div>
-        {clockStart !== null ? (
+      <header className="plan-status">
+        <PlanRing day={active.day} targetDays={active.targetDays} size={132} />
+        <dl className="plan-facts">
           <div className="plan-fact">
-            <dt className="meta">{PLAN_DETAIL.clockStartLabel}</dt>
-            <dd data-testid="clock-start">{formatLocalDay(clockStart)}</dd>
+            <dt className="meta">{PLAN_DETAIL.targetDateLabel}</dt>
+            <dd data-testid="target-date">{formatLocalDay(active.targetDate)}</dd>
           </div>
-        ) : null}
-      </dl>
+          {clockStart !== null ? (
+            <div className="plan-fact">
+              <dt className="meta">{PLAN_DETAIL.clockStartLabel}</dt>
+              <dd data-testid="clock-start">{formatLocalDay(clockStart)}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </header>
       {stateNote !== null ? (
         <p className={active.pastTarget ? 'today-state-note is-extended' : 'today-state-note is-reached'} data-testid="plan-detail-target-note" data-state={active.pastTarget ? 'extended' : 'reached'}>
           {stateNote}
         </p>
       ) : null}
-      <section className="plan-focus-card" data-testid="plan-focus-card">
-        <p className="micro-label">{supportAreas.length > 0 ? 'Your support areas' : 'Plan support'}</p>
-        <p className="body">
+      <div className="plan-support" data-testid="plan-support">
+        <div className="plan-support-head">
+          <p className="micro-label">{supportAreas.length > 0 ? 'Your support' : 'Plan support'}</p>
+          {onEditSupport ? (
+            <button type="button" className="text-link" data-testid="plan-edit-support" onClick={onEditSupport}>
+              {supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+            </button>
+          ) : null}
+        </div>
+        <p className="body plan-support-line">
           {supportAreas.length > 0
             ? supportAreas.map((area) => supportAreasView([area]).primary.shortLabel).join(' · ')
-            : supportAreasView(supportAreas).primary.shortLabel}
+            : supportView.primary.shortLabel}
         </p>
-        {onEditSupport ? <button type="button" className="text-link" data-testid="plan-edit-support" onClick={onEditSupport}>{supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}</button> : null}
-      </section>
-      <TodayGuidance view={guidance.today} supportAreas={supportAreas} />
+      </div>
+      <div className="plan-guidance">
+        <TodayGuidance view={guidance.today} supportAreas={supportAreas} />
+      </div>
       <BreakOutlook view={outlook} />
     </section>
   );
@@ -391,7 +406,7 @@ function PostBreakCard({
       ) : null}
       <button
         type="button"
-        className="cta-secondary"
+        className="plan-save"
         disabled={!dirty}
         data-testid="save-post-break"
         onClick={() => {

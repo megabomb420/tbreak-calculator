@@ -3389,3 +3389,379 @@ details.card.guidance-why summary.card-title,
   border-top: 1px solid var(--hairline);
   border-radius: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   0.14.1 — Plan Detail composition.
+   The "Your break" screen reads as one editorial document: a centred reading
+   column, one hairline section rhythm, and controls demoted below content.
+   Presentation only — no behaviour, copy, routing, or science change.
+--------------------------------------------------------------------------- */
+
+.plan-detail-body {
+  padding-bottom: var(--space-8);
+}
+
+.plan-detail-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* One rhythm: every top-level block owns equal breathing room; the space
+   between blocks is drawn by a single hairline, never by stacked surfaces. */
+.plan-detail-inner > .plan-hero,
+.plan-detail-inner > .preparation-card,
+.plan-detail-inner > .plan-post-break,
+.plan-detail-inner > .plan-evidence,
+.plan-detail-inner > .plan-overflow {
+  padding: var(--space-6) 0;
+}
+
+.plan-detail-inner > .preparation-card,
+.plan-detail-inner > .plan-post-break,
+.plan-detail-inner > .plan-evidence,
+.plan-detail-inner > .plan-overflow {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Neutralise any leftover filled-card surface inside the document. */
+.plan-detail-inner > .preparation-card,
+.plan-detail-inner > .plan-post-break,
+.plan-detail-inner > .plan-evidence,
+.plan-detail-inner > .plan-overflow {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* --- Hero: progress ring + one quiet fact list --------------------------- */
+
+.plan-hero {
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.plan-hero > .plan-ring {
+  margin: var(--space-1) auto 0;
+}
+
+.plan-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.plan-status .plan-ring {
+  margin: 0;
+}
+
+.plan-facts {
+  width: 100%;
+  margin: 0;
+  gap: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.plan-fact {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-1);
+  border-top: 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.plan-fact:last-child {
+  border-bottom: 0;
+}
+
+.plan-fact dt {
+  color: var(--fg-faint);
+}
+
+.plan-fact dd {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--fg);
+  text-align: right;
+}
+
+.plan-hero .today-state-note {
+  width: 100%;
+  margin: 0;
+}
+
+/* --- Support areas: an inline preference line, not a bolted-on card ------- */
+
+.plan-support {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-support-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.plan-support-head .micro-label {
+  margin: 0;
+}
+
+.plan-support .plan-support-line {
+  color: var(--fg-muted);
+  font-size: var(--text-base);
+}
+
+/* --- Today guidance: an editorial reading flow, not stacked boxes --------- */
+
+.plan-guidance,
+.plan-hero > .outlook {
+  width: 100%;
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-5);
+}
+
+.plan-guidance .today-guidance {
+  gap: var(--space-5);
+}
+
+.plan-guidance .guidance-headline {
+  color: var(--fg);
+  font-size: clamp(1.35rem, 5.6vw, 1.7rem);
+  line-height: var(--leading-tight);
+}
+
+.plan-guidance .guidance-kicker {
+  margin: 0 0 var(--space-2);
+  color: var(--fg-muted);
+}
+
+.plan-guidance .guidance-block + .guidance-block {
+  margin-top: var(--space-2);
+}
+
+.plan-guidance .guidance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--fg-muted);
+}
+
+.plan-guidance .guidance-list li {
+  position: relative;
+  padding-left: var(--space-4);
+  color: var(--fg-muted);
+}
+
+.plan-guidance .guidance-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.7em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 50%, transparent);
+}
+
+.plan-guidance .guidance-list li + li {
+  margin-top: var(--space-2);
+}
+
+.plan-guidance .guidance-why {
+  margin-top: var(--space-1);
+}
+
+/* Outlook days: quieter control chips, current state by colour not box. */
+.plan-detail-body .outlook-chip {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
+.plan-detail-body .outlook-chip.is-selected {
+  background: color-mix(in oklab, var(--accent-strong) 12%, transparent);
+  border-color: color-mix(in oklab, var(--accent-strong) 70%, transparent);
+}
+
+.plan-detail-body .outlook-chip.is-current {
+  box-shadow: none;
+}
+
+/* --- Section headings inside the document -------------------------------- */
+
+.plan-detail-inner .preparation-card > .card-title,
+.plan-detail-inner .plan-post-break > .card-title {
+  margin: 0 0 var(--space-3);
+}
+
+/* Post-break mode picker: quiet rows instead of stacked raised cards. */
+.plan-detail-inner .plan-post-break .choice-card {
+  min-height: 48px;
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.plan-detail-inner .plan-post-break .choice-card::before {
+  display: none;
+}
+
+.plan-detail-inner .plan-post-break .choice-card.selected {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+/* Save changes: a quiet, clearly secondary control. */
+.plan-detail-inner .plan-post-break .plan-save {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  margin-top: var(--space-4);
+  background: transparent;
+  color: var(--fg-muted);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.plan-detail-inner .plan-post-break .plan-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- Evidence references: CB1 disclosure + detox link as one quiet group -- */
+
+.plan-detail-inner .plan-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-detail-inner .plan-evidence details.guidance-why {
+  border: 0;
+  padding: 0;
+}
+
+.plan-detox-link {
+  align-self: flex-start;
+  text-align: left;
+  padding: 0;
+  min-height: 44px;
+}
+
+/* More: the overflow menu is already a hairline disclosure; keep it at the
+   very bottom of the document, visually smallest. */
+.plan-detail-inner > .plan-overflow {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-1);
+}
+
+.plan-detail-inner .plan-overflow summary {
+  color: var(--fg-muted);
+  font-size: 1rem;
+}
+
+.plan-detail-inner .plan-overflow summary .card-title {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.plan-detail-inner .overflow-actions .text-back {
+  font-size: 15px;
+}
+
+/* --- 0.14.1 refinements from the 430×932 visual QA ------------------------- */
+
+/* The extended state note must stay a flat left-rule callout like every other
+   notice; its old tinted fill loses to the one-callout rule. */
+.today-state-note.is-extended {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* The ring carries its own "Day N of M" text and an accessible label; the
+   floating "Plan progress" caption collided with the ring's bottom stroke. */
+.plan-ring-label {
+  display: none;
+}
+
+/* Support preference line: keep the head + areas pairing tight. */
+.plan-support {
+  gap: var(--space-1);
+}
+
+.plan-support-head .text-link {
+  min-height: 32px;
+}
+
+/* Past roadmap rows were ghosted below legibility in the reading column. */
+.plan-detail-body .roadmap-stage.is-past {
+  opacity: 0.8;
+}
+
+/* Return principles read as a quiet dot list, matching every other guidance
+   list in the document, instead of full-width raised pills. */
+.plan-detail-inner .plan-post-break .guidance-chips {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.plan-detail-inner .plan-post-break .guidance-chips .chip {
+  position: relative;
+  min-height: auto;
+  padding: 2px 0 2px var(--space-4);
+  background: transparent;
+  border-radius: 0;
+  font-size: var(--text-base);
+  font-weight: 400;
+  color: var(--fg-muted);
+  text-align: left;
+}
+
+.plan-detail-inner .plan-post-break .guidance-chips .chip::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 50%, transparent);
+}
+
+/* Detox link matches the small accent text-link voice of Edit support. */
+.plan-detox-link {
+  min-height: 32px;
+  padding: 0;
+}
+
+/* Tighten the vertical rhythm around the quiet Save control so it does not
+   float in a dead zone before the evidence section. */
+.plan-detail-inner > .plan-post-break {
+  padding-bottom: var(--space-5);
+}
+
+.plan-detail-inner .plan-post-break .plan-save {
+  margin-top: var(--space-3);
+}
