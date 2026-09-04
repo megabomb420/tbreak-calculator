@@ -25,6 +25,7 @@ import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { Cb1ReferencePanel } from './cb1-reference.tsx';
+import { ConceptDistinctionsPanel } from './concept-distinctions.tsx';
 import { presentBreakGuidance, presentCb1Education, presentPostBreakGuidance } from '../application/presentation/break-guidance.ts';
 import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
@@ -61,6 +62,7 @@ export function PlanDetail(props: PlanDetailProps) {
   const [confirm, setConfirm] = useState<'end-early' | 'cancel' | null>(null);
   const [showDetox, setShowDetox] = useState(false);
   const [showCb1, setShowCb1] = useState(false);
+  const [showDistinctions, setShowDistinctions] = useState(false);
   const exposure = props.profile === null ? null : exposureFromProfile(props.profile);
   const bundle = presentBreakGuidance({
     breakDay: active?.day ?? null,
@@ -128,6 +130,9 @@ export function PlanDetail(props: PlanDetailProps) {
             <button type="button" className="text-link plan-reference-link" data-testid="open-cb1-reference" onClick={() => setShowCb1(true)}>
               {presentCb1Education().title}
             </button>
+            <button type="button" className="text-link plan-reference-link" data-testid="open-concept-distinctions" onClick={() => setShowDistinctions(true)}>
+              {GUIDANCE_CHROME.distinctions}
+            </button>
             <button type="button" className="text-link plan-reference-link" data-testid="open-detox-evidence" onClick={() => setShowDetox(true)}>
               {GUIDANCE_CHROME.openDetox}
             </button>
@@ -181,6 +186,7 @@ export function PlanDetail(props: PlanDetailProps) {
         />
       ) : null}
       {showCb1 ? <Cb1ReferencePanel onClose={() => setShowCb1(false)} /> : null}
+      {showDistinctions ? <ConceptDistinctionsPanel onClose={() => setShowDistinctions(false)} /> : null}
       {showDetox ? <DetoxEvidencePanel onClose={() => setShowDetox(false)} /> : null}
     </div>
   );

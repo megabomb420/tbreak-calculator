@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import { presentCb1Education, presentConceptDistinctions } from '../application/presentation/break-guidance.ts';
+import { presentCb1Education } from '../application/presentation/break-guidance.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
@@ -33,14 +33,6 @@ export function Cb1ReferencePanel({ onClose }: { readonly onClose: () => void })
             {paragraph}
           </p>
         ))}
-        <section className="card" data-testid="concept-distinctions">
-          <h3 className="card-title">{GUIDANCE_CHROME.distinctions}</h3>
-          <ul className="guidance-list">
-            {presentConceptDistinctions().map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </section>
       </div>
     </div>
   );

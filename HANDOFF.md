@@ -5,7 +5,7 @@ For the next implementer. Specs win over this file.
 - Repo: https://github.com/megabomb420/tbreak-calculator (public)
 - Branch: `main`
 - Live PWA: https://megabomb420.github.io/tbreak-calculator/
-- App version: **0.16.1** (urge plan shown once on Plan Detail; "Around people who use" trigger clarified); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
+- App version: **0.16.2** (reference pages separated and “These are different questions” made independently clickable); tolerance-v3 and Recovery Outlook v2 numeric behaviour unchanged
 - This file sits on `main` (the header intentionally carries no self-referential SHA).
 
 Authoritative docs:
@@ -33,7 +33,7 @@ UX_SPEC §16 steps **1–5** plus deploy, iOS layout, vape product, the Interval
 visual redesign, the **0.3.1–0.6.1** patches, the **0.7.0–0.7.2**
 calculator/questionnaire/PWA-polish revisions, the **0.8.0**
 tolerance-v3 + active-reduction revision, the **0.9.0** Recovery Intelligence revision, the **0.9.1**
-deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, and the **0.16.1** urge-plan dedupe.
+deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revision, the **0.10.0** product-experience release, the **0.10.1** Today profile-no-break consistency patch, the **0.11.0** product-experience completion pass, the **0.11.1** Today visual-polish release, the **0.12.0** visual-unification release, the **0.13.0** companion-personalisation redesign, the **0.14.0** support-area taxonomy refinement, the **0.14.1** Plan Detail presentation composition, the **0.14.2** Plan Detail follow-up, the **0.14.3** reference-page links, the **0.15.0** urge-plan copy rewrite, the **0.16.0** science explainer, the **0.16.1** urge-plan dedupe, and the **0.16.2** reference-page separation fix.
 
 | Step | Status |
 |---|---|
@@ -66,10 +66,22 @@ deterministic-only architecture cleanup, the **0.9.2** Recovery Outlook v2 revis
 | 0.15.0 urge-plan copy rewrite ("Triggers and replacements" reads naturally) | **done** |
 | 0.16.0 science explainer (Settings → About) + archived science PDF | **done** |
 | 0.16.1 urge plan dedupe + clearer social trigger | **done** |
+| 0.16.2 independent reference pages | **done** |
 
 Working product behaviour: questionnaire overlay with per-step persistence,
 result overlay with the full Day 1 → target outlook before Start this break,
 in-flow tab bar, product-vs-route distinction.
+
+## What 0.16.2 added (reference-page separation; no science change)
+
+- Plan Detail Reference now has three equal clickable entries: “Tolerance is
+  not a percentage”, “These are different questions”, and “About common detox
+  claims”.
+- Each entry owns one closeable reading page. CB1 content no longer embeds the
+  concept distinctions, and Detox claims no longer appends CB1, distinction,
+  or detection content. Detection clarification lives with “These are
+  different questions”.
+- Presentation/routing only; scientific copy and numeric policy are unchanged.
 
 ## What 0.16.1 added (urge-plan dedupe; no science change)
 

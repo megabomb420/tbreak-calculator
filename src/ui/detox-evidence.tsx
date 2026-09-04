@@ -1,5 +1,4 @@
-import { presentCb1Education, presentConceptDistinctions, presentDetoxEvidence } from '../application/presentation/break-guidance.ts';
-import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
+import { presentDetoxEvidence } from '../application/presentation/break-guidance.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
@@ -9,7 +8,6 @@ export function DetoxEvidencePanel({ onClose }: { readonly onClose: () => void }
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onClose);
   const view = presentDetoxEvidence();
-  const cb1 = presentCb1Education();
   return (
     <div
       className="questionnaire-overlay"
@@ -66,32 +64,6 @@ export function DetoxEvidencePanel({ onClose }: { readonly onClose: () => void }
             </li>
           ))}
         </ul>
-        <section className="card" data-testid="cb1-education">
-          <h3 className="card-title">{cb1.title}</h3>
-          {cb1.paragraphs.map((paragraph) => (
-            <p key={paragraph} className="body">
-              {paragraph}
-            </p>
-          ))}
-        </section>
-        <section className="card" data-testid="concept-distinctions">
-          <h3 className="card-title">{GUIDANCE_CHROME.distinctions}</h3>
-          <ul className="guidance-list">
-            {presentConceptDistinctions().map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </section>
-        <section className="card" data-testid="detection-education">
-          <h3 className="card-title">{DETECTION_EDUCATION_V1.title}</h3>
-          <p className="body">{DETECTION_EDUCATION_V1.lead}</p>
-          <ul className="guidance-list">
-            {DETECTION_EDUCATION_V1.points.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-          <p className="meta">{DETECTION_EDUCATION_V1.deferred}</p>
-        </section>
       </div>
     </div>
   );
