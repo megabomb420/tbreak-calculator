@@ -217,7 +217,7 @@ export const WITHDRAWAL_WINDOWS_V1: readonly WithdrawalWindowContent[] = [
       'If you have earlier check-ins, compare them with today. The ratings describe symptoms, not recovery.',
     ],
     context:
-      'Most acute withdrawal symptoms commonly improve substantially across about the first two weeks. Feeling better is not the same as completing a tolerance goal. Withdrawal easing and tolerance adaptation are different processes. Sleep disruption can continue for three to four weeks.',
+      'Many acute withdrawal symptoms ease during the first two weeks. Sleep can take longer. Feeling better does not tell you how much your tolerance has changed.',
     comesNext:
       'Later days shift toward habits, cues and automatic thoughts about THC, more than toward a new wave of acute withdrawal.',
     whyThisMatters:
@@ -626,7 +626,7 @@ export const CONCEPT_EXPLAINER_V1: readonly ConceptExplainerItem[] = [
     id: 'matrix-and-cutoff',
     question: 'Why do the matrix and cutoff matter so much?',
     answer:
-      'Urine, blood, oral fluid and hair measure different things on different timescales, and the same person can be reported differently at different cutoffs. Without a known cutoff, the only honest answer is a broad range with lower confidence.',
+      'Urine, blood, oral fluid and hair measure different things on different timescales, and the same person can be reported differently at different cutoffs. This app offers qualitative information, not a personal test prediction.',
   },
 ];
 

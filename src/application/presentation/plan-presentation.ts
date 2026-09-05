@@ -5,7 +5,7 @@
 // ring/track represents plan time only (abstinence time from the authoritative
 // anchor), never biological recovery.
 
-import type { Instant } from '../../domain/schemas/time.ts';
+import { MILLIS_PER_DAY, type Instant } from '../../domain/schemas/time.ts';
 import type { BreakAttempt } from '../../domain/breaks/break-attempt.ts';
 import { plannedTargetDate } from '../../domain/breaks/break-attempt.ts';
 import { abstinenceDayAt } from '../../domain/breaks/break-time.ts';
@@ -24,7 +24,7 @@ export interface ActiveBreakView {
   readonly targetDate: Instant;
   /** True when now is on/after the plan target date (completion eligible). */
   readonly atOrPastTargetDate: boolean;
-  /** True when the abstinence day is past the finite planning target. */
+  /** True from one full day after the target instant; the first day is target-reached. */
   readonly pastTarget: boolean;
   readonly phase: PlanPhaseKey;
   readonly phaseCopy: string;
@@ -67,7 +67,7 @@ export function activeBreakView(attempt: BreakAttempt, now: Instant): ActiveBrea
     dayOfLabel: planDayOfLabel(day, attempt.targetDurationDays),
     targetDate,
     atOrPastTargetDate: now >= targetDate,
-    pastTarget: day > attempt.targetDurationDays,
+    pastTarget: now >= targetDate + MILLIS_PER_DAY,
     phase: phaseKeyForDay(day),
     phaseCopy: phaseFocusCopy(day),
     withdrawal: presentWithdrawal(computeWithdrawalDisplay(anchor, now, TOLERANCE_POLICY_V2.withdrawalAnchors)),

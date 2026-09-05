@@ -1,22 +1,9 @@
-import { useRef, useState } from 'preact/hooks';
-import type { Instant } from '../domain/schemas/time.ts';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CurrentPatternDurationBand, DetectionContext, DetectionMatrix, Goal, ProductKind, Route } from '../domain/schemas/enums.ts';
-import {
-  DATE_CHIPS,
-  DAY_PARTS,
-  dateInputBounds,
-  localIsoDate,
-  resolveDateChip,
-  resolvePickedDate,
-  type DateChipId,
-  type DateWindowKind,
-  type DayPart,
-} from '../application/questionnaire/date-answers.ts';
+export { DateControl } from './date-control.tsx';
 import {
   BREAK_OPTIONS,
   CONTEXT_OPTIONS,
-  DATE_CHIP_LABELS,
-  DAY_PART_LABELS,
   MATRIX_OPTIONS,
   PATTERN_DURATION_OPTIONS,
   PRODUCT_GROUP_LABEL,
@@ -372,132 +359,6 @@ export function ProductsRoutesControl({
   );
 }
 
-export function DateControl({
-  window,
-  now,
-  value,
-  showStillUse,
-  from,
-  onChange,
-  onInvalid,
-}: {
-  readonly window: DateWindowKind;
-  readonly now: Instant;
-  readonly value?: string;
-  readonly showStillUse?: boolean;
-  /** Lower instant bound for the `since_anchor` window (interruption). */
-  readonly from?: Instant;
-  readonly onChange: (iso: string) => void;
-  /** Called when a pick falls outside the window so a previous valid value is not reused. */
-  readonly onInvalid?: () => void;
-}) {
-  const [chip, setChip] = useState<DateChipId | 'pick' | 'still' | null>(null);
-  const [dayPart, setDayPart] = useState<DayPart>('afternoon');
-  const parsedValue = value === undefined ? Number.NaN : Date.parse(value);
-  const [picked, setPicked] = useState(
-    Number.isFinite(parsedValue) ? localIsoDate(parsedValue as Instant) : '',
-  );
-  const bounds = dateInputBounds(now, window, from);
-
-  function applyPicked(nextDate: string, nextPart: DayPart) {
-    const iso = resolvePickedDate(nextDate, nextPart, now, window, from);
-    if (iso !== null) onChange(iso);
-    else onInvalid?.();
-  }
-
-  function applyChip(nextChip: DateChipId, nextPart: DayPart) {
-    const iso = resolveDateChip(nextChip, nextPart, now, window, from);
-    if (iso !== null) onChange(iso);
-    else onInvalid?.();
-  }
-
-  return (
-    <div className="control-stack">
-      <div className="chip-row">
-        {DATE_CHIPS.map((id) => {
-          const iso = resolveDateChip(id, dayPart, now, window, from);
-          if (iso === null && id !== 'today') return null;
-          if (id === 'today' && resolveDateChip('today', dayPart, now, window, from) === null) return null;
-          return (
-            <button
-              key={id}
-              type="button"
-              className={chipClass(chip === id)}
-              data-date-chip={id}
-              onClick={() => {
-                setChip(id);
-                applyChip(id, dayPart);
-              }}
-            >
-              {DATE_CHIP_LABELS[id]}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          className={chipClass(chip === 'pick')}
-          data-date-chip="pick"
-          onClick={() => {
-            setChip('pick');
-            onInvalid?.();
-          }}
-        >
-          {QUESTIONNAIRE.pickADate}
-        </button>
-        {showStillUse ? (
-          <button
-            type="button"
-            className={chipClass(chip === 'still')}
-            data-date-chip="still-use"
-            onClick={() => {
-              setChip('still');
-              const iso = resolveDateChip('today', 'morning', now, window, from);
-              if (iso !== null) onChange(iso);
-              else onInvalid?.();
-            }}
-          >
-            {QUESTIONNAIRE.stillUseToday}
-          </button>
-        ) : null}
-      </div>
-      {chip === 'pick' ? (
-        <input
-          type="date"
-          min={bounds.min}
-          max={bounds.max}
-          value={picked}
-          data-testid="date-picker"
-          aria-label={QUESTIONNAIRE.pickADate}
-          onInput={(event) => {
-            const next = (event.target as HTMLInputElement).value;
-            setPicked(next);
-            applyPicked(next, dayPart);
-          }}
-        />
-      ) : null}
-      {chip !== 'today' && chip !== 'still' ? (
-        <div className="chip-row" role="group" aria-label="Time of day">
-          {DAY_PARTS.map((part) => (
-            <button
-              key={part}
-              type="button"
-              className={chipClass(dayPart === part)}
-              data-day-part={part}
-              onClick={() => {
-                setDayPart(part);
-                if (chip === 'pick' && picked !== '') applyPicked(picked, part);
-                else if (chip !== null && chip !== 'pick') applyChip(chip, part);
-              }}
-            >
-              {DAY_PART_LABELS[part]}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function HoldButton({
   ariaLabel,
   onStep,
@@ -523,6 +384,8 @@ function HoldButton({
       holdRef.current = null;
     }
   }
+
+  useEffect(() => stop, []);
 
   return (
     <button

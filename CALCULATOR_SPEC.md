@@ -1,6 +1,6 @@
 # T-Break Calculator Specification
 
-Status: implementation-ready core specification; release requirements remain in section 14  
+Status: implemented deterministic core; release review scope is documented in HANDOFF.md
 Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.9.0)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
 Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
@@ -11,6 +11,8 @@ Release note (0.13.0): companion personalisation moved out of the questionnaire 
 Release note (0.14.0): presentation-only taxonomy refinement of `supportAreas[]` (grouped mind & mood / sleep / cravings & habits / body, with explicit nausea and headaches). It MUST NOT be supplied to tolerance-v3, Recovery Outlook v2, validation, classification, target selection, or history rules. No numeric or engine behaviour changes.
 Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
 Scope: deterministic v3 Tolerance Engine, active reduction (cut-down) tracking, qualitative v1 Detection Engine, nominal THC calculation, validation, break mechanics, a versioned non-engine recovery-outlook interpretation (`tolerance-recovery-outlook-v2`, section 7.11), and future scientific extension boundaries — runtime AI stays excluded (unchanged)
+
+Release note (0.17.0): no numeric policy changes. Saved results are not revalidated against a later month; only live elapsed-time guidance advances. Ongoing plans resolve the profile from their owning calculation. Presentation calls ranges planning rules and labels the secondary view Recovery outlook, explicitly stating the lack of clinical validation of individual timelines.
 
 ## 1. Authority and normative language
 

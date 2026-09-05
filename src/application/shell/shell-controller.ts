@@ -1,8 +1,8 @@
-// Shell controller: the two-tab model and the gear/settings modal
+// Shell controller: the Today / Calculator / History model and the gear/settings modal
 // (UX_SPEC 3.1). Pure state transitions a UI layer binds to; no rendering,
 // no storage access here.
 
-export type AppTab = 'today' | 'history';
+export type AppTab = 'today' | 'calculator' | 'history';
 
 export interface ShellState {
   readonly activeTab: AppTab;

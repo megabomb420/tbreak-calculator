@@ -1,3 +1,5 @@
+import { presentSavedResult, savedUseProfile } from '../application/calculation/saved-result.ts';
+import { GoalCards } from './questionnaire-controls.tsx';
 import { useEffect, useMemo, useReducer, useState } from 'preact/hooks';
 import { answersFromSnapshot } from '../application/calculation/answers-from-snapshot.ts';
 import { runCalculation } from '../application/calculation/run-calculation.ts';
@@ -197,6 +199,8 @@ export function App({
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
   const [personalisationOpen, setPersonalisationOpen] = useState(false);
   const [scienceOpen, setScienceOpen] = useState(false);
+  const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
+  const [scienceFromSettings, setScienceFromSettings] = useState(false);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -266,6 +270,12 @@ export function App({
     return durableSnap.calculations.find((record) => record.id === runId) ?? null;
   }, [snapshotRecord, durableSnap.calculations]);
 
+  const profileSnapshot = savedUseProfile(durableSnap.calculations, snapshotRecord);
+  const profileCalculation = durableSnap.calculations.find((record) => record.id === profileSnapshot?.runId) ?? null;
+  const ownerId = currentLiveAttempt(sessionState.attempts)?.calculationRecordId
+    ?? currentLiveTracking(sessionState.tracking)?.calculationRecordId;
+  const companionSnapshot = savedUseProfile(durableSnap.calculations, snapshotRecord, ownerId);
+
   /** Personal check-in rows for the live result's Predicted-reset view, when
    * a clean active/completed break context exists. */
   const checkinFacts = useMemo(() => {
@@ -300,15 +310,17 @@ export function App({
   // stale tab cannot resurrect a cancelled plan over a newer write.
   useEffect(() => {
     const current = readSessionState();
-    const anchor = profileAnchor(durable.load().snapshot);
-    const activated = activateDuePlans(current, () => anchor, now);
+    const loaded = durable.load();
+    const activated = activateDuePlans(current, (attempt) => profileAnchor(
+      savedUseProfile(loaded.calculations, loaded.snapshot, attempt.calculationRecordId),
+    ), now);
     if (activated !== current) {
       persistBreakSession(activated);
       refresh();
     }
   }, [factsEpoch, now, attemptsRecord, trackingRecord, checkinsRecord, snapshotRecord, durable]);
 
-  const snapshotFacts = todayFactsFromSnapshot(snapshotRecord?.snapshot ?? null);
+  const snapshotFacts = todayFactsFromSnapshot(profileSnapshot?.snapshot ?? snapshotRecord?.snapshot ?? null);
   const acknowledged = resultRecord?.status === 'acknowledged';
   const facts: TodayFacts = buildTodayFacts({
     snapshotFacts: acknowledged ? snapshotFacts : {},
@@ -325,18 +337,18 @@ export function App({
     draft === null &&
     resultRecord?.status !== 'acknowledged';
   const resultModel: ResultView | null = showResult && snapshotRecord !== null
-    ? runCalculation(snapshotRecord.snapshot, now)
+    ? (liveOutlookRecord !== null ? presentSavedResult(liveOutlookRecord, now) : runCalculation(snapshotRecord.snapshot, snapshotRecord.updatedAt))
     : null;
   // Profile summary for the Today card (result saved and acknowledged).
   const profileView: ResultView | null =
-    !showResult && acknowledged && snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
-      ? runCalculation(snapshotRecord.snapshot, now)
+    !showResult && acknowledged && profileSnapshot !== null
+      ? (profileCalculation !== null ? presentSavedResult(profileCalculation, now) : runCalculation(profileSnapshot.snapshot, profileSnapshot.updatedAt))
       : null;
 
   const liveAttempt = currentLiveAttempt(sessionState.attempts);
   const liveTracking = currentLiveTracking(sessionState.tracking);
   const scheduled = liveAttempt?.status === 'planned' ? liveAttempt : null;
-  const anchor = profileAnchor(snapshotRecord);
+  const anchor = profileAnchor(companionSnapshot);
   const activeView = liveAttempt !== null && liveAttempt.status === 'active' ? activeBreakView(liveAttempt, now) : null;
   const utcOffsetMinutes = -new Date().getTimezoneOffset();
   const reductionView =
@@ -365,8 +377,8 @@ export function App({
     reduction: reductionView,
     checkins: sessionState.checkins,
     exposure:
-      snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
-        ? exposureFromProfile(snapshotRecord.snapshot.profile)
+      companionSnapshot !== null && companionSnapshot.snapshot.kind === 'use_profile'
+        ? exposureFromProfile(companionSnapshot.snapshot.profile)
         : null,
     supportAreas,
   };
@@ -408,20 +420,12 @@ export function App({
   }
 
   function snapshotRunId(): string | null {
-    if (snapshotRecord === null) return null;
-    if (snapshotRecord.runId !== undefined) return snapshotRecord.runId;
-    const existing = durable.load().calculations[0];
-    if (existing !== undefined) {
-      durable.saveSnapshot({ ...snapshotRecord, runId: existing.id, updatedAt: clock.now() });
-      return existing.id;
-    }
-    const frozen = ensureCalculationFromSnapshot(durable, snapshotRecord);
-    return frozen?.id ?? null;
+    return profileSnapshot?.runId ?? null;
   }
 
   /** The authoritative last-use instant from the current profile, if any. */
   function currentAnchor(): Instant | null {
-    return profileAnchor(snapshotRecord);
+    return profileAnchor(profileSnapshot);
   }
 
   function openBreakStart(): void {
@@ -621,7 +625,8 @@ export function App({
   // --- Active reduction plan -------------------------------------------------
 
   function reductionBaselineFromProfile(): ReductionBaseline | null {
-    const snapshot = durable.load().snapshot;
+    const loaded = durable.load();
+    const snapshot = savedUseProfile(loaded.calculations, loaded.snapshot, ownerId);
     if (snapshot === null || snapshot.snapshot.kind !== 'use_profile') return null;
     const profile = snapshot.snapshot.profile;
     const useDays = profile.thcUseDaysLast30?.value ?? 0;
@@ -1034,10 +1039,11 @@ export function App({
 
   /** Explicit recalculation with the saved answers preloaded. */
   function openRecalculate() {
-    if (snapshotRecord === null) return;
-    const answers = answersFromSnapshot(snapshotRecord.snapshot);
+    const source = showResult ? snapshotRecord : profileSnapshot ?? snapshotRecord;
+    if (source === null) return;
+    const answers = answersFromSnapshot(source.snapshot);
     const nowAt = clock.now();
-    const next = { currentStep: restoreStep(answers, nowAt), answers };
+    const next = { currentStep: 'Q1' as const, answers };
     persist(next);
     setSession(next);
     setLastUseWarning(lastUseNeedsReselect(answers, nowAt));
@@ -1129,6 +1135,7 @@ export function App({
     const existing = editing === null ? null : findPreviousBreak(durable.load(), editing);
     const id = existing?.id ?? newRecordId('pb', nowAt);
     durable.putPreviousBreak({
+      ...existing,
       id,
       durationDays: draft.durationDays,
       toleranceReductionScore: draft.toleranceReductionScore,
@@ -1137,6 +1144,7 @@ export function App({
       updatedAt: nowAt,
     });
     if (addAnother) {
+      setPreviousBreakRevision((value) => value + 1);
       setFlow({ kind: 'previous-break', editId: null });
       refresh();
       return;
@@ -1176,7 +1184,7 @@ export function App({
     liveAttempt?.status === 'active' || liveAttempt?.status === 'planned' ? liveAttempt : null;
 
   const overlayOpen =
-    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || personalisationOpen;
+    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || personalisationOpen || scienceOpen || outcomeAttempt !== null;
   const showInstallHint =
     !overlayOpen &&
     !installHintDismissed &&
@@ -1188,9 +1196,9 @@ export function App({
       {!persistent ? <StorageBanner /> : null}
       <Shell
         shell={shell}
-        inert={overlayOpen}
         onSelectTab={(tab: AppTab) => dispatch({ type: 'select_tab', tab })}
         onOpenSettings={() => dispatch({ type: 'open_settings' })}
+        onOpenScience={() => { setScienceFromSettings(false); setScienceOpen(true); }}
       >
         {shell.activeTab === 'today' ? (
           <TodayScreen
@@ -1205,6 +1213,7 @@ export function App({
             onViewResult={
               snapshotRecord !== null
                 ? () => {
+                    if (profileSnapshot !== null) durable.saveSnapshot(profileSnapshot);
                     markResult('open');
                     refresh();
                   }
@@ -1232,6 +1241,24 @@ export function App({
             onEndReduction={endLiveReduction}
             onRecommitReduction={openRecommitReduction}
           />
+        ) : shell.activeTab === 'calculator' ? (
+          <section className="stack calculator-screen" data-testid="calculator-screen">
+            <div className="hero">
+              <p className="eyebrow">A plan that fits your goal</p>
+              <h2 className="title">What would you like to do?</h2>
+              <p className="body">Answer a few questions to plan a break, cut down, or understand a test.</p>
+            </div>
+            {draft !== null ? <div className="card">
+              <h3 className="card-title">You have an unfinished calculation</h3>
+              <button type="button" className="cta-secondary" onClick={openResume}>Resume calculation</button>
+              <p className="meta">Choosing a goal below starts a new calculation.</p>
+            </div> : null}
+            <GoalCards onSelect={openGoal} />
+            {profileSnapshot !== null ? <button type="button" className="cta-secondary" onClick={() => {
+              durable.saveSnapshot(profileSnapshot); progress.clear(); markResult('open'); refresh();
+            }}>View saved plan</button> : null}
+            <p className="meta">Your answers stay on this device. Starting a calculation does not end an active break.</p>
+          </section>
         ) : (
           <HistoryScreen
             snapshot={durableSnap}
@@ -1328,8 +1355,8 @@ export function App({
           checkins={sessionState.checkins}
           preparation={liveAttempt?.preparation ?? liveTracking?.preparation ?? null}
           profile={
-            snapshotRecord !== null && snapshotRecord.snapshot.kind === 'use_profile'
-              ? snapshotRecord.snapshot.profile
+            companionSnapshot !== null && companionSnapshot.snapshot.kind === 'use_profile'
+              ? companionSnapshot.snapshot.profile
               : null
           }
           supportAreas={supportAreas}
@@ -1346,6 +1373,7 @@ export function App({
       ) : null}
       {flow?.kind === 'previous-break' ? (
         <PreviousBreakSheet
+          key={`${flow.editId ?? "new"}-${previousBreakRevision}`}
           now={now}
           initial={flow.editId === null ? null : findPreviousBreak(durableSnap, flow.editId)}
           onSave={savePreviousBreak}
@@ -1377,7 +1405,7 @@ export function App({
         />
       ) : null}
       {scienceOpen ? (
-        <ScienceBasicsPanel onClose={() => setScienceOpen(false)} />
+        <ScienceBasicsPanel onClose={() => { setScienceOpen(false); if (scienceFromSettings) dispatch({ type: 'open_settings' }); }} />
       ) : null}
       <SettingsModal
         open={shell.settingsOpen}
@@ -1386,6 +1414,7 @@ export function App({
         onUpdateNow={() => onUpdateNow?.()}
         onOpenScience={() => {
           dispatch({ type: 'close_settings' });
+          setScienceFromSettings(true);
           setScienceOpen(true);
         }}
         onClose={() => dispatch({ type: 'close_settings' })}
@@ -1399,7 +1428,7 @@ export function App({
           dispatch({ type: 'close_settings' });
         }}
       />
-      {updateReady ? (
+      {updateReady && !overlayOpen ? (
         <UpdateSnackbar
           onReload={() => onReloadUpdate?.()}
           onDismiss={() => onDismissUpdate?.()}
@@ -1520,6 +1549,7 @@ function FlowRenderer({
           onBack={onClose}
           onUpdatePreparation={onUpdatePreparation}
           profile={profile}
+          supportAreas={supportAreas}
         />
       ) : null;
     case 'checkin':

@@ -63,22 +63,21 @@ function Root() {
         setUpdateStatus('offline');
         return;
       }
-      const onUpdateFound = () => markAvailable();
-      registration.addEventListener('updatefound', onUpdateFound);
       try {
         await registration.update();
-        // A resolved update() with no new worker means the check genuinely
-        // found nothing newer — the only state that may be called "Up to date".
-        if (registration.waiting ?? registration.installing) markAvailable();
-        else setUpdateStatus('current');
+        // Installation is not a ready update (and may be the first install).
+        // onNeedRefresh announces a replacement only once it is ready.
+        if (registration.waiting && navigator.serviceWorker.controller) markAvailable();
+        else if (!registration.installing) setUpdateStatus('current');
       } catch {
         setUpdateStatus(navigator.onLine ? 'unavailable' : 'offline');
-      } finally {
-        registration.removeEventListener('updatefound', onUpdateFound);
       }
     }
 
     const update = registerSW({
+      onOfflineReady() {
+        setUpdateStatus(navigator.onLine ? 'current' : 'offline');
+      },
       onNeedRefresh() {
         markAvailable();
       },

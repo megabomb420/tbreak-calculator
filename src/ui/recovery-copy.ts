@@ -4,22 +4,22 @@ import type { RecoveryWordingKey } from '../domain/recovery/recovery-outlook.ts'
 
 export const RESET_MODE = {
   plan: 'Your plan',
-  reset: 'Predicted reset',
-  historicalContext: 'Predicted reset (historical context)',
+  reset: 'Recovery outlook',
+  historicalContext: 'Recovery outlook (historical context)',
 } as const;
 
 export const RESET_PANEL = {
-  predictionTitle: 'Likely tolerance recovery window',
+  predictionTitle: 'Estimated recovery window',
   disclaimer:
-    'A research-informed estimate of when tolerance may be near its lowest for your current pattern. It is not a guaranteed full reset.',
+    'An estimate from the app’s planning rules, not a clinically validated recovery window. Research cannot tell us when your tolerance will fully reset.',
   planningCardTitle: 'Your plan',
   planningCardLiveNote:
-    'A practical target within the evidence range. It is separate from the predicted recovery window.',
+    'A practical target within the planning range. It is separate from the estimated recovery window.',
   planningCardFrozenNote:
-    'Your saved practical break target. It remains separate from the predicted recovery window.',
+    'Your saved practical break target. It remains separate from the estimated recovery window.',
   planningCardLegacyNote:
     'Your saved target from the policy used at the time. It is shown exactly as stored.',
-  rangeCardTitle: 'Plan evidence range',
+  rangeCardTitle: 'Planning range',
   rangeCardNote: 'The broad planning range. It never exceeds 28 days.',
   referenceCardTitle: 'Human CB1 reference',
   referenceValue: 'About 4 weeks (Day 28)',
@@ -29,12 +29,12 @@ export const RESET_PANEL = {
   ],
   extendedHeading: 'Extended recovery',
   extendedBody:
-    'With frequent, intense, or long-term use, tolerance-related adaptation may continue beyond the four-week CB1 reference. Evidence beyond four weeks is less direct.',
+    'This app allows a longer estimated window for some established use patterns. Direct human tolerance studies have not validated these extra days.',
   lightReferenceNote:
-    'The four-week study reference comes mainly from chronic daily users. It does not mean your shorter predicted window should be extended to Day 28.',
+    'The four-week study reference comes mainly from chronic daily users. It does not mean your shorter estimated window should be extended to Day 28.',
   wording: {
     light_or_regular:
-      'Your predicted window is relatively short. The four-week PET reference comes from chronic users and is not your predicted endpoint.',
+      'Your estimated window is relatively short. The four-week PET reference comes from chronic users and is not your personal endpoint.',
     heavy_target_below_reference:
       'Your practical plan can be shorter than the broader recovery estimate because the two answer different questions.',
     heavy_reaches_reference:
@@ -43,7 +43,7 @@ export const RESET_PANEL = {
   timelineCaption: 'This timeline shows time since last use — never a recovery percentage.',
   historyHeading: 'Your history',
   historyHelper:
-    'Your recorded experience is shown separately. It does not change the predicted window.',
+    'Your recorded experience is shown separately. It does not change the estimated window.',
   checkinsHeading: 'From your recorded check-ins',
 } as const;
 
@@ -51,11 +51,11 @@ export const RESET_V1_PANEL = {
   disclaimer:
     'This older saved outlook used Day 28 as a biological reference, not a guaranteed full-reset day.',
   planningCardTitle: 'Your saved planning target',
-  rangeCardTitle: 'Your saved evidence range',
+  rangeCardTitle: 'Your saved planning range',
   referenceCardTitle: 'Biological reference',
   referenceValue: 'Around four weeks (Day 28)',
   referenceNote:
-    'This saved result used the four-week CB1 reference available at the time. It did not include a separate predicted recovery window.',
+    'This saved result used the four-week CB1 reference available at the time. It did not include a separate estimated recovery window.',
 } as const;
 
 export function resetHistoryLine(durationDays: number, score: number): string {
@@ -103,12 +103,12 @@ export const RESET_EVIDENCE = {
     'Thirty chronic daily male users were scanned; 14 were rescanned after 13–32 days of monitored abstinence. Cortical CB1 availability moved toward control values, with the hippocampus as an exception. PET does not measure how strong THC feels.',
   extendedHeading: 'Extended recovery evidence',
   extendedBody:
-    'Human evidence beyond four weeks is sparse and does not directly measure subjective tolerance. The six-week outer bound is a conservative product rule, not a human study result. It uses uncertain human PET evidence after four weeks and supporting animal evidence.',
+    'Human evidence beyond four weeks is sparse and does not directly measure subjective tolerance. The six-week outer bound is a conservative product rule, not a human study result. Human PET studies leave the later trajectory uncertain; animal evidence cannot establish a human timetable.',
   indirectBody:
     'Withdrawal, sleep and cognitive studies provide context that recovery can be uneven, but these endpoints are not treated as direct measures of tolerance and do not set the window.',
   notHeading: 'What this does not mean',
   baseNotPoints: [
-    'The predicted window is not scientifically proven as a complete reset.',
+    'The estimated window is not scientifically proven as a complete reset.',
     'CB1 availability is not identical to subjective tolerance.',
     'This is a product heuristic, not a validated clinical model, detox estimate or drug-test prediction.',
   ],

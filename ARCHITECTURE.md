@@ -1,21 +1,16 @@
 # T-Break Application Architecture
 
-Status: minimal deterministic v1 architecture  
-Version: 0.14.0
-Authoritative source: `sources/TBREAK_PROJECT_CONTEXT.md`, version 2026-09-02  
-Companion specification: `CALCULATOR_SPEC.md`
+Version: **0.17.0**
+Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
-**0.8.0 note:** the tolerance policy line is **`tolerance-v3`** (`src/domain/policies/tolerance-policy-v3.ts`): multi-factor exposure classification (frequency + intensity + chronicity) bounded at most one adjacent evidence tier, unchanged 2–7 / 7–14 / 14–21 / 21–28 outer bounds, deterministic target anchor inside the final range with a bounded in-range history override. Active reduction (cut-down) tracking adds a pure reduction domain (`src/domain/reduction/reduction-engine.ts` + `reduction-plan-lifecycle.ts`), the `reduction-records-v2` application store (`src/application/progress/reduction-record.ts`), the durable `reductionRecords` family in both the web and IndexedDB backends, adaptive tolerance recalculation (`src/application/calculation/adaptive-recalc.ts`), the UI sheets `log-use.tsx`, `reduction-start-sheet.tsx`, and `reduction-refresh-sheet.tsx`, and the new Today state `reduction-active`. Sections 5.1 and 9 reflect the policy and durable-store lists.
+Current implementation additions:
 
-**0.9.0 note:** Recovery Intelligence adds a deterministic recovery-outlook presentation boundary with no AI or network dependency and no tolerance-v3 engine change: `src/domain/recovery/recovery-outlook.ts` (version `tolerance-recovery-outlook-v1`) interprets a frozen tolerance result, `src/domain/checkins/checkin-summary.ts` derives conservative check-in facts, and `src/application/presentation/recovery-checkin-facts.ts` / `reduction-trajectory.ts` map them to a live break context and the reduction card. The result UI adds an accessible **"Your plan" | "Predicted reset"** segmented control (`src/ui/result-screen.tsx` + `src/ui/predicted-reset.tsx`; copy `src/ui/recovery-copy.ts`); the reset mode and frozen-history outlook are derived from record data only and never re-run an engine. Persistence additions: the durable `break-outcome-marks-v1` envelope family (`breakOutcomes` in both the web and IndexedDB backends; key `tbreak.break-outcome-marks.v1`) with per-attempt marks `captured | skipped` (`src/application/progress/break-outcome.ts`, eligibility in `src/domain/recovery/outcome-capture.ts`), plus an optional `sourceAttemptId` on previous-break records linking a captured outcome to its attempt.
-
-**0.9.2 note:** `tolerance-recovery-outlook-v2` adds an explicit profile-sensitive predicted window while keeping tolerance-v3 a separate, unchanged engine. The recovery builder is pure/local and reads only the frozen result plus existing profile signals. New tolerance records store `recoveryOutlookVersion`; missing/v1 values route to the retained v1 builder, while v2 routes to the new policy. No runtime AI, network, migration rewrite, percentage model, or prediction curve is introduced.
-
-**0.10.0 note:** result presentation now uses one shared `ResultLensHero` / `ResultInsight` visual and type system for Your Plan and Predicted Reset. `supportFocus` is a separately versioned companion value (`companion-personalisation-v1`) attached beside, never inside, the `UseProfileInput`; it may select deterministic action copy but is never passed to tolerance-v3 or Recovery Outlook v2. Today derives a named visual phase from existing break/tracking state and renders CSS-only decorative atmosphere; it introduces no recovery score, percentage, or scientific state.
-
-**0.13.0 note:** new calculations contain scientific questionnaire data only. Companion preferences live under their own `companion-personalisation-v2` key as multi-select `supportAreas[]`; loading migrates the newest legacy v1 `supportFocus` to a one-item array without rewriting the saved profile or calculation history. The dedicated UI flow can be opened/closed independently and saving it never invokes a calculator.
-
-**0.14.0 note:** `supportAreas[]` uses a bounded, grouped taxonomy — mind & mood (anxiety, irritability, low mood), sleep (sleep, vivid dreams), cravings & habits (cravings, routine, boredom), body (appetite, nausea, headaches). Legacy v1 `supportFocus` and interim 0.13 area names migrate on read; `physical_discomfort` → `headaches` + `nausea`, `not_sure` → empty. The first selected area leads deterministic guidance; no calculator or scientific record is touched.
+- `application/calculation/saved-result.ts` separates immutable calculation output from live elapsed-time presentation and resolves the owning profile for ongoing plans.
+- `ui/date-control.tsx` owns shared intake/interruption date entry; pure calendar validation/bounds stay in `application/questionnaire/date-answers.ts`.
+- `ui/focus-trap.ts` coordinates the topmost dialog, keyboard focus, inert background, focus restoration and one browser-history entry per open flow stack. Transitions do not accumulate obsolete steps.
+- Shell destinations are Today, Calculator and History. Science and questionnaire/result/detail screens use the shared overlay contract.
+- `companion-personalisation-v2` remains independent of use-profile calculations. `supportAreas[]` selects practical guidance only.
+- Numeric versions remain tolerance-v3 and tolerance-recovery-outlook-v2; legacy outlook v1 semantics are retained for old records.
 
 ## 1. Architecture objective
 
@@ -354,7 +349,7 @@ Why: frequent use + multiple sessions/high-potency concentrate route
 
 The card MUST NOT say reset complete, 100% reset, detoxed, or safe to resume the previous exposure. The recommended range stays the only evidence-claiming number; the planning target is a labelled heuristic choice inside it.
 
-Tolerance results may also be shown in a versioned recovery-outlook mode (**“Predicted reset”**, current `tolerance-recovery-outlook-v2`), selected by an accessible **“Your plan” | “Predicted reset”** segmented control (default “Your plan”). The reset mode and the frozen-history outlook are presentation derived from stored record data only — they never re-run an engine and never change the stored result. V2 produces a separate predicted window (maximum 42 under the reviewed highest-burden rule); the plan stays capped at 28 and Day 28 stays a human biological reference. The record-level outlook version prevents old v1 History from adopting later semantics.
+Tolerance results may also be shown in a versioned recovery-outlook mode (**“Recovery outlook”**, current `tolerance-recovery-outlook-v2`), selected by an accessible **“Your plan” | “Recovery outlook”** segmented control (default “Your plan”). The reset mode and the frozen-history outlook are presentation derived from stored record data only — they never re-run an engine and never change the stored result. V2 produces a separate predicted window (maximum 42 under the reviewed highest-burden rule); the plan stays capped at 28 and Day 28 stays a human biological reference. The record-level outlook version prevents old v1 History from adopting later semantics.
 
 ### 10.2 Withdrawal and progress
 
@@ -462,12 +457,9 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 - minimal local-only architecture; and
 - Vite + Preact PWA shell with Web Storage for the transient draft.
 
-### Blocks public release, not domain implementation
+### Release review boundaries
 
-- reviewed safety/escalation and dependency-support content;
-- legal/medical disclaimer and launch-jurisdiction review;
-- local privacy/security review; and
-- completed accessibility/offline verification.
+Release checks cover source-grounded uncertainty, the nonmedical disclaimer, local privacy/deletion, dependency advisories, keyboard/modal behavior, responsive layouts, persistence and the production build. The app provides no jurisdiction-specific legal guidance. Clinical validation and formal medical-device or jurisdictional certification are not claimed. See HANDOFF.md for the current verification scope.
 
 ### Safely deferred
 

@@ -64,6 +64,7 @@ export function PreparationCard({
               type="button"
               className={draft.triggerIds.includes(entry.id) ? 'chip selected' : 'chip'}
               data-testid={`trigger-${entry.id}`}
+              aria-pressed={draft.triggerIds.includes(entry.id)}
               onClick={() => toggle(entry.id)}
             >
               {entry.label}

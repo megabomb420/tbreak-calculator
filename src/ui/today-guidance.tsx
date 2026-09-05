@@ -8,9 +8,11 @@ export function TodayGuidance({
   view,
   compact = false,
   supportAreas = [],
+  showIntentions = !compact,
 }: {
   readonly view: TodayGuidanceView;
   readonly compact?: boolean;
+  readonly showIntentions?: boolean;
   readonly supportAreas?: readonly SupportArea[];
 }) {
   const notice = compact ? view.mayNotice.slice(0, 3) : view.mayNotice;
@@ -68,7 +70,7 @@ export function TodayGuidance({
           </ul>
         </div>
       ) : null}
-      {view.intentions.length > 0 && !compact ? (
+      {view.intentions.length > 0 && showIntentions ? (
         <div className="guidance-block">
           <h3 className="guidance-kicker">{GUIDANCE_CHROME.intentions}</h3>
           <ul className="guidance-list intention-list" data-testid="guidance-intentions">

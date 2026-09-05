@@ -115,6 +115,7 @@ export function ResultScreen({
         <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
           <CloseIcon />
         </button>
+        <span className="flow-title">{historical ? "Saved result" : "Your result"}</span>
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
@@ -241,7 +242,9 @@ function ResultBody({
             supportAreas={supportAreas}
             onEditSupport={onEditSupport}
           />
-          {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : null}
+          {view.outlook !== null ? <details className="result-disclosure timeline-disclosure">
+            <summary>Explore the break timeline</summary><BreakOutlook view={view.outlook} />
+          </details> : null}
           <Cb1ContextNote />
           <HistoryCard
             insight={view.history}
@@ -306,7 +309,9 @@ function ResultBody({
               </button>
             </section>
           ) : null}
-          {view.outlook !== null ? <BreakOutlook view={view.outlook} /> : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
+          {view.outlook !== null ? <details className="result-disclosure timeline-disclosure">
+            <summary>Explore the break timeline</summary><BreakOutlook view={view.outlook} />
+          </details> : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
           <Cb1ContextNote />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
         </div>
@@ -344,7 +349,7 @@ function ResultBody({
           <header className="result-hero">
             <p className="eyebrow">Detection</p>
             <h2 id="result-title" className="title">
-              {RESULT.matrixHeading}
+              {view.matrix ? { urine: 'Urine tests', blood: 'Blood tests', oral_fluid: 'Saliva tests', hair: 'Hair tests' }[view.matrix] : RESULT.matrixHeading}
             </h2>
             {view.matrixCopy.map((line) => (
               <p key={line} className="body">
@@ -641,6 +646,9 @@ function ResultActions({
         </>
       );
     case 'abstinence_planning':
+      if (onStartTracking === undefined) {
+        return <button type="button" className="cta-primary" onClick={onAcknowledge}>{RESULT.saveWithoutStarting}</button>;
+      }
       return (
         <button
           type="button"
@@ -660,7 +668,7 @@ function ResultActions({
     case 'baseline_low':
       return (
         <>
-          {trackingAvailable ? (
+          {trackingAvailable && onStartTracking !== undefined ? (
             <button
               type="button"
               className="cta-primary"

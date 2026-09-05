@@ -1,3 +1,4 @@
+import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
 import { useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { Goal } from '../domain/schemas/enums.ts';
@@ -211,7 +212,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const active = props.live.active;
   if (active === null) return null;
   const { attempt, view } = active;
-  const phaseRaw = view.pastTarget ? 'extended' : phaseForDay(view.day, view.targetDays);
+  const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
   const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
   const stateNote = phase === 'reached' ? PLAN_STATE_NOTES.reached(view.targetDays) : phase === 'extended' ? PLAN_STATE_NOTES.extended(view.day, view.targetDays) : null;
   return (
@@ -241,6 +242,16 @@ function ActiveBreakCard(props: TodayScreenProps) {
           {stateNote}
         </p>
       ) : null}
+      <div className="today-actions">
+        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
+          {ACTIVE_BREAK_CARD.checkIn}
+        </button>
+        {view.atOrPastTargetDate ? (
+          <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
+            Mark complete
+          </button>
+        ) : null}
+      </div>
       <section className="today-now" aria-label="Today’s guidance">
         <TodayGuidance
           compact
@@ -256,16 +267,6 @@ function ActiveBreakCard(props: TodayScreenProps) {
           })}
         />
       </section>
-      <div className="today-actions">
-        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-          {ACTIVE_BREAK_CARD.checkIn}
-        </button>
-        {view.atOrPastTargetDate ? (
-          <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
-            Mark complete
-          </button>
-        ) : null}
-      </div>
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenPlanDetail}>
         {ACTIVE_BREAK_CARD.viewPlan}
       </button>
@@ -411,16 +412,14 @@ function todayPhase(props: TodayScreenProps): string {
       // Past the finite planning target is its own state ("extended"), so the
       // target-reached moment is not visually identical to day 29 of a 21-day
       // plan. Exactly-on-target stays "reached".
-      return live.view.pastTarget ? 'extended' : phaseForDay(day, targetDays);
+      return live.view.pastTarget ? 'extended' : live.view.atOrPastTargetDate ? 'reached' : phaseForDay(day, targetDays);
     }
   }
 }
 
 function phaseForDay(day: number, target: number | null): string {
-  if (target !== null && day === target) return 'reached';
-  if (target !== null && day > target) return 'extended';
-  if (target !== null && day >= Math.max(7, target - 3)) return 'approaching';
-  if (day <= 3) return 'onset';
+  if (target !== null && day >= Math.max(1, target - 3)) return 'approaching';
+  if (day < 2) return 'onset';
   if (day <= 6) return 'peak';
   if (day <= 14) return 'settling';
   if (day <= 28) return 'middle';
@@ -828,25 +827,9 @@ function ConfirmDialog({
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }) {
-  const node = (
-    <div className="modal-root" data-testid="confirm-dialog">
-      <div className="modal-backdrop" onClick={onCancel} />
-      <div className="modal-sheet" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="sheet-handle" aria-hidden="true" />
-        <h2 className="card-title">{title}</h2>
-        <p className="body">{body}</p>
-        <div className="cta-row">
-          <button type="button" className="cta-primary" data-testid="confirm-action" onClick={onConfirm}>
-            {confirmLabel}
-          </button>
-          <button type="button" className="cta-secondary" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-  const host = typeof document !== 'undefined' ? document.getElementById('app') : null;
+  const node = <SharedConfirmDialog title={title} body={body} action={confirmLabel}
+    actionTestId="confirm-action" onConfirm={onConfirm} onCancel={onCancel} />;
+  const host = document.getElementById('app');
   return host !== null ? createPortal(node, host) : node;
 }
 

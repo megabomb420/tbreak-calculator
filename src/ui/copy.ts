@@ -8,7 +8,7 @@ export const APP_SHORT_NAME = 'T-Break';
 export const FIRST_LAUNCH = {
   title: APP_NAME,
   promise:
-    'A private, on-device planner for tolerance breaks, cutting down, staying off, and drug-test basics.',
+    'Plan a tolerance break, cut down, or stay off THC. Keep track of your days and how you feel.',
   reassurances: [
     { id: 'offline', label: 'Works offline' },
     { id: 'local', label: 'Stored only on this device' },
@@ -22,7 +22,7 @@ export const FIRST_LAUNCH = {
 } as const;
 
 export const GOAL_CHIPS = [
-  { id: 'tolerance_reset', title: 'Reset my tolerance', helper: 'Feel THC strongly again' },
+  { id: 'tolerance_reset', title: 'Reset my tolerance', helper: 'Plan a tolerance break' },
   { id: 'reduction', title: 'Cut down', helper: 'Reduce how much I use' },
   { id: 'abstinence', title: 'Stay off THC', helper: "I'm quitting or already have" },
   { id: 'detection_information', title: 'Drug test info', helper: 'Understand detection basics' },
@@ -92,7 +92,7 @@ export const PREVIOUS_BREAK = {
   ],
   score: 'How much did it reduce your tolerance afterwards?',
   scoreZero: 'Not at all',
-  scoreTen: 'Completely',
+  scoreTen: 'Very large reduction',
   notSure: 'Not sure',
   ended: 'When did it end?',
   skipEnded: 'Skip',

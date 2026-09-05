@@ -1,9 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
-import { toInstant } from '../domain/schemas/time.ts';
-import { MILLIS_PER_DAY } from '../domain/schemas/time.ts';
 import type { PostBreakMode } from '../domain/schemas/enums.ts';
-import { localIsoDate } from '../application/questionnaire/date-answers.ts';
+import { planStartBounds, resolvePlanStartDate } from '../application/questionnaire/date-answers.ts';
 import { BREAK_START, POST_BREAK_MODE_COPY, GUIDANCE_CHROME, clockAlreadyRunningNote } from './break-copy.ts';
 import { planForTarget } from './result-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
@@ -32,26 +30,8 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
   const [submitted, setSubmitted] = useState(false);
   const [preparation, setPreparation] = useState<BreakPreparation | null>(null);
 
-  const todayIso = localIsoDate(now);
-  const maxIso = localIsoDate((now + FUTURE_WINDOW_DAYS * MILLIS_PER_DAY) as Instant);
-
-  function startAt(): Instant | null {
-    if (choice === 'now') return now;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(picked)) return null;
-    const parts = picked.split('-');
-    const year = Number(parts[0]);
-    const month = Number(parts[1]);
-    const day = Number(parts[2]);
-    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
-    const date = new Date(year, month - 1, day);
-    const instant = toInstant(date.getTime());
-    const todayStart = toInstant(new Date(new Date(now).getFullYear(), new Date(now).getMonth(), new Date(now).getDate()).getTime());
-    const latest = toInstant(todayStart + FUTURE_WINDOW_DAYS * MILLIS_PER_DAY);
-    if (instant < todayStart || instant > latest) return null;
-    return instant;
-  }
-
-  const start = startAt();
+  const { min: todayIso, max: maxIso } = planStartBounds(now);
+  const start = choice === 'now' ? now : resolvePlanStartDate(picked, now);
 
   return (
     <div
@@ -79,6 +59,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
                 type="button"
                 className={choice === 'now' ? 'choice-card selected compact' : 'choice-card compact'}
                 data-testid="start-now"
+                aria-pressed={choice === 'now'}
                 onClick={() => setChoice('now')}
               >
                 <span className="choice-copy">
@@ -95,6 +76,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
                 type="button"
                 className={choice === 'date' ? 'choice-card selected compact' : 'choice-card compact'}
                 data-testid="start-pick-date"
+                aria-pressed={choice === 'date'}
                 onClick={() => setChoice('date')}
               >
                 <span className="choice-copy">
@@ -108,6 +90,8 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
             </div>
             {choice === 'date' ? (
               <div className="date-pick-wrap">
+                <label className="date-field-label">
+                  <span>Start date</span>
                 <input
                   type="date"
                   min={todayIso}
@@ -115,8 +99,12 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
                   value={picked}
                   data-testid="break-start-date"
                   aria-label={BREAK_START.startPick}
-                  onInput={(event) => setPicked((event.target as HTMLInputElement).value)}
+                  onInput={(event) => setPicked(event.currentTarget.value)}
+                  onChange={(event) => setPicked(event.currentTarget.value)}
+                  aria-invalid={picked !== '' && start === null}
                 />
+                </label>
+                <p className="meta" aria-live="polite">{picked !== '' && start === null ? 'Choose today or a date within the next 14 days.' : 'Future breaks start at midnight on your chosen date.'}</p>
               </div>
             ) : null}
             {breakDayAtStart > 1 ? (
@@ -134,6 +122,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
                   type="button"
                   className={mode === option.id ? 'choice-card selected compact' : 'choice-card compact'}
                   data-mode={option.id}
+                  aria-pressed={mode === option.id}
                   onClick={() => setMode(option.id)}
                 >
                   <span className="choice-copy">

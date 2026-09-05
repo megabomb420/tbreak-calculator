@@ -14,6 +14,7 @@ import { TodayGuidance } from './today-guidance.tsx';
 import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
 
 export interface TrackingDetailProps {
   readonly track: StoredTrack;
@@ -22,6 +23,7 @@ export interface TrackingDetailProps {
   readonly onBack: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly profile: UseProfileInput | null;
+  readonly supportAreas?: readonly SupportArea[];
 }
 
 export function TrackingDetail(props: TrackingDetailProps) {
@@ -87,10 +89,12 @@ export function TrackingDetail(props: TrackingDetailProps) {
           <p className="meta" data-testid="open-ended-note">
             {GUIDANCE_CHROME.openEndedNote}
           </p>
-          <TodayGuidance view={bundle.today} />
-          <BreakOutlook view={outlook} />
+          <TodayGuidance compact showIntentions view={bundle.today} supportAreas={props.supportAreas} />
+          <details className="result-disclosure timeline-disclosure">
+            <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
+          </details>
         </section>
-        <PreparationCard value={track.preparation} onSave={(next) => props.onUpdatePreparation(track.id, next)} />
+        <PreparationCard value={track.preparation} onSave={(next) => props.onUpdatePreparation(track.id, next)} showUrgePlan={false} />
         <details className="card guidance-why" data-testid="cb1-note">
           <summary className="card-title">{cb1.title}</summary>
           {cb1.paragraphs.map((paragraph) => (

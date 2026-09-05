@@ -89,6 +89,9 @@ export function resolvePickedDate(
   const month = Number(isoDate.slice(5, 7));
   const day = Number(isoDate.slice(8, 10));
   const picked = atDayPart(new Date(year, month - 1, day), dayPart);
+  // Date normalises impossible dates (for example 31 February). Never turn
+  // a mistyped date into a different answer without the person's knowledge.
+  if (localIsoDate(picked.getTime() as Instant) !== isoDate) return null;
   const current = new Date(now);
   if (sameLocalDay(picked, current)) {
     return constrainIso(formatIsoWithOffset(current), now, window, from);
@@ -99,6 +102,22 @@ export function resolvePickedDate(
 export function localIsoDate(instant: Instant): string {
   const date = new Date(instant);
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** Calendar-day bounds stay consistent across daylight-saving changes. */
+export function planStartBounds(now: Instant): { min: string; max: string } {
+  const latest = new Date(now);
+  latest.setDate(latest.getDate() + 14);
+  return { min: localIsoDate(now), max: localIsoDate(latest.getTime() as Instant) };
+}
+
+export function resolvePlanStartDate(isoDate: string, now: Instant): Instant | null {
+  const { min, max } = planStartBounds(now);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate) || isoDate < min || isoDate > max) return null;
+  if (isoDate === min) return now;
+  const date = new Date(Number(isoDate.slice(0, 4)), Number(isoDate.slice(5, 7)) - 1, Number(isoDate.slice(8, 10)));
+  const instant = date.getTime() as Instant;
+  return localIsoDate(instant) === isoDate ? instant : null;
 }
 
 export function dateInputBounds(

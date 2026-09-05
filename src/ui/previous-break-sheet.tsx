@@ -24,13 +24,14 @@ export interface PreviousBreakSheetProps {
 export function PreviousBreakSheet({ now, initial = null, onSave, onDelete, onClose }: PreviousBreakSheetProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  useFocusTrap(!confirmingDelete, rootRef, onClose);
+  useFocusTrap(true, rootRef, onClose);
   const [durationDays, setDurationDays] = useState(initial?.durationDays ?? 7);
   const [score, setScore] = useState<number | null>(initial?.toleranceReductionScore ?? null);
   const [endedAt, setEndedAt] = useState<string | null>(initial?.endedAt ?? null);
   const [endedDate, setEndedDate] = useState(initial?.endedAt ? localIsoDate(Date.parse(initial.endedAt) as Instant) : '');
   const titleId = 'previous-break-title';
   const editing = initial !== null;
+  const invalidDate = endedDate !== '' && endedAt === null;
 
   useEffect(() => {
     setDurationDays(initial?.durationDays ?? 7);
@@ -143,8 +144,11 @@ export function PreviousBreakSheet({ now, initial = null, onSave, onDelete, onCl
               value={endedDate}
               aria-label={PREVIOUS_BREAK.ended}
               data-testid="previous-break-ended"
-              onInput={(event) => pickEnded((event.target as HTMLInputElement).value)}
+              onInput={(event) => pickEnded(event.currentTarget.value)}
+              onChange={(event) => pickEnded(event.currentTarget.value)}
+              aria-invalid={invalidDate}
             />
+            {invalidDate ? <p className="warning" role="alert">Choose today or an earlier date, or skip this field.</p> : null}
             <button
               type="button"
               className="text-back"
@@ -159,7 +163,7 @@ export function PreviousBreakSheet({ now, initial = null, onSave, onDelete, onCl
           </section>
         </div>
         <footer className="sheet-actions">
-          <button type="button" className="cta-primary" data-testid="previous-break-save" onClick={() => onSave(draft(), false)}>
+          <button type="button" className="cta-primary" data-testid="previous-break-save" disabled={invalidDate} onClick={() => onSave(draft(), false)}>
             {PREVIOUS_BREAK.save}
           </button>
           {editing ? null : (
@@ -167,6 +171,7 @@ export function PreviousBreakSheet({ now, initial = null, onSave, onDelete, onCl
               type="button"
               className="cta-secondary"
               data-testid="previous-break-save-another"
+              disabled={invalidDate}
               onClick={() => {
                 onSave(draft(), true);
                 setDurationDays(7);

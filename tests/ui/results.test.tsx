@@ -51,7 +51,7 @@ describe('result screens from engine output', () => {
     // is stated directly underneath so the two are never conflated.
     expect(screen.getByRole('heading', { name: '7 days' })).toBeTruthy();
     expect(screen.getByTestId('result-lens-plan')).toBeTruthy();
-    expect(result.textContent ?? '').toMatch(/Evidence range: 7–14 days/);
+    expect(result.textContent ?? '').toMatch(/Planning range: 7–14 days/);
     // 10 use days + "1–6 months" + a single flower session is a recently
     // established regular pattern: the planner targets the lower anchor (7).
     expect(result.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
@@ -146,7 +146,7 @@ describe('result screens from engine output', () => {
     const card = screen.getByTestId('state-profile-no-break');
     expect(within(card).getByRole('heading', { name: '7 days' })).toBeTruthy();
     expect(within(card).queryByRole('heading', { name: '7–14 days' })).toBeNull();
-    expect(within(card).getByText('Evidence range: 7–14 days')).toBeTruthy();
+    expect(within(card).getByText('Planning range: 7–14 days')).toBeTruthy();
     expect(within(card).getByRole('img', { name: 'Recommended break 7 to 14 days, plan for 7 days' })).toBeTruthy();
     expect(within(card).getByText('Your target within the recommended range.')).toBeTruthy();
     // The planning-heuristic caveat stays visible in the compact card.

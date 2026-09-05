@@ -34,7 +34,7 @@ export const RESULT = {
   reductionBody:
     'Set weekly limits in advance. Favour lower potency, avoid rapid repeat dosing, and allow for the delayed onset of edibles.',
   reductionSoft:
-    'A full break resets tolerance faster than cutting down — see your break range.',
+    'You can also plan a full break as part of cutting down.',
   abstinenceTodayBody:
     'Open-ended tracking adds a daily check-in without setting an end date.',
   unavailableTitle: 'This calculation is unavailable.',
@@ -94,7 +94,7 @@ export function planHeroLabel(days: number): string {
 
 /** Secondary line under the hero naming the broad evidence range explicitly. */
 export function evidenceRangeLine(min: number, max: number): string {
-  return `Evidence range: ${min}–${max} days`;
+  return `Planning range: ${min}–${max} days`;
 }
 
 export function aroundDay(breakDay: number): string {
@@ -102,7 +102,7 @@ export function aroundDay(breakDay: number): string {
 }
 
 export function daysSince(breakDay: number): string {
-  return `${breakDay} days since your last use.`;
+  return `Day ${breakDay} since your last use.`;
 }
 
 export const NOMINAL_THC = {

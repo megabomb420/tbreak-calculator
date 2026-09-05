@@ -4,7 +4,7 @@
 // them onto approved copy structure. It does not select bands, compute
 // elapsed days, or invent detection windows.
 
-import type { CurrentPatternDurationBand } from '../../domain/schemas/enums.ts';
+import type { CurrentPatternDurationBand, DetectionMatrix } from '../../domain/schemas/enums.ts';
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
 // Presentation-only structural copy (UX_SPEC 9.5–9.6). Not engine output.
 import type {
@@ -91,6 +91,7 @@ export interface BaselineLowView {
 
 export interface DetectionView {
   readonly kind: 'detection';
+  readonly matrix?: DetectionMatrix | null;
   readonly banner: string;
   readonly matrixCopy: readonly string[];
   readonly contextNote: string | null;
@@ -206,6 +207,7 @@ export function presentDetectionResult(result: DetectionResult): ResultView {
   );
   return {
     kind: 'detection',
+    matrix: result.matrix,
     banner: DETECTION_BANNER,
     matrixCopy: matrixOnly,
     contextNote,

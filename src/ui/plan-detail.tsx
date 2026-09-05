@@ -1,3 +1,4 @@
+import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
 import { useRef, useState } from 'preact/hooks';
 import type { DailyCheckin, UseProfileInput } from '../domain/schemas/profile.ts';
 import type { Instant } from '../domain/schemas/time.ts';
@@ -149,13 +150,13 @@ export function PlanDetail(props: PlanDetailProps) {
           </section>
         </div>
       </div>
-      <footer className="questionnaire-footer">
+      {active?.atOrPastTargetDate === true ? <footer className="questionnaire-footer">
         {attempt.status === 'active' && active?.atOrPastTargetDate === true ? (
           <button type="button" className="cta-primary" data-testid="mark-complete" onClick={() => props.onMarkComplete(attempt.id)}>
             {PLAN_DETAIL.markComplete}
           </button>
         ) : null}
-      </footer>
+      </footer> : null}
       {confirm === 'end-early' ? (
         <ConfirmDialog
           title={PLAN_DETAIL.endEarlyConfirmTitle}
@@ -245,9 +246,11 @@ function ActivePlanContent({
         </p>
       </div>
       <div className="plan-guidance">
-        <TodayGuidance view={guidance.today} supportAreas={supportAreas} />
+        <TodayGuidance compact showIntentions view={guidance.today} supportAreas={supportAreas} />
       </div>
-      <BreakOutlook view={outlook} />
+      <details className="result-disclosure timeline-disclosure">
+        <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
+      </details>
     </section>
   );
 }
@@ -271,7 +274,9 @@ function PlannedPlanContent({
           : `Plan for ${planned.targetDays} days — target date ${formatLocalDay(planned.targetDate)}`}
       </p>
       <p className="meta">This break has not started yet. It will begin on the start date.</p>
-      <BreakOutlook view={outlook} />
+      <details className="result-disclosure timeline-disclosure">
+        <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
+      </details>
     </section>
   );
 }
@@ -323,6 +328,7 @@ function PostBreakCard({
             type="button"
             className={draft.mode === option.id ? 'choice-card selected compact' : 'choice-card compact'}
             data-mode={option.id}
+            aria-pressed={attempt.postBreakMode === option.id}
             onClick={() => changeMode(option.id)}
           >
             <span className="choice-copy">
@@ -473,27 +479,9 @@ function ConfirmDialog({
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }) {
-  return (
-    <div className="modal-root" data-testid="confirm-dialog">
-      <div className="modal-backdrop" onClick={onCancel} />
-      <div className="modal-sheet" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="sheet-handle" aria-hidden="true" />
-        <header className="modal-header">
-          <h2 className="card-title">{title}</h2>
-          <button type="button" className="icon-button" aria-label="Close" onClick={onCancel}>
-            <CloseIcon />
-          </button>
-        </header>
-        <p className="body">{body}</p>
-        <button type="button" className="cta-primary" data-testid="confirm-action" onClick={onConfirm}>
-          {confirmLabel}
-        </button>
-        <button type="button" className="cta-secondary" onClick={onCancel}>
-          {PLAN_DETAIL.cancel}
-        </button>
-      </div>
-    </div>
-  );
+  const node = <SharedConfirmDialog title={title} body={body} action={confirmLabel}
+    actionTestId="confirm-action" onConfirm={onConfirm} onCancel={onCancel} />;
+  return node;
 }
 
 function slug(label: string): string {

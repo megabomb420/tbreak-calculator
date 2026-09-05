@@ -185,6 +185,10 @@ function StepControl({
           now={now}
           value={answers.lastUseAt}
           showStillUse={step === 'Q2A'}
+          onInvalid={() => {
+            const { lastUseAt: _lastUse, lastUseSkipped: _skipped, ...rest } = answers;
+            onDraft(rest);
+          }}
           onChange={(iso) =>
             onDraft(applyAnswer(answers, { step, value: iso } as StepAnswer, now))
           }
@@ -242,7 +246,7 @@ function canContinue(
   lastUseWarning: boolean,
 ): boolean {
   if (step === 'Q2') return answers.thcUseDaysLast30 !== undefined;
-  if (step === 'Q4') return answers.sessionsPerUseDay !== undefined;
+  if (step === 'Q4') return true;
   if (step === 'Q5') return (answers.products?.length ?? 0) >= 1 && (answers.routes?.length ?? 0) >= 1;
   if (step === 'Q3' || step === 'Q2A' || step === 'Q3-opt') {
     if (lastUseWarning) return isStepComplete(step, answers, now);
@@ -263,7 +267,7 @@ function pendingAnswer(step: QuestionnaireStepId, answers: QuestionnaireAnswers)
       if (answers.lastUseSkipped === true) return { step: 'Q3-opt', value: { skip: true } };
       return answers.lastUseAt === undefined ? null : { step: 'Q3-opt', value: answers.lastUseAt };
     case 'Q4':
-      return answers.sessionsPerUseDay === undefined ? null : { step: 'Q4', value: answers.sessionsPerUseDay };
+      return { step: 'Q4', value: answers.sessionsPerUseDay ?? 1 };
     case 'Q5':
       if ((answers.products?.length ?? 0) < 1 || (answers.routes?.length ?? 0) < 1) return null;
       return { step: 'Q5', value: { products: answers.products ?? [], routes: answers.routes ?? [] } };

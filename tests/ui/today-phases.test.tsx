@@ -84,17 +84,17 @@ const REACHED_NOTE = /reached your 4-day planning target.*not proof that toleran
 const EXTENDED_NOTE = /past your \d+-day plan.*does not estimate further recovery/i;
 
 describe('Today phase states (0.11)', () => {
-  it('shows the target-reached state exactly on the plan target day', () => {
+  it('shows target reached only after the full target duration has elapsed', () => {
     const storage = createMemoryStorage();
     seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
-    seedAttempt(storage, activeAttempt({ targetDurationDays: 4 }));
+    seedAttempt(storage, activeAttempt({ targetDurationDays: 4, segments: [{ startedFromLastUseAt: toInstant(AT - 4 * 86400000), endedAt: null, endReason: null }] }));
     renderApp(storage);
     const view = screen.getByTestId('today-view');
     expect(view.getAttribute('data-primary')).toBe('active-break');
-    // Day 4 of a 4-day plan is "reached", distinct from any later day.
+    // At four full elapsed days, completion and the reached message agree.
     expect(view.getAttribute('data-phase')).toBe('reached');
     expect(screen.getByTestId('break-phase-eyebrow').textContent).toBe('Plan target reached');
-    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 4');
+    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 5 · 4-day plan');
     const note = screen.getByTestId('plan-target-note');
     expect(note.getAttribute('data-state')).toBe('reached');
     expect(note.textContent ?? '').toMatch(REACHED_NOTE);
@@ -103,12 +103,12 @@ describe('Today phase states (0.11)', () => {
   it('shows a distinct beyond-plan state once the day passes the target', () => {
     const storage = createMemoryStorage();
     seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
-    seedAttempt(storage, activeAttempt({ targetDurationDays: 3 }));
+    seedAttempt(storage, activeAttempt({ targetDurationDays: 2 }));
     renderApp(storage);
     const view = screen.getByTestId('today-view');
     expect(view.getAttribute('data-phase')).toBe('extended');
     expect(screen.getByTestId('break-phase-eyebrow').textContent).toBe('Beyond the plan');
-    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 · 3-day plan');
+    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 · 2-day plan');
     const note = screen.getByTestId('plan-target-note');
     expect(note.getAttribute('data-state')).toBe('extended');
     expect(note.textContent ?? '').toMatch(EXTENDED_NOTE);
@@ -132,7 +132,8 @@ describe('Today phase states (0.11)', () => {
     renderApp(storage);
     // No page-level orbit wallpaper behind the Today content; the phase state
     // attribute that drives card copy is still present.
-    expect(screen.getByTestId('today-view').getAttribute('data-phase')).toBe('reached');
+    expect(screen.getByTestId('today-view').getAttribute('data-phase')).toBe('approaching');
+    expect(screen.queryByTestId('mark-complete-cta')).toBeNull();
     expect(document.querySelector('.interval-field')).toBeNull();
     expect(document.querySelector('.interval-field-orbit')).toBeNull();
     // The active card and its primary action still render.

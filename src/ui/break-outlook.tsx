@@ -85,6 +85,7 @@ function OutlookSegmentStrip({
             type="button"
             role="option"
             aria-selected={isSelected}
+            tabIndex={isSelected ? 0 : -1}
             aria-label={segment.label}
             className={`outlook-chip is-${segment.status}${isSelected ? ' is-selected' : ''}`}
             data-testid={`outlook-seg-${segment.startDay}-${segment.endDay}`}
@@ -92,6 +93,19 @@ function OutlookSegmentStrip({
             data-start={segment.startDay}
             data-end={segment.endDay}
             onClick={() => onSelect(segment)}
+            onKeyDown={(event) => {
+              const index = view.segments.indexOf(segment);
+              const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? view.segments.length - 1
+                : event.key === 'ArrowRight' ? Math.min(index + 1, view.segments.length - 1)
+                : event.key === 'ArrowLeft' ? Math.max(index - 1, 0) : null;
+              if (nextIndex === null) return;
+              event.preventDefault();
+              const next = view.segments[nextIndex];
+              if (next === undefined) return;
+              onSelect(next);
+              const target = event.currentTarget.parentElement?.children[nextIndex];
+              if (target instanceof HTMLElement) { target.focus(); target.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }
+            }}
           >
             <span className="outlook-chip-num">
               {multi ? `${segment.startDay}–${segment.endDay}` : segment.startDay}

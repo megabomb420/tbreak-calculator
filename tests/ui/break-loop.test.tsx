@@ -165,6 +165,14 @@ describe('break start sheet', () => {
     // Scheduled plan card replaces Start-this-break.
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
     expect(screen.getByTestId('scheduled-start')).toBeTruthy();
+    // A separate drug-test query must not replace the scheduled break's
+    // last-use anchor or make its original use profile unreachable.
+    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Drug test info/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Urine', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Just curious/ }));
+    expect(screen.getByRole('heading', { name: 'Urine tests' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: RESULT.done }));
     // Reload after the start date has arrived activates the plan.
     first.unmount();
     renderApp(storage, toInstant(AT + 2 * DAY_MS));
@@ -174,6 +182,13 @@ describe('break start sheet', () => {
     // not to the chosen plan-start date.
     expect(attempt?.segments[0]?.startedFromLastUseAt).toBe(AT);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    fireEvent.click(screen.getByTestId('open-plan-detail'));
+    expect(screen.getByTestId('plan-detail')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('open-how-things-differ'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByTestId('plan-detail')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('recalculate-profile'));
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q1');
   });
 
   it('rejects a picked start date outside today..+14 days', () => {
@@ -212,7 +227,7 @@ describe('plan detail', () => {
     expect(screen.getByTestId('outlook-seg-4-6').getAttribute('data-status')).toBe('current');
     expect(screen.getByTestId('outlook-today-line').textContent).toBe('Today: Day 4');
     expect(screen.getByTestId('target-date')).toBeTruthy();
-    expect(screen.getByTestId('phase-focus')).toBeTruthy();
+    expect(detail.querySelector('.plan-guidance .guidance-kicker')?.textContent).toBe('What matters today');
     expect(screen.getByTestId('post-break-card')).toBeTruthy();
     // Change the mode to reduced regular use; it persists immediately.
     fireEvent.click(within(detail).getByRole('button', { name: /Regular use, but less than before/ }));

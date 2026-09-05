@@ -1,23 +1,25 @@
 import type { ComponentChildren } from 'preact';
 import type { AppTab, ShellState } from '../application/shell/shell-controller.ts';
 import { OPEN_SETTINGS } from './copy.ts';
-import { GearIcon, HistoryIcon, TodayIcon } from './icons.tsx';
+import { CalculatorIcon, GearIcon, HistoryIcon, TodayIcon } from './icons.tsx';
 
 export interface ShellProps {
   readonly shell: ShellState;
   readonly onSelectTab: (tab: AppTab) => void;
   readonly onOpenSettings: () => void;
+  readonly onOpenScience?: () => void;
   readonly children: ComponentChildren;
   readonly inert?: boolean;
 }
 
 const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }> = [
   { id: 'today', label: 'Today', icon: TodayIcon },
+  { id: 'calculator', label: 'Calculator', icon: CalculatorIcon },
   { id: 'history', label: 'History', icon: HistoryIcon },
 ];
 
-export function Shell({ shell, onSelectTab, onOpenSettings, children, inert = false }: ShellProps) {
-  const title = shell.activeTab === 'today' ? 'Today' : 'History';
+export function Shell({ shell, onSelectTab, onOpenSettings, onOpenScience, children, inert = false }: ShellProps) {
+  const title = TABS.find((tab) => tab.id === shell.activeTab)!.label;
   return (
     <div
       className="app-shell"
@@ -27,6 +29,8 @@ export function Shell({ shell, onSelectTab, onOpenSettings, children, inert = fa
     >
       <header className="app-header">
         <h1 className="screen-title">{title}</h1>
+        <div className="header-actions">
+        {onOpenScience ? <button type="button" className="text-link" onClick={onOpenScience}>Science</button> : null}
         <button
           type="button"
           className="icon-button"
@@ -38,8 +42,9 @@ export function Shell({ shell, onSelectTab, onOpenSettings, children, inert = fa
         >
           <GearIcon />
         </button>
+        </div>
       </header>
-      <main className="app-main">{children}</main>
+      <main className="app-main" key={shell.activeTab}>{children}</main>
       <nav className="tab-bar" aria-label="Primary" data-testid="tab-bar">
         {TABS.map((tab) => {
           const selected = shell.activeTab === tab.id;

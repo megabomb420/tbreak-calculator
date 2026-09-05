@@ -7,11 +7,12 @@ export interface ConfirmDialogProps {
   readonly body: string;
   readonly action: string;
   readonly danger?: boolean;
+  readonly actionTestId?: string;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }
 
-export function ConfirmDialog({ title, body, action, danger = true, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ title, body, action, danger = true, onConfirm, onCancel, actionTestId = 'confirm-dialog-action' }: ConfirmDialogProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onCancel);
   const titleId = 'confirm-dialog-title';
@@ -28,13 +29,12 @@ export function ConfirmDialog({ title, body, action, danger = true, onConfirm, o
           <button
             type="button"
             className={danger ? 'cta-danger' : 'cta-primary'}
-            data-testid="confirm-dialog-action"
-            data-autofocus
+            data-testid={actionTestId}
             onClick={onConfirm}
           >
             {action}
           </button>
-          <button type="button" className="cta-secondary" onClick={onCancel}>
+          <button type="button" className="cta-secondary" data-autofocus onClick={onCancel}>
             {HISTORY.cancel}
           </button>
         </div>
