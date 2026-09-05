@@ -2,13 +2,13 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.17.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
+**Version 0.18.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
 
 ## Product
 
 - **Today:** one current break or tracking state, check-ins, progress, and practical support.
 - **Calculator:** all four goals remain reachable while a plan is running; unfinished answers can be resumed.
-- **History:** immutable calculation results, check-ins and previous breaks, with explicit edits and deletion.
+- **History:** immutable calculation results, check-ins, previous breaks and cut-down use logs, with explicit corrections and deletion.
 - **Science:** a separate, source-linked explainer available from every main screen and Settings.
 
 Calculations are deterministic and work on the device. There is no account, runtime AI, analytics, or cloud sync. Durable records use IndexedDB with a local-storage fallback; drafts use local storage. Browser data clearing removes saved records. The installed PWA works offline after its first successful load.
@@ -45,4 +45,4 @@ Numeric policies remain `tolerance-v3`, `detection-copy-v1`, and `tolerance-reco
 
 Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/UI tests, type checks, production build, then GitHub Pages deployment. A failed validation prevents deployment. Vite uses the repository subpath `/tbreak-calculator/` in production.
 
-Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.17.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.
+Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.18.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.

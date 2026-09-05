@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.17.0
+# Handoff — T-Break Calculator 0.18.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -21,13 +21,25 @@ The original research PDF and synced source documents were reviewed before chang
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
 
+## Release 0.18.0 — completed scope (2026-09-06)
+
+- Cut-down plans and their use logs now appear in History. Individual mistaken sessions can be removed with confirmation, without rewriting saved calculations. Historical calculation screens no longer invent unsaved default limits.
+- Reduction limits use one existing suggestion policy across result, Today and start sheet. Explicitly edited limits survive starting the plan. The minimum is consistently one use day; strategy checkboxes are accessible.
+- Starting a break, abstinence tracker or cut-down plan returns to Today. An existing cut-down plan prevents starting a second hidden break/tracker. Abstinence check-in is prominent and Roadmap & triggers opens its detail screen.
+- History details share browser Back/Escape handling and return focus to their list row while keeping main navigation available. Short-screen form sheets keep their actions visible and scroll their body.
+- Rolling reduction windows count local calendar dates once. Negative UTC offsets no longer include an eighth or thirty-first day.
+
 ## Pause / resume point
 
-The owner requested shipping the current improvements before their usage limit resets. This is the scoped 0.17.0 release, not a claim that every possible whole-product refinement is finished. Resume from current main; do not repeat the initial repository/research audit.
+The owner requested another scoped release before their usage limit runs out. Ship 0.18.0 and resume the broader whole-product review after reset. This release does not claim that the original whole-product review is finished. Resume current main; do not repeat the initial repository/research audit. The prior shipped baseline was 0.17.0 (`1695a40109e130842ec99db2df2b0cc4d4c6acdc`).
 
-Verified locally: 540 domain/golden tests and 150 UI tests, TypeScript checks, production PWA build, runtime dependency audit (0 advisories), 390px visual review, native Pick a date → Continue, all three navigation destinations, active-break check-in/interruption, abstinence result, nested browser Back/focus restoration, Settings → Science return, and production startup/version/service-worker status without console errors.
+Final local validation: **542 domain/golden tests + 153 UI tests (695 total)**, TypeScript checks and production PWA build passed. Added regressions cover rolling calendar windows across offsets/month boundaries, preserving edited reduction limits, accessible strategy inputs, reduction history/session correction and frozen calculations, History focus restoration, and starting abstinence tracking from Calculator.
 
-Useful next pass after the reset: finish the broader manual smoke checklist below (especially 320/430px, landscape, physical iOS Safari, offline restart, and production reduction/end-tracking journeys). Automated coverage already exercises those domain flows, but these manual checks should not be described as completed. Consider further consolidating the large App coordinator and older spec sections; preserve the regression coverage and policy boundaries.
+Manual browser checks in this pass: isolated fresh cut-down intake/result/start, edit limits, log use, end plan, reduction history and browser Back/focus return; 320px form layout and 844×390 landscape; abstinence intake/start, check-in save, stop confirmation and retained history. Prior 0.17 checks covered 390px, Pick a date → Continue, active-break interruption, nested dialogs and production startup. Runtime dependency audit at that baseline had zero advisories; this release changes no dependencies.
+
+Remaining manual pass: 430px and desktop, physical iOS Safari, production offline restart, broader scheduled-break and zero-use journeys. Physical iOS has not been tested. Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
+
+Release procedure: push this commit to main, verify its Pages workflow, then confirm live Settings shows 0.18.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

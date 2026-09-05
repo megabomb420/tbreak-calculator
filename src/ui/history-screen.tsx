@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { DailyCheckin } from '../domain/schemas/profile.ts';
 import type { DurableSnapshot } from '../application/persistence/durable.ts';
@@ -26,6 +26,8 @@ import { formatLocalDay, formatShortDay } from './format.ts';
 import { ChevronIcon, IntervalMark, PlusIcon } from './icons.tsx';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { ResultScreen } from './result-screen.tsx';
+import { ReductionHistory } from './reduction-history.tsx';
+import { useFocusTrap } from './focus-trap.ts';
 
 export interface HistoryScreenProps {
   readonly snapshot: DurableSnapshot;
@@ -34,6 +36,7 @@ export interface HistoryScreenProps {
   readonly onEditPastBreak: (id: string) => void;
   readonly onDelete: (kind: HistoryEntry['kind'], id: string) => void;
   readonly onRecalculate: (record: CalculationRecord, step?: QuestionnaireStepId) => void;
+  readonly onRemoveReductionEvent: (planId: string, eventId: string) => void;
 }
 
 export function HistoryScreen({
@@ -43,16 +46,30 @@ export function HistoryScreen({
   onEditPastBreak,
   onDelete,
   onRecalculate,
+  onRemoveReductionEvent,
 }: HistoryScreenProps) {
   const model = buildHistoryModel(snapshot, now);
   const [selected, setSelected] = useState<HistoryEntry | null>(null);
   const [pendingDelete, setPendingDelete] = useState<HistoryEntry | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const returnId = useRef<string | null>(null);
+  // History is a page, so header/tab navigation stays available. It shares
+  // the dialog stack's Back/Escape ownership without trapping Tab.
+  useFocusTrap(selected !== null, detailRef, () => setSelected(null), false);
+  useLayoutEffect(() => {
+    if (selected !== null || returnId.current === null) return;
+    const rows = [...(listRef.current?.querySelectorAll<HTMLElement>('[data-id]') ?? [])];
+    (rows.find((row) => row.getAttribute('data-id') === returnId.current) ?? listRef.current?.querySelector<HTMLElement>('button'))?.focus();
+    returnId.current = null;
+  }, [selected]);
 
   function open(entry: HistoryEntry) {
     if (entry.kind === 'previous-break') {
       onEditPastBreak(entry.id);
       return;
     }
+    returnId.current = entry.id;
     setSelected(entry);
   }
 
@@ -73,7 +90,7 @@ export function HistoryScreen({
 
   if (selected !== null) {
     return (
-      <>
+      <div ref={detailRef} data-testid="history-page">
         <HistoryDetail
           entry={selected}
           snapshot={snapshot}
@@ -81,15 +98,16 @@ export function HistoryScreen({
           onBack={() => setSelected(null)}
           onDelete={() => setPendingDelete(selected)}
           onRecalculate={onRecalculate}
+          onRemoveReductionEvent={onRemoveReductionEvent}
         />
         {confirm}
-      </>
+      </div>
     );
   }
 
   return (
     <>
-      <section className="history-screen" data-testid="history-view">
+      <section className="history-screen" data-testid="history-view" ref={listRef}>
         <section className="history-section">
           <header className="history-section-head">
             <h2 className="card-title">{HISTORY.pastBreaks}</h2>
@@ -168,6 +186,7 @@ function HistoryDetail({
   onBack,
   onDelete,
   onRecalculate,
+  onRemoveReductionEvent,
 }: {
   readonly entry: HistoryEntry;
   readonly snapshot: DurableSnapshot;
@@ -175,6 +194,7 @@ function HistoryDetail({
   readonly onBack: () => void;
   readonly onDelete: () => void;
   readonly onRecalculate: (record: CalculationRecord, step?: QuestionnaireStepId) => void;
+  readonly onRemoveReductionEvent: (planId: string, eventId: string) => void;
 }) {
   switch (entry.kind) {
     case 'calculation': {
@@ -223,6 +243,11 @@ function HistoryDetail({
           onDelete={onDelete}
         />
       );
+    }
+    case 'reduction': {
+      const plan = snapshot.reductionRecords.find((item) => item.id === entry.id);
+      return plan === undefined ? <MissingDetail onBack={onBack} onDelete={onDelete} /> :
+        <ReductionHistory plan={plan} onBack={onBack} onDelete={onDelete} onRemoveEvent={onRemoveReductionEvent} />;
     }
     case 'checkin': {
       const checkin = findCheckin(snapshot, entry.id);

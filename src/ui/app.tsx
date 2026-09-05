@@ -80,6 +80,7 @@ import { decideTrackingRecalculation } from '../application/calculation/adaptive
 import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import {
   endPlan as endReductionPlan,
+  deleteUseEvent as removeReductionUseEvent,
   logUseEvent as appendReductionUseEvent,
   pausePlan as pauseReductionPlan,
   recommitPlan as recommitReductionPlan,
@@ -88,6 +89,7 @@ import {
 } from '../domain/reduction/reduction-plan-lifecycle.ts';
 import {
   derivePlanState,
+  suggestedReductionLimits,
   observedPattern,
   type ReductionBaseline,
   type ReductionLimits,
@@ -382,6 +384,11 @@ export function App({
         : null,
     supportAreas,
   };
+  const suggestedLimits = profileSnapshot?.snapshot.kind === 'use_profile'
+    ? suggestedReductionLimits({
+      thcUseDaysLast30: profileSnapshot.snapshot.profile.thcUseDaysLast30.value ?? 0,
+      sessionsPerUseDay: profileSnapshot.snapshot.profile.sessionsPerUseDay.value,
+    }) : null;
   const profileData: TodayProfileData = {
     resultView: profileView,
     scheduled,
@@ -393,7 +400,7 @@ export function App({
             maxSessionsPerUseDay: liveReductionPlan.limits.maxSessionsPerUseDay,
           }
         : reductionPlan === null
-          ? null
+          ? suggestedLimits
           : {
               maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
               maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
@@ -434,7 +441,7 @@ export function App({
 
   function startPlan(mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null): void {
     const latest = readSessionState();
-    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null) {
+    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null || currentLiveReductionPlan(durable.load().reductionRecords) !== null) {
       return;
     }
     const calcId = snapshotRunId();
@@ -455,13 +462,14 @@ export function App({
     });
     persistBreakSession(next);
     markResult('acknowledged');
+    dispatch({ type: 'select_tab', tab: 'today' });
     setFlow(null);
     refresh();
   }
 
   function startTracking(): void {
     const latest = readSessionState();
-    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null) {
+    if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null || currentLiveReductionPlan(durable.load().reductionRecords) !== null) {
       return;
     }
     const lastUse = currentAnchor();
@@ -476,6 +484,7 @@ export function App({
     });
     persistBreakSession(next);
     markResult('acknowledged');
+    dispatch({ type: 'select_tab', tab: 'today' });
     refresh();
   }
 
@@ -678,6 +687,7 @@ export function App({
       // Best-effort cleanup.
     }
     markResult('acknowledged');
+    dispatch({ type: 'select_tab', tab: 'today' });
     setFlow(null);
     refresh();
     return true;
@@ -765,6 +775,16 @@ export function App({
     // offer the one-time outcome rating for an eligible completed break.
     offerOutcomeAfterReturn(usedAt);
     return true;
+  }
+
+  function deleteReductionUse(planId: string, eventId: string): void {
+    const plan = durable.load().reductionRecords.find((item) => item.id === planId);
+    if (plan === undefined) return;
+    upsertReductionPlan(removeReductionUseEvent({
+      plan, eventId, now: clock.now(), utcOffsetMinutes: -new Date().getTimezoneOffset(),
+    }));
+    // Correct counts only. Historical calculation results remain immutable.
+    refresh();
   }
 
   /** Persists the outcome score as a linked PreviousBreak and marks the
@@ -1170,7 +1190,7 @@ export function App({
 
   // --- render --------------------------------------------------------------
 
-  const canStartPlan = liveAttempt === null && liveTracking === null;
+  const canStartPlan = liveAttempt === null && liveTracking === null && liveReductionPlan === null;
   const breakSheetTarget = toleranceTargetDays(resultModel ?? profileView);
   const breakDayAtStart = anchor === null ? 1 : abstinenceDayAt(now, anchor);
 
@@ -1270,6 +1290,7 @@ export function App({
               refresh();
             }}
             onRecalculate={openRecalculateFrom}
+            onRemoveReductionEvent={deleteReductionUse}
           />
         )}
       </Shell>
@@ -1292,6 +1313,7 @@ export function App({
       {resultModel !== null && flow === null && !personalisationOpen ? (
         <ResultScreen
           view={resultModel}
+          runningPlanNotice={!canStartPlan && (resultModel.kind === 'tolerance_result' || resultModel.kind === 'abstinence_planning' || resultModel.kind === 'baseline_low')}
           onAcknowledge={acknowledgeResult}
           onEditStep={editFromResult}
           onSeeBreakRange={seeBreakRange}
@@ -1306,7 +1328,7 @@ export function App({
           checkinFacts={checkinFacts}
           reductionPlan={
             reductionPlan === null
-              ? null
+              ? suggestedLimits
               : {
                   maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
                   maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
@@ -1362,6 +1384,7 @@ export function App({
           supportAreas={supportAreas}
           onEditSupport={() => setPersonalisationOpen(true)}
           reductionPlan={liveReductionPlan}
+          savedReductionLimits={reductionPlan}
           utcOffsetMinutes={utcOffsetMinutes}
           onStartReduction={startReductionFromProfile}
           onCommitReduction={recommitLiveReduction}
@@ -1468,6 +1491,7 @@ function FlowRenderer({
   supportAreas,
   onEditSupport,
   reductionPlan,
+  savedReductionLimits,
   utcOffsetMinutes,
   onStartReduction,
   onCommitReduction,
@@ -1501,6 +1525,7 @@ function FlowRenderer({
   readonly supportAreas: readonly SupportArea[];
   readonly onEditSupport: () => void;
   readonly reductionPlan: ReductionPlan | null;
+  readonly savedReductionLimits: ReductionLimits | null;
   readonly utcOffsetMinutes: number;
   readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
   readonly onCommitReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
@@ -1587,6 +1612,7 @@ function FlowRenderer({
           now={now}
           profile={profile}
           existing={reductionPlan}
+          savedLimits={savedReductionLimits}
           onStart={onStartReduction}
           onCommit={onCommitReduction}
           onClose={onClose}

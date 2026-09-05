@@ -11,11 +11,13 @@ import type { StoredPreviousBreak } from '../persistence/previous-break-store.ts
 import type { CorruptHistoryRow, DurableSnapshot } from '../persistence/durable.ts';
 import { checkinRecordId } from '../persistence/ids.ts';
 import { presentCalculationRecord } from './present-calculation.ts';
+import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 
 export type HistoryEntryKind =
   | 'calculation'
   | 'attempt'
   | 'tracking'
+  | 'reduction'
   | 'checkin'
   | 'previous-break'
   | 'corrupt';
@@ -64,6 +66,7 @@ export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): Hist
     ...snapshot.calculations.map(calculationEntry),
     ...snapshot.attempts.map((attempt) => attemptEntry(attempt, now)),
     ...snapshot.tracking.map((track) => trackingEntry(track, now)),
+    ...snapshot.reductionRecords.map(reductionEntry),
     ...snapshot.checkins.map(checkinEntry),
     ...snapshot.corrupt.map(corruptEntry),
   ];
@@ -73,6 +76,21 @@ export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): Hist
     previousBreaks,
     groups,
     empty: previousBreaks.length === 0 && feed.length === 0,
+  };
+}
+
+export function reductionStatusLabel(plan: ReductionPlan): string {
+  return plan.status === 'ended' ? 'Ended' : plan.status === 'paused' ? 'Paused' : 'In progress';
+}
+
+function reductionEntry(plan: ReductionPlan): HistoryEntry {
+  const count = plan.events.length;
+  return {
+    kind: 'reduction', id: plan.id,
+    at: plan.status === 'ended' ? plan.updatedAt : plan.startedAt,
+    title: 'Cut-down plan',
+    subtitle: `${reductionStatusLabel(plan)} · ${count} ${count === 1 ? 'session' : 'sessions'} logged`,
+    interrupted: false,
   };
 }
 

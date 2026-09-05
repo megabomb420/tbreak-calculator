@@ -306,3 +306,52 @@ describe('active reduction plan', () => {
     expect(records[0]?.id).not.toBe('run-1');
   });
 });
+
+
+describe('cut-down continuity and history', () => {
+  it('carries edited result limits into the start sheet and persists accessible strategy choices', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile({ thcUseDaysLast30: { value: 25, provenance: 'user_estimate' } }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('view-result'));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase Max sessions on a use day' }));
+    fireEvent.click(screen.getByRole('button', { name: RESULT.done }));
+    fireEvent.click(screen.getByTestId('start-reduction-plan'));
+    expect(screen.getByTestId('limit-days').textContent).toBe('4');
+    expect(screen.getByTestId('limit-sessions').textContent).toBe('2');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Avoid concentrates' }));
+    fireEvent.click(screen.getByTestId('reduction-start-save'));
+    const plan = createReductionRecordsStore(storage).load().plans[0];
+    expect(plan?.limits).toEqual({ maxUseDaysPerWeek: 4, maxSessionsPerUseDay: 2 });
+    expect(plan?.strategy.avoidConcentrates).toBe(true);
+  });
+
+  it('shows ended reduction plans and corrects sessions without changing saved calculations', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile());
+    seedPlan(storage, basePlan({ status: 'ended', events: [eventAt(0, 'flower', 1), eventAt(0, 'vape', 2)] }));
+    const before = createCalculationRecordsStore(storage).load();
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: 'History', exact: true }));
+    const row = screen.getAllByTestId('history-row').find((el) => el.getAttribute('data-kind') === 'reduction')!;
+    expect(row.textContent).toMatch(/Ended.*2 sessions logged/);
+    fireEvent.click(row);
+    expect(screen.getAllByTestId('use-history-row')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /Remove Flower/ }));
+    fireEvent.click(screen.getByTestId('confirm-dialog-action'));
+    expect(screen.getAllByTestId('use-history-row')).toHaveLength(1);
+    expect(createReductionRecordsStore(storage).load().plans[0]?.status).toBe('ended');
+    expect(createCalculationRecordsStore(storage).load()).toEqual(before);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('reduction-history')).toBeNull();
+    expect(screen.getByTestId('history-view')).toBeTruthy();
+    expect(document.activeElement?.getAttribute('data-kind')).toBe('reduction');
+    // Main navigation remains available while a history page is open.
+    fireEvent.click(screen.getAllByTestId('history-row').find((el) => el.getAttribute('data-kind') === 'calculation')!);
+    expect(screen.queryByTestId('limit-days')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Today', exact: true }).closest('[inert]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Today', exact: true }));
+    expect(screen.getByTestId('today-view')).toBeTruthy();
+  });
+});

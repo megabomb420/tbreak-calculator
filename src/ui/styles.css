@@ -3854,3 +3854,25 @@ input[aria-invalid='true'] { border-color: var(--error); }
   .questionnaire-footer { gap: 4px; padding-top: 8px; padding-bottom: calc(8px + var(--chrome-bleed)); }
   .questionnaire-footer .cta-primary { min-height: 44px; }
 }
+
+/* Long forms keep their header and actions visible on short screens. */
+.modal-sheet:has(> .modal-body) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: calc(16px + var(--chrome-bleed));
+}
+.modal-sheet > .sheet-handle, .modal-sheet > .modal-header, .modal-sheet > .sheet-actions { flex: none; }
+.modal-body { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; padding: 2px 3px; margin-inline: -3px; }
+.modal-sheet > .sheet-actions { margin-top: 16px; gap: 8px; }
+@media (max-height: 600px) {
+  .modal-sheet { max-height: calc(var(--app-height) - 8px); }
+  .modal-sheet > .sheet-actions .cta-primary, .modal-sheet > .sheet-actions .cta-secondary { min-height: 44px; }
+  .modal-sheet > .sheet-handle { margin-bottom: 6px; }
+  .modal-header { margin-bottom: 10px; }
+}
+
+.use-history-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.use-history-row > div { min-width: 0; }
+.use-history-row p { margin: 0 0 4px; }
+.use-history-row button { flex: none; min-height: 44px; }

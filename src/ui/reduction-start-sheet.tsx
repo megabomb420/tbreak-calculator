@@ -58,6 +58,7 @@ export interface ReductionStartSheetProps {
   readonly profile: UseProfileInput | null;
   /** Live plan being edited, or null when creating a new one. */
   readonly existing: ReductionPlan | null;
+  readonly savedLimits?: ReductionLimits | null;
   readonly onStart: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
   readonly onCommit: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
   readonly onClose: () => void;
@@ -66,6 +67,7 @@ export interface ReductionStartSheetProps {
 export function ReductionStartSheet({
   profile,
   existing,
+  savedLimits,
   onStart,
   onCommit,
   onClose,
@@ -80,8 +82,8 @@ export function ReductionStartSheet({
           sessionsPerUseDay: profile.sessionsPerUseDay?.value ?? null,
         });
   const initial: ReductionLimits =
-    existing?.limits ?? suggested ?? FALLBACK_LIMITS;
-  const [days, setDays] = useState(initial.maxUseDaysPerWeek);
+    existing?.limits ?? savedLimits ?? suggested ?? FALLBACK_LIMITS;
+  const [days, setDays] = useState(Math.max(1, initial.maxUseDaysPerWeek));
   const [sessions, setSessions] = useState(initial.maxSessionsPerUseDay);
   const [strategy, setStrategy] = useState<ThcStrategy>(
     existing?.strategy ?? { avoidConcentrates: false, lowerPotency: false, lowerAmount: false },
@@ -121,7 +123,7 @@ export function ReductionStartSheet({
           </button>
         </header>
         <div className="modal-body stack">
-          {suggested !== null && !editing ? (
+          {suggested !== null && !editing && savedLimits == null ? (
             <p className="meta" data-testid="reduction-suggestion">
               {suggestionLine(suggested)}
             </p>
@@ -192,7 +194,7 @@ export function ReductionStartSheet({
                   className="choice-card compact"
                   data-testid={option.testId}
                 >
-                  <span className="choice-icon" aria-hidden="true">
+                  <span className="choice-icon">
                     <input
                       type="checkbox"
                       checked={strategy[option.key]}

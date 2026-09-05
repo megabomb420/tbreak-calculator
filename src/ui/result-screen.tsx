@@ -59,6 +59,7 @@ export interface ResultScreenProps {
     readonly maxSessionsPerUseDay: number;
   }) => void;
   readonly historical?: boolean;
+  readonly runningPlanNotice?: boolean;
   /** The frozen calculation this result came from, when one exists. Drives the
    * Predicted-reset panel from frozen data only (never re-runs an engine). */
   readonly outlookRecord?: CalculationRecord | null;
@@ -87,6 +88,7 @@ export function ResultScreen({
   reductionPlan = null,
   onReductionPlanChange,
   historical = false,
+  runningPlanNotice = false,
   outlookRecord = null,
   checkinFacts = null,
   onAddPastBreak,
@@ -119,6 +121,7 @@ export function ResultScreen({
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
+        {runningPlanNotice ? <p className="banner">You already have a plan running. Save this result for later, or end your current plan from Today before starting another.</p> : null}
         <ResultBody
           view={view}
           onEditStep={onEditStep}
@@ -320,6 +323,7 @@ function ResultBody({
       return (
         <ReductionBody
           answers={view.answers}
+          historical={historical}
           onEditStep={onEditStep}
           onSeeBreakRange={onSeeBreakRange}
           reductionPlan={reductionPlan}
@@ -518,12 +522,14 @@ function HistoryCard({
 
 function ReductionBody({
   answers,
+  historical,
   onEditStep,
   onSeeBreakRange,
   reductionPlan,
   onReductionPlanChange,
 }: {
   readonly answers: readonly AnswerRow[];
+  readonly historical?: boolean;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
   readonly onSeeBreakRange: () => void;
   readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
@@ -532,7 +538,7 @@ function ReductionBody({
     readonly maxSessionsPerUseDay: number;
   }) => void;
 }) {
-  const [days, setDays] = useState(reductionPlan?.maxUseDaysPerWeek ?? DEFAULT_REDUCTION_DAYS_PER_WEEK);
+  const [days, setDays] = useState(Math.max(1, reductionPlan?.maxUseDaysPerWeek ?? DEFAULT_REDUCTION_DAYS_PER_WEEK));
   const [sessions, setSessions] = useState(reductionPlan?.maxSessionsPerUseDay ?? DEFAULT_REDUCTION_SESSIONS);
 
   function commit(nextDays: number, nextSessions: number) {
@@ -550,12 +556,12 @@ function ReductionBody({
         </h2>
         <p className="body">{RESULT.reductionBody}</p>
       </header>
-      <section className="card">
+      {historical ? <p className="meta">Use limits belong to your cut-down plan. Open that plan in History to review its limits and logged sessions.</p> : <section className="card">
         <h3 className="card-title">{RESULT.limitsHeading}</h3>
         <ReductionStepper
           label={RESULT.maxDaysWeek}
           value={days}
-          min={0}
+          min={1}
           max={7}
           testId="limit-days"
           onChange={(value) => commit(value, sessions)}
@@ -568,7 +574,7 @@ function ReductionBody({
           testId="limit-sessions"
           onChange={(value) => commit(days, value)}
         />
-      </section>
+      </section>}
       <section className="result-section">
         <p className="body">{RESULT.reductionSoft}</p>
         <button type="button" className="cta-secondary" onClick={onSeeBreakRange}>
@@ -741,6 +747,7 @@ function AnswersCard({
   onEditStep,
 }: {
   readonly answers: readonly AnswerRow[];
+  readonly historical?: boolean;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
 }) {
   if (answers.length === 0) return null;

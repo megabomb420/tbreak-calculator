@@ -101,3 +101,20 @@ describe('main navigation and modal isolation', () => {
     expect(document.activeElement).toBe(screen.getByTestId('previous-break-delete'));
   });
 });
+
+
+describe('starting a plan from Calculator', () => {
+  it('lands on Today after starting abstinence and exposes a working detail link', () => {
+    render(<App storage={createMemoryStorage()} clock={fixedClock(C0)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
+    fireEvent.click(screen.getByRole('button', { name: /1–6 months/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'I still use — today is day 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tracking' }));
+    expect(screen.getByTestId('app-shell').getAttribute('data-active-tab')).toBe('today');
+    expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Roadmap & triggers' }));
+    expect(screen.getByTestId('tracking-detail')).toBeTruthy();
+  });
+});

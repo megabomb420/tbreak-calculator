@@ -349,6 +349,11 @@ function TrackingCard(props: TodayScreenProps) {
           {day === null ? 'Tracking' : `Day ${day} ${TRACKING_CARD.sinceLabel}`}
         </h2>
       </button>
+      <div className="today-actions">
+        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
+          {TRACKING_CARD.checkIn}
+        </button>
+      </div>
       {tracking.view !== null ? (
         <TodayGuidance
           compact
@@ -364,18 +369,11 @@ function TrackingCard(props: TodayScreenProps) {
           })}
         />
       ) : null}
-      <div className="today-actions">
-        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-          {TRACKING_CARD.checkIn}
-        </button>
-        <button type="button" className="cta-secondary" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>
-          {TRACKING_CARD.stop}
-        </button>
-      </div>
-      <span className="today-note meta">{TRACKING_CARD.viewGuidance}</span>
+      <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
       <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
         {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
       </button>
+      <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (
         <ConfirmDialog
           title={TRACKING_CARD.stopConfirmTitle}

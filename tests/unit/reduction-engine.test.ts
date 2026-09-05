@@ -251,3 +251,20 @@ describe('reduction engine: observed pattern provenance', () => {
     assert.equal(observed.hasFullThirtyDayCoverage, true);
   });
 });
+
+
+describe('reduction window timezone regressions', () => {
+  it('subtracts calendar days without applying the timezone twice', () => {
+    for (const offset of [-720, -300, -60, 0, 60, 840]) {
+      assert.equal(dayKeyMinus('2026-06-10', 0, offset), '2026-06-10');
+      assert.equal(dayKeyMinus('2026-06-10', 6, offset), '2026-06-04');
+      assert.equal(dayKeyMinus('2026-03-01', 1, offset), '2026-02-28');
+    }
+  });
+  it('excludes the eighth local day from a seven-day window west of UTC', () => {
+    const events = [eventAt(Date.parse('2026-06-03T18:00:00Z')), eventAt(Date.parse('2026-06-04T18:00:00Z'))];
+    assert.equal(distinctUseDaysInWindow(events, NOW, -300), 1);
+    const thirty = observedPattern([eventAt(NOW - 30 * DAY_MS), eventAt(NOW - 29 * DAY_MS)], NOW, -300);
+    assert.equal(thirty.useDaysLast30, 1);
+  });
+});

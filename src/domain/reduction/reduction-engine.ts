@@ -145,7 +145,9 @@ export function todayKey(now: Instant, utcOffsetMinutes: number): string {
 /** Returns the dayKey `daysAgo` local days before `dayKey` (inclusive). */
 export function dayKeyMinus(dayKey: string, daysAgo: number, utcOffsetMinutes: number): string {
   const asUtcMidnight = Date.parse(`${dayKey}T00:00:00.000Z`);
-  return dayKeyForInstant(toInstant(asUtcMidnight - daysAgo * MILLIS_PER_DAY), utcOffsetMinutes);
+  // The input is already a local calendar key, not an instant. Applying the
+  // UTC offset again adds an extra day to windows west of UTC.
+  return new Date(asUtcMidnight - daysAgo * MILLIS_PER_DAY).toISOString().slice(0, 10);
 }
 
 export function localDayKeysBetween(

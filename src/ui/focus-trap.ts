@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact';
 
 const FOCUSABLE = 'a[href],summary,button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
-interface DialogEntry { node: HTMLElement; close: () => void }
+interface DialogEntry { node: HTMLElement; close: () => void; modal: boolean }
 const dialogs: DialogEntry[] = [];
 const inertBefore = new Map<HTMLElement, boolean>();
 
@@ -20,7 +20,8 @@ function syncBackground() {
     else node.removeAttribute('inert');
   }
   inertBefore.clear();
-  let node: HTMLElement | null = topDialog()?.node ?? null;
+  const top = topDialog();
+  let node: HTMLElement | null = top?.modal ? top.node : null;
   while (node !== null && node !== document.body) {
     for (const sibling of node.parentElement?.children ?? []) {
       if (sibling !== node && sibling instanceof HTMLElement && !['SCRIPT', 'STYLE'].includes(sibling.tagName)) {
@@ -52,7 +53,7 @@ function onKey(event: KeyboardEvent) {
     event.preventDefault();
     event.stopImmediatePropagation();
     top.close();
-  } else if (event.key === 'Tab') {
+  } else if (event.key === 'Tab' && top.modal) {
     const items = focusable(top.node);
     const index = items.indexOf(document.activeElement as HTMLElement);
     if (index === -1 || (event.shiftKey ? index === 0 : index === items.length - 1)) {
@@ -91,14 +92,14 @@ function onPopState() {
 let listening = false;
 
 /** A single topmost focus/Escape owner, browser Back and focus restoration. */
-export function useFocusTrap(active: boolean, containerRef: RefObject<HTMLElement | null>, onClose?: () => void): void {
+export function useFocusTrap(active: boolean, containerRef: RefObject<HTMLElement | null>, onClose?: () => void, modal = true): void {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useLayoutEffect(() => {
     const node = containerRef.current;
     if (!active || node === null) return;
     const restore = document.activeElement;
-    const entry: DialogEntry = { node, close: () => closeRef.current?.() };
+    const entry: DialogEntry = { node, close: () => closeRef.current?.(), modal };
     dialogs.push(entry);
     if (!listening) {
       document.addEventListener('keydown', onKey, true);
@@ -115,5 +116,5 @@ export function useFocusTrap(active: boolean, containerRef: RefObject<HTMLElemen
       queueMicrotask(syncHistory);
       if (restore instanceof HTMLElement && restore.isConnected && restore.closest('[inert]') === null) restore.focus();
     };
-  }, [active, containerRef]);
+  }, [active, containerRef, modal]);
 }

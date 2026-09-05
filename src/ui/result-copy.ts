@@ -45,7 +45,7 @@ export const RESULT = {
   matrixHeading: 'This test type',
   limitsHeading: 'Your limits',
   maxDaysWeek: 'Max use days per week',
-  maxSessions: 'Max sessions on a use day (optional)',
+  maxSessions: 'Max sessions on a use day',
   startReductionPlan: 'Start your cut-down plan',
   reductionRecalculated: 'Your break recommendation was updated from your tracked use.',
   reductionRefreshed: 'Break recommendation refreshed from your updated pattern.',
