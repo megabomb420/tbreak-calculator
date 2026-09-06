@@ -1467,118 +1467,6 @@ details.card > summary::-webkit-details-marker {
   gap: var(--space-4);
 }
 
-.plan-ring {
-  position: relative;
-  display: grid;
-  place-items: center;
-  margin: var(--space-2) auto 0;
-}
-
-.plan-ring-track {
-  stroke: color-mix(in oklab, var(--fg) 10%, transparent);
-}
-
-.plan-ring-fill {
-  stroke: var(--accent-strong);
-  transition: stroke-dashoffset var(--motion-slow) var(--ease-out);
-}
-
-.plan-ring-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  pointer-events: none;
-}
-
-.plan-ring-day {
-  font-family: var(--font-display);
-  font-size: 1.55rem;
-  line-height: 1.05;
-  font-weight: 500;
-  letter-spacing: var(--tracking-display);
-  font-variant-numeric: tabular-nums;
-}
-
-.plan-ring-of {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--fg-faint);
-  font-weight: 600;
-}
-
-.plan-ring-label {
-  position: absolute;
-  bottom: -4px;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--fg-faint);
-  font-weight: 600;
-}
-
-.plan-facts {
-  margin: var(--space-2) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  width: 100%;
-}
-
-.plan-fact {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 0;
-  border-top: 1px solid var(--hairline);
-}
-
-.plan-fact dd {
-  margin: 0;
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--fg);
-}
-
-.plan-overflow summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.plan-overflow summary::-webkit-details-marker {
-  display: none;
-}
-
-.plan-overflow summary .card-title {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.plan-overflow[open] summary {
-  margin-bottom: var(--space-3);
-}
-
-.overflow-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  border-top: 1px solid var(--hairline);
-  padding-top: var(--space-2);
-}
-
-.overflow-actions .text-back {
-  text-align: left;
-  padding: 0;
-}
-
 .clock-note {
   margin: var(--space-3) 0 0;
   padding: var(--space-3) var(--space-4);
@@ -3135,30 +3023,30 @@ select,
 .today-screen > * { position: relative; }
 
 .today-live-card {
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-  background: color-mix(in oklab, var(--bg-card) 88%, transparent);
-  backdrop-filter: blur(18px);
+  gap: var(--space-4);
 }
 
-.today-journey-head {
+/* 0.20.0 live card header: eyebrow → day/target display line → one meta line,
+   the same editorial start the result lens uses. */
+.today-live-head {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
-  margin: calc(-1 * var(--space-5)) calc(-1 * var(--card-pad)) 0;
-  padding: var(--space-5) var(--card-pad) var(--space-4);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  background: linear-gradient(145deg, color-mix(in oklab, var(--accent) 12%, transparent), transparent);
 }
 
-.today-journey-head .eyebrow { margin-bottom: var(--space-1); }
+.today-live-head .eyebrow { margin-bottom: var(--space-1); }
+
+.today-live-card .plan-day-title {
+  font-size: clamp(2.05rem, 10vw, 2.9rem);
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.today-live-head .meta { margin-top: var(--space-1); }
 
 .guidance-notice-line { color: var(--fg-muted); }
-.today-live-card .today-actions { padding: var(--space-2) 0 0; }
 .today-plan-link { align-self: center; margin-bottom: var(--space-3); text-align: center; }
-.plan-focus-card { width: 100%; padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--accent) 9%, var(--bg-card)); border: 1px solid var(--hairline); text-align: left; }
 
 @keyframes lens-enter {
   from { opacity: 0; transform: translateY(6px); }
@@ -3375,8 +3263,7 @@ select,
 
 /* One disclosure pattern: the hairline .result-disclosure replaces the filled
    details card wherever it appeared (evidence notes, education, plan "More"). */
-details.card.guidance-why,
-details.card.plan-overflow {
+details.card.guidance-why {
   padding: var(--space-4) 0;
   background: transparent;
   box-shadow: none;
@@ -3385,8 +3272,7 @@ details.card.plan-overflow {
   border-radius: 0;
 }
 
-.guidance-why summary,
-.plan-overflow summary {
+.guidance-why summary {
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -3401,15 +3287,13 @@ details.card.plan-overflow {
   color: var(--fg);
 }
 
-details.card.guidance-why summary.card-title,
-.plan-overflow summary .card-title {
+details.card.guidance-why summary.card-title {
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 520;
 }
 
-.guidance-why summary::after,
-.plan-overflow summary::after {
+.guidance-why summary::after {
   content: '+';
   font-family: var(--font-body);
   font-size: 1.2rem;
@@ -3417,8 +3301,7 @@ details.card.guidance-why summary.card-title,
   flex: none;
 }
 
-.guidance-why[open] summary::after,
-.plan-overflow[open] summary::after {
+.guidance-why[open] summary::after {
   content: '–';
 }
 
@@ -3450,17 +3333,6 @@ details.card.guidance-why summary.card-title,
 
 .roadmap-stage.is-current .roadmap-headline {
   color: var(--fg);
-}
-
-/* Plan Detail: the after-this-break plan reads as an open section with a
-   hairline rule, not a filled card stacked inside the detail column. */
-.plan-detail-body .plan-post-break {
-  padding: var(--space-5) 0 0;
-  background: transparent;
-  box-shadow: none;
-  border: 0;
-  border-top: 1px solid var(--hairline);
-  border-radius: 0;
 }
 
 /* Check-in symptoms: hairline-separated rows instead of five stacked filled
@@ -3555,16 +3427,6 @@ details.card.guidance-why summary.card-title,
   padding: 0;
 }
 
-/* Plan Detail focus note: a left-rule callout like the other notices, not a
-   filled box between the plan facts and the outlook. */
-.plan-focus-card {
-  padding: var(--space-2) 0 var(--space-2) var(--space-3);
-  background: transparent;
-  border: 0;
-  border-left: 2px solid color-mix(in oklab, var(--accent-strong) 50%, transparent);
-  border-radius: 0;
-}
-
 /* Plan Detail preparation editor: an open hairline section; the inputs and
    chips inside are already controls and need no extra panel around them. */
 .plan-detail-body .preparation-card {
@@ -3587,32 +3449,6 @@ details.card.guidance-why summary.card-title,
   padding-bottom: var(--space-8);
 }
 
-.plan-detail-inner {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* One rhythm: every top-level block owns equal breathing room; the space
-   between blocks is drawn by a single hairline, never by stacked surfaces. */
-.plan-detail-inner > .plan-hero,
-.plan-detail-inner > .preparation-card,
-.plan-detail-inner > .plan-post-break,
-.plan-detail-inner > .plan-reference,
-.plan-detail-inner > .plan-detail-actions {
-  padding: var(--space-6) 0;
-}
-
-.plan-detail-inner > .preparation-card,
-.plan-detail-inner > .plan-post-break,
-.plan-detail-inner > .plan-reference {
-  border-top: 1px solid var(--hairline);
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-}
-
 /* --- Hero: progress ring + one quiet fact list --------------------------- */
 
 .plan-hero {
@@ -3620,156 +3456,11 @@ details.card.guidance-why summary.card-title,
   gap: var(--space-4);
 }
 
-.plan-hero > .plan-ring {
-  margin: var(--space-1) auto 0;
-}
-
-.plan-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  width: 100%;
-}
-
-.plan-status .plan-ring {
-  margin: 0;
-}
-
-.plan-facts {
-  width: 100%;
-  margin: 0;
-  gap: 0;
-  border-top: 1px solid var(--hairline);
-}
-
-.plan-fact {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-1);
-  border-top: 0;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.plan-fact:last-child {
-  border-bottom: 0;
-}
-
-.plan-fact dt {
-  color: var(--fg-faint);
-}
-
-.plan-fact dd {
-  margin: 0;
-  font-size: 16px;
-  line-height: 22px;
-  font-weight: 600;
-  color: var(--fg);
-  text-align: right;
-}
-
-.plan-hero .today-state-note {
-  width: 100%;
-  margin: 0;
-}
-
 /* The extended state note must stay a flat left-rule callout like every
    other notice; its old tinted fill loses to the one-callout rule. */
 .today-state-note.is-extended {
   background: transparent;
   box-shadow: none;
-}
-
-/* --- Support areas: an inline preference line, not a bolted-on card ------- */
-
-.plan-support {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.plan-support-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.plan-support-head .micro-label {
-  margin: 0;
-}
-
-.plan-support-head .text-link {
-  min-height: 32px;
-}
-
-.plan-support .plan-support-line {
-  color: var(--fg-muted);
-  font-size: var(--text-base);
-}
-
-/* --- Today guidance: an editorial reading flow, not stacked boxes --------- */
-
-.plan-guidance,
-.plan-hero > .outlook {
-  width: 100%;
-  border-top: 1px solid var(--hairline);
-  padding-top: var(--space-5);
-}
-
-.plan-guidance .today-guidance {
-  gap: var(--space-5);
-}
-
-.plan-guidance .guidance-headline {
-  color: var(--fg);
-  font-size: clamp(1.35rem, 5.6vw, 1.7rem);
-  line-height: var(--leading-tight);
-}
-
-.plan-guidance .guidance-kicker {
-  margin: 0 0 var(--space-2);
-  color: var(--fg-muted);
-}
-
-.plan-guidance .guidance-block + .guidance-block {
-  margin-top: var(--space-2);
-}
-
-.plan-guidance .guidance-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  color: var(--fg-muted);
-}
-
-.plan-guidance .guidance-list li {
-  position: relative;
-  padding-left: var(--space-4);
-  color: var(--fg-muted);
-}
-
-.plan-guidance .guidance-list li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 0.7em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--accent) 50%, transparent);
-}
-
-.plan-guidance .guidance-list li + li {
-  margin-top: var(--space-2);
-}
-
-.plan-guidance .guidance-why {
-  margin-top: var(--space-1);
 }
 
 /* Outlook days: quieter control chips, current state by colour not box. */
@@ -3792,139 +3483,6 @@ details.card.guidance-why summary.card-title,
 
 .plan-detail-body .roadmap-stage.is-past {
   opacity: 0.8;
-}
-
-/* The ring carries its own "Day N of M" text and an accessible label; the
-   floating "Plan progress" caption collided with the ring's bottom stroke. */
-.plan-ring-label {
-  display: none;
-}
-
-/* --- Section headings inside the document -------------------------------- */
-
-.plan-detail-inner .preparation-card > .card-title,
-.plan-detail-inner .plan-post-break > .card-title {
-  margin: 0 0 var(--space-3);
-}
-
-/* Post-break mode picker: one hairline list, no raised cards or boxes. */
-.plan-detail-inner .plan-post-break .choice-list {
-  gap: 0;
-}
-
-.plan-detail-inner .plan-post-break .choice-card {
-  min-height: 52px;
-  padding: var(--space-3) 0;
-  background: transparent;
-  box-shadow: none;
-  border: 0;
-  border-bottom: 1px solid var(--hairline);
-  border-radius: 0;
-}
-
-.plan-detail-inner .plan-post-break .choice-card:last-child {
-  border-bottom: 0;
-}
-
-.plan-detail-inner .plan-post-break .choice-card::before {
-  display: none;
-}
-
-.plan-detail-inner .plan-post-break .choice-card.selected {
-  background: transparent;
-  box-shadow: none;
-}
-
-.plan-detail-inner .plan-post-break .choice-card.selected .choice-title {
-  color: var(--accent-strong);
-}
-
-/* Post-break caution messages read as quiet notes, never boxes. */
-.plan-detail-inner .plan-post-break .post-break-guidance {
-  margin-top: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-top: 1px solid var(--hairline);
-  padding-top: var(--space-4);
-}
-
-.plan-detail-inner .plan-post-break .post-break-guidance .body {
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-
-/* Return principles read as a quiet dot list like every other guidance list. */
-.plan-detail-inner .plan-post-break .guidance-list {
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-top: 1px solid var(--hairline);
-  padding-top: var(--space-4);
-}
-
-.plan-detail-inner .plan-post-break .guidance-list li {
-  position: relative;
-  padding-left: var(--space-4);
-  color: var(--fg-muted);
-}
-
-.plan-detail-inner .plan-post-break .guidance-list li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 0.7em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--accent) 50%, transparent);
-}
-
-/* --- Reference: "How these things differ" + detox claims ------------------- */
-
-.plan-reference {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.plan-reference > .micro-label {
-  margin: 0 0 var(--space-1);
-  color: var(--fg-faint);
-}
-
-/* Both reference links look identical: small accent text links opening their
-   dedicated reading pages. */
-.plan-reference-link {
-  align-self: flex-start;
-  min-height: 32px;
-  padding: 0;
-}
-
-.plan-reference .plan-reference-link + .plan-reference-link {
-  margin-top: var(--space-1);
-}
-
-/* --- Bottom plan actions: quiet rows, no More menu ------------------------ */
-
-.plan-detail-inner > .plan-detail-actions {
-  border-top: 1px solid var(--hairline);
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.plan-detail-actions .text-back {
-  text-align: left;
-  padding: 0;
-  min-height: 44px;
-  font-size: 15px;
 }
 
 /* --- Triggers and replacements: expanded step layout ----------------------- */
@@ -4011,9 +3569,6 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .timeline-disclosure { margin-block: 16px; }
 .timeline-disclosure > summary { min-height: 52px; }
 .timeline-disclosure .outlook { padding-top: 16px; }
-.today-live-card .today-actions { padding-top: 16px; }
-.plan-detail-body .guidance-headline { font-size: 1.4rem; }
-.plan-detail-body .plan-guidance { padding-block: 20px; }
 /* Subtle labels still need readable contrast on dark surfaces. */
 @media (max-width: 350px) {
   .day-part-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4045,3 +3600,22 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .use-history-row > div { min-width: 0; }
 .use-history-row p { margin: 0 0 4px; }
 .use-history-row button { flex: none; min-height: 44px; }
+
+/* 0.20.0 — redesigned live plan card (order-sensitive tail overrides).
+   The active-break card now reads like the result panel: single card
+   surface, hero head, journey, today guidance, then one deliberate action
+   zone and quiet footer links. */
+.today-live-card > .today-actions {
+  margin-top: var(--space-2);
+  padding-top: 0;
+}
+
+.today-live-card > .today-state-note {
+  margin: var(--space-1) 0 0;
+}
+
+.today-live-card .footer-links {
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+}

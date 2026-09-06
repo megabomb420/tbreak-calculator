@@ -182,13 +182,8 @@ describe('break start sheet', () => {
     // not to the chosen plan-start date.
     expect(attempt?.segments[0]?.startedFromLastUseAt).toBe(AT);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('plan-detail')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('open-how-things-differ'));
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.getByTestId('plan-detail')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('recalculate-profile'));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q1');
+    expect(screen.getByTestId('checkin-cta')).toBeTruthy();
+    expect(screen.queryByTestId('plan-detail')).toBeNull();
   });
 
   it('rejects a picked start date outside today..+14 days', () => {
@@ -206,56 +201,12 @@ describe('break start sheet', () => {
   });
 });
 
-describe('plan detail', () => {
-  it('shows real plan progress, phase focus and editable post-break settings', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
-    expect(screen.queryByTestId('outlook-day-strip')).toBeNull();
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    const detail = screen.getByTestId('plan-detail');
-    expect(detail).toBeTruthy();
-    expect(screen.getByTestId('plan-ring-day').textContent).toBe('Day 4');
-    expect(screen.getByTestId('break-outlook')).toBeTruthy();
-    // 21-day target ends at a single Day 21 (nothing beyond it)…
-    expect(screen.getByTestId('outlook-seg-21-21')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-seg-22-22')).toBeNull();
-    // …and the exact current day (4) is highlighted inside its grouped
-    // segment (Days 4–6) with an explicit Today line.
-    expect(screen.getByTestId('outlook-seg-4-6').getAttribute('data-status')).toBe('current');
-    expect(screen.getByTestId('outlook-today-line').textContent).toBe('Today: Day 4');
-    expect(screen.getByTestId('target-date')).toBeTruthy();
-    expect(detail.querySelector('.plan-guidance .guidance-kicker')?.textContent).toBe('What matters today');
-    expect(screen.getByTestId('post-break-card')).toBeTruthy();
-    // Change the mode to reduced regular use; it persists immediately.
-    fireEvent.click(within(detail).getByRole('button', { name: /Regular use, but less than before/ }));
-    const attempt = attemptsOf(storage)[0];
-    expect(attempt?.postBreakMode).toBe('reduced_regular_use');
-    expect(attempt?.postBreakPlan?.mode).toBe('reduced_regular_use');
-    expect(screen.getByText('Tolerance may be lower after the break.')).toBeTruthy();
-  });
-
-  it('keeps a post-break mode change if the user leaves without tapping Save', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    fireEvent.click(within(screen.getByTestId('plan-detail')).getByRole('button', { name: /Regular use, but less than before/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Today' }));
-    expect(attemptsOf(storage)[0]?.postBreakMode).toBe('reduced_regular_use');
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('plan-detail').querySelector('[data-mode="reduced_regular_use"]')?.className).toMatch(/selected/);
-  });
-
+describe('Today plan management (Plan Detail removed)', () => {
   it('End break early confirms and ends the plan neutrally', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
     fireEvent.click(screen.getByTestId('end-early'));
     fireEvent.click(screen.getByTestId('confirm-action'));
     expect(screen.queryByTestId('plan-detail')).toBeNull();
@@ -263,15 +214,13 @@ describe('plan detail', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
   });
 
-  it('Mark complete from plan detail produces the completed card', () => {
+  it('Mark complete from Today produces the completed card', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     const longAnchor = toInstant(AT - 28 * DAY_MS);
     seedAttempt(storage, storedAttempt({ segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }] }));
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    fireEvent.click(screen.getByTestId('mark-complete'));
-    expect(screen.queryByTestId('plan-detail')).toBeNull();
+    fireEvent.click(screen.getByTestId('mark-complete-cta'));
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('completed-break');
     expect(attemptsOf(storage)[0]?.status).toBe('completed');
   });
@@ -287,8 +236,22 @@ describe('plan detail', () => {
     renderApp(storage);
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 29 · 21-day plan');
     expect(screen.getByTestId('mark-complete-cta')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('plan-ring').getAttribute('aria-label')).toMatch(/past the 21-day planning target/);
+  });
+
+  it('cancels a scheduled break from the Today card and keeps the saved result', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    seedAttempt(storage, storedAttempt({
+      status: 'planned',
+      segments: [],
+      startedAt: toInstant(AT + 2 * DAY_MS),
+    }));
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('cancel-planned'));
+    fireEvent.click(screen.getByTestId('confirm-action'));
+    expect(attemptsOf(storage)).toHaveLength(0);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
+    expect(screen.getByTestId('today-start-break')).toBeTruthy();
   });
 });
 
@@ -521,48 +484,6 @@ describe('evidence-guided companion', () => {
     expect(screen.getByTestId('guidance-context').textContent).toMatch(/population pattern, not a personal prediction/i);
   });
 
-  it('renders an overlapping roadmap on plan detail', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('break-roadmap')).toBeTruthy();
-    expect(screen.getByTestId('roadmap-stage-days_2_6').getAttribute('data-status')).toBe('current');
-    expect(screen.getByTestId('roadmap-stage-days_1_3').getAttribute('data-status')).toBe('past');
-    expect(screen.getByTestId('roadmap-stage-days_7_14').getAttribute('data-status')).toBe('future');
-  });
-
-  it('shows overlapping windows honestly on day 3', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    const day3 = toInstant(AT - 2 * DAY_MS);
-    seedAttempt(storage, storedAttempt({ segments: [{ startedFromLastUseAt: day3, endedAt: null, endReason: null }] }));
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('roadmap-stage-days_2_6').getAttribute('data-status')).toBe('current');
-    expect(screen.getByTestId('roadmap-stage-days_1_3').getAttribute('data-status')).toBe('current-overlap');
-  });
-
-  it('persists an optional trigger plan from plan detail', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    fireEvent.click(screen.getByTestId('trigger-evening_after_work'));
-    fireEvent.input(screen.getByTestId('replacement-action'), { target: { value: 'go for a walk' } });
-    fireEvent.blur(screen.getByTestId('replacement-action'));
-    const attempt = attemptsOf(storage)[0];
-    expect(attempt?.preparation?.triggerIds).toContain('evening_after_work');
-    expect(attempt?.preparation?.replacementAction).toBe('go for a walk');
-    // The urge plan is rendered once, in the plan's guidance block above
-    // (the repeated block inside the triggers card is hidden on this screen).
-    const plan = screen.getByTestId('plan-detail');
-    expect(within(plan).getByTestId('guidance-intentions').textContent).toMatch(/after work/i);
-    expect(screen.queryByTestId('intention-preview')).toBeNull();
-  });
-
   it('keeps Today guidance to the stage’s concrete help list, not the urge plan', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
@@ -627,57 +548,6 @@ describe('evidence-guided companion', () => {
     expect(screen.getByTestId('checkin-comparison')).toBeTruthy();
     expect(screen.getByTestId('checkin-comparison').textContent).toMatch(/Craving is lower/);
     expect(screen.getByTestId('checkin-comparison').textContent).toMatch(/Sleep rating is higher/);
-  });
-
-  it('opens detox evidence from plan detail with the app-specific scale', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    fireEvent.click(screen.getByTestId('open-detox-evidence'));
-    const panel = screen.getByTestId('detox-evidence');
-    expect(panel).toBeTruthy();
-    expect(screen.getByTestId('evidence-scale-disclaimer').textContent).toMatch(/not formal GRADE/);
-    expect(screen.getByTestId('detox-niacin').getAttribute('data-wellbeing')).toBe('harmful_risk');
-    expect(screen.getByTestId('detox-exercise').getAttribute('data-speeds')).toBe('false');
-    expect(screen.getByTestId('detox-sauna').getAttribute('data-speeds')).toBe('false');
-    expect(screen.getByTestId('detox-fasting').getAttribute('data-speeds')).toBe('false');
-    expect(screen.getByTestId('detox-normal_hydration').textContent).toMatch(/does not mean faster THC elimination/i);
-  });
-
-  it('shows one merged “How these things differ” explainer in the plan reference section', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    const plan = screen.getByTestId('plan-detail');
-    // The section heading is natural, and the two knowledge entries are the
-    // merged explainer plus the unchanged detox page.
-    expect(within(plan).getByText('Understand your break')).toBeTruthy();
-    expect(within(plan).getByTestId('open-how-things-differ')).toBeTruthy();
-    expect(within(plan).getByTestId('open-detox-evidence')).toBeTruthy();
-    expect(within(plan).queryByTestId('open-cb1-reference')).toBeNull();
-    expect(within(plan).queryByTestId('open-concept-distinctions')).toBeNull();
-    fireEvent.click(within(plan).getByTestId('open-how-things-differ'));
-    const explainer = screen.getByTestId('how-things-differ');
-    expect(within(explainer).getByTestId('how-things-differ-lead').textContent).toMatch(/different questions/i);
-    // A Q&A answer, not a bare definition list: withdrawal vs tolerance reads
-    // as a concrete sentence with a "because"-style reason.
-    expect(within(explainer).getByTestId('explainer-withdrawal-vs-tolerance').textContent).toMatch(/Withdrawal is how you may feel/i);
-    expect(within(explainer).getByTestId('explainer-no-guaranteed-negative-date').textContent).toMatch(/single guaranteed date would be invented/i);
-  });
-
-  it('does not show return-to-use principles for continued abstinence', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt({ postBreakMode: 'continue_abstinence', postBreakPlan: { mode: 'continue_abstinence' } }));
-    renderApp(storage);
-    fireEvent.click(screen.getByTestId('open-plan-detail'));
-    expect(screen.getByTestId('abstinence-post-break').textContent).toMatch(/stay off/i);
-    expect(screen.queryByTestId('return-principles')).toBeNull();
-    expect(screen.queryByTestId('post-break-guidance')).toBeNull();
   });
 
   it('shows the same guidance on open-ended tracking without a finish line', () => {

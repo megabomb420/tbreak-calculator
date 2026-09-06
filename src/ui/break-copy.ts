@@ -15,7 +15,7 @@ export const BREAK_START = {
   startNowHelperClockRunning: 'Commit now — the day count still runs from your last use',
   startPick: 'Pick a date',
   modeQuestion: "After this break, what's your plan?",
-  helper: 'Nothing is locked in — you can change this in the plan later.',
+  helper: "If your plans change, you can end the break early from Today.",
   startBreak: 'Start break',
   close: 'Close break start',
 } as const;
@@ -37,35 +37,14 @@ export function clockAlreadyRunningNote(day: number, targetDays?: number): strin
   return `Your clock is already at day ${day} — your target date counts from your last use.`;
 }
 
-// --- Plan surface (UX_SPEC 10.1) -------------------------------------------
-
-export const PLAN_DETAIL = {
-  title: 'Your break',
-  back: 'Back to Today',
-  progressLabel: 'Plan progress',
-  targetDateLabel: 'Target date',
-  clockStartLabel: 'Day counter runs from',
-  phaseHeading: 'Phase focus',
-  postBreakHeading: 'After this break',
-  settingsHelper: BREAK_START.helper,
-  markComplete: 'Mark complete',
-  referenceHeading: 'Understand your break',
-  actionsLabel: 'Plan actions',
-  more: 'More',
-  endEarly: 'End break early',
-  recalculate: 'Recalculate profile',
-  endEarlyConfirmTitle: 'End your break early?',
-  endEarlyConfirmBody: 'Ending early closes this plan without a completion state. Your progress stays in your history.',
-  cancelPlanTitle: 'Cancel scheduled break?',
-  cancelPlanBody: 'This break has not started yet. Cancelling removes the plan and keeps your saved result.',
-  confirm: 'Confirm',
-  cancel: 'Keep plan',
-} as const;
+// --- Planned / scheduled break card (UX_SPEC 3.2) ---------------------------
 
 export const PLANNED_CARD = {
   eyebrow: 'Planned',
   startsLabel: 'Break starts',
-  viewPlan: 'View plan',
+  cancelPlanTitle: 'Cancel scheduled break?',
+  cancelPlanBody: 'This break has not started yet. Cancelling removes the plan and keeps your saved result.',
+  cancelConfirm: 'Cancel plan',
 } as const;
 
 // --- Shared break journey (Calculator result + Today) -----------------------
@@ -176,7 +155,11 @@ export const ACTIVE_BREAK_CARD = {
   eyebrow: 'Your break',
   targetDateLabel: 'Target date',
   checkIn: 'Check in',
-  viewPlan: 'Plan detail',
+  markComplete: 'Mark complete',
+  endEarly: 'End break early',
+  endEarlyConfirmTitle: 'End your break early?',
+  endEarlyConfirmBody: 'Ending early closes this plan without a completion state. Your progress stays in your history.',
+  endEarlyConfirm: 'End break early',
   withdrawalHeading: 'Typical patterns',
   phaseHeading: 'Phase focus',
   /** Phase-aware eyebrow on the Today active-break card. These are product

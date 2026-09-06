@@ -198,7 +198,8 @@ describe('Today states from real records', () => {
     // Anchor 2026-08-17, now 2026-08-20 => Day 4 of 21.
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 21');
     expect(screen.getByTestId('checkin-cta')).toBeTruthy();
-    expect(screen.getByTestId('open-plan-detail')).toBeTruthy();
+    expect(screen.queryByTestId('open-plan-detail')).toBeNull();
+    expect(screen.getByTestId('end-early')).toBeTruthy();
     expect(screen.queryByTestId('mark-complete-cta')).toBeNull();
     expect(view.textContent ?? '').not.toMatch(/\d+%/);
   });
@@ -273,7 +274,8 @@ describe('Today states from real records', () => {
     expect(view.getAttribute('data-primary')).toBe('profile-no-break');
     expect(screen.getByTestId('scheduled-start')).toBeTruthy();
     expect(screen.queryByTestId('today-start-break')).toBeNull();
-    expect(screen.getByTestId('view-scheduled-plan')).toBeTruthy();
+    expect(screen.queryByTestId('view-scheduled-plan')).toBeNull();
+    expect(screen.getByTestId('cancel-planned')).toBeTruthy();
   });
 });
 

@@ -20,13 +20,11 @@ import {
   stopTracking,
   suspendBreak,
   suspendTracking,
-  updatePostBreakPlan,
   updateBreakPreparation,
   updateTrackingPreparation,
   type BreakSessionState,
   type CheckinSymptoms,
 } from '../application/break/break-session.ts';
-import type { PostBreakPlan } from '../application/break/post-break-plan.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import { buildTodayFacts, currentLiveReductionPlan } from '../application/break/today-model.ts';
 import {
@@ -107,7 +105,6 @@ import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.t
 import { BreakStartSheet } from './break-start-sheet.tsx';
 import { CheckInFlow } from './checkin-flow.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
-import { PlanDetail } from './plan-detail.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { HistoryScreen } from './history-screen.tsx';
@@ -141,7 +138,6 @@ import { PersonalisationFlow } from './personalisation-flow.tsx';
 
 export type Flow =
   | { readonly kind: 'break-start' }
-  | { readonly kind: 'plan-detail' }
   | { readonly kind: 'tracking-detail' }
   | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
@@ -574,10 +570,6 @@ export function App({
     return true;
   }
 
-  function openPlanDetail(): void {
-    setFlow({ kind: 'plan-detail' });
-  }
-
   function saveSupportAreas(areas: readonly SupportArea[]): void {
     companionPreferences.saveAreas(areas);
     setPersonalisationOpen(false);
@@ -925,12 +917,6 @@ export function App({
     refresh();
   }
 
-  function updatePostBreak(id: string, mode: PostBreakMode, plan: PostBreakPlan): void {
-    const outcome = updatePostBreakPlan(readSessionState(), id, { mode, plan, now: clock.now() });
-    if (outcome.ok) persistBreakSession(outcome.state);
-    refresh();
-  }
-
   function updatePreparation(id: string, preparation: BreakPreparation | null): void {
     const nowAt = clock.now();
     const latest = readSessionState();
@@ -1200,8 +1186,6 @@ export function App({
       : liveData.tracking !== null && liveData.tracking.view !== null
         ? liveData.tracking.view.day
         : null;
-  const planDetailAttempt =
-    liveAttempt?.status === 'active' || liveAttempt?.status === 'planned' ? liveAttempt : null;
 
   const overlayOpen =
     session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || personalisationOpen || scienceOpen || outcomeAttempt !== null;
@@ -1245,7 +1229,8 @@ export function App({
             onStartTracking={startTracking}
             onCheckIn={openCheckIn}
             onConfirmWhen={confirmWhen}
-            onOpenPlanDetail={openPlanDetail}
+            onEndEarly={endEarly}
+            onCancelPlanned={cancelPlanned}
             onOpenTrackingDetail={openTrackingDetail}
             onEditSupport={() => setPersonalisationOpen(true)}
             onMarkComplete={markComplete}
@@ -1357,7 +1342,6 @@ export function App({
           targetDays={breakSheetTarget ?? 0}
           breakDayAtStart={breakDayAtStart}
           now={now}
-          attempt={planDetailAttempt}
           track={liveTracking?.status === 'tracking' ? liveTracking : null}
           anchor={anchor}
           segmentStart={flow.kind === 'confirm-use' ? flow.segmentStart : null}
@@ -1368,11 +1352,7 @@ export function App({
           onCheckInSymptoms={saveSymptoms}
           onUseReported={handleUseReported}
           onConfirmUse={confirmUse}
-          onMarkComplete={markComplete}
-          onEndEarly={endEarly}
-          onCancelPlanned={cancelPlanned}
           onRecalculate={openRecalculate}
-          onUpdatePostBreak={updatePostBreak}
           onUpdatePreparation={updatePreparation}
           checkins={sessionState.checkins}
           preparation={liveAttempt?.preparation ?? liveTracking?.preparation ?? null}
@@ -1468,7 +1448,6 @@ function FlowRenderer({
   targetDays,
   breakDayAtStart,
   now,
-  attempt,
   track,
   anchor,
   segmentStart,
@@ -1479,11 +1458,7 @@ function FlowRenderer({
   onCheckInSymptoms,
   onUseReported,
   onConfirmUse,
-  onMarkComplete,
-  onEndEarly,
-  onCancelPlanned,
   onRecalculate,
-  onUpdatePostBreak,
   onUpdatePreparation,
   checkins,
   preparation,
@@ -1502,7 +1477,6 @@ function FlowRenderer({
   readonly targetDays: number;
   readonly breakDayAtStart: number;
   readonly now: Instant;
-  readonly attempt: StoredAttempt | null;
   readonly track: StoredTrack | null;
   readonly anchor: Instant | null;
   readonly segmentStart: Instant | null;
@@ -1513,11 +1487,7 @@ function FlowRenderer({
   readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onUseReported: () => void;
   readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
-  readonly onMarkComplete: (id: string) => void;
-  readonly onEndEarly: (id: string) => void;
-  readonly onCancelPlanned: (id: string) => void;
   readonly onRecalculate: () => void;
-  readonly onUpdatePostBreak: (id: string, mode: PostBreakMode, plan: PostBreakPlan) => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
@@ -1544,25 +1514,6 @@ function FlowRenderer({
           now={now}
           onStart={onStartBreak}
           onClose={onClose}
-        />
-      ) : null;
-    case 'plan-detail':
-      return attempt !== null ? (
-        <PlanDetail
-          attempt={attempt}
-          now={now}
-          anchor={anchor}
-          onBack={onClose}
-          onMarkComplete={onMarkComplete}
-          onEndEarly={onEndEarly}
-          onCancelPlanned={onCancelPlanned}
-          onRecalculate={onRecalculate}
-          onUpdatePostBreak={onUpdatePostBreak}
-          onUpdatePreparation={onUpdatePreparation}
-          checkins={checkins}
-          profile={profile}
-          supportAreas={supportAreas}
-          onEditSupport={onEditSupport}
         />
       ) : null;
     case 'tracking-detail':

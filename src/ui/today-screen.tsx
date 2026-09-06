@@ -66,7 +66,8 @@ export interface TodayScreenProps {
   readonly onStartTracking: () => void;
   readonly onCheckIn: () => void;
   readonly onConfirmWhen: () => void;
-  readonly onOpenPlanDetail: () => void;
+  readonly onEndEarly: (id: string) => void;
+  readonly onCancelPlanned: (id: string) => void;
   readonly onOpenTrackingDetail: () => void;
   readonly onEditSupport: () => void;
   readonly onMarkComplete: (id: string) => void;
@@ -214,6 +215,7 @@ function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => vo
 
 function ActiveBreakCard(props: TodayScreenProps) {
   const active = props.live.active;
+  const [confirmEnd, setConfirmEnd] = useState(false);
   if (active === null) return null;
   const { attempt, view } = active;
   const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
@@ -232,7 +234,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      <header className="today-journey-head">
+      <header className="today-live-head">
         <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
         <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
         <p className="meta" data-testid="target-date-line">
@@ -244,48 +246,50 @@ function ActiveBreakCard(props: TodayScreenProps) {
           {stateNote}
         </p>
       ) : null}
-      <BreakJourney
-        view={journey}
-        startDate={anchor}
-        targetDate={view.targetDate}
-        currentContent={
-          <>
-            <div className="today-actions">
-              <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-                {ACTIVE_BREAK_CARD.checkIn}
-              </button>
-            </div>
-            <TodayGuidance
-              compact
-              supportAreas={props.live.supportAreas}
-              view={presentTodayGuidance({
-                breakDay: view.day,
-                targetDays: view.targetDays,
-                openEnded: false,
-                planned: false,
-                preparation: attempt.preparation,
-                checkins: props.live.checkins,
-                exposure: props.live.exposure,
-              })}
-            />
-          </>
-        }
-        targetContent={
-          view.atOrPastTargetDate ? (
-            <div className="today-actions">
-              <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
-                Mark complete
-              </button>
-            </div>
-          ) : undefined
-        }
+      <BreakJourney view={journey} />
+      <TodayGuidance
+        compact
+        supportAreas={props.live.supportAreas}
+        view={presentTodayGuidance({
+          breakDay: view.day,
+          targetDays: view.targetDays,
+          openEnded: false,
+          planned: false,
+          preparation: attempt.preparation,
+          checkins: props.live.checkins,
+          exposure: props.live.exposure,
+        })}
       />
-      <button type="button" className="text-link today-plan-link" data-testid="open-plan-detail" onClick={props.onOpenPlanDetail}>
-        {ACTIVE_BREAK_CARD.viewPlan}
-      </button>
-      <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
-        {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
-      </button>
+      <div className="today-actions">
+        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
+          {ACTIVE_BREAK_CARD.checkIn}
+        </button>
+        {view.atOrPastTargetDate ? (
+          <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
+            {ACTIVE_BREAK_CARD.markComplete}
+          </button>
+        ) : null}
+      </div>
+      <div className="footer-links">
+        <button type="button" className="text-back" data-testid="today-edit-support" onClick={props.onEditSupport}>
+          {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+        </button>
+        <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
+          {ACTIVE_BREAK_CARD.endEarly}
+        </button>
+      </div>
+      {confirmEnd ? (
+        <ConfirmDialog
+          title={ACTIVE_BREAK_CARD.endEarlyConfirmTitle}
+          body={ACTIVE_BREAK_CARD.endEarlyConfirmBody}
+          confirmLabel={ACTIVE_BREAK_CARD.endEarlyConfirm}
+          onConfirm={() => {
+            setConfirmEnd(false);
+            props.onEndEarly(attempt.id);
+          }}
+          onCancel={() => setConfirmEnd(false)}
+        />
+      ) : null}
     </article>
   );
 }
@@ -632,6 +636,7 @@ function ReductionActiveCard(props: TodayScreenProps) {
 
 function ProfileNoBreakCard(props: TodayScreenProps) {
   const { resultView, scheduled, plannedView } = props.profile;
+  const [confirmCancel, setConfirmCancel] = useState(false);
   if (scheduled !== null) {
     return (
       <article className="today-plan-card" data-testid="state-profile-no-break" data-scheduled="true">
@@ -640,10 +645,31 @@ function ProfileNoBreakCard(props: TodayScreenProps) {
           {plannedView === null ? 'Break scheduled' : `${PLANNED_CARD.startsLabel} ${formatLocalDay(plannedView.startDate)}`}
         </h2>
         <p className="meta">Your break will start on this date. Day counters run from your last use.</p>
-        <button type="button" className="cta-primary" data-testid="view-scheduled-plan" onClick={props.onOpenPlanDetail}>
-          {PLANNED_CARD.viewPlan}
-        </button>
-        <SecondaryLinks {...props} showRecalculate showViewResult />
+        <div className="footer-links">
+          <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirmCancel(true)}>
+            {PLANNED_CARD.cancelPlanTitle}
+          </button>
+          <button type="button" className="text-back" data-testid="today-recalculate" onClick={props.onRecalculate}>
+            {PROFILE_NO_BREAK.recalculate}
+          </button>
+          {props.onViewResult ? (
+            <button type="button" className="text-back" data-testid="view-result" onClick={props.onViewResult}>
+              {PROFILE_NO_BREAK.viewResult}
+            </button>
+          ) : null}
+        </div>
+        {confirmCancel ? (
+          <ConfirmDialog
+            title={PLANNED_CARD.cancelPlanTitle}
+            body={PLANNED_CARD.cancelPlanBody}
+            confirmLabel={PLANNED_CARD.cancelConfirm}
+            onConfirm={() => {
+              setConfirmCancel(false);
+              props.onCancelPlanned(scheduled.id);
+            }}
+            onCancel={() => setConfirmCancel(false)}
+          />
+        ) : null}
       </article>
     );
   }
