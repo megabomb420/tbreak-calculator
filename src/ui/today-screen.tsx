@@ -8,17 +8,21 @@ import type { QuestionnaireProgressRecord } from '../application/progress/questi
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
 import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../application/presentation/plan-presentation.ts';
-import type { ResultView, WithdrawalView } from '../application/presentation/result-presentation.ts';
+import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
+import type { ResultView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
-import { PLAN_LENS, RESULT, WITHDRAWAL_STOP_LABELS, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
+import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
+import { BreakJourney } from './break-journey.tsx';
 import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
+import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
+import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
@@ -215,59 +219,68 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
   const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
   const stateNote = phase === 'reached' ? PLAN_STATE_NOTES.reached(view.targetDays) : phase === 'extended' ? PLAN_STATE_NOTES.extended(view.day, view.targetDays) : null;
+  const anchor = currentSegmentAnchor(attempt.segments);
+  const journey = presentBreakJourney(
+    presentBreakOutlook({
+      targetDays: view.targetDays,
+      openEnded: false,
+      currentDay: view.day,
+      exposure: props.live.exposure ?? DEFAULT_EXPOSURE,
+      checkins: props.live.checkins,
+      lastUseAt: anchor,
+    }),
+  );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      <button
-        type="button"
-        className="today-plan-main today-phase-hero"
-        data-testid="open-plan-detail"
-        aria-label={`${ACTIVE_BREAK_CARD.eyebrow} — ${view.dayOfLabel}. Open plan detail.`}
-        onClick={props.onOpenPlanDetail}
-      >
-        <span className="today-hero-copy">
-          <span className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</span>
-          <span className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</span>
-          <span className="meta" data-testid="target-date-line">
-            {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
-          </span>
-        </span>
-        <span className="today-hero-mark" aria-hidden="true">
-          <span>{view.day}</span>
-          <small>day</small>
-        </span>
-        {view.withdrawal !== null ? <WithdrawalPosition view={view.withdrawal} /> : null}
-      </button>
+      <header className="today-journey-head">
+        <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
+        <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
+        <p className="meta" data-testid="target-date-line">
+          {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
+        </p>
+      </header>
       {stateNote !== null ? (
         <p className={phase === 'reached' ? 'today-state-note is-reached' : 'today-state-note is-extended'} data-testid="plan-target-note" data-state={phase}>
           {stateNote}
         </p>
       ) : null}
-      <div className="today-actions">
-        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-          {ACTIVE_BREAK_CARD.checkIn}
-        </button>
-        {view.atOrPastTargetDate ? (
-          <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
-            Mark complete
-          </button>
-        ) : null}
-      </div>
-      <section className="today-now" aria-label="Today’s guidance">
-        <TodayGuidance
-          compact
-          supportAreas={props.live.supportAreas}
-          view={presentTodayGuidance({
-            breakDay: view.day,
-            targetDays: view.targetDays,
-            openEnded: false,
-            planned: false,
-            preparation: attempt.preparation,
-            checkins: props.live.checkins,
-            exposure: props.live.exposure,
-          })}
-        />
-      </section>
-      <button type="button" className="text-link today-plan-link" onClick={props.onOpenPlanDetail}>
+      <BreakJourney
+        view={journey}
+        startDate={anchor}
+        targetDate={view.targetDate}
+        currentContent={
+          <>
+            <div className="today-actions">
+              <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
+                {ACTIVE_BREAK_CARD.checkIn}
+              </button>
+            </div>
+            <TodayGuidance
+              compact
+              supportAreas={props.live.supportAreas}
+              view={presentTodayGuidance({
+                breakDay: view.day,
+                targetDays: view.targetDays,
+                openEnded: false,
+                planned: false,
+                preparation: attempt.preparation,
+                checkins: props.live.checkins,
+                exposure: props.live.exposure,
+              })}
+            />
+          </>
+        }
+        targetContent={
+          view.atOrPastTargetDate ? (
+            <div className="today-actions">
+              <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
+                Mark complete
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
+      <button type="button" className="text-link today-plan-link" data-testid="open-plan-detail" onClick={props.onOpenPlanDetail}>
         {ACTIVE_BREAK_CARD.viewPlan}
       </button>
       <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
@@ -277,15 +290,13 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
 }
 
-function WithdrawalPosition({ view }: { readonly view: WithdrawalView }) {
-  const current = view.stops.filter((stop) => stop.status === 'current');
-  if (current.length === 0) return null;
-  return (
-    <p className="meta withdrawal-position" data-testid="withdrawal-position">
-      {current.map((stop) => WITHDRAWAL_STOP_LABELS[stop.anchor]).join(' · ')} — happening now
-    </p>
-  );
-}
+const DEFAULT_EXPOSURE: ExposureContext = {
+  useDaysLast30: null,
+  sessionsPerUseDay: null,
+  products: [],
+  routes: [],
+  currentPatternDuration: null,
+};
 
 function InterruptedCard(props: TodayScreenProps) {
   const isTracking = props.live.interruptedTracking !== null;

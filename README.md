@@ -2,7 +2,7 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.18.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
+**Version 0.19.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
 
 ## Product
 
@@ -45,4 +45,4 @@ Numeric policies remain `tolerance-v3`, `detection-copy-v1`, and `tolerance-reco
 
 Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/UI tests, type checks, production build, then GitHub Pages deployment. A failed validation prevents deployment. Vite uses the repository subpath `/tbreak-calculator/` in production.
 
-Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.18.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.
+Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.19.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.

@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.18.0
+# Handoff — T-Break Calculator 0.19.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,13 +7,15 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
+The break is presented as one journey. One shared vertical path (Start → evidence phases → Target) is rendered by the Calculator result (preview: every leg upcoming) and by the Today active-break card (live: Day X of Y, past legs carry per-day check-in markers, the current leg marks "You are here" with the check-in and today's guidance, future legs stay expectations, and the target node carries the completion action once reached). Phases are the overlapping evidence windows from EvidenceGuidanceV1 — ranges and tendencies, never per-day symptom predictions. Your break (Plan Detail) remains the management surface (ring, dates, preparation, post-break plan, end/cancel/recalculate) and keeps the detailed per-day timeline behind a disclosure; it does not duplicate the Today journey.
+
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
 Saved calculation numbers are immutable. `saved-result.ts` advances only withdrawal/day guidance, rather than revalidating an old month's use against today's month. A live or scheduled break uses the profile from its owning calculation even after a detection query or another profile is saved. A plan reaches its target only after the full target duration has elapsed; the ring, message and completion action agree.
 
 One shared dialog coordinator owns focus, background isolation, Escape and browser Back. Only the top dialog closes. References return to their parent; closed disclosures do not receive keyboard focus; destructive confirmations initially focus Cancel. Previous-break edits retain outcome linkage and Save & add another resets the form.
 
-Today leads with progress and check-in. Result and detail screens put the longer timeline behind a disclosure. Practical guidance and trigger plans are shown once in the main reading path. Optional support preferences affect companion copy only, including abstinence detail; they never alter scientific calculations.
+Today leads with the journey and check-in. Practical guidance and trigger plans are shown once in the main reading path. Optional support preferences affect companion copy only, including abstinence detail; they never alter scientific calculations.
 
 ## Evidence decisions
 
@@ -29,6 +31,15 @@ This is an educational planning product. There is no clinical diagnosis, medical
 - History details share browser Back/Escape handling and return focus to their list row while keeping main navigation available. Short-screen form sheets keep their actions visible and scroll their body.
 - Rolling reduction windows count local calendar dates once. Negative UTC offsets no longer include an eighth or thirty-first day.
 
+## Release 0.19.0 — completed scope
+
+- Calculator and Today are redesigned around one shared visual concept: the break is a journey. A single vertical path component (`break-journey.tsx` over `presentBreakJourney`, a pure transform of the existing BreakOutlookView) renders Start → evidence phases → Target for every break length, not only 28 days.
+- The Calculator tolerance result leads with the recommended number of days and shows the journey directly underneath; the range band, the per-day outlook strip and the redundant plan-essentials grid are removed from the result. Start/schedule actions, Why-this-plan drivers, history, answers and the CB1/detection references stay, as secondary disclosures. The abstinence result uses the same journey with an open end (no finish line).
+- Today active break shows Day X of Y above the same journey: past legs carry per-day check-in markers, the current leg marks "You are here" with the check-in action and today's guidance, future legs show evidence-based expectations ("Expectation, not a guarantee."), and the target node carries Mark complete once reached. Beyond-target plans keep the extended note and the check-in below the target.
+- No engine, policy, or evidence-content changes: phase copy is the existing EvidenceGuidanceV1 window content; no per-day symptom predictions were introduced.
+
+Validation: targeted unit tests for the journey presenter (span coverage for 7/28-day and open-ended paths, preview forcing, past/current/future positioning, check-in day markers) plus the affected UI suites (results, recovery-result, today-phases, break-loop, app, product-regressions, personalisation, interaction-polish, copy-safety) — 105 targeted tests passed; typecheck and production build passed. The full suite was intentionally not run for this release. Manual browser check at 390px: questionnaire → result journey preview → start break → Today live journey with saved check-in marker and target node.
+
 ## Pause / resume point
 
 The owner requested another scoped release before their usage limit runs out. Ship 0.18.0 and resume the broader whole-product review after reset. This release does not claim that the original whole-product review is finished. Resume current main; do not repeat the initial repository/research audit. The prior shipped baseline was 0.17.0 (`1695a40109e130842ec99db2df2b0cc4d4c6acdc`).
@@ -39,7 +50,7 @@ Manual browser checks in this pass: isolated fresh cut-down intake/result/start,
 
 Remaining manual pass: 430px and desktop, physical iOS Safari, production offline restart, broader scheduled-break and zero-use journeys. Physical iOS has not been tested. Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
 
-Release procedure: push this commit to main, verify its Pages workflow, then confirm live Settings shows 0.18.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.19.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

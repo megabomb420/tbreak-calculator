@@ -68,6 +68,23 @@ export const PLANNED_CARD = {
   viewPlan: 'View plan',
 } as const;
 
+// --- Shared break journey (Calculator result + Today) -----------------------
+
+export const JOURNEY = {
+  ariaLabel: 'Your break journey',
+  startLabel: 'Start',
+  targetLabel: 'Target',
+  youAreHere: 'You are here',
+  legDetail: 'What to expect',
+  mayNotice: 'You may notice',
+  canHelp: 'What can help',
+  checkinSaved: 'Check-in saved',
+} as const;
+
+export function journeyDayLabel(day: number): string {
+  return `Day ${day}`;
+}
+
 // --- Post-break plan (UX_SPEC 8, 10) ---------------------------------------
 
 /** Direct safety messages on every post-break surface with a return mode. */

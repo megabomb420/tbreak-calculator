@@ -57,14 +57,16 @@ describe('result screens from engine output', () => {
     expect(result.textContent ?? '').toMatch(/Limited certainty: this is a broad planning heuristic/);
     expect(result.textContent ?? '').not.toMatch(/100%/);
     expect(result.textContent ?? '').not.toMatch(/reset complete/i);
-    expect(screen.getByTestId('break-outlook')).toBeTruthy();
-    expect(screen.getByTestId('outlook-day-strip')).toBeTruthy();
-    // Consecutive equivalent days are grouped: 7-day target = Day 1 / Days
-    // 2–3 / Days 4–6 / Day 7.
-    expect(screen.getByTestId('outlook-seg-2-3')).toBeTruthy();
-    expect(screen.getByTestId('outlook-seg-4-6')).toBeTruthy();
-    expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
+    expect(screen.getByTestId('break-journey')).toBeTruthy();
+    expect(screen.getByTestId('break-journey').getAttribute('data-target')).toBe('7');
+    // A 7-day target journeys through onset (Day 1), the Days 2–6 common
+    // peak and the first Days 7–14 easing day — nothing beyond the target.
+    expect(screen.getByTestId('journey-leg-days_1_3')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_2_6')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_7_14')).toBeTruthy();
+    expect(screen.queryByTestId('journey-leg-days_14_21')).toBeNull();
+    expect(screen.getByTestId('journey-start')).toBeTruthy();
+    expect(screen.getByTestId('journey-target')).toBeTruthy();
     expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
     expect(result.textContent ?? '').toMatch(/lower end of the 7–14-day range/);
     expect(screen.getByTestId('cb1-note')).toBeTruthy();
@@ -82,9 +84,9 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
     // Recent pattern: lower anchor of the 2–7 evidence range (target 2).
-    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('2');
-    expect(screen.getByTestId('outlook-seg-2-2')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-seg-3-3')).toBeNull();
+    expect(screen.getByTestId('break-journey').getAttribute('data-target')).toBe('2');
+    expect(screen.getByTestId('journey-leg-days_2_6')).toBeTruthy();
+    expect(screen.queryByTestId('journey-leg-days_7_14')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/weeks rather than years/);
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/lower end/);
     rare.unmount();
@@ -99,9 +101,9 @@ describe('result screens from engine output', () => {
     flow = screen.getByTestId('questionnaire-flow');
     fireEvent.click(within(flow).getByRole('button', { name: 'Today' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('7');
-    expect(screen.getByTestId('outlook-seg-7-7')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-seg-8-8')).toBeNull();
+    expect(screen.getByTestId('break-journey').getAttribute('data-target')).toBe('7');
+    expect(screen.getByTestId('journey-leg-days_7_14')).toBeTruthy();
+    expect(screen.queryByTestId('journey-leg-days_14_21')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/upper end of the 2–7-day range/);
   });
 
@@ -122,15 +124,15 @@ describe('result screens from engine output', () => {
     fireEvent.click(within(flow).getByRole('button', { name: 'Flower (bud)' }));
     fireEvent.click(within(flow).getByRole('button', { name: 'Smoking' }));
     fireEvent.click(within(flow).getByRole('button', { name: QUESTIONNAIRE.continue }));
-    expect(screen.getByTestId('break-outlook').getAttribute('data-target')).toBe('28');
-    // The 28-day journey is grouped into meaningful consecutive ranges; the
-    // final milestone day stays a single Day 28 and nothing extends beyond it.
-    expect(screen.getByTestId('outlook-seg-2-3')).toBeTruthy();
-    expect(screen.getByTestId('outlook-seg-4-6')).toBeTruthy();
-    expect(screen.getByTestId('outlook-seg-8-13')).toBeTruthy();
-    expect(screen.getByTestId('outlook-seg-28-28')).toBeTruthy();
-    expect(screen.queryByTestId('outlook-seg-29-29')).toBeNull();
-    expect(screen.queryByTestId('outlook-seg-3-3')).toBeNull();
+    expect(screen.getByTestId('break-journey').getAttribute('data-target')).toBe('28');
+    // The 28-day journey walks every evidence phase and ends at the target;
+    // no leg extends beyond it.
+    expect(screen.getByTestId('journey-leg-days_1_3')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_2_6')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_7_14')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_14_21')).toBeTruthy();
+    expect(screen.getByTestId('journey-leg-days_21_28')).toBeTruthy();
+    expect(screen.queryByTestId('journey-leg-beyond_28')).toBeNull();
     expect(screen.getByTestId('result-screen').textContent ?? '').toMatch(/many years/);
   });
 

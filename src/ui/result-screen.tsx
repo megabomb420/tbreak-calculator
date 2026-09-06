@@ -25,9 +25,9 @@ import {
 } from '../application/progress/reduction-plan.ts';
 import { HISTORY } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
-import { RangeBand } from './range-band.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
-import { BreakOutlook } from './break-outlook.tsx';
+import { BreakJourney } from './break-journey.tsx';
+import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import { useFocusTrap } from './focus-trap.ts';
 import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
 import { presentCb1Education } from '../application/presentation/break-guidance.ts';
@@ -231,23 +231,17 @@ function ResultBody({
             labelledBy="result-title"
           >
             <p className="result-lens-meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
-            <RangeBand
-              min={view.rangeDays.min}
-              max={view.rangeDays.max}
-              preferred={view.preferredTargetDays}
-            />
             <p className="meta">{view.uncertainty}</p>
           </ResultLensHero>
+          {view.outlook !== null ? (
+            <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
+          ) : null}
           <YourPlanGuide
-            targetDays={view.preferredTargetDays}
             drivers={view.drivers}
             contextNote={view.contextNote}
             supportAreas={supportAreas}
             onEditSupport={onEditSupport}
           />
-          {view.outlook !== null ? <details className="result-disclosure timeline-disclosure">
-            <summary>Explore the break timeline</summary><BreakOutlook view={view.outlook} />
-          </details> : null}
           <Cb1ContextNote />
           <HistoryCard
             insight={view.history}
@@ -312,9 +306,9 @@ function ResultBody({
               </button>
             </section>
           ) : null}
-          {view.outlook !== null ? <details className="result-disclosure timeline-disclosure">
-            <summary>Explore the break timeline</summary><BreakOutlook view={view.outlook} />
-          </details> : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
+          {view.outlook !== null ? (
+            <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
+          ) : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
           <Cb1ContextNote />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
         </div>

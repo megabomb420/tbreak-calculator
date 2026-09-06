@@ -63,7 +63,7 @@ describe('result view mode segment (tolerance_result)', () => {
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('false');
     // Default "Your plan": the hero still leads, unchanged.
     expect(screen.getByRole('heading', { name: '7 days' })).toBeTruthy();
-    expect(screen.getByTestId('break-outlook')).toBeTruthy();
+    expect(screen.getByTestId('break-journey')).toBeTruthy();
   });
 
   it('does not show the segment for non-tolerance result kinds', () => {
@@ -103,7 +103,7 @@ describe('predicted reset panel content', () => {
     expect(within(timeline).getByTestId('recovery-milestone-predicted_window_end')).toBeTruthy();
     expect(within(timeline).getByTestId('recovery-milestone-four_week_reference')).toBeTruthy();
     // Plan content is replaced while in reset mode.
-    expect(screen.queryByTestId('break-outlook')).toBeNull();
+    expect(screen.queryByTestId('break-journey')).toBeNull();
     expect(screen.queryByTestId('history-card')).toBeNull();
   });
 
