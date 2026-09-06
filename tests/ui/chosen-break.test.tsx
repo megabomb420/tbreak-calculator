@@ -281,3 +281,67 @@ describe('chosen-duration break ends without a profile', () => {
     expect(screen.queryByRole('button', { name: 'Get started' })).toBeNull();
   });
 });
+
+describe('chosen-duration scheduling edge cases', () => {
+  it('shows the running-plan notice instead of starting while a plan is scheduled', () => {
+    const storage = createMemoryStorage();
+    // A scheduled (planned) chosen break owns Today, so a second start is refused.
+    createBreakAttemptsStore(storage).save({
+      schemaVersion: 'break-attempts-v1',
+      attempts: [
+        {
+          id: 'planned-1',
+          status: 'planned',
+          calculationRecordId: null,
+          targetDurationDays: 7,
+          targetSource: 'chosen',
+          postBreakMode: 'occasional',
+          startedAt: toInstant(AT + DAY_MS),
+          segments: [],
+          postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+          preparation: null,
+          completionAcknowledged: false,
+          createdAt: AT,
+          updatedAt: AT,
+        },
+      ],
+    });
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByTestId('choose-break-length'));
+    fireEvent.click(screen.getByTestId('choose-days-continue'));
+    expect(screen.getByTestId('choose-running-notice')).toBeTruthy();
+    expect((screen.getByTestId('chosen-start-break') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('cancels a scheduled chosen break from its Today card', () => {
+    const storage = createMemoryStorage();
+    createBreakAttemptsStore(storage).save({
+      schemaVersion: 'break-attempts-v1',
+      attempts: [
+        {
+          id: 'planned-1',
+          status: 'planned',
+          calculationRecordId: null,
+          targetDurationDays: 5,
+          targetSource: 'chosen',
+          postBreakMode: 'occasional',
+          startedAt: toInstant(AT + DAY_MS),
+          segments: [],
+          postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+          preparation: null,
+          completionAcknowledged: false,
+          createdAt: AT,
+          updatedAt: AT,
+        },
+      ],
+    });
+    renderApp(storage);
+    expect(screen.getByTestId('scheduled-start')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('cancel-planned'));
+    fireEvent.click(screen.getByTestId('confirm-action'));
+    expect(attemptsOf(storage)).toHaveLength(0);
+    // No data left at all: back to the first-launch surface.
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('first-launch');
+  });
+});
