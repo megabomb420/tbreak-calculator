@@ -234,6 +234,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
+      <span className="result-lens-orbit" aria-hidden="true" />
       <header className="today-live-head">
         <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
         <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>

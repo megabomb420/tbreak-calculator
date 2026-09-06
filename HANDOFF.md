@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.19.0
+# Handoff — T-Break Calculator 0.20.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-The break is presented as one journey. One shared vertical path (Start → evidence phases → Target) is rendered by the Calculator result (preview: every leg upcoming) and by the Today active-break card (live: Day X of Y, past legs carry per-day check-in markers, the current leg marks "You are here" with the check-in and today's guidance, future legs stay expectations, and the target node carries the completion action once reached). Phases are the overlapping evidence windows from EvidenceGuidanceV1 — ranges and tendencies, never per-day symptom predictions. Your break (Plan Detail) remains the management surface (ring, dates, preparation, post-break plan, end/cancel/recalculate) and keeps the detailed per-day timeline behind a disclosure; it does not duplicate the Today journey.
+The break is presented as one journey. One shared vertical path (Start → evidence phases → Target) is rendered by the Calculator result (preview: every leg upcoming) and by the Today active-break card (live: Day X of Y, past legs carry per-day check-in markers, the current leg marks "You are here", and future legs stay expectations). Phases are the overlapping evidence windows from EvidenceGuidanceV1 — ranges and tendencies, never per-day symptom predictions. There is no separate plan-detail screen: the active-break Today card is the whole plan surface — hero head (phase eyebrow, Day X of Y, target date), the live journey with each leg's expectations behind its disclosure, the compact "what matters today" guidance, one full-width Check in action (Mark complete appears from the target date), and quiet footer actions (Edit support / Personalise your plan, End break early). The scheduled-break card owns Cancel plan, the completion card shows the post-break plan read-only, and everything else lives in History.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -40,6 +40,16 @@ This is an educational planning product. There is no clinical diagnosis, medical
 
 Validation: targeted unit tests for the journey presenter (span coverage for 7/28-day and open-ended paths, preview forcing, past/current/future positioning, check-in day markers) plus the affected UI suites (results, recovery-result, today-phases, break-loop, app, product-regressions, personalisation, interaction-polish, copy-safety) — 105 targeted tests passed; typecheck and production build passed. The full suite was intentionally not run for this release. Manual browser check at 390px: questionnaire → result journey preview → start break → Today live journey with saved check-in marker and target node.
 
+## Release 0.20.0 — completed scope (2026-09-06)
+
+- The active-break Today card is aligned with the result panel: one card surface with a hero head (phase eyebrow, Day X of Y, target date), the shared live journey, the compact "what matters today" guidance, then a deliberate full-width Check in action zone and quiet footer links. Check in is no longer embedded in the journey's current leg.
+- Plan Detail is removed entirely. End break early (active) and Cancel plan (scheduled) are quiet actions on their Today cards with the same confirmations; the post-break return mode stays as chosen at break start and is shown read-only on the completion card. Break-start copy no longer promises mid-plan changes. Plan-detail-only styles and the unused plan-ring component were deleted; domain logic and break behaviour are unchanged.
+- The active-break Today hero now continues the result-lens visual identity: the live card reuses the ResultLensHero orbit artwork (subtle concentric rings in the upper right, painted strictly behind the hero head) on top of the shared 0.12.0 lens surface, so Today reads as the live continuation of Your plan → Recovery outlook → Start break → Today. Presentation only — no component reuse beyond the existing orbit primitive, no new surfaces, no height change.
+- The active-Today Check in action gets a dedicated treatment in the same material language as the polished Your plan / Recovery outlook mode control (restrained accent surface, hairline inset highlight, controlled shadow, refined radius, hover/focus states) while remaining the card's one full-width, thumb-height primary action. Behaviour, test ids and the check-in flow are unchanged.
+- Version and documentation drift from the 0.20.0 baseline is corrected: `package.json` and `APP_VERSION` are 0.20.0; README and HANDOFF are current; statements describing Plan Detail as a current surface are removed from HANDOFF and from the directly conflicting UX_SPEC passages. No broad documentation rewrite.
+
+Validation: typecheck and the production build passed; 58 targeted UI tests (today-phases, break-loop, app, product-regressions, copy-safety) and 28 journey-presenter/outlook unit tests passed. A headless-browser pass at 390px compared Your plan / Recovery outlook / active-break Today: all three carry the same orbit artwork; on the live card the orbit is clipped inside the card and paints behind the hero head, Day X of Y stays the dominant display line, Check in is one full-width primary action in the mode-control material family (not the generic button, not a third tab), the card structure is unchanged, and the document/app/main panes show no horizontal overflow. This environment could not eyeball screenshots, so rendering was verified from the DOM, computed CSS and sampled pixels rather than by eye.
+
 ## Pause / resume point
 
 The owner requested another scoped release before their usage limit runs out. Ship 0.18.0 and resume the broader whole-product review after reset. This release does not claim that the original whole-product review is finished. Resume current main; do not repeat the initial repository/research audit. The prior shipped baseline was 0.17.0 (`1695a40109e130842ec99db2df2b0cc4d4c6acdc`).
@@ -50,7 +60,7 @@ Manual browser checks in this pass: isolated fresh cut-down intake/result/start,
 
 Remaining manual pass: 430px and desktop, physical iOS Safari, production offline restart, broader scheduled-break and zero-use journeys. Physical iOS has not been tested. Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
 
-Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.19.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.20.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

@@ -89,7 +89,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Tabs (3):** `Today`, `Calculator`, `History`. Calculator exposes all four goals, draft resume and the latest saved use-profile result. Opening a new calculation does not end a live break.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
-- **Break plan:** not a tab. The active-break card on `Today` *is* the plan summary; tapping it pushes a full plan detail screen (phases, focus blocks, target date, post-break settings). Users think "how is my break going," which is a Today question.
+- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the live journey, the compact today guidance, the full-width **Check in** action, and quiet end-early / support actions. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
   - companion personalisation (optional after calculation and later through **Edit support**);
@@ -110,7 +110,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Phase-aware card: eyebrow names the phase window (first days / common peak / settling in / past the peak / nearing the target / **Plan target reached** / **Beyond the plan**), the day/target line is the hero, and target date sits under it. A calm state note appears exactly at the target day and on beyond-plan days. Guidance shows today's milestone + what matters today + what comes next (progressive disclosure; the full "may notice" detail lives in Plan Detail). Primary CTA **Check in**; **Mark complete** appears from the target date; tap card or **Plan detail** → plan detail |
+| `active-break` | attempt `active` | Phase-aware card: eyebrow names the phase window (first days / common peak / settling in / past the peak / nearing the target / **Plan target reached** / **Beyond the plan**), the day/target line is the hero, and target date sits under it. A calm state note appears exactly at the target day and on beyond-plan days. The live journey renders beneath (past legs carry per-day check-in markers, the current leg marks "You are here", future legs stay expectations, and the per-phase "may notice" / "can help" expectations sit behind each leg's disclosure). Compact "what matters today" guidance follows, then the full-width **Check in** action; **Mark complete** appears from the target date. Quiet footer actions: **Edit support / Personalise your plan** and **End break early** (confirm dialog). The card is the whole plan surface — there is no separate detail screen |
 | `interrupted` | attempt `interrupted_time_needed` | Timing suspended; card: "You marked that you used THC. Confirm when, so your plan can restart." CTA **Confirm when** |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -391,7 +391,7 @@ Duration (Q6) is counted in every consuming min/typical/max: it is the first use
 
 ## 6. Nominal flower THC calculator
 
-A modal sheet reachable from (a) Q5 when Flower is selected, (b) the result screen tools row, (c) the plan detail screen tools row. Never required, never blocking.
+A modal sheet reachable from (a) Q5 when Flower is selected, (b) the result screen tools row. Never required, never blocking.
 
 > **Nominal THC in your flower**
 > This estimates the THC contained in the plant material itself.
@@ -459,7 +459,7 @@ Rules:
 >
 > [ Start break ]
 
-Creates a `planned` (future date) or `active` (now) attempt with `targetDurationDays = preferredTargetDays`. The mode is editable later from the plan detail screen. Abstinence users never see this — their mode is fixed to `continue_abstinence` and no finite break is created.
+Creates a `planned` (future date) or `active` (now) attempt with `targetDurationDays = preferredTargetDays`. The mode is chosen at break start; once the break is running it stays as chosen and is shown read-only on the completion card. Abstinence users never see this — their mode is fixed to `continue_abstinence` and no finite break is created.
 
 Post-break plan presentation (after completion, and from History), by mode:
 
@@ -562,14 +562,14 @@ Prohibited: X–Y windows, pass/fail, "clean date", cutoff numbers, jurisdiction
 
 ### 9.7 Break outlook (BreakOutlookV1)
 
-Shared by Result, Today, and Plan Detail. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation.
+Shared by the Calculator result and the Today active-break card. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation.
 
 - Finite planning target: exactly Days 1–`preferredTargetDays` — usually one of the anchor targets 2 / 7 / 14 / 21 / 28, or an interior observed in-range history anchor under the tolerance-v3 override. No duplicates, no gaps, no extra days.
 - Open-ended tracking: Days 1–28 inspectable plus the After-28 window. No finish percentage at day 28.
 - Mobile-first: horizontal day-chip strip + one inspector (stage, may notice, can help, what matters, what usually comes next) + overlapping window roadmap. Not a wall of cards.
 - **Grouped roadmap (0.7.2):** the chip strip is a presentation transform that collapses consecutive days whose meaningful user-facing guidance is equivalent (same evidence windows, stage, may-notice, can-help, what-matters, next-stage, milestone, tone, and any stored check-in). Labels read `Day 1` / `Days 2–3` / `Days 4–6`. Milestone days and check-in days with unique content always keep their own entry. The exact per-day model (`days`) stays authoritative; grouping is derived (`segments`) and cannot change a recommendation, target, or day count.
 - When a multi-day segment contains the exact current day, the segment is marked current and the inspector shows a "Today: Day N" line. The exact `breakDay` is never replaced by a coarse range.
-- Result previews the whole journey before Start this break. Today shows only the current day. Plan Detail shows past / current / future grouped segments, overlapping windows, milestones, and stored check-in ratings on the days they belong to.
+- Result previews the whole journey before Start this break. Today renders the same journey live: past legs carry per-day check-in markers, the current leg is marked "You are here", and future legs stay expectations.
 - A day may sit in more than one evidence window. Overlaps MUST stay visible.
 - Lighter / infrequent / recently established copy MUST NOT present severe withdrawal as expected. Frequent / multiple-session / concentrate / long-established copy MAY say stronger withdrawal or longer sleep disturbance may be more plausible. Always: may / can / commonly / more plausible.
 - Duration may change the planning target inside the range (tolerance-v3 anchor rule), the outlook tone, and — only for an already-frequent (16–25 use-days) long-established pattern — the recommended range by one bounded band to 21–28. It is never a days-added formula.
@@ -591,15 +591,16 @@ Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` w
 
 ## 10. Break plan, check-ins, interruption
 
-### 10.1 Plan detail screen (pushed from `Today`)
+### 10.1 Active-break plan on `Today` (no separate detail screen)
 
-- Day ring: "Day 12 of 28", labelled **plan progress** — never biological progress. Target date beneath.
-- Compact current-day guidance at the top: current stage, what you may notice, what can help today, one next-stage expectation, Then → Now when enough check-ins exist.
-- Full break outlook (§9.7) with past / current / future days, overlapping evidence windows, milestones, and check-in observations on the days they were recorded. Result already previewed this journey; Plan Detail is the running version.
-- Optional trigger/if-then plan (Preparation).
-- Detox-claims panel from Plan detail (not a tab): wellbeing vs elimination, app-specific A–D scale (not GRADE).
-- Post-break settings (mode + limits, §8), editable.
-- Overflow: **End break early** (confirm dialog; neutral resulting state), **Recalculate profile**.
+The active-break card *is* the running plan; there is no pushed plan-detail screen.
+
+- Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
+- The live break journey (§9.7) is the running version of the result preview: Start → evidence phases → Target, with past-day check-in markers, the current leg marked "You are here", and future legs kept as expectations. Each leg's "may notice" / "can help" expectations sit behind its disclosure.
+- Compact "what matters today" guidance (milestone + concrete help) renders once, beneath the journey.
+- Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
+- Quiet footer actions: **Edit support / Personalise your plan**, and **End break early** (confirm dialog; neutral resulting state).
+- Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
 
 ### 10.2 Daily check-in — use-first design
 
@@ -655,7 +656,7 @@ The check-in exists primarily to catch the one event that changes the plan: THC 
 ### 10.4 Completing and ending
 
 - On/after the target date, `Today` shows **Mark complete** (never silent auto-complete). Completion → restrained completion card → post-break plan (§8).
-- **End break early**: overflow + confirm. Neutral state, no failure language.
+- **End break early**: quiet footer action + confirm. Neutral state, no failure language.
 
 ---
 
@@ -833,7 +834,7 @@ Domain prerequisites from §15.2 must land first (D1–D5 are small validation/s
 1. **Shell + state router** (§3): two tabs, gear-modal settings, transient-flow scaffolding, `Today` state machine with precedence and resume, local persistence of questionnaire progress.
 2. **Questionnaire engine** (§4–5): declarative steps from the §5.1 map; controls §4.2; date control §4.3; branch/re-branch; validation wiring.
 3. **Result screens** (§9) from real engine output + the §14 template layer.
-4. **Break loop** (§8, §10): break-start sheet, plan detail, use-first check-in, interruption — wired to the break state machine.
+4. **Break loop** (§8, §10): break-start sheet, use-first check-in, interruption — wired to the break state machine.
 5. **History + contextual flows** (§7), settings, deletion, offline hardening (§13).
 6. **(Cancelled) Runtime AI / DeepSeek** — intentionally not part of the product architecture. No runtime generative AI step exists; explanations and companion copy stay deterministic and local.
 
