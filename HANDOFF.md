@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.21.0
+# Handoff — T-Break Calculator 0.21.1
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -40,6 +40,12 @@ This is an educational planning product. There is no clinical diagnosis, medical
 
 Validation: targeted unit tests for the journey presenter (span coverage for 7/28-day and open-ended paths, preview forcing, past/current/future positioning, check-in day markers) plus the affected UI suites (results, recovery-result, today-phases, break-loop, app, product-regressions, personalisation, interaction-polish, copy-safety) — 105 targeted tests passed; typecheck and production build passed. The full suite was intentionally not run for this release. Manual browser check at 390px: questionnaire → result journey preview → start break → Today live journey with saved check-in marker and target node.
 
+## Release 0.21.1 — completed scope (2026-09-06)
+
+- Fix: a finished or ended chosen-duration break (which never creates a profile or calculation snapshot) now keeps Today in the returning state instead of collapsing back to the first-launch welcome. Today facts count any stored attempt/tracking/reduction record as data, so acknowledging a completed profile-less chosen break or ending one early lands on the no-profile surface with the attempt preserved in History.
+- Regression coverage added: chosen-break UI (complete + acknowledge without a profile; end early without a profile) and a today-model unit case (stored attempts count as data). Full UI suite (153 tests) and full unit/golden suite pass, plus typecheck and the production build.
+- Multi-viewport headless sweep (320/390/430/720/1024px) over the chosen-duration flow: no console or page errors and no horizontal overflow at any width; the orbit/Check-in polish and the "Worth knowing" line render on the active card everywhere. Version metadata 0.21.1.
+
 ## Release 0.21.0 — completed scope (2026-09-06)
 
 - **Choose my break length** is a new Calculator option for users who do not want the app to calculate their duration. It skips the tolerance questionnaire entirely: the user picks a whole-number break of 3–28 days with a simple −/＋ stepper, confirms a lightweight "Your break / N days / Chosen duration" step, then starts through the normal break-start sheet. No calculation record is created and nothing is labelled recommended, calculated, optimal or a reset estimate. The chosen duration becomes the plan target; shorter targets clip the shared journey at the chosen day without rewriting evidence windows (a 5-day target ends the "days 2–6" leg at day 5; no later leg appears).
@@ -70,7 +76,7 @@ Manual browser checks in this pass: isolated fresh cut-down intake/result/start,
 
 Remaining manual pass: 430px and desktop, physical iOS Safari, production offline restart, broader scheduled-break and zero-use journeys. Physical iOS has not been tested. Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
 
-Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.1. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

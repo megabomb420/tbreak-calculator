@@ -227,3 +227,57 @@ describe('Choose my break length (custom duration)', () => {
     expect(screen.getByTestId('choose-break-length')).toBeTruthy();
   });
 });
+
+describe('chosen-duration break ends without a profile', () => {
+  function seedChosen(anchor: Instant, days: number): StorageAdapter {
+    const storage = createMemoryStorage();
+    createBreakAttemptsStore(storage).save({
+      schemaVersion: 'break-attempts-v1',
+      attempts: [
+        {
+          id: 'chosen-end',
+          status: 'active',
+          calculationRecordId: null,
+          targetDurationDays: days,
+          targetSource: 'chosen',
+          postBreakMode: 'occasional',
+          startedAt: anchor,
+          segments: [{ startedFromLastUseAt: anchor, endedAt: null, endReason: null }],
+          postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+          preparation: null,
+          completionAcknowledged: false,
+          createdAt: anchor,
+          updatedAt: anchor,
+        },
+      ],
+    });
+    return storage;
+  }
+
+  it('returns to the returning state, not first launch, after completing', () => {
+    const anchor = toInstant(AT - 5 * DAY_MS);
+    const storage = seedChosen(anchor, 5);
+    const rendered = renderApp(storage); // day 6 = target reached
+    fireEvent.click(screen.getByTestId('mark-complete-cta'));
+    const today = screen.getByTestId('today-view');
+    expect(today.getAttribute('data-primary')).toBe('completed-break');
+    fireEvent.click(screen.getByTestId('acknowledge-complete'));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('no-profile');
+    expect(screen.queryByRole('button', { name: 'Get started' })).toBeNull();
+    // The finished attempt is still in history storage.
+    expect(attemptsOf(storage)[0]?.status).toBe('completed');
+    rendered.unmount();
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('no-profile');
+  });
+
+  it('returns to the returning state after ending early', () => {
+    const storage = seedChosen(AT, 10);
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('end-early'));
+    fireEvent.click(screen.getByTestId('confirm-action'));
+    expect(attemptsOf(storage)[0]?.status).toBe('ended');
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('no-profile');
+    expect(screen.queryByRole('button', { name: 'Get started' })).toBeNull();
+  });
+});

@@ -39,7 +39,13 @@ export function buildTodayFacts(input: TodayFactInputs): TodayFacts {
       ? null
       : { status: livePlan.status === 'paused' ? ('paused' as const) : livePlan.status === 'review_recommended' ? ('review_recommended' as const) : ('active' as const) };
   return {
-    hasAnyData: input.snapshotFacts.hasAnyData ?? false,
+    // Any stored record counts as data, so a finished or interrupted
+    // chosen-duration plan (which never creates a profile/snapshot) keeps
+    // Today in the returning state instead of collapsing to first launch.
+    hasAnyData: (input.snapshotFacts.hasAnyData ?? false)
+      || input.attempts.length > 0
+      || input.tracking.length > 0
+      || input.reductionPlans.length > 0,
     attempt: attempt === null ? null : { status: attempt.status },
     tracking: tracking === null ? null : { status: tracking.status },
     reduction,

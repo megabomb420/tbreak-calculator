@@ -138,4 +138,17 @@ describe('Today facts from records', () => {
     const b = build(attemptState('active'));
     assert.deepEqual(a, b);
   });
+  it('counts stored attempts as data even without a profile snapshot', () => {
+    const ended = attemptState('ended');
+    const facts = buildTodayFacts({
+      snapshotFacts: {},
+      attempts: ended.attempts,
+      tracking: [],
+      reductionPlans: [],
+      draft: null,
+    });
+    assert.equal(facts.hasAnyData, true);
+    assert.equal(facts.hasProfile, false);
+    assert.equal(facts.attempt, null);
+  });
 });
