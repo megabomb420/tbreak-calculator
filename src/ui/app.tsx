@@ -111,6 +111,9 @@ import { HistoryScreen } from './history-screen.tsx';
 import { QuestionnaireFlow } from './questionnaire-flow.tsx';
 import { ResultScreen } from './result-screen.tsx';
 import { RESULT } from './result-copy.ts';
+import { ChooseBreakDays } from './choose-break-days.tsx';
+import { CHOSEN_BREAK, CHOSEN_BREAK_MAX_DAYS, CHOSEN_BREAK_MIN_DAYS } from './break-copy.ts';
+import { CalendarIcon } from './icons.tsx';
 import { SettingsModal } from './settings-modal.tsx';
 import { ScienceBasicsPanel } from './science-basics.tsx';
 import { Shell } from './shell.tsx';
@@ -137,7 +140,10 @@ import { createCompanionPersonalisationStore } from '../application/progress/com
 import { PersonalisationFlow } from './personalisation-flow.tsx';
 
 export type Flow =
-  | { readonly kind: 'break-start' }
+  | { readonly kind: 'break-start'; /** Present when the plan length was chosen
+    * by the user (3–28 days) rather than derived from a calculation. */
+    readonly customDays: number | null }
+  | { readonly kind: 'choose-break-days' }
   | { readonly kind: 'tracking-detail' }
   | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
@@ -309,9 +315,11 @@ export function App({
   useEffect(() => {
     const current = readSessionState();
     const loaded = durable.load();
-    const activated = activateDuePlans(current, (attempt) => profileAnchor(
-      savedUseProfile(loaded.calculations, loaded.snapshot, attempt.calculationRecordId),
-    ), now);
+    const activated = activateDuePlans(current, (attempt) =>
+      attempt.calculationRecordId === null && attempt.targetSource === 'chosen'
+        ? attempt.startedAt
+        : profileAnchor(savedUseProfile(loaded.calculations, loaded.snapshot, attempt.calculationRecordId)),
+    now);
     if (activated !== current) {
       persistBreakSession(activated);
       refresh();
@@ -432,7 +440,18 @@ export function App({
   }
 
   function openBreakStart(): void {
-    setFlow({ kind: 'break-start' });
+    setFlow({ kind: 'break-start', customDays: null });
+  }
+
+  /** "Choose my break length": open the 3–28 day scheduling flow. */
+  function openChooseBreakDays(): void {
+    setFlow({ kind: 'choose-break-days' });
+  }
+
+  /** Confirm a chosen duration and move into the normal break-start sheet. */
+  function confirmChosenDays(days: number): void {
+    if (!Number.isInteger(days) || days < CHOSEN_BREAK_MIN_DAYS || days > CHOSEN_BREAK_MAX_DAYS) return;
+    setFlow({ kind: 'break-start', customDays: days });
   }
 
   function startPlan(mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null): void {
@@ -440,12 +459,34 @@ export function App({
     if (currentLiveAttempt(latest.attempts) !== null || currentLiveTracking(latest.tracking) !== null || currentLiveReductionPlan(durable.load().reductionRecords) !== null) {
       return;
     }
+    const nowAt = clock.now();
+    const chosenDays = flow?.kind === 'break-start' ? flow.customDays : null;
+    if (chosenDays !== null) {
+      // Chosen-duration plan: no calculation exists, so nothing is recorded as
+      // recommended and the day counter anchors to the chosen plan start.
+      const next = createBreakPlan(latest, {
+        id: newRecordId('break', nowAt),
+        calculationRecordId: null,
+        targetDurationDays: chosenDays,
+        targetSource: 'chosen',
+        mode,
+        planStart: startAt,
+        now: nowAt,
+        anchor: startAt,
+        preparation,
+      });
+      persistBreakSession(next);
+      markResult('acknowledged');
+      dispatch({ type: 'select_tab', tab: 'today' });
+      setFlow(null);
+      refresh();
+      return;
+    }
     const calcId = snapshotRunId();
     const lastUse = currentAnchor();
     if (calcId === null || lastUse === null) return;
     const viewForTarget = toleranceTargetDays(resultModel ?? profileView);
     if (viewForTarget === null) return;
-    const nowAt = clock.now();
     const next = createBreakPlan(latest, {
       id: newRecordId('break', nowAt),
       calculationRecordId: calcId,
@@ -1259,6 +1300,20 @@ export function App({
               <p className="meta">Choosing a goal below starts a new calculation.</p>
             </div> : null}
             <GoalCards onSelect={openGoal} />
+            <button
+              type="button"
+              className="choice-card"
+              data-testid="choose-break-length"
+              onClick={openChooseBreakDays}
+            >
+              <span className="choice-icon">
+                <CalendarIcon size={20} />
+              </span>
+              <span className="choice-copy">
+                <span className="choice-title">{CHOSEN_BREAK.optionTitle}</span>
+                <span className="meta">{CHOSEN_BREAK.optionHelper}</span>
+              </span>
+            </button>
             {profileSnapshot !== null ? <button type="button" className="cta-secondary" onClick={() => {
               durable.saveSnapshot(profileSnapshot); progress.clear(); markResult('open'); refresh();
             }}>View saved plan</button> : null}
@@ -1339,8 +1394,8 @@ export function App({
       {flow !== null && flow.kind !== 'previous-break' && !personalisationOpen ? (
         <FlowRenderer
           flow={flow}
-          targetDays={breakSheetTarget ?? 0}
-          breakDayAtStart={breakDayAtStart}
+          targetDays={flow.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0)}
+          breakDayAtStart={flow.kind === 'break-start' && flow.customDays !== null ? 1 : breakDayAtStart}
           now={now}
           track={liveTracking?.status === 'tracking' ? liveTracking : null}
           anchor={anchor}
@@ -1348,6 +1403,8 @@ export function App({
           checkInDay={checkInDay}
           onClose={() => setFlow(null)}
           onStartBreak={startPlan}
+          onChooseBreakDays={confirmChosenDays}
+          canStartPlan={canStartPlan}
           onCheckInNo={saveNoUse}
           onCheckInSymptoms={saveSymptoms}
           onUseReported={handleUseReported}
@@ -1454,6 +1511,8 @@ function FlowRenderer({
   checkInDay,
   onClose,
   onStartBreak,
+  onChooseBreakDays,
+  canStartPlan,
   onCheckInNo,
   onCheckInSymptoms,
   onUseReported,
@@ -1483,6 +1542,8 @@ function FlowRenderer({
   readonly checkInDay: number | null;
   readonly onClose: () => void;
   readonly onStartBreak: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
+  readonly onChooseBreakDays: (days: number) => void;
+  readonly canStartPlan: boolean;
   readonly onCheckInNo: () => void;
   readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onUseReported: () => void;
@@ -1506,6 +1567,14 @@ function FlowRenderer({
   }) => void;
 }) {
   switch (flow.kind) {
+    case 'choose-break-days':
+      return (
+        <ChooseBreakDays
+          canStart={canStartPlan}
+          onStart={onChooseBreakDays}
+          onClose={onClose}
+        />
+      );
     case 'break-start':
       return targetDays >= 1 ? (
         <BreakStartSheet

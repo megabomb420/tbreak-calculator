@@ -175,15 +175,49 @@ export const ACTIVE_BREAK_CARD = {
   } as const,
 } as const;
 
-/** State notes for the reached / beyond-plan moments (Today + Plan Detail).
+/** State notes for the reached / beyond-plan moments (Today active card).
  * Restrained product copy: reaching the target is not a proven full reset and
- * no extra-recovery estimate is implied beyond the plan. */
+ * no extra-recovery estimate is implied beyond the plan. Chosen-duration
+ * plans never mention a tolerance reset because none was calculated. */
 export const PLAN_STATE_NOTES = {
   reached: (targetDays: number) =>
     `You've reached your ${targetDays}-day planning target. Marking the break complete is your call — reaching the target is not proof that tolerance has fully reset.`,
   extended: (day: number, targetDays: number) =>
     `You're on day ${day}, past your ${targetDays}-day plan. Continuing is your choice — the app does not estimate further recovery beyond the plan.`,
+  chosenReached: (targetDays: number) =>
+    `You've reached your chosen ${targetDays}-day target. Marking the break complete is your call — the target is a milestone, not an automatic end.`,
+  chosenExtended: (day: number, targetDays: number) =>
+    `You're on day ${day}, past your chosen ${targetDays}-day target. Continuing is your choice — the target does not limit how long you keep going.`,
 } as const;
+
+// --- Choose my break length (chosen-duration plan) -------------------------
+
+export const CHOSEN_BREAK = {
+  optionTitle: 'Choose my break length',
+  optionHelper: 'Pick any break from 3 to 28 days',
+  flowTitle: 'Choose your break',
+  lengthQuestion: 'How long should your break be?',
+  rangeHelper: 'Pick any break from 3 to 28 days.',
+  readoutLabel: 'Break length',
+  fewerDays: 'Fewer days',
+  moreDays: 'More days',
+  schedulingNote: 'A scheduling choice — not a calculated recommendation.',
+  continue: 'Continue',
+  confirmEyebrow: 'Your break',
+  confirmKicker: 'Chosen duration',
+  confirmNote:
+    'You pick the length, so the target is the day you chose. The app has not estimated how many days would reset your tolerance.',
+  changeLength: 'Change length',
+  startBreak: 'Start this break',
+  runningPlanNotice:
+    'You already have a plan running. Complete or end it from Today before starting another.',
+  close: 'Close',
+} as const;
+
+/** Minimum and maximum user-selectable chosen duration in days. */
+export const CHOSEN_BREAK_MIN_DAYS = 3;
+export const CHOSEN_BREAK_MAX_DAYS = 28;
+export const CHOSEN_BREAK_DEFAULT_DAYS = 14;
 
 export const INTERRUPTED_CARD = {
   title: 'Break paused',
@@ -275,4 +309,5 @@ export const GUIDANCE_CHROME = {
   recoveryNote: 'What to do next',
   backToToday: 'Back to Today',
   openEndedNote: 'This timeline has no finish line — including not at day 28.',
+  research: 'Worth knowing',
 } as const;

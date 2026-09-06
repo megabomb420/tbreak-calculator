@@ -122,3 +122,42 @@ describe('break journey legs', () => {
     assert.equal(markers.length, 21);
   });
 });
+
+describe('break journey for user-chosen short targets', () => {
+  it('clips the visual journey at a 5-day chosen target without distorting window copy', () => {
+    const journey = journeyFor(5, null);
+    assert.equal(journey.targetDays, 5);
+    assert.deepEqual(
+      journey.legs.map((leg) => [leg.id, leg.fromDay, leg.toDay]),
+      [
+        ['days_1_3', 1, 1],
+        ['days_2_6', 2, 5],
+      ],
+    );
+    // The evidence window that hosts the final day is cut at the target but
+    // keeps its full window identity (label never rewritten to "Days 2–5").
+    const last = journey.legs[journey.legs.length - 1];
+    assert.equal(last?.id, 'days_2_6');
+    assert.deepEqual(last?.days.map((day) => day.day), [2, 3, 4, 5]);
+    assert.ok(journey.legs.every((leg) => leg.toDay <= 5));
+  });
+
+  it('never shows legs starting after a 3-day chosen target', () => {
+    const journey = journeyFor(3, null);
+    assert.equal(journey.targetDays, 3);
+    assert.deepEqual(
+      journey.legs.map((leg) => [leg.id, leg.fromDay, leg.toDay]),
+      [
+        ['days_1_3', 1, 1],
+        ['days_2_6', 2, 3],
+      ],
+    );
+    assert.ok(!journey.legs.some((leg) => leg.fromDay > 3));
+  });
+
+  it('marks every leg past once the live day passes a short chosen target', () => {
+    const journey = journeyFor(5, 6);
+    assert.ok(journey.legs.length > 0);
+    assert.ok(journey.legs.every((leg) => leg.status === 'past'));
+  });
+});

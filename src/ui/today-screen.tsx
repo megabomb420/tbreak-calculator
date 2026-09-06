@@ -11,7 +11,7 @@ import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../appl
 import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
-import { ACTIVE_BREAK_CARD, COMPLETED_CARD, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
+import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
@@ -21,6 +21,7 @@ import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
 import { BreakJourney } from './break-journey.tsx';
 import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
+import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
@@ -220,7 +221,13 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const { attempt, view } = active;
   const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
   const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
-  const stateNote = phase === 'reached' ? PLAN_STATE_NOTES.reached(view.targetDays) : phase === 'extended' ? PLAN_STATE_NOTES.extended(view.day, view.targetDays) : null;
+  const chosen = attempt.targetSource === 'chosen';
+  const stateNote =
+    phase === 'reached'
+      ? chosen ? PLAN_STATE_NOTES.chosenReached(view.targetDays) : PLAN_STATE_NOTES.reached(view.targetDays)
+      : phase === 'extended'
+        ? chosen ? PLAN_STATE_NOTES.chosenExtended(view.day, view.targetDays) : PLAN_STATE_NOTES.extended(view.day, view.targetDays)
+        : null;
   const anchor = currentSegmentAnchor(attempt.segments);
   const journey = presentBreakJourney(
     presentBreakOutlook({
@@ -261,6 +268,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
           exposure: props.live.exposure,
         })}
       />
+      <BreakResearchNote day={view.day} />
       <div className="today-actions">
         <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
           {ACTIVE_BREAK_CARD.checkIn}
@@ -292,6 +300,22 @@ function ActiveBreakCard(props: TodayScreenProps) {
         />
       ) : null}
     </article>
+  );
+}
+
+/** One quiet, curated research-context line for the active-break card,
+ * keyed to the current abstinence day. Never coaching; the source link opens
+ * the same PubMed reference the Science screen uses. */
+function BreakResearchNote({ day }: { readonly day: number }) {
+  const fact = researchFactForDay(day);
+  return (
+    <section className="today-research-note" data-testid="today-research-fact" data-fact={fact.id}>
+      <h3 className="guidance-kicker">{GUIDANCE_CHROME.research}</h3>
+      <p className="body">{fact.text}</p>
+      <a className="text-link" href={fact.sourceUrl} target="_blank" rel="noopener noreferrer">
+        {fact.sourceLabel} ↗
+      </a>
+    </section>
   );
 }
 
@@ -645,7 +669,11 @@ function ProfileNoBreakCard(props: TodayScreenProps) {
         <h2 className="card-title" data-testid="scheduled-start">
           {plannedView === null ? 'Break scheduled' : `${PLANNED_CARD.startsLabel} ${formatLocalDay(plannedView.startDate)}`}
         </h2>
-        <p className="meta">Your break will start on this date. Day counters run from your last use.</p>
+        <p className="meta" data-testid="scheduled-start-note">
+          {scheduled.targetSource === 'chosen'
+            ? 'Your break starts on this date and your day count begins then.'
+            : 'Your break will start on this date. Day counters run from your last use.'}
+        </p>
         <div className="footer-links">
           <button type="button" className="text-back" data-testid="cancel-planned" onClick={() => setConfirmCancel(true)}>
             {PLANNED_CARD.cancelPlanTitle}

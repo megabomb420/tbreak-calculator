@@ -14,6 +14,10 @@ export type BreakAttemptStatus = 'planned' | 'active' | 'interrupted_time_needed
 
 export type BreakSegmentEndReason = 'used_thc' | 'completed' | 'user_ended';
 
+/** Where a finite plan's target duration came from: a calculated/recommended
+ * result, or the user's own scheduling choice. Absent = calculated (legacy). */
+export type BreakTargetSource = 'calculated' | 'chosen';
+
 export interface BreakSegment {
   /** Authoritative last-use instant this abstinence run is anchored to. */
   readonly startedFromLastUseAt: Instant;
@@ -24,9 +28,15 @@ export interface BreakSegment {
 export interface BreakAttempt {
   readonly id: string;
   readonly status: BreakAttemptStatus;
-  readonly calculationRecordId: string;
-  /** Fixed by the Tolerance Engine result; unchanged by an interruption. */
+  /** Owning calculation record, or null for open-ended tracking and for
+   * user-chosen (non-calculated) break durations. */
+  readonly calculationRecordId: string | null;
+  /** Fixed by the Tolerance Engine result or chosen by the user; unchanged by
+   * an interruption. */
   readonly targetDurationDays: number;
+  /** Present on records created after custom durations existed; absent rows
+   * are calculated plans. */
+  readonly targetSource?: BreakTargetSource;
   readonly postBreakMode: PostBreakMode | null;
   readonly startedAt: Instant;
   readonly segments: readonly BreakSegment[];
@@ -34,8 +44,9 @@ export interface BreakAttempt {
 
 export interface NewBreakAttemptInput {
   readonly id: string;
-  readonly calculationRecordId: string;
+  readonly calculationRecordId: string | null;
   readonly targetDurationDays: number;
+  readonly targetSource?: BreakTargetSource;
   readonly postBreakMode: PostBreakMode | null;
   readonly startedAt: Instant;
 }
@@ -58,6 +69,7 @@ export function createBreakAttempt(input: NewBreakAttemptInput): BreakAttempt {
     status: 'planned',
     calculationRecordId: input.calculationRecordId,
     targetDurationDays: input.targetDurationDays,
+    ...(input.targetSource !== undefined ? { targetSource: input.targetSource } : {}),
     postBreakMode: input.postBreakMode,
     startedAt: input.startedAt,
     segments: [],

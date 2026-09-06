@@ -88,7 +88,11 @@ export function resolveTodayPrimaryState(facts: TodayFacts): TodayPrimaryState {
     if (attempt.status === 'interrupted_time_needed') return 'interrupted';
     if (attempt.status === 'active') return 'active-break';
     if (attempt.status === 'completed') return 'completed-break';
-    // planned / ended attempts do not own Today.
+    // A planned (future-start) attempt is a scheduled break: it surfaces its
+    // scheduled card on the profile surface even when no saved profile exists
+    // (a user-chosen duration never creates a calculation record). Ended
+    // attempts do not own Today.
+    if (attempt.status === 'planned') return 'profile-no-break';
   }
   if (tracking !== null) {
     if (tracking.status === 'interrupted_time_needed') return 'interrupted';

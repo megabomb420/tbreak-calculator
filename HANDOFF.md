@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.20.0
+# Handoff — T-Break Calculator 0.21.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -40,6 +40,16 @@ This is an educational planning product. There is no clinical diagnosis, medical
 
 Validation: targeted unit tests for the journey presenter (span coverage for 7/28-day and open-ended paths, preview forcing, past/current/future positioning, check-in day markers) plus the affected UI suites (results, recovery-result, today-phases, break-loop, app, product-regressions, personalisation, interaction-polish, copy-safety) — 105 targeted tests passed; typecheck and production build passed. The full suite was intentionally not run for this release. Manual browser check at 390px: questionnaire → result journey preview → start break → Today live journey with saved check-in marker and target node.
 
+## Release 0.21.0 — completed scope (2026-09-06)
+
+- **Choose my break length** is a new Calculator option for users who do not want the app to calculate their duration. It skips the tolerance questionnaire entirely: the user picks a whole-number break of 3–28 days with a simple −/＋ stepper, confirms a lightweight "Your break / N days / Chosen duration" step, then starts through the normal break-start sheet. No calculation record is created and nothing is labelled recommended, calculated, optimal or a reset estimate. The chosen duration becomes the plan target; shorter targets clip the shared journey at the chosen day without rewriting evidence windows (a 5-day target ends the "days 2–6" leg at day 5; no later leg appears).
+- **Data model:** break attempts carry explicit `targetSource: 'calculated' | 'chosen'` metadata (absent on legacy rows = calculated). A chosen-duration attempt stores `calculationRecordId: null` and anchors its day counter to the chosen plan start — immediate "Now", or the picked start date for a scheduled plan. Existing stored plans are untouched and load unchanged.
+- **Today:** a chosen-duration break is a normal active break — Day X of Y, journey, guidance, full-width Check in, target-reached state, and the same persistence/check-in/completion/end-early/history behaviour as calculated plans. Reaching the chosen target is a milestone, never an automatic end: check-ins and the journey stay live indefinitely past it, and the reached/beyond notes use chosen-worded copy that never implies a tolerance reset. The Today router now surfaces a scheduled (planned) chosen break on its Today card even when no saved profile exists, so Cancel plan stays reachable before activation. The 0.20.0 visual continuity (orbit hero + dedicated Check in action) applies to chosen breaks automatically because they share the active-break surface.
+- **Research context:** the active-break Today card carries one quiet "Worth knowing" line selected from a small curated dataset keyed to the current abstinence day (onset → days 2–6 peak → first two weeks → sleep persisting → CB1 reversal around weeks 3–4 → the four-week research anchor past day 28). Each entry is factual, neutral, non-coaching and links (new tab) to the same PubMed references the Science screen already uses — Budney et al. withdrawal time course, D'Souza et al. CB1 changes, Hirvonen et al. human PET. No new science-content system, no runtime fetching, no claims beyond the existing evidence base.
+- Version metadata and README/HANDOFF are bumped to 0.21.0. No engine, policy, evidence, detection, recovery-outlook or calculator-recommendation logic changed.
+
+Validation: typecheck and the production build passed. New tests: `chosen-break` UI suite (5: arbitrary 10-day flow incl. persistence and not-labelled-recommended, 3/28 bounds + whole days, scheduled chosen start anchored to the start date, chosen target reached/extended continues past target with check-ins and updating research context, calculated-vs-chosen coexistence), chosen-duration record round-trips (legacy/absent source stays calculated, unknown source rejected), and short-target journey clipping (3- and 5-day targets). The full UI suite (151 tests, 18 files) and the full unit/golden suite (555 tests) pass, plus typecheck and the production build. A headless-browser pass at 390px exercised the full chosen flow (option → picker → "Chosen duration" confirm → break-start sheet → active Today) and confirmed the Today orbit/Check-in polish, the "Worth knowing" research line with its PubMed source link, journey legs clipped at the 10-day target (no later legs), and no horizontal overflow; rendering was verified from the DOM and computed styles because this environment cannot eyeball screenshots.
+
 ## Release 0.20.0 — completed scope (2026-09-06)
 
 - The active-break Today card is aligned with the result panel: one card surface with a hero head (phase eyebrow, Day X of Y, target date), the shared live journey, the compact "what matters today" guidance, then a deliberate full-width Check in action zone and quiet footer links. Check in is no longer embedded in the journey's current leg.
@@ -60,7 +70,7 @@ Manual browser checks in this pass: isolated fresh cut-down intake/result/start,
 
 Remaining manual pass: 430px and desktop, physical iOS Safari, production offline restart, broader scheduled-break and zero-use journeys. Physical iOS has not been tested. Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
 
-Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.20.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.0. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

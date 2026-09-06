@@ -111,6 +111,13 @@ export function isValidStoredAttempt(value: unknown): value is StoredAttempt {
   }
   if (typeof body.calculationRecordId !== 'string' && body.calculationRecordId !== null) return false;
   if (
+    body.targetSource !== undefined &&
+    body.targetSource !== 'calculated' &&
+    body.targetSource !== 'chosen'
+  ) {
+    return false;
+  }
+  if (
     typeof body.targetDurationDays !== 'number' ||
     !Number.isInteger(body.targetDurationDays) ||
     body.targetDurationDays < 1 ||

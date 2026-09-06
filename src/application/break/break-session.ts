@@ -61,14 +61,19 @@ export function emptySessionState(): BreakSessionState {
 
 export interface NewBreakPlanInput {
   readonly id: string;
-  /** Reference to the questionnaire snapshot run this plan started from. */
-  readonly calculationRecordId: string;
+  /** Reference to the questionnaire snapshot run this plan started from.
+   * Null for a user-chosen (non-calculated) break duration. */
+  readonly calculationRecordId: string | null;
   readonly targetDurationDays: number;
+  /** 'chosen' marks a user-selected duration (no calculation behind it). */
+  readonly targetSource?: 'calculated' | 'chosen';
   readonly mode: PostBreakMode;
   /** The chosen plan start instant (now for an immediate start). */
   readonly planStart: Instant;
   readonly now: Instant;
-  /** Authoritative last-use anchor; required to open the first segment. */
+  /** Authoritative last-use anchor; required to open the first segment. For a
+   * chosen-duration plan without a calculation record the anchor is the plan
+   * start itself. */
   readonly anchor: Instant | null;
   readonly preparation?: BreakPreparation | null;
 }
@@ -101,6 +106,7 @@ export function createBreakPlan(state: BreakSessionState, input: NewBreakPlanInp
     id: input.id,
     calculationRecordId: input.calculationRecordId,
     targetDurationDays: input.targetDurationDays,
+    targetSource: input.targetSource,
     postBreakMode: input.mode,
     startedAt: input.planStart,
   });

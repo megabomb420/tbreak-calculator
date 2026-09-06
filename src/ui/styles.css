@@ -3685,3 +3685,134 @@ input[aria-invalid='true'] { border-color: var(--error); }
     inset 0 0 0 1px color-mix(in oklab, var(--accent-strong) 70%, transparent),
     0 12px 26px rgb(0 0 0 / 0.28);
 }
+
+/* ---------------------------------------------------------------------------
+   0.21.0 — Choose my break length flow + research-context note (tail).
+   Presentation only: the chosen-duration picker reuses the app's surface
+   language (lens card + stepper) and the active-Today research note is a
+   quiet editorial line between guidance and the action zone.
+--------------------------------------------------------------------------- */
+
+/* Duration picker surface: one restrained lens-style panel. */
+.break-length-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%),
+    var(--bg-card);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.14);
+}
+
+.break-length-readout {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.22em;
+  font-family: var(--font-display);
+  font-size: clamp(3.2rem, 18vw, 4.4rem);
+  line-height: 1;
+  font-weight: 520;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.break-length-unit {
+  font-family: var(--font-body);
+  font-size: clamp(0.85rem, 4vw, 1.05rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.break-length-stepper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.break-length-stepper .stepper-button {
+  min-height: 60px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  color: var(--fg);
+  font-size: 24px;
+}
+
+.break-length-stepper .stepper-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+}
+
+/* Chosen-duration confirmation hero (fits the existing result-hero rhythm). */
+.chosen-break-value {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.22em;
+  font-family: var(--font-display);
+  font-size: clamp(3.4rem, 20vw, 5rem);
+  line-height: 0.95;
+  font-weight: 520;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.chosen-break-unit {
+  font-family: var(--font-body);
+  font-size: clamp(0.85rem, 4vw, 1.05rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.chosen-break-kicker {
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chosen-break-confirm .text-back {
+  align-self: center;
+  text-align: center;
+}
+
+/* Research-context line on the active-break Today card: one quiet editorial
+   section between guidance and the action zone, no nested card. */
+.today-research-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.today-research-note .guidance-kicker {
+  margin-bottom: var(--space-1);
+}
+
+.today-research-note .body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+.today-research-note .text-link {
+  align-self: flex-start;
+  min-height: 32px;
+  font-size: var(--text-sm);
+  padding: 2px 0;
+}

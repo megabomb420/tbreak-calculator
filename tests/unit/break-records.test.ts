@@ -213,3 +213,44 @@ describe('tracking records + check-in record stores', () => {
     assert.deepEqual(createTrackingRecordsStore(storage).load()?.records, []);
   });
 });
+
+describe('chosen-duration attempt metadata', () => {
+  it('round-trips a chosen-duration attempt without a calculation record', () => {
+    const storage = createMemoryStorage();
+    const store = createBreakAttemptsStore(storage);
+    const chosen = storedAttempt({ calculationRecordId: null, targetSource: 'chosen' });
+    store.save({ ...emptyBreakAttemptsRecord(), attempts: [chosen] });
+    assert.deepEqual(store.load()?.attempts[0], chosen);
+  });
+
+  it('keeps legacy attempts (no targetSource) loadable as calculated plans', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      BREAK_ATTEMPTS_KEY,
+      JSON.stringify({
+        schemaVersion: 'break-attempts-v1',
+        attempts: [storedAttempt()],
+      }),
+    );
+    const loaded = createBreakAttemptsStore(storage).load();
+    assert.equal(loaded?.attempts.length, 1);
+    assert.equal(loaded?.attempts[0]?.targetSource, undefined);
+  });
+
+  it('rejects an unknown targetSource value', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      BREAK_ATTEMPTS_KEY,
+      JSON.stringify({
+        schemaVersion: 'break-attempts-v1',
+        attempts: [
+          storedAttempt(),
+          { ...storedAttempt({ id: 'bad-source' }), targetSource: 'favourite' },
+        ],
+      }),
+    );
+    const loaded = createBreakAttemptsStore(storage).load();
+    assert.equal(loaded?.attempts.length, 1);
+    assert.equal(loaded?.attempts[0]?.id, 'attempt-1');
+  });
+});
