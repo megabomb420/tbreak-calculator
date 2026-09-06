@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.21.1
+# Handoff — T-Break Calculator 0.21.2
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -40,6 +40,12 @@ This is an educational planning product. There is no clinical diagnosis, medical
 
 Validation: targeted unit tests for the journey presenter (span coverage for 7/28-day and open-ended paths, preview forcing, past/current/future positioning, check-in day markers) plus the affected UI suites (results, recovery-result, today-phases, break-loop, app, product-regressions, personalisation, interaction-polish, copy-safety) — 105 targeted tests passed; typecheck and production build passed. The full suite was intentionally not run for this release. Manual browser check at 390px: questionnaire → result journey preview → start break → Today live journey with saved check-in marker and target node.
 
+## Release 0.21.2 — completed scope (2026-09-06)
+
+- After today's check-in is recorded, the active-break Today card now reflects it immediately in the action zone: the primary action reads "Checked in today" with a check glyph (still tappable, so a later use can be reported or symptoms added the same day) and a quiet progress line beneath it shows days recorded so far ("N of Y days recorded"; plain "N days recorded" once past the target). The journey day marker already turned checked; this makes the completion state visible where the user just tapped. Presentation-only change on the shared active-break surface; the check-in flow, engine and lifecycle are untouched.
+
+Validation: full UI suite (156 tests, incl. a new reflection test: marker `data-checkin`, "Checked in today" state and progress line after No + Save, and re-opening the flow from the checked action) and the full unit/golden suite (556 tests) pass, plus typecheck and the production build.
+
 ## Release 0.21.1 — completed scope (2026-09-06)
 
 - Fix: a finished or ended chosen-duration break (which never creates a profile or calculation snapshot) now keeps Today in the returning state instead of collapsing back to the first-launch welcome. Today facts count any stored attempt/tracking/reduction record as data, so acknowledging a completed profile-less chosen break or ending one early lands on the no-profile surface with the attempt preserved in History.
@@ -76,7 +82,7 @@ Manual browser checks in this pass: isolated fresh cut-down intake/result/start,
 
 Remaining manual pass: physical iOS Safari has not been tested. Multi-viewport (320–1024px, landscape), production-offline reload and the scheduled/zero-use journeys have since been swept clean (0.21.x QA). Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
 
-Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.1. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.2. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
 
 ## Validation and release
 

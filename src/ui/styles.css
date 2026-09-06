@@ -3816,3 +3816,39 @@ input[aria-invalid='true'] { border-color: var(--error); }
   font-size: var(--text-sm);
   padding: 2px 0;
 }
+
+/* 0.21.2 — checked-in state for the active-Today Check in action.
+   Once today's check-in is recorded the primary action reads as done (and
+   stays tappable to add symptoms or report a use later); a quiet progress
+   line sits beneath it. Presentation only. */
+.today-live-card .cta-primary.is-checked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--ok) 26%, var(--bg-raised)),
+    color-mix(in oklab, var(--ok) 14%, var(--bg-raised)) 74%
+  );
+  color: var(--fg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--fg) 14%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--ok) 45%, transparent),
+    0 12px 26px rgb(0 0 0 / 0.24);
+}
+
+.today-live-card .cta-primary.is-checked:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--ok) 36%, var(--bg-raised)),
+    color-mix(in oklab, var(--ok) 22%, var(--bg-raised)) 74%
+  );
+}
+
+.today-actions .today-checkin-progress {
+  margin: 0;
+  text-align: center;
+  color: var(--fg-muted);
+  font-weight: 600;
+}

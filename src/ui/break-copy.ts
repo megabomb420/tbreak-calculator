@@ -155,6 +155,9 @@ export const ACTIVE_BREAK_CARD = {
   eyebrow: 'Your break',
   targetDateLabel: 'Target date',
   checkIn: 'Check in',
+  /** Shown once today's check-in is recorded; still opens the flow so a later
+   * use can be reported or symptoms added the same day. */
+  checkedToday: 'Checked in today',
   markComplete: 'Mark complete',
   endEarly: 'End break early',
   endEarlyConfirmTitle: 'End your break early?',
@@ -174,6 +177,12 @@ export const ACTIVE_BREAK_CARD = {
     extended: 'Beyond the plan',
   } as const,
 } as const;
+
+/** Quiet progress line under Check in once a day has been recorded. */
+export function checkinProgressLine(recordedDays: number, targetDays: number, withinPlan: boolean): string {
+  const days = recordedDays === 1 ? '1 day' : `${recordedDays} days`;
+  return withinPlan ? `${recordedDays} of ${targetDays} days recorded` : `${days} recorded`;
+}
 
 /** State notes for the reached / beyond-plan moments (Today active card).
  * Restrained product copy: reaching the target is not a proven full reset and

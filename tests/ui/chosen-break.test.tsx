@@ -345,3 +345,45 @@ describe('chosen-duration scheduling edge cases', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('first-launch');
   });
 });
+
+describe('active-break check-in reflection', () => {
+  it('marks the current day checked and shows progress after No + Save', () => {
+    const storage = createMemoryStorage();
+    const anchor = toInstant(AT - DAY_MS); // day 2 at AT
+    createBreakAttemptsStore(storage).save({
+      schemaVersion: 'break-attempts-v1',
+      attempts: [
+        {
+          id: 'checkin-1', status: 'active', calculationRecordId: null, targetDurationDays: 10,
+          targetSource: 'chosen', postBreakMode: 'occasional', startedAt: anchor,
+          segments: [{ startedFromLastUseAt: anchor, endedAt: null, endReason: null }],
+          postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+          preparation: null, completionAcknowledged: false, createdAt: anchor, updatedAt: anchor,
+        },
+      ],
+    });
+    renderApp(storage);
+    const cta = screen.getByTestId('checkin-cta');
+    expect(cta.textContent).toBe('Check in');
+    expect(screen.queryByTestId('checkin-progress')).toBeNull();
+
+    fireEvent.click(cta);
+    fireEvent.click(screen.getByTestId('checkin-no'));
+    fireEvent.click(screen.getByTestId('checkin-save'));
+
+    // The journey day marker is checked…
+    const day2 = screen.getByTestId('journey-day-2');
+    expect(day2.getAttribute('data-checkin')).toBe('true');
+    expect(day2.className).toContain('has-checkin');
+    // …the primary action reads as done…
+    const after = screen.getByTestId('checkin-cta');
+    expect(after.textContent).toBe('Checked in today');
+    expect(after.className).toContain('is-checked');
+    // …and progress is shown.
+    expect(screen.getByTestId('checkin-progress').textContent).toBe('1 of 10 days recorded');
+
+    // The action stays tappable (report a later use or add symptoms).
+    fireEvent.click(after);
+    expect(screen.getByTestId('checkin-flow')).toBeTruthy();
+  });
+});

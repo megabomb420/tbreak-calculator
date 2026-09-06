@@ -11,12 +11,14 @@ import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../appl
 import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
-import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, completedBreakTitle } from './break-copy.ts';
+import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
-import { DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
+import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
+import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
+import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { TodayGuidance } from './today-guidance.tsx';
 import { BreakJourney } from './break-journey.tsx';
@@ -229,6 +231,21 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ? chosen ? PLAN_STATE_NOTES.chosenExtended(view.day, view.targetDays) : PLAN_STATE_NOTES.extended(view.day, view.targetDays)
         : null;
   const anchor = currentSegmentAnchor(attempt.segments);
+  // Days with a recorded no-use check-in up to and including today, used for
+  // the quiet progress line and the "Checked in today" CTA state.
+  const recordedDays = new Set<number>();
+  let checkedToday = false;
+  if (anchor !== null) {
+    for (const row of props.live.checkins) {
+      if (row.usedThc) continue;
+      const recorded = parseSubmittedTimestamp(row.recordedAt);
+      if (recorded === null) continue;
+      const day = abstinenceDayAt(recorded, anchor);
+      if (day < 1 || day > view.day) continue;
+      recordedDays.add(day);
+      if (day === view.day) checkedToday = true;
+    }
+  }
   const journey = presentBreakJourney(
     presentBreakOutlook({
       targetDays: view.targetDays,
@@ -270,13 +287,25 @@ function ActiveBreakCard(props: TodayScreenProps) {
       />
       <BreakResearchNote day={view.day} />
       <div className="today-actions">
-        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-          {ACTIVE_BREAK_CARD.checkIn}
+        <button
+          type="button"
+          className={checkedToday ? 'cta-primary is-checked' : 'cta-primary'}
+          data-testid="checkin-cta"
+          onClick={props.onCheckIn}
+        >
+          {checkedToday ? (
+            <><CheckIcon size={18} /><span className="checkin-cta-label">{ACTIVE_BREAK_CARD.checkedToday}</span></>
+          ) : ACTIVE_BREAK_CARD.checkIn}
         </button>
         {view.atOrPastTargetDate ? (
           <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
             {ACTIVE_BREAK_CARD.markComplete}
           </button>
+        ) : null}
+        {recordedDays.size > 0 ? (
+          <p className="meta today-checkin-progress" data-testid="checkin-progress">
+            {checkinProgressLine(recordedDays.size, view.targetDays, view.day <= view.targetDays)}
+          </p>
         ) : null}
       </div>
       <div className="footer-links">
