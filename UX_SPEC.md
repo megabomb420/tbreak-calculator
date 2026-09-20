@@ -1,6 +1,6 @@
 # T-Break UX specification
 
-Version: **0.26.0**
+Version: **0.26.1**
 
 Current revision (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
@@ -829,7 +829,7 @@ Acceptance: every path in §5.1 reachable with the stated step counts; every ter
 
 ## 17. Practical daily support (0.22.0)
 
-Today prioritises what the person can do now: direct check-in with correction, optional ratings, two advice topics and one activity for the day. General phase context sits under **What to expect**. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
+Today prioritises what the person can do now: direct check-in with correction, optional ratings, two advice topics and one activity for the day. General phase context is shown in the card under **What to expect** — three short lines, always visible rather than behind a toggle. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
 
 Recent ratings outrank preferences. Every saved topic participates across days; no first-choice-only action. Advice names its basis (a dated rating, a chosen topic or an optional stage suggestion). No fresh ratings is a distinct state, not zero symptoms. A manual browser exposes all eleven topics without changing saved preferences. The same component serves chosen/calculated breaks and open-ended tracking.
 

@@ -13,12 +13,12 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
   const comparison = compareCheckins(view.currentCheckins, { breakDay: input.day });
   return (
     <section className="daily-support" data-testid="daily-support" data-window={view.window.id} aria-label="Advice for today">
-      <details className="daily-context">
-        <summary><span className="micro-label">{view.window.label} · What to expect</span></summary>
+      <section className="daily-context">
+        <p className="micro-label">{view.window.label} · What to expect</p>
         <h3 className="card-title" data-testid="guidance-headline">{view.window.headline}</h3>
         <p className="body" data-testid="guidance-context">{view.window.context}</p>
         <p className="meta daily-symptom-context">{view.window.mayNotice.join(' · ')}</p>
-      </details>
+      </section>
 
       <div className="daily-help" data-testid="guidance-help">
         <div className="daily-section-heading">

@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.26.0
+# Handoff — T-Break Calculator 0.26.1
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, expandable phase context, two relevant advice topics, one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
+Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, the current phase's context ("What to expect") always visible rather than behind a toggle, two relevant advice topics, one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -22,6 +22,13 @@ Today leads with the check-in and practical advice. Fresh symptom ratings take p
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.26.1 — the phase context stays open
+
+- **"What to expect" is no longer a disclosure.** The current phase's context — the phase label, its headline, one sentence of context and the list of what that phase can bring — is part of the card instead of sitting behind a tap. It is three short lines, and the day that needs it most is the day a toggle costs the most; the genuinely long material stays collapsed (the full journey under **Your break timeline**, the recovery outlook, the advice browser, the recorded changes, and the explanation of how suggestions are chosen). The opened state looks exactly as it did, so anyone who had it open sees no change.
+- **The owner confirmed the backup on a real iPhone.** Saving a backup file and restoring from one both work on the device, which closes the iOS gap 0.26.0 left open: the blob-URL download, the Files-app picker and download routing inside the installed PWA had only been verified in Chrome.
+
+Validation: **578 unit/domain/golden tests and 186 UI tests (764 total)** pass, plus typecheck and the production build. No test needed changing — the existing assertions read the phase headline and context by test id, and the always-visible section still renders both.
 
 ## Release 0.26.0 — your data in a file, and the outlook during a break
 
@@ -138,11 +145,13 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.26.0. This release ships the local backup, surfaces the recovery outlook during a break, fixes the carousel position defect and records the days actually abstained in a captured outcome. It does not claim the earlier whole-product review is complete.
+Resume current main after 0.26.1. This release keeps the current phase's context always visible on the Today card instead of behind a toggle, and records that the owner confirmed the backup on a real iPhone. It does not claim the earlier whole-product review is complete.
 
-Physical iOS Safari has been exercised by the owner on an iPhone 17 Pro: the app works correctly, including the one-tap check-in, Undo, the recorded-day line, the advice block and the swipeable carousel, and the owner confirmed the trimmed tab bar reads better (the measurement and the trim are in the 0.25.1 section; the remaining 34px is the device's home-indicator safe area and is intentionally left).
+Physical iOS Safari has been exercised by the owner on an iPhone 17 Pro: the app works correctly, including the one-tap check-in, Undo, the recorded-day line, the advice block and the swipeable carousel; the owner confirmed the trimmed tab bar reads better (the measurement and the trim are in the 0.25.1 section; the remaining 34px is the device's home-indicator safe area and is intentionally left); and the owner has now saved a backup and restored from one on the device, which closes the iOS gap 0.26.0 left open. Two implementation details exist for Safari's sake and should not be undone: the picker mounts its input inside the dialog, because the focus trap inerts background siblings and an inert input never receives the click, and the download anchor is attached to the document with its blob released only after 40 seconds, because Safari can still be starting a download when a synchronous revoke lands. Other iOS devices, older iOS versions and iPad layouts remain untested.
 
-The backup has since been exercised end to end in a real browser against the production build, three runs plus a re-run after the download path was hardened: a real download whose name, bytes and JSON contents were checked against the app's own visible state, the real file picker driven through the browser protocol, nothing written before the confirmation, a restore that reproduces the device's record ids and History exactly, a fresh export byte-identical apart from `exportedAt`, both failure paths rejected with the device untouched, no console errors and no horizontal overflow at 390px. Two implementation details exist for Safari's sake and should not be undone: the picker mounts its input inside the dialog, because the focus trap inerts background siblings and an inert input never receives the click, and the download anchor is attached to the document with its blob released only after 40 seconds, because Safari can still be starting a download when a synchronous revoke lands. What that run cannot cover is iOS itself — the blob-URL download, the Files-app picker and download routing inside the installed PWA are Apple-specific — so one short save-then-restore pass on the owner's iPhone is still the only way to close that gap. Other iOS devices, older iOS versions and iPad layouts remain untested.
+The backup was also exercised end to end in a real browser against the production build, three runs plus a re-run after the download path was hardened: a real download whose name, bytes and JSON contents were checked against the app's own visible state, the real file picker driven through the browser protocol, nothing written before the confirmation, a restore that reproduces the device's record ids and History exactly, a fresh export byte-identical apart from `exportedAt`, and both failure paths rejected with the device untouched — no console errors and no horizontal overflow at 390px.
+
+The phase context ("What to expect") is deliberately always visible as of 0.26.1. This reverses the 0.23.0 choice to keep it behind a toggle in order to hold the practical advice higher on the card; it was reversed because the block is three short lines and the day it matters most is the day a tap costs the most. If the card ever feels long on a small screen, this is the first thing to reconsider, and putting it back behind a disclosure is a two-line change in `src/ui/daily-support.tsx` plus the marker rules in `src/ui/styles.css`.
 
 The outcome-duration question is decided and shipped: a captured rating links the days actually abstained, not the plan's target. Nothing is pending on it.
 
@@ -150,7 +159,7 @@ The two carousel presentation defects recorded here in 0.25.1 are fixed in 0.26.
 
 Known limitation of the backup, documented rather than fixed: the restore wipes before it writes, so an I/O failure mid-write is the one case that is not atomic (a rejected file never is). One benign consequence, also documented rather than fixed: because the transient result-overlay flag is deliberately excluded from the file, a restore followed by a reload shows the "your result" overlay once — the same pre-worded state a freshly migrated device already reaches, costing no data and closing normally, and suppressing it would hide the restored plan from someone who has just moved to a new device.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.26.0. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.26.1. The deploying commit and workflow identify the release.
 
 ## Validation and release
 
