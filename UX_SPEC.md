@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.26.1**
+Version: **0.27.0**
 
-Current revision (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
+Current revision (0.27.0): advice is chosen only from the latest check-in ratings — one topic per area rated hard, no topic picker and no two-topic cap — and the phase context is always visible on the Today card. Earlier (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -19,7 +19,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 
 ### 1.2 Design principles
 
-1. **Fast to an answer.** Cut down takes two inputs after choosing the goal; the longest tolerance path is six steps including the goal. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Companion preferences are offered only after the calculation.
+1. **Fast to an answer.** Cut down takes two inputs after choosing the goal; the longest tolerance path is six steps including the goal. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Nothing else is asked after the calculation.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
 4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v3 anchor rule), Why-this-result copy, and break-outlook wording — and, in the single bounded tolerance-v3 case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years), the recommended range itself by one band; it is never a days-added formula.
@@ -89,10 +89,9 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Tabs (3):** `Today`, `Calculator`, `History`. Calculator exposes all four goals, draft resume and the latest saved use-profile result. Opening a new calculation does not end a live break.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
-- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, an expandable live journey, and quiet end-early / advice-topic actions. Users think "how is my break going," which is a Today question.
+- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, an expandable live journey, and a quiet end-early action. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
-  - companion personalisation (optional after calculation and later through **Choose advice topics**);
   - optional symptom ratings;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
@@ -110,7 +109,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Day/target hero, immediate no-use check-in with Undo, current phase context, two relevant advice guides, a daily practical activity and up to five stage-matched Reddit experience cards. All guides are available under **Help with something else**. The shared journey and research note are under **Your break timeline**. The break's own frozen **Recovery outlook** opens from a closed disclosure after that timeline. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. No THC-use log appears here. |
+| `active-break` | attempt `active` | Day/target hero, immediate no-use check-in with Undo, current phase context, one advice guide per area rated hard enough in the last check-in (two stage-relevant defaults when no rating qualifies), a daily practical activity and up to five stage-matched Reddit experience cards. All guides are available under **Help with something else**. The shared journey and research note are under **Your break timeline**. The break's own frozen **Recovery outlook** opens from a closed disclosure after that timeline. **Mark complete** appears from the target instant. Footer: **End break early**. No THC-use log appears here. |
 | `interrupted` | legacy attempt `interrupted_time_needed` | Upgrade-safe recovery surface for an older pending use report. Timing is suspended; **Confirm when** or dismiss the unconfirmed report. New releases do not create this state from active-break Today. |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -319,22 +318,6 @@ This is **not** lifetime cannabis use. The answer selects the planning target in
 
 **Vape (cart / pod / disposable)** is a product form (`ProductKind = vape`). **Vaping** remains a route. V1 does not map vapes onto concentrate intensity, potency, dose, or PK.
 
-**Companion personalisation — separate optional flow** (multi-select grouped cards)
-
-> **Where would support help?**
->
-> *Mind & mood*: **Anxiety or racing thoughts** · **Irritability or short temper** · **Low mood or feeling flat**
->
-> *Sleep*: **Sleep or winding down** · **Vivid dreams**
->
-> *Cravings & habits*: **Cravings in the moment** · **Breaking the usual routine** · **Boredom or filling idle time**
->
-> *Body*: **Appetite or eating changes** · **Stomach discomfort or nausea** · **Headaches**
->
-> Helper: "Choose any that fit. This only tailors guidance — it never changes your recommended days."
-
-This flow has its own Close/Back and no questionnaire progress UI. It stores `supportAreas[]` in `companion-personalisation-v2`, outside scientific profile and history records. Saving never recalculates. The first selected area leads Your Plan and Today guidance; every selected area stays visible as a secondary chip. An empty list means general guidance. The daily check-in remains independent.
-
 **Q2D — Test type** (single-select cards)
 
 > **Which kind of test are you asking about?**
@@ -375,7 +358,7 @@ Helper: "This only changes which notes we show you — it never changes the scie
 | abstinence | 3 | 3 | 3 |
 | detection_information | 3 | 3 | 3 |
 
-Duration (Q6) is counted only on the tolerance and abstinence routes that use it. Q4/Q5 are counted on tolerance from 4 use-days up; reduction uses only Q4 after a positive frequency answer. A 0-day tolerance-reset path remains 3 steps when optional Q3-opt is skipped and 4 when answered. Companion personalisation is not counted because it is not part of the questionnaire.
+Duration (Q6) is counted only on the tolerance and abstinence routes that use it. Q4/Q5 are counted on tolerance from 4 use-days up; reduction uses only Q4 after a positive frequency answer. A 0-day tolerance-reset path remains 3 steps when optional Q3-opt is skipped and 4 when answered.
 
 ---
 
@@ -592,7 +575,7 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 - Practical daily advice renders before the journey, which is under **Your break timeline**. See §17 for the current advice selection and content contract.
 - The break's own frozen **Recovery outlook** (§9.1) stays reachable while it runs: a closed **Recovery outlook** disclosure after **Your break timeline**, rendering the same panel as the result screen — same content, no new science. A chosen-duration plan or an open-ended tracker owns no calculation record and renders no disclosure.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
-- Quiet footer actions: **Choose advice topics**, and **End break early** (confirm dialog; neutral resulting state).
+- Quiet footer action: **End break early** (confirm dialog; neutral resulting state).
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
 
 ### 10.2 Daily check-in — one direct action
@@ -791,7 +774,7 @@ The recovery-outlook (“Recovery outlook”) content is separately versioned as
 - **R4 — Today state precedence incl. resume and detection-only (was a blocker).** Pinned in §3.2 with explicit precedence and resume-card placement rules.
 - **R5 — Result hierarchy.** Resolved: the actionable planning target leads as the hero, with the evidence range as the supporting meta line beneath it; single uncertainty sentence (§9.1).
 - **R6 — Detection elapsed-time implication.** Resolved: the personal "days since last use" line is removed from detection results (§9.6).
-- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8); companion preferences → optional post-calculation flow. Initial questionnaire is 2–6 steps (§5.4); Q4/Q5 are asked from 4 use-days under tolerance-v3.
+- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–6 steps (§5.4); Q4/Q5 are asked from 4 use-days under tolerance-v3.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
 - **R9 — "The duration question feels pointless" (0.7.0).** Resolved by the tolerance-v2 target rule (`CALCULATOR_SPEC.md` §7.3): duration now selects the planning target anchor inside the unchanged evidence range — recently established (`under_1_month`, `1_to_6_months`) → lower anchor; established (≥ 6 months) or legacy-missing → upper anchor. The range never moves and no duration-to-days formula exists. UX wiring: position-aware "Plan for N days" line, duration + target-rationale driver bullets, and a deterministic planning-context note (never a percentage). Q6 routing is unchanged.
 
@@ -829,9 +812,9 @@ Acceptance: every path in §5.1 reachable with the stated step counts; every ter
 
 ## 17. Practical daily support (0.22.0)
 
-Today prioritises what the person can do now: direct check-in with correction, optional ratings, two advice topics and one activity for the day. General phase context is shown in the card under **What to expect** — three short lines, always visible rather than behind a toggle. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
+Today prioritises what the person can do now: direct check-in with correction, optional ratings, advice topics drawn from those ratings and one activity for the day. General phase context is shown in the card under **What to expect** — three short lines, always visible rather than behind a toggle. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
 
-Recent ratings outrank preferences. Every saved topic participates across days; no first-choice-only action. Advice names its basis (a dated rating, a chosen topic or an optional stage suggestion). No fresh ratings is a distinct state, not zero symptoms. A manual browser exposes all eleven topics without changing saved preferences. The same component serves chosen/calculated breaks and open-ended tracking.
+Recent ratings are the only input to advice selection, and no stored preference exists. Every area rated 4 or harder on the oriented scale is shown, ordered by severity, and each topic names the dated rating it came from. A day whose ratings select nothing keeps two stage-relevant defaults, and an area rated as comfortable is never offered as a problem. No fresh ratings is a distinct state, not zero symptoms. A manual browser exposes all eleven topics and changes nothing. The same component serves chosen/calculated breaks and open-ended tracking.
 
 Check-in follows the direct-action contract in §10.2. Optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back/Close cancels unsaved ratings. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
 

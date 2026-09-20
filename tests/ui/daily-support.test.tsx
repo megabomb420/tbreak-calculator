@@ -23,17 +23,21 @@ function setup() {
   return { storage, app };
 }
 
+function rate(name: string, value: number): void {
+  const slider = screen.getByRole('slider', { name });
+  fireEvent.pointerDown(slider);
+  fireEvent.input(slider, { target: { value: String(value) } });
+}
+
 describe('practical Today advice', () => {
   it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
     const { storage, app } = setup();
     expect(screen.getByTestId('advice-basis').textContent).toContain('Tap How are you feeling?');
     fireEvent.click(screen.getByTestId('add-symptoms'));
-    fireEvent.click(screen.getByRole('button', { name: 'Set Sleep quality to zero' }));
-    const craving = screen.getByRole('slider', { name: 'Craving' });
-    fireEvent.pointerDown(craving);
-    fireEvent.input(craving, { target: { value: '8' } });
+    rate('Sleep quality', 2);
+    rate('Craving', 8);
     fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.getByTestId('advice-sleep').textContent).toContain('Sleep quality 0/10');
+    expect(screen.getByTestId('advice-sleep').textContent).toContain('Sleep quality 2/10');
     expect(screen.getByTestId('advice-cravings').textContent).toContain('Craving 8/10');
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.appetite).toBeNull();
     app.unmount();
@@ -41,6 +45,40 @@ describe('practical Today advice', () => {
     expect(screen.getByTestId('advice-sleep')).toBeTruthy();
     fireEvent.click(screen.getByTestId('checkin-cta'));
     expect(screen.getByTestId('advice-sleep')).toBeTruthy();
+  });
+
+  it('shows a topic for every area rated 4 or harder, without a cap of two', () => {
+    setup();
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    rate('Sleep quality', 2);
+    rate('Appetite', 1);
+    rate('Craving', 8);
+    rate('Anxiety', 7);
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
+    for (const area of ['appetite', 'sleep', 'cravings', 'anxiety']) {
+      expect(screen.getByTestId(`advice-${area}`)).toBeTruthy();
+    }
+    expect(screen.queryByTestId('advice-routine')).toBeNull();
+    expect(screen.queryByTestId('advice-boredom')).toBeNull();
+  });
+
+  it('keeps two stage-relevant defaults for a day with no ratings', () => {
+    setup();
+    expect(screen.getByTestId('advice-cravings')).toBeTruthy();
+    expect(screen.getByTestId('advice-routine')).toBeTruthy();
+    expect(screen.queryByTestId('advice-sleep')).toBeNull();
+    expect(screen.getByTestId('advice-basis').textContent).toContain('Tap How are you feeling?');
+  });
+
+  it('does not fall back to an area the user rated as comfortable', () => {
+    setup();
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    expect(screen.queryByTestId('advice-cravings')).toBeNull();
+    expect(screen.getByTestId('advice-routine')).toBeTruthy();
+    expect(screen.getByTestId('advice-boredom')).toBeTruthy();
   });
 
   it('undo survives reload, repeated taps do not duplicate, and earlier ratings remain', () => {
@@ -71,7 +109,7 @@ describe('practical Today advice', () => {
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(false);
   });
 
-  it('opens specific guides independently of saved preferences and keeps Reddit distinct from clinical sources', () => {
+  it('opens any guide without writing stored data and keeps Reddit distinct from clinical sources', () => {
     const { storage } = setup();
     const browser = screen.getByTestId('advice-browser');
     browser.setAttribute('open', '');

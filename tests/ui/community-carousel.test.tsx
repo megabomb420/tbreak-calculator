@@ -90,7 +90,6 @@ function dayFourView() {
     now: AT,
     anchor: ANCHOR,
     checkins: [],
-    supportAreas: [],
     preparation: null,
   });
 }

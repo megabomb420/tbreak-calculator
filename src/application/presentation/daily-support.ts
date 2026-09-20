@@ -1,12 +1,12 @@
 // Versioned editorial guidance, separate from every scientific calculator.
 // Ranking cutoffs and the 48-hour freshness limit are UI rules, not clinical
-// thresholds. A preference is a request for advice, never a reported symptom.
+// thresholds. Only a reported rating can raise a topic as a current problem.
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v2';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v3';
 export const SUPPORT_SOURCES = {
   withdrawal: { label: 'NSW Health · cannabis withdrawal', href: 'https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34', kind: 'Clinical guidance' },
   sleep: { label: 'NHS · sleep advice', href: 'https://www.nhs.uk/conditions/insomnia/', kind: 'General self-care' },
@@ -198,7 +198,6 @@ export interface DailySupportInput {
   readonly now: number;
   readonly anchor: number | null;
   readonly checkins: readonly DailyCheckin[];
-  readonly supportAreas: readonly SupportArea[];
   readonly preparation: BreakPreparation | null;
   readonly targetDays?: number | null;
 }
@@ -220,17 +219,15 @@ export function presentDailySupport(input: DailySupportInput) {
     return row === undefined ? [] : [{ area, label, value: row[field]!, severity: reverse ? 10 - row[field]! : row[field]!, recordedAt: row.recordedAt }];
   });
   const ranked = ratings.filter(item => item.severity >= 4).sort((a, b) => b.severity - a.severity);
-  const selections: AdviceSelection[] = ranked.slice(0, 2).map(item => ({ area: item.area, reason: `${item.label} ${item.value}/10 in your check-in`, recordedAt: item.recordedAt }));
+  const selections: AdviceSelection[] = ranked.map(item => ({ area: item.area, reason: `${item.label} ${item.value}/10 in your check-in`, recordedAt: item.recordedAt }));
   const comfortable = new Set(ratings.filter(item => item.severity < 4).map(item => item.area));
-  // Every selected preference participates; rotate the fallback between days.
-  const preferred = [...input.supportAreas];
-  const offset = preferred.length ? (day - 1) % preferred.length : 0;
-  const ordered = [...preferred.slice(offset), ...preferred.slice(0, offset)];
-  const candidates = [...ordered, practice.area, 'routine', 'boredom'] as SupportArea[];
-  for (const area of candidates) {
-    if (selections.length >= 2) break;
-    if (comfortable.has(area) || selections.some(item => item.area === area)) continue;
-    selections.push({ area, reason: preferred.includes(area) ? 'A topic you chose' : 'An option for this part of your break', recordedAt: null });
+  // Nothing rated hard enough to act on: two stage-relevant defaults.
+  if (selections.length === 0) {
+    for (const area of [practice.area, 'routine', 'boredom'] as SupportArea[]) {
+      if (selections.length >= 2) break;
+      if (comfortable.has(area) || selections.some(item => item.area === area)) continue;
+      selections.push({ area, reason: 'An option for this part of your break', recordedAt: null });
+    }
   }
   const hasSymptoms = ratings.length > 0;
   const stageCommunity = COMMUNITY_TIPS.filter(tip => tip.windows.includes(window.id));
@@ -251,7 +248,7 @@ export function presentDailySupport(input: DailySupportInput) {
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip, communityTips,
-    status: hasSymptoms ? 'Picked from your recent check-ins and topics.' : 'Tap How are you feeling? to make these tips more personal.',
+    status: hasSymptoms ? 'Picked from your recent check-ins.' : 'Tap How are you feeling? to make these tips more personal.',
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,
     plannedAlternative: replacement ? `At your usual use time, try your planned alternative: “${replacement}”.` : null,

@@ -30,7 +30,6 @@ import { presentBreakJourney } from '../application/presentation/break-journey.t
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ToleranceRecoveryOutlook } from '../domain/recovery/recovery-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
-import type { SupportArea } from '../application/questionnaire/companion.ts';
 import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
 import { PredictedResetPanel } from './predicted-reset.tsx';
 
@@ -44,7 +43,6 @@ export interface TodayLiveData {
   readonly reduction: { readonly plan: ReductionPlan; readonly state: ReductionPlanState } | null;
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
-  readonly supportAreas: readonly SupportArea[];
   /** Recovery outlook of the active break's own frozen record, when it has
    * one; drives the closed Recovery outlook disclosure on the active card. */
   readonly outlook: ToleranceRecoveryOutlook | null;
@@ -84,7 +82,6 @@ export interface TodayScreenProps {
   readonly onEndEarly: (id: string) => void;
   readonly onCancelPlanned: (id: string) => void;
   readonly onOpenTrackingDetail: () => void;
-  readonly onEditSupport: () => void;
   readonly onMarkComplete: (id: string) => void;
   readonly onAcknowledgeComplete: () => void;
   readonly onStopTracking: () => void;
@@ -308,7 +305,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         day: view.day, now: props.live.now,
         anchor,
         targetDays: view.targetDays,
-        checkins: props.live.checkins, supportAreas: props.live.supportAreas,
+        checkins: props.live.checkins,
         preparation: attempt.preparation,
       }} />
       <details className="result-disclosure daily-timeline">
@@ -328,9 +325,6 @@ function ActiveBreakCard(props: TodayScreenProps) {
         </details>
       ) : null}
       <div className="footer-links">
-        <button type="button" className="text-back" data-testid="today-edit-support" onClick={props.onEditSupport}>
-          Choose advice topics
-        </button>
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}
         </button>
@@ -446,14 +440,11 @@ function TrackingCard(props: TodayScreenProps) {
           day: tracking.view.day, now: props.live.now,
           anchor: currentSegmentAnchor(tracking.track.segments),
           targetDays: null,
-          checkins: props.live.checkins, supportAreas: props.live.supportAreas,
+          checkins: props.live.checkins,
           preparation: tracking.track.preparation,
         }} />
       ) : null}
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
-      <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
-        Choose advice topics
-      </button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (
         <ConfirmDialog

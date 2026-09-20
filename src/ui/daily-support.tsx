@@ -55,7 +55,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
 
       <details className="result-disclosure advice-browser" data-testid="advice-browser">
         <summary>Help with something else</summary>
-        <p className="meta">Open any topic when you need it. This does not change your saved preferences.</p>
+        <p className="meta">Open any topic when you need it.</p>
         <div className="advice-topic-groups">
           {SUPPORT_AREA_GROUPS.map(group => <div key={group.id}>
             <p className="micro-label">{group.label}</p>
@@ -80,7 +80,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
       </details> : null}
       <details className="result-disclosure daily-about">
         <summary>How these suggestions are chosen</summary>
-        <p className="meta">Recent ratings take priority. Other suggestions rotate through your chosen topics and practical activities for the day. Unrecorded symptoms stay unknown. The order is an app choice, not a diagnosis or a recovery score.</p>
+        <p className="meta">Your recent check-ins pick these tips, with the hardest ratings first. A day with no ratings keeps two topics for this stage of the break. Unrecorded symptoms stay unknown. The order is an app choice, not a diagnosis or a recovery score.</p>
         <p className="meta">Day-by-day activities are a practical schedule, not predictions about what your body should do. Research describes overlapping windows, and symptoms can have other causes.</p>
       </details>
     </section>

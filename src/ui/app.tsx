@@ -139,9 +139,8 @@ import {
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
-import type { CompanionPersonalisationV1, SupportArea } from '../application/questionnaire/companion.ts';
+import type { CompanionPersonalisationV1 } from '../application/questionnaire/companion.ts';
 import { createCompanionPersonalisationStore } from '../application/progress/companion-personalisation.ts';
-import { PersonalisationFlow } from './personalisation-flow.tsx';
 
 export type Flow =
   | { readonly kind: 'break-start'; /** Present when the plan length was chosen
@@ -209,7 +208,6 @@ export function App({
   /** Completed break awaiting the one-time 0-10 outcome rating after a return
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
-  const [personalisationOpen, setPersonalisationOpen] = useState(false);
   const [scienceOpen, setScienceOpen] = useState(false);
   const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
   const [scienceFromSettings, setScienceFromSettings] = useState(false);
@@ -252,11 +250,12 @@ export function App({
   const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
   const durableSnap = useMemo(() => durable.load(), [durable, factsEpoch]);
-  const companionRecord = useMemo(
+  // Nothing renders the stored support areas now; loading still migrates a
+  // legacy record forward and rewrites it, so a backup keeps a device's data.
+  useMemo(
     () => companionPreferences.loadOrMigrate(findLegacyCompanion(durableSnap)),
     [companionPreferences, durableSnap],
   );
-  const supportAreas = companionRecord.supportAreas;
   const attemptsRecord = durableSnap.attempts;
   const trackingRecord = durableSnap.tracking;
   const checkinsRecord = durableSnap.checkins;
@@ -401,7 +400,6 @@ export function App({
       companionSnapshot !== null && companionSnapshot.snapshot.kind === 'use_profile'
         ? exposureFromProfile(companionSnapshot.snapshot.profile)
         : null,
-    supportAreas,
     outlook: activeOutlook,
     checkinFacts,
   };
@@ -607,12 +605,6 @@ export function App({
     // A confirmed return to THC is when a completed break becomes ratable.
     offerOutcomeAfterReturn(usedAt);
     return true;
-  }
-
-  function saveSupportAreas(areas: readonly SupportArea[]): void {
-    companionPreferences.saveAreas(areas);
-    setPersonalisationOpen(false);
-    refresh();
   }
 
   function openTrackingDetail(): void {
@@ -1198,7 +1190,6 @@ export function App({
     applyBackup({ durable, adapter: storage }, pendingRestore.backup);
     setSession(null);
     setFlow(null);
-    setPersonalisationOpen(false);
     setScienceOpen(false);
     setOutcomeAttempt(null);
     setPendingRestore(null);
@@ -1220,7 +1211,7 @@ export function App({
         : null;
 
   const overlayOpen =
-    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || personalisationOpen || scienceOpen || outcomeAttempt !== null;
+    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null;
   const showInstallHint =
     !overlayOpen &&
     !installHintDismissed &&
@@ -1267,7 +1258,6 @@ export function App({
             onEndEarly={endEarly}
             onCancelPlanned={cancelPlanned}
             onOpenTrackingDetail={openTrackingDetail}
-            onEditSupport={() => setPersonalisationOpen(true)}
             onMarkComplete={markComplete}
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
@@ -1341,7 +1331,7 @@ export function App({
           onSkip={skipOptionalLastUse}
         />
       ) : null}
-      {resultModel !== null && flow === null && !personalisationOpen ? (
+      {resultModel !== null && flow === null ? (
         <ResultScreen
           view={resultModel}
           runningPlanNotice={!canStartPlan && (resultModel.kind === 'tolerance_result' || resultModel.kind === 'abstinence_planning' || resultModel.kind === 'baseline_low')}
@@ -1362,11 +1352,9 @@ export function App({
             resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
           }
           onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
-          supportAreas={supportAreas}
-          onEditSupport={() => setPersonalisationOpen(true)}
         />
       ) : null}
-      {flow !== null && flow.kind !== 'previous-break' && !personalisationOpen ? (
+      {flow !== null && flow.kind !== 'previous-break' ? (
         <FlowRenderer
           flow={flow}
           targetDays={flow.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0)}
@@ -1391,8 +1379,6 @@ export function App({
               ? companionSnapshot.snapshot.profile
               : null
           }
-          supportAreas={supportAreas}
-          onEditSupport={() => setPersonalisationOpen(true)}
           reductionPlan={liveReductionPlan}
           savedReductionLimits={reductionPlan}
           onStartReduction={startReductionFromProfile}
@@ -1428,13 +1414,6 @@ export function App({
           onClose={() => setOutcomeAttempt(null)}
         />
       ) : null}
-      {personalisationOpen ? (
-        <PersonalisationFlow
-          initialAreas={supportAreas}
-          onSave={saveSupportAreas}
-          onClose={() => setPersonalisationOpen(false)}
-        />
-      ) : null}
       {scienceOpen ? (
         <ScienceBasicsPanel onClose={() => { setScienceOpen(false); if (scienceFromSettings) dispatch({ type: 'open_settings' }); }} />
       ) : null}
@@ -1468,7 +1447,6 @@ export function App({
           deleteAllLocalData(storage, durable);
           setSession(null);
           setFlow(null);
-          setPersonalisationOpen(false);
           setScienceOpen(false);
           refresh();
           dispatch({ type: 'close_settings' });
@@ -1506,8 +1484,6 @@ function FlowRenderer({
   checkins,
   preparation,
   profile,
-  supportAreas,
-  onEditSupport,
   reductionPlan,
   savedReductionLimits,
   onStartReduction,
@@ -1533,8 +1509,6 @@ function FlowRenderer({
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;
-  readonly supportAreas: readonly SupportArea[];
-  readonly onEditSupport: () => void;
   readonly reductionPlan: ReductionPlan | null;
   readonly savedReductionLimits: ReductionLimits | null;
   readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
@@ -1569,7 +1543,6 @@ function FlowRenderer({
           onBack={onClose}
           onUpdatePreparation={onUpdatePreparation}
           profile={profile}
-          supportAreas={supportAreas}
         />
       ) : null;
     case 'checkin':

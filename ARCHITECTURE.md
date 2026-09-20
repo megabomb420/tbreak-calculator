@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.26.1**
+Version: **0.27.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -9,7 +9,7 @@ Current implementation additions:
 - `ui/date-control.tsx` owns shared intake/interruption date entry; pure calendar validation/bounds stay in `application/questionnaire/date-answers.ts`.
 - `ui/focus-trap.ts` coordinates the topmost dialog, keyboard focus, inert background, focus restoration and one browser-history entry per open flow stack. Transitions do not accumulate obsolete steps.
 - Shell destinations are Today, Calculator and History. Science and questionnaire/result/detail screens use the shared overlay contract.
-- `companion-personalisation-v2` remains independent of use-profile calculations. `supportAreas[]` selects practical guidance only.
+- `companion-personalisation-v2` remains independent of use-profile calculations. Nothing selects or renders its `supportAreas[]`; the record stays migratable on load and part of the backup format.
 - Numeric versions remain tolerance-v3 and tolerance-recovery-outlook-v2; legacy outlook v1 semantics are retained for old records.
 
 ## 1. Architecture objective
@@ -217,7 +217,7 @@ V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date,
 
 Flower grams and potency appear only when the user opens the nominal THC calculator. Check-in notes remain optional, local, unparsed, and user-visible.
 
-Companion personalisation is a separate optional preference flow, not intake. Its `supportAreas[]` may select or reorder reviewed deterministic guidance only. The calculation coordinator never receives this record. Check-ins continue to store only the user's current-day experience.
+Companion personalisation is a stored record with no editing flow and no reader. Its `supportAreas[]` is migrated forward on load and carried by the backup so a legacy device keeps its data, but it selects nothing. The calculation coordinator never receives this record. Check-ins continue to store only the user's current-day experience.
 
 ## 7. Calculation orchestration
 

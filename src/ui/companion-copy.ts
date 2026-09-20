@@ -98,31 +98,3 @@ export const SUPPORT_AREA_GROUPS: ReadonlyArray<{
   { id: 'habits', label: 'Cravings & habits', areas: ['cravings', 'routine', 'boredom'] },
   { id: 'body', label: 'Body', areas: ['appetite', 'nausea', 'headaches'] },
 ];
-
-/** Neutral fallback for an empty support list ("no specific focus"). */
-export const GENERAL_SUPPORT_COPY: SupportAreaCopy = {
-  label: 'No specific focus yet',
-  shortLabel: 'Start simple',
-  planLead: 'Start with regular meals, sleep timing, and one alternative to THC.',
-  todayAction: 'Keep one regular meal, a clear evening plan, and a steady bedtime.',
-  preparation: 'Identify the first time of day usually linked to THC use.',
-};
-
-export function supportAreaCopy(area: SupportArea): SupportAreaCopy {
-  return SUPPORT_AREA_COPY[area];
-}
-
-export interface SupportAreasView {
-  readonly primary: SupportAreaCopy;
-  readonly areas: readonly SupportArea[];
-}
-
-export function supportAreasView(
-  areas: readonly SupportArea[] | null | undefined,
-): SupportAreasView {
-  const list = areas ?? [];
-  return {
-    primary: list[0] === undefined ? GENERAL_SUPPORT_COPY : SUPPORT_AREA_COPY[list[0]],
-    areas: list,
-  };
-}

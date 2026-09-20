@@ -5,15 +5,32 @@ import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
 
 const NOW = Date.parse('2026-09-20T12:00:00Z');
 const DAY = 86_400_000;
-const base: DailySupportInput = { day: 4, now: NOW, anchor: NOW - 3 * DAY, checkins: [], supportAreas: [], preparation: null, targetDays: 28 };
+const base: DailySupportInput = { day: 4, now: NOW, anchor: NOW - 3 * DAY, checkins: [], preparation: null, targetDays: 28 };
 function row(patch: Partial<DailyCheckin> = {}): DailyCheckin {
   return { recordedAt: new Date(NOW).toISOString(), craving: null, sleep: null, irritability: null, anxiety: null, appetite: null, usedThc: false, usedAt: null, note: null, ...patch };
 }
 
-test('fresh sleep and appetite difficulty outrank saved topics; scale direction is respected', () => {
-  const view = presentDailySupport({ ...base, supportAreas: ['routine', 'boredom'], checkins: [row({ sleep: 1, appetite: 2, craving: 0, anxiety: 1 })] });
+test('fresh sleep and appetite difficulty drive the advice list; scale direction is respected', () => {
+  const view = presentDailySupport({ ...base, checkins: [row({ sleep: 1, appetite: 2, craving: 0, anxiety: 1 })] });
   assert.deepEqual(view.selections.map(item => item.area), ['sleep', 'appetite']);
   assert.match(view.selections[0]!.reason, /Sleep quality 1\/10/);
+});
+test('four hard ratings produce four advice topics instead of two, ordered by severity', () => {
+  const view = presentDailySupport({ ...base, checkins: [row({ craving: 8, sleep: 2, anxiety: 7, appetite: 1 })] });
+  assert.deepEqual(view.selections.map(item => item.area), ['appetite', 'sleep', 'cravings', 'anxiety']);
+  assert.ok(view.selections.every(item => item.recordedAt !== null));
+  assert.match(view.selections[0]!.reason, /Appetite 1\/10 in your check-in/);
+});
+test('a day with no ratings keeps two stage-relevant defaults', () => {
+  const view = presentDailySupport({ ...base });
+  assert.deepEqual(view.selections.map(item => item.area), ['cravings', 'routine']);
+  assert.ok(view.selections.every(item => item.recordedAt === null));
+  assert.equal(view.status, 'Tap How are you feeling? to make these tips more personal.');
+});
+test('a comfortable rating keeps its area out of the default pair', () => {
+  const view = presentDailySupport({ ...base, checkins: [row({ craving: 0 })] });
+  assert.deepEqual(view.selections.map(item => item.area), ['routine', 'boredom']);
+  assert.equal(view.status, 'Picked from your recent check-ins.');
 });
 test('missing fields and a subsequent no-use tap do not erase rated symptoms or create zero scores', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ recordedAt: new Date(NOW - 1000).toISOString(), anxiety: 8 }), row()] });
@@ -21,7 +38,7 @@ test('missing fields and a subsequent no-use tap do not erase rated symptoms or 
   assert.equal(view.selections.filter(item => item.recordedAt !== null).length, 1);
 });
 test('a later rating at the same timestamp wins and a zero score is a real recorded value', () => {
-  const view = presentDailySupport({ ...base, supportAreas: ['anxiety'], checkins: [row({ anxiety: 10 }), row({ anxiety: 0 })] });
+  const view = presentDailySupport({ ...base, checkins: [row({ anxiety: 10 }), row({ anxiety: 0 })] });
   assert.ok(!view.selections.some(item => item.area === 'anxiety'));
 });
 test('old, future, invalid and pre-segment records never select current symptom advice', () => {
@@ -35,16 +52,8 @@ test('old, future, invalid and pre-segment records never select current symptom 
   const stale = presentDailySupport({ ...base, checkins: [row({ recordedAt: new Date(NOW - 2 * DAY).toISOString(), sleep: 0 })] });
   assert.ok(stale.selections.every(item => item.recordedAt === null));
 });
-test('every preference participates across days, while current problems still take priority', () => {
-  const seen = new Set<string>();
-  for (let day = 1; day <= 3; day++) {
-    const view = presentDailySupport({ ...base, day, supportAreas: ['sleep', 'cravings', 'anxiety'] });
-    view.selections.forEach(item => seen.add(item.area));
-  }
-  assert.deepEqual([...seen].sort(), ['anxiety', 'cravings', 'sleep']);
-});
 test('comfortable ratings are not presented as symptom problems and do not imply tolerance recovery', () => {
-  const view = presentDailySupport({ ...base, supportAreas: ['sleep', 'cravings'], checkins: [row({ craving: 0, sleep: 10, irritability: 0, anxiety: 0, appetite: 10 })] });
+  const view = presentDailySupport({ ...base, checkins: [row({ craving: 0, sleep: 10, irritability: 0, anxiety: 0, appetite: 10 })] });
   assert.equal(view.allComfortable, true);
   assert.deepEqual(view.selections.map(item => item.area), ['routine', 'boredom']);
 });
@@ -75,7 +84,6 @@ test('a stage-matched experience related to the current issue leads the carousel
   const view = presentDailySupport({
     ...base,
     day: 10,
-    supportAreas: ['sleep'],
     checkins: [row({ sleep: 1 })],
   });
   assert.equal(view.window.id, 'days_7_14');

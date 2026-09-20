@@ -13,7 +13,6 @@ import { DailySupport } from './daily-support.tsx';
 import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
-import type { SupportArea } from '../application/questionnaire/companion.ts';
 
 export interface TrackingDetailProps {
   readonly track: StoredTrack;
@@ -22,7 +21,6 @@ export interface TrackingDetailProps {
   readonly onBack: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly profile: UseProfileInput | null;
-  readonly supportAreas?: readonly SupportArea[];
 }
 
 export function TrackingDetail(props: TrackingDetailProps) {
@@ -80,7 +78,7 @@ export function TrackingDetail(props: TrackingDetailProps) {
           </p>
           {dayView !== null ? <DailySupport input={{
             day: dayView.day, now: props.now, anchor: currentSegmentAnchor(track.segments),
-            checkins: props.checkins, supportAreas: props.supportAreas ?? [], preparation: track.preparation,
+            checkins: props.checkins, preparation: track.preparation,
           }} /> : null}
           <details className="result-disclosure timeline-disclosure">
             <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />

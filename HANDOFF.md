@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.26.1
+# Handoff — T-Break Calculator 0.27.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, the current phase's context ("What to expect") always visible rather than behind a toggle, two relevant advice topics, one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
+Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, the current phase's context ("What to expect") always visible rather than behind a toggle, one advice topic for every area the ratings flag as hard (with two stage-relevant defaults when nothing is rated), one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. The quiet footer action is **End break early**, and the advice browser opens any guide without storing a preference. Scheduled cancellation, completed-break return plans and History keep their existing roles.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -15,13 +15,21 @@ Saved calculation numbers are immutable. `saved-result.ts` advances only withdra
 
 One shared dialog coordinator owns focus, background isolation, Escape and browser Back. Only the top dialog closes. References return to their parent; closed disclosures do not receive keyboard focus; destructive confirmations initially focus Cancel. Previous-break edits retain outcome linkage and Save & add another resets the form.
 
-Today leads with the check-in and practical advice. Fresh symptom ratings take priority; selected advice topics participate across days. A manual topic browser gives access to all eleven guides. Preferences and ratings select educational content only and never alter scientific calculations.
+Today leads with the check-in and practical advice. The advice list is chosen only from the latest symptom ratings: every area rated hard enough is shown, hardest first, each naming its own reading, and a day with no ratings keeps two stage-relevant defaults. There are no stored preferences and no topic picker to configure; a manual browser still opens any of the eleven guides. Ratings select educational content only and never alter scientific calculations.
 
 ## Evidence decisions
 
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.27.0 — advice follows your check-ins, not a settings screen
+
+- **The topic picker is gone.** "Choose advice topics" and the whole personalisation flow are removed — from the Today cards, the result screen and the plan guide — together with the copy and the CSS that only fed them. Advice is no longer something to configure.
+- **The two-topic cap is gone.** The "What matters today" list is now exactly what the latest ratings flag: every area at the oriented threshold or harder, hardest first, each naming its own reading ("Sleep quality 2/10 in your check-in"). The five rating fields bound it at five. A day whose ratings flag nothing — no ratings yet, or only comfortable ones — keeps two stage-relevant defaults, and a comfortably rated area is still never offered as a problem. The rating rules themselves are untouched: latest non-null value per field, within 48 hours, inside the current segment, later "No THC" taps never erasing a rating, sleep and appetite inverted.
+- **What this deliberately drops.** The picker was how someone steered advice without rating anything, and the cap kept the card short. Both were reversed because the ratings are the honest input and the cap was hiding advice the user had in fact asked for. The stored `companion-personalisation.v2` record is kept — schema, migration and its place among the backup's ten families untouched — but nothing reads it for selection any more, so an existing device's saved topics are simply no longer consulted. The advice browser ("Help with something else") is unchanged: it opens any of the eleven guides and stores nothing. The content layer is bumped to **`daily-support-v3`** under the §14 change-control rule.
+
+Validation: **580 unit/domain/golden tests and 186 UI tests (766 total)** pass, plus typecheck and the production build. New coverage: four hard ratings produce four advice topics in severity order (the old cap produced two), an unrated day keeps two stage-relevant defaults, a comfortable rating keeps its area out of that pair, and the UI suite drives the real check-in form to the same result. Verified in a real browser at 390px: two defaults before rating, then four topics after rating sleep 2 / craving 8 / anxiety 7 / irritability 6, each with its own reason line, no horizontal overflow and no console error.
 
 ## Release 0.26.1 — the phase context stays open
 
@@ -145,13 +153,15 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.26.1. This release keeps the current phase's context always visible on the Today card instead of behind a toggle, and records that the owner confirmed the backup on a real iPhone. It does not claim the earlier whole-product review is complete.
+Resume current main after 0.27.0. This release removes the advice-topic picker and the two-topic cap, so the "What matters today" list follows the check-in ratings alone; it keeps the phase context always visible on the Today card, and it records that the owner confirmed the backup on a real iPhone. It does not claim the earlier whole-product review is complete.
 
 Physical iOS Safari has been exercised by the owner on an iPhone 17 Pro: the app works correctly, including the one-tap check-in, Undo, the recorded-day line, the advice block and the swipeable carousel; the owner confirmed the trimmed tab bar reads better (the measurement and the trim are in the 0.25.1 section; the remaining 34px is the device's home-indicator safe area and is intentionally left); and the owner has now saved a backup and restored from one on the device, which closes the iOS gap 0.26.0 left open. Two implementation details exist for Safari's sake and should not be undone: the picker mounts its input inside the dialog, because the focus trap inerts background siblings and an inert input never receives the click, and the download anchor is attached to the document with its blob released only after 40 seconds, because Safari can still be starting a download when a synchronous revoke lands. Other iOS devices, older iOS versions and iPad layouts remain untested.
 
 The backup was also exercised end to end in a real browser against the production build, three runs plus a re-run after the download path was hardened: a real download whose name, bytes and JSON contents were checked against the app's own visible state, the real file picker driven through the browser protocol, nothing written before the confirmation, a restore that reproduces the device's record ids and History exactly, a fresh export byte-identical apart from `exportedAt`, and both failure paths rejected with the device untouched — no console errors and no horizontal overflow at 390px.
 
-The phase context ("What to expect") is deliberately always visible as of 0.26.1. This reverses the 0.23.0 choice to keep it behind a toggle in order to hold the practical advice higher on the card; it was reversed because the block is three short lines and the day it matters most is the day a tap costs the most. If the card ever feels long on a small screen, this is the first thing to reconsider, and putting it back behind a disclosure is a two-line change in `src/ui/daily-support.tsx` plus the marker rules in `src/ui/styles.css`.
+As of 0.27.0 the Today card is deliberately generous in two places, and both are the first things to reconsider if it ever feels too long on a small screen. The phase context ("What to expect") is always visible, which reverses the 0.23.0 choice to keep it behind a toggle: the block is three short lines, and the day it matters most is the day a tap costs the most. The advice list is uncapped, showing one topic per hard rating instead of two, which reverses the 0.22.0 two-topic rule: the cap was hiding advice the user's own ratings had asked for. Capping the list again is a one-line change in `src/application/presentation/daily-support.ts`; putting the phase context back behind a disclosure means restoring the `<details>` in `src/ui/daily-support.tsx` and its marker rules in `src/ui/styles.css`.
+
+The advice picker is gone and should not come back without a deliberate decision: the stored `companion-personalisation.v2` record is still migrated, still exported by a backup and still validated, but nothing consults it, so a device that has saved topics will not see them used.
 
 The outcome-duration question is decided and shipped: a captured rating links the days actually abstained, not the plan's target. Nothing is pending on it.
 
@@ -159,7 +169,7 @@ The two carousel presentation defects recorded here in 0.25.1 are fixed in 0.26.
 
 Known limitation of the backup, documented rather than fixed: the restore wipes before it writes, so an I/O failure mid-write is the one case that is not atomic (a rejected file never is). One benign consequence, also documented rather than fixed: because the transient result-overlay flag is deliberately excluded from the file, a restore followed by a reload shows the "your result" overlay once — the same pre-worded state a freshly migrated device already reaches, costing no data and closing normally, and suppressing it would hide the restored plan from someone who has just moved to a new device.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.26.1. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.27.0. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

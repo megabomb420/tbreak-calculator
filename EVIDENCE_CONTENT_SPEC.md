@@ -1,6 +1,6 @@
 # Evidence content specification
 
-App version: **0.26.1**
+App version: **0.27.0**
 Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v2` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
@@ -205,16 +205,16 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outloo
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v3` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support v2 (0.25.1)
+## 15. Daily support v3 (0.27.0)
 
 `src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
 The practical layer contains eleven symptom/habit guides, 28 original daily activity prompts and a maintenance rotation. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
 
-Selection uses the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only. Missing values remain unknown. Subsequent unrated check-ins do not erase ratings; tied timestamps favour later entries. Up to two topics are selected, with remaining slots rotating through saved preferences then stage-relevant practical defaults. Recent comfortable ratings suppress the corresponding problem suggestion. Every topic remains manually accessible.
+Selection uses the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only. Missing values remain unknown. Subsequent unrated check-ins do not erase ratings; tied timestamps favour later entries. Every rated area at that oriented score or above is selected, ordered by severity, and each one names its own reading; the five rating fields bound the list at five. A day whose ratings select nothing falls back to two stage-relevant practical defaults (the day's practice area, then routine, then boredom). Recent comfortable ratings suppress the corresponding problem suggestion, including in that fallback. Every topic remains manually accessible, and no stored preference takes part in selection.
 
 ### Community experiences
 
