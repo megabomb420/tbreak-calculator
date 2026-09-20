@@ -210,7 +210,7 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   min-height: var(--tab-bar-height);
-  padding: 6px 12px calc(8px + var(--chrome-bleed));
+  padding: 4px 12px calc(4px + var(--chrome-bleed));
   background: color-mix(in oklab, var(--bg-mist) 88%, transparent);
   border-top: 1px solid var(--hairline);
   backdrop-filter: blur(16px);
@@ -218,7 +218,7 @@ summary:focus-visible {
 
 .tab-button {
   min-height: 44px;
-  height: 52px;
+  height: 48px;
   border: 0;
   background: transparent;
   color: var(--fg-faint);
