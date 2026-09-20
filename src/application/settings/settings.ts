@@ -11,7 +11,7 @@ import {
   type DurablePersistence,
 } from '../persistence/durable.ts';
 
-export const APP_VERSION = '0.25.1';
+export const APP_VERSION = '0.26.0';
 
 /**
  * PWA update freshness for Settings. `current` is only ever produced by a
@@ -20,7 +20,13 @@ export const APP_VERSION = '0.25.1';
  */
 export type PwaUpdateStatus = 'checking' | 'current' | 'available' | 'offline' | 'unavailable';
 
-export const SETTINGS_MENU = ['install-help', 'offline-note', 'app-info', 'delete-everything'] as const;
+export const SETTINGS_MENU = [
+  'install-help',
+  'offline-note',
+  'app-info',
+  'your-data',
+  'delete-everything',
+] as const;
 export type SettingsMenuId = (typeof SETTINGS_MENU)[number];
 
 export { LOCAL_DATA_KEYS };

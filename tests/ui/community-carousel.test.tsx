@@ -185,4 +185,35 @@ describe('community carousel', () => {
     expect(counterOf(carousel)).toBe(`2 / ${total}`);
     expect(slidesOf(carousel)[1]?.hasAttribute('inert')).toBe(false);
   });
+
+  it('keeps the same account visible when the ranking changes under it', () => {
+    const view = dayFourView();
+    const tips = view.communityTips;
+    const last = tips.at(-1);
+    if (last === undefined || tips.length < 2) throw new Error('need at least two stage cards');
+    const { rerender } = render(<CommunityCarousel tips={tips} initialId={view.communityTip.id} />);
+    const carousel = screen.getByTestId('community-tip');
+    const track = makeTrackScrollable(carousel);
+
+    function visibleTitle(): string {
+      return slidesOf(carousel).find((slide) => !slide.hasAttribute('inert'))?.querySelector('h4')?.textContent ?? '';
+    }
+
+    fireEvent.click(arrow(carousel, 'Next experience'));
+    const watched = visibleTitle();
+    expect(watched).not.toBe('');
+
+    // Saving a check-in or choosing topics re-ranks the same accounts. The card
+    // the reader is looking at must stay put, and the counter follow it.
+    const reordered = [last, ...tips.slice(0, -1)];
+    rerender(<CommunityCarousel tips={reordered} initialId={view.communityTip.id} />);
+
+    const visible = slidesOf(carousel).filter((slide) => !slide.hasAttribute('inert'));
+    expect(visible).toHaveLength(1);
+    expect(visible[0]?.querySelector('h4')?.textContent).toBe(watched);
+    const movedTo = reordered.findIndex((tip) => tip.title === watched);
+    expect(movedTo).toBeGreaterThan(-1);
+    expect(counterOf(carousel)).toBe(`${movedTo + 1} / ${reordered.length}`);
+    expect(track.scrollLeft).toBe(movedTo * 320);
+  });
 });

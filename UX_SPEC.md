@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.25.1**
+Version: **0.26.0**
 
-Current revision (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
+Current revision (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -110,7 +110,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Day/target hero, immediate no-use check-in with Undo, current phase context, two relevant advice guides, a daily practical activity and up to five stage-matched Reddit experience cards. All guides are available under **Help with something else**. The shared journey and research note are under **Your break timeline**. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. No THC-use log appears here. |
+| `active-break` | attempt `active` | Day/target hero, immediate no-use check-in with Undo, current phase context, two relevant advice guides, a daily practical activity and up to five stage-matched Reddit experience cards. All guides are available under **Help with something else**. The shared journey and research note are under **Your break timeline**. The break's own frozen **Recovery outlook** opens from a closed disclosure after that timeline. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. No THC-use log appears here. |
 | `interrupted` | legacy attempt `interrupted_time_needed` | Upgrade-safe recovery surface for an older pending use report. Timing is suspended; **Confirm when** or dismiss the unconfirmed report. New releases do not create this state from active-break Today. |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -590,6 +590,7 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 - Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
 - The live break journey (§9.7) is the running version of the result preview: Start → evidence phases → Target, with past-day check-in markers, the current leg marked "You are here", and future legs kept as expectations. Each leg's "may notice" / "can help" expectations sit behind its disclosure.
 - Practical daily advice renders before the journey, which is under **Your break timeline**. See §17 for the current advice selection and content contract.
+- The break's own frozen **Recovery outlook** (§9.1) stays reachable while it runs: a closed **Recovery outlook** disclosure after **Your break timeline**, rendering the same panel as the result screen — same content, no new science. A chosen-duration plan or an open-ended tracker owns no calculation record and renders no disclosure.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
 - Quiet footer actions: **Choose advice topics**, and **End break early** (confirm dialog; neutral resulting state).
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
@@ -839,7 +840,7 @@ A manually controlled carousel draws from 17 reviewed paraphrase cards across 12
 
 ## 18. PWA interaction polish (0.23.0)
 
-The Reddit carousel supports native horizontal touch scrolling with scroll snapping, previous/next buttons, position controls and arrow keys. It never auto-advances while the user reads. Only the visible slide has interactive links; position is announced and preserved when resizing. Content and labels remain available offline, with external sources opening only on request.
+The Reddit carousel supports native horizontal touch scrolling with scroll snapping, previous/next buttons, position controls and arrow keys. It never auto-advances while the user reads. Only the visible slide has interactive links; position is announced and preserved when resizing. The visible card is tracked by its identity, so a re-ranked list (a check-in save or a topic change) never swaps the card under the reader, and the arrows move the card immediately rather than waiting for a scroll event. Content and labels remain available offline, with external sources opening only on request.
 
 Touch feedback is brief and never delays persistence or navigation: pressed states, a check-mark confirmation, and short sheet/guide transitions. `prefers-reduced-motion` disables decorative motion and smooth scrolling. Existing safe-area, keyboard, dialog Back/Escape and offline storage contracts stay in place. The helper that finds today's latest check-in excludes future, invalid and pre-segment entries and uses the established abstinence-day boundaries.
 
@@ -849,3 +850,12 @@ Touch feedback is brief and never delays persistence or navigation: pressed stat
 The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits.
 
 The visual system is deliberately discreet: ink navy, slate blue and warm sand; no weed green, cannabis leaf, smoke or dispensary signalling. The installed icon stays a neutral pause/interval mark. Soft gradients, hairlines, small press states, sheet entrance and carousel movement provide app-like depth without becoming flashy. `prefers-reduced-motion` removes decorative movement. Clinical/source material remains behind relevant disclosures; the daily surface speaks in direct everyday language.
+
+## 20. Local backup (0.26.0)
+
+Settings gains a **Your data** section between About and Delete everything, with **Save a backup file** and **Restore from a backup file**; its helper states that the file is not encrypted.
+
+- **Save a backup file** downloads `tbreak-backup-YYYY-MM-DD.json` (the UTC export date): pretty-printed JSON with the envelope `{ format: 'tbreak-backup', formatVersion: 1, appVersion, exportedAt, data }`. `data` carries the stored record families — saved answers, saved results, break attempts, tracking runs, check-ins, past breaks, cutting-down plans, saved limits, break ratings, support areas — each exactly as the app stores it. The unfinished questionnaire draft and the transient result-overlay flag are not in the file. A failed save shows a short error line.
+- **Restore from a backup file** opens the file picker and validates every record family before anything is written: a file that is not a T-Break backup, was written by another format version, or holds an unreadable family is refused with a "nothing was changed" line, and the device is untouched. A valid file opens a danger-styled confirmation that names the file, lists the record count per family, and states that the current data cannot be brought back. Confirming replaces everything on the device (families the file omits end up empty), closes any open flow and refreshes the displayed data; cancelling, or closing Settings with the confirmation pending, changes nothing and discards the chosen file.
+
+The outcome line under the actions names the file that was saved or restored, or the refusal reason.

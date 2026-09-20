@@ -3806,6 +3806,12 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .community-tip .meta { margin: 0 0 10px; }
 .daily-support .result-disclosure, .today-live-card > .daily-timeline { margin: 0; }
 .daily-timeline .journey { margin-top: 18px; }
+.today-live-card > .today-outlook { margin: 0; }
+.today-live-card > .today-outlook .reset-panel { margin-top: 18px; }
+/* The panel nests the evidence disclosure; the outer one's marker stays on the
+   outer summary so the nested toggle keeps its own +/– state. */
+.today-live-card > .today-outlook .guidance-why > summary::after { content: '+'; }
+.today-live-card > .today-outlook .guidance-why[open] > summary::after { content: '–'; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
 .symptom-description { margin: 6px 0 8px; line-height: 1.5; }
 .symptom-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }

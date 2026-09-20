@@ -5,6 +5,8 @@ import { useFocusTrap } from './focus-trap.ts';
 export interface ConfirmDialogProps {
   readonly title: string;
   readonly body: string;
+  /** Optional detail lines under the body (e.g. what a restore file holds). */
+  readonly details?: readonly string[];
   readonly action: string;
   readonly danger?: boolean;
   readonly actionTestId?: string;
@@ -12,7 +14,7 @@ export interface ConfirmDialogProps {
   readonly onCancel: () => void;
 }
 
-export function ConfirmDialog({ title, body, action, danger = true, onConfirm, onCancel, actionTestId = 'confirm-dialog-action' }: ConfirmDialogProps) {
+export function ConfirmDialog({ title, body, details, action, danger = true, onConfirm, onCancel, actionTestId = 'confirm-dialog-action' }: ConfirmDialogProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onCancel);
   const titleId = 'confirm-dialog-title';
@@ -25,6 +27,13 @@ export function ConfirmDialog({ title, body, action, danger = true, onConfirm, o
           {title}
         </h2>
         <p className="body">{body}</p>
+        {details !== undefined && details.length > 0 ? (
+          <ul className="settings-steps" data-testid="confirm-dialog-details">
+            {details.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
         <div className="sheet-actions">
           <button
             type="button"

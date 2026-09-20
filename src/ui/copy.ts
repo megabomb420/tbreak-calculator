@@ -2,6 +2,8 @@
 // UX_SPEC §14 and MUST NOT be invented here. First-launch and shell strings
 // are taken from UX_SPEC §3; break-loop copy lives in `break-copy.ts`.
 
+import type { BackupCount, BackupError, BackupStoreKey } from '../application/backup/backup.ts';
+
 export const APP_NAME = 'T-Break Calculator';
 export const APP_SHORT_NAME = 'T-Break';
 
@@ -54,10 +56,61 @@ export const SETTINGS = {
   updateOffline: 'Update status unavailable offline',
   updateUnavailable: 'Update status unavailable',
   updateNow: 'Update now',
+  backupTitle: 'Your data',
+  backupHint: 'Save a copy of everything T-Break has stored on this device, or put a saved copy back. The file is not encrypted, so keep it somewhere private.',
+  backupExport: 'Save a backup file',
+  backupRestore: 'Restore from a backup file',
+  backupExportDone: (file: string) => `Saved ${file} to your downloads.`,
+  backupRestoreDone: (file: string) => `Restored ${file}.`,
+  backupExportFailed: "This device couldn't save the file.",
+  backupConfirmTitle: (file: string) => `Replace your data with ${file}?`,
+  backupConfirmBody:
+    'The file replaces everything T-Break has stored on this device, including an unfinished calculation. What is here now cannot be brought back. It holds:',
+  backupConfirmAction: 'Replace my data',
+  backupErrorUnreadable: "That file couldn't be read, so nothing was changed.",
+  backupErrorFormat: "That file isn't a T-Break backup, so nothing was changed.",
+  backupErrorFormatVersion: 'That backup was made by another version of T-Break, so nothing was changed.',
+  backupErrorNewerFormat: 'That backup was made by a newer version of T-Break. Update the app, then try again.',
+  backupErrorData: 'That backup file has nothing in it, so nothing was changed.',
   deleteTitle: 'Delete everything',
   deleteHint: 'Hold for 3 seconds to confirm. This removes all T-Break data stored on this device.',
   deleteHoldLabel: 'Hold to delete everything',
 } as const;
+
+/** Plain names for each backed-up record family, used in the restore list. */
+export const BACKUP_STORE_LABELS = {
+  snapshot: 'Saved answers',
+  calculations: 'Saved results',
+  attempts: 'Break attempts',
+  tracking: 'Tracking runs',
+  checkins: 'Check-ins',
+  previousBreaks: 'Past breaks',
+  reductionRecords: 'Cutting-down plans',
+  reductionPlan: 'Saved limits',
+  outcomeMarks: 'Break ratings',
+  companionPersonalisation: 'Support areas',
+} satisfies Record<BackupStoreKey, string>;
+
+export function backupCountLines(counts: readonly BackupCount[]): readonly string[] {
+  return counts.map(({ store, count }) => `${BACKUP_STORE_LABELS[store]}: ${count}`);
+}
+
+export function backupErrorMessage(error: BackupError): string {
+  switch (error.kind) {
+    case 'unreadable':
+      return SETTINGS.backupErrorUnreadable;
+    case 'format':
+      return SETTINGS.backupErrorFormat;
+    case 'format_version':
+      return SETTINGS.backupErrorFormatVersion;
+    case 'newer_format':
+      return SETTINGS.backupErrorNewerFormat;
+    case 'data':
+      return SETTINGS.backupErrorData;
+    case 'store_invalid':
+      return `That file's ${BACKUP_STORE_LABELS[error.store].toLowerCase()} data couldn't be read, so nothing was changed.`;
+  }
+}
 
 export const OPEN_SETTINGS = 'Settings';
 

@@ -164,6 +164,34 @@ describe('outcome capture prompt', () => {
     expect(previous[0]?.endedAt).toBe(new Date(AT).toISOString());
   });
 
+  it('links the days actually abstained, not the plan target, when a break ran past its target', () => {
+    const storage = createMemoryStorage();
+    const DAY = 86_400_000;
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    // A 21-day plan whose segments show 25 days of abstinence: the outcome
+    // describes those 25 days, so that is the number history must remember.
+    seedAttempt(
+      storage,
+      completedAttempt({
+        targetDurationDays: 21,
+        startedAt: toInstant(AT - 25 * DAY),
+        segments: [{ startedFromLastUseAt: toInstant(AT - 25 * DAY), endedAt: AT, endReason: 'completed' }],
+        updatedAt: AT,
+      }),
+    );
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('acknowledge-complete'));
+    logFlowerUse();
+    fireEvent.input(screen.getByTestId('outcome-capture-score'), { target: { value: '7' } });
+    fireEvent.click(screen.getByTestId('outcome-capture-save'));
+
+    const previous = createPreviousBreaksStore(storage).load().records;
+    expect(previous).toHaveLength(1);
+    expect(previous[0]?.durationDays).toBe(25);
+    expect(previous[0]?.endedAt).toBe(new Date(AT).toISOString());
+    expect(previous[0]?.sourceAttemptId).toBe('attempt-1');
+  });
+
   it('skip persists a skipped mark and the prompt never returns', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());

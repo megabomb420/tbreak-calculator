@@ -5,11 +5,25 @@ import {
   type PwaUpdateStatus,
   type SettingsMenuId,
 } from '../application/settings/settings.ts';
-import { SETTINGS } from './copy.ts';
+import type { BackupCount, BackupError } from '../application/backup/backup.ts';
+import { backupCountLines, backupErrorMessage, SETTINGS } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
+import { ConfirmDialog } from './confirm-dialog.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
 const HOLD_MS = 3000;
+
+/** Outcome of the last export or restore attempt, shown under "Your data". */
+export type BackupStatus =
+  | { readonly kind: 'exported' | 'restored'; readonly fileName: string }
+  | { readonly kind: 'export_failed' }
+  | { readonly kind: 'rejected'; readonly error: BackupError };
+
+/** A parsed backup file waiting for the destructive confirmation. */
+export interface PendingRestore {
+  readonly fileName: string;
+  readonly counts: readonly BackupCount[];
+}
 
 export interface SettingsModalProps {
   readonly open: boolean;
@@ -22,6 +36,14 @@ export interface SettingsModalProps {
   readonly onOpenScience?: () => void;
   readonly onClose: () => void;
   readonly onDeleteEverything: () => void;
+  /** Saves every stored record to a downloaded file. */
+  readonly onExportData: () => void;
+  /** Opens the file picker and validates the chosen backup. */
+  readonly onRestoreData: () => void;
+  readonly backupStatus?: BackupStatus | null;
+  readonly pendingRestore?: PendingRestore | null;
+  readonly onConfirmRestore: () => void;
+  readonly onCancelRestore: () => void;
 }
 
 export function SettingsModal({
@@ -32,6 +54,12 @@ export function SettingsModal({
   onOpenScience,
   onClose,
   onDeleteEverything,
+  onExportData,
+  onRestoreData,
+  backupStatus,
+  pendingRestore,
+  onConfirmRestore,
+  onCancelRestore,
 }: SettingsModalProps) {
   const titleId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,6 +108,12 @@ export function SettingsModal({
               onUpdateNow={id === 'app-info' ? onUpdateNow : undefined}
               onOpenScience={id === 'app-info' ? onOpenScience : undefined}
               onDeleteEverything={onDeleteEverything}
+              onExportData={onExportData}
+              onRestoreData={onRestoreData}
+              backupStatus={backupStatus}
+              pendingRestore={pendingRestore}
+              onConfirmRestore={onConfirmRestore}
+              onCancelRestore={onCancelRestore}
             />
           ))}
         </div>
@@ -95,6 +129,12 @@ function SettingsEntry({
   onUpdateNow,
   onOpenScience,
   onDeleteEverything,
+  onExportData,
+  onRestoreData,
+  backupStatus,
+  pendingRestore,
+  onConfirmRestore,
+  onCancelRestore,
 }: {
   readonly id: SettingsMenuId;
   readonly persistent: boolean;
@@ -102,6 +142,12 @@ function SettingsEntry({
   readonly onUpdateNow?: () => void;
   readonly onOpenScience?: () => void;
   readonly onDeleteEverything: () => void;
+  readonly onExportData: () => void;
+  readonly onRestoreData: () => void;
+  readonly backupStatus?: BackupStatus | null;
+  readonly pendingRestore?: PendingRestore | null;
+  readonly onConfirmRestore: () => void;
+  readonly onCancelRestore: () => void;
 }) {
   switch (id) {
     case 'install-help':
@@ -136,6 +182,37 @@ function SettingsEntry({
           {updateStatus !== undefined ? <UpdateStatus status={updateStatus} onUpdateNow={onUpdateNow} /> : null}
         </section>
       );
+    case 'your-data':
+      return (
+        <section className="settings-entry" data-settings-entry="your-data">
+          <h3 className="settings-entry-title">{SETTINGS.backupTitle}</h3>
+          <p className="meta">{SETTINGS.backupHint}</p>
+          <div className="cta-row">
+            <button type="button" className="cta-secondary" data-testid="backup-export" onClick={onExportData}>
+              {SETTINGS.backupExport}
+            </button>
+            <button type="button" className="cta-secondary" data-testid="backup-restore" onClick={onRestoreData}>
+              {SETTINGS.backupRestore}
+            </button>
+          </div>
+          {backupStatus !== undefined && backupStatus !== null ? (
+            <p className="meta" data-testid="backup-status" data-backup-status={backupStatus.kind}>
+              {backupStatusText(backupStatus)}
+            </p>
+          ) : null}
+          {pendingRestore !== undefined && pendingRestore !== null ? (
+            <ConfirmDialog
+              title={SETTINGS.backupConfirmTitle(pendingRestore.fileName)}
+              body={SETTINGS.backupConfirmBody}
+              details={backupCountLines(pendingRestore.counts)}
+              action={SETTINGS.backupConfirmAction}
+              actionTestId="backup-confirm"
+              onConfirm={onConfirmRestore}
+              onCancel={onCancelRestore}
+            />
+          ) : null}
+        </section>
+      );
     case 'delete-everything':
       return (
         <section className="settings-entry" data-settings-entry="delete-everything">
@@ -146,6 +223,19 @@ function SettingsEntry({
           <HoldToDelete onConfirm={onDeleteEverything} />
         </section>
       );
+  }
+}
+
+function backupStatusText(status: BackupStatus): string {
+  switch (status.kind) {
+    case 'exported':
+      return SETTINGS.backupExportDone(status.fileName);
+    case 'restored':
+      return SETTINGS.backupRestoreDone(status.fileName);
+    case 'export_failed':
+      return SETTINGS.backupExportFailed;
+    case 'rejected':
+      return backupErrorMessage(status.error);
   }
 }
 

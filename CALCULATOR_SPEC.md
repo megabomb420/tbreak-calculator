@@ -1,7 +1,7 @@
 # T-Break Calculator Specification
 
 Status: implemented deterministic core; release review scope is documented in HANDOFF.md
-Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.25.1)  
+Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.26.0)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
 Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
 Release note (0.8.0): two changes land on main. (1) **tolerance-v3** replaces tolerance-v2 as the engine for new calculations: exposure classification is no longer a single-variable frequency lookup. Frequency (use days in 30) picks the base tier; intensity (sessions per use day ≥ 2, concentrates, dabbing) and chronicity (how long the current pattern has been typical) may move the classification at most ONE adjacent evidence tier; the broad evidence ranges 2–7 / 7–14 / 14–21 / 21–28 are unchanged and remain the outer bounds (never above 28). Sessions/products/routes are collected from 4 use-days up (not only ≥ 16), and clean in-range previous-break history may raise the planning target to the user's own best observed anchor — never the range. The result hero leads with the planning target and states the evidence range beneath it. (2) **Active reduction (cut-down) tracking** (`reduction-records-v2`) records exact THC-use events, derives plan state (rolling use-days, sessions, breach days, review rule), and replaces manual-only review with the transparent “two breach days in a rolling 7-day window → consider a 3–7 day pause and review” product rule. Details: sections 7.3, 7.5, 7.7 and 10.  
@@ -57,9 +57,9 @@ V1 includes:
 - nominal THC calculation for flower;
 - branching intake;
 - break planning, check-ins, history, and qualitative post-break planning; and
-- local persistence.
+- local persistence, including save/restore of the app's own records to a local backup file (0.26.0).
 
-V1 does not include numeric detection windows, cutoff or laboratory interpretation, jurisdiction rules, runtime generative AI (section 11), telemetry, or export/import. Only the deferred non-AI items receive future extension boundaries; none of their machinery is built now.
+V1 does not include numeric detection windows, cutoff or laboratory interpretation, jurisdiction rules, runtime generative AI (section 11), telemetry, or cloud sync. Only the deferred non-AI items receive future extension boundaries; none of their machinery is built now.
 
 ## 4. Types and provenance
 
@@ -151,7 +151,7 @@ PreviousBreak
   sourceAttemptId: string or null (optional)
 ```
 
-`sourceAttemptId` (0.9.0) optionally links a PreviousBreak to the break attempt it was captured from (post-break outcome capture). Hand-entered records omit it; old records without it stay valid. Capture stores the existing `toleranceReductionScore` field as a 0–10 subjective magnitude — anchors 0 = no noticeable reduction / 10 = very large reduction — never a percentage-reset score. Capture eligibility is deterministic and per-attempt: exactly one `captured | skipped` mark per completed break, offered only after an actual return-to-THC event (never for continued abstinence), persisted in the durable `break-outcome-marks-v1` envelope.
+`sourceAttemptId` (0.9.0) optionally links a PreviousBreak to the break attempt it was captured from (post-break outcome capture). Hand-entered records omit it; old records without it stay valid. Capture stores the existing `toleranceReductionScore` field as a 0–10 subjective magnitude — anchors 0 = no noticeable reduction / 10 = very large reduction — never a percentage-reset score. Capture eligibility is deterministic and per-attempt: exactly one `captured | skipped` mark per completed break, offered only after an actual return-to-THC event (never for continued abstinence), persisted in the durable `break-outcome-marks-v1` envelope. The `durationDays` of a captured record is the elapsed abstinence summed from the attempt's segments (whole days, floored) rather than the plan's `targetDurationDays`; when the segments yield no elapsed day it keeps the target (0.26.0). The rule is forward-only: stored previous breaks and frozen results are unchanged.
 
 ```text
 DailyCheckin
@@ -646,7 +646,7 @@ Golden fixtures freeze `calculatedAt`; equality is domain-structural rather than
 - **Repeated plan exceedance — resolved for 0.8.0:** active reduction tracking derives `review_recommended` from two distinct breach days inside the rolling 7-day window and shows the shipped adjust-or-pause review prompt (section 10.1); the state auto-returns to `active` when the breach days age out. Break attempts themselves keep manual review only.
 - **Reduction records — resolved for 0.8.0:** `reduction-records-v2` is the persisted envelope for active reduction plans (statuses `active` / `review_recommended` / `paused` / `ended`, origins `direct` / `post_break`). Legacy `reduction-plan-v1` limit rows stay readable and migrate into a new plan's baseline when a v2 plan starts from them.
 - **Adaptive recalculation — resolved for 0.8.0, retired in 0.25.0:** logged use never adds “+N days”. The 0.8.0 design re-ran the full tolerance-v3 engine on an observed profile and froze a NEW `CalculationRecord` (old records immutable); with under 30 days of tracked coverage it asked for a minimal refresh instead of fabricating a 30-day profile. 0.25.0 retired that path: tracked use no longer generates or rewrites a calculation record (section 10.1).
-- **Architecture scope — resolved:** numeric detection packs, telemetry, and export/import are deferred; runtime generative AI is intentionally removed from scope (section 11) rather than postponed.
+- **Architecture scope — resolved:** numeric detection packs, telemetry, and cloud sync are deferred; runtime generative AI is intentionally removed from scope (section 11) rather than postponed.
 
 ## 14. Remaining blockers and deferred features
 
@@ -664,7 +664,7 @@ These do not block implementation of schemas and pure deterministic engines.
 - numeric Detection Engine evidence rules, cutoffs, laboratory strata, controlled test vocabularies, and non-overlap validation;
 - Ireland or any other jurisdiction pack;
 - formal evidence-grading recalibration;
-- cloud sync, telemetry, and export/import;
+- cloud sync and telemetry;
 - any range or target effect from amount or numeric potency;
 - any range effect from previous-break history beyond the bounded in-range planning-target override of sections 7.3/7.7; and
 - any range effect from current-pattern duration beyond the single bounded v3 case of section 7.3 (16–25 use days + long-established pattern → 21–28); the duration role otherwise stays limited to the preferred-target anchor heuristic of section 7.3.

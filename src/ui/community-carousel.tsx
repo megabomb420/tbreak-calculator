@@ -3,35 +3,54 @@ import type { CommunityTip } from '../application/presentation/daily-support.ts'
 
 export function CommunityCarousel({ tips, initialId }: { readonly tips: readonly CommunityTip[]; readonly initialId: string }) {
   const track = useRef<HTMLDivElement>(null);
-  const initial = useRef(Math.max(0, tips.findIndex(tip => tip.id === initialId)));
-  const [active, setActive] = useState(initial.current);
+  // The list is re-ranked whenever the current advice topics or symptom ratings
+  // change, so the visible card is tracked by identity: a slot number would
+  // silently swap the card under the reader.
+  const orderKey = tips.map(tip => tip.id).join('|');
+  const [activeId, setActiveId] = useState(() => {
+    const index = tips.findIndex(tip => tip.id === initialId);
+    return tips[index === -1 ? 0 : index]?.id ?? '';
+  });
+  const found = tips.findIndex(tip => tip.id === activeId);
+  const active = found === -1 ? 0 : found;
   const activeRef = useRef(active);
   activeRef.current = active;
-  useEffect(() => {
+
+  /** Position the track on the active card without an animated jump. */
+  function align(): void {
     const el = track.current;
-    if (el) {
-      el.style.scrollBehavior = 'auto';
-      el.scrollLeft = initial.current * el.clientWidth;
-      el.style.scrollBehavior = '';
-    }
-  }, []);
-  function go(index: number) {
-    const el = track.current;
-    if (el) el.scrollTo({ left: index * el.clientWidth });
+    if (!el) return;
+    const previous = el.style.scrollBehavior;
+    el.style.scrollBehavior = 'auto';
+    el.scrollLeft = activeRef.current * el.clientWidth;
+    el.style.scrollBehavior = previous;
   }
-  // Preserve the visible card on rotation/resizing, without an animated jump.
+
+  // Align on mount, whenever the ranking changes, and on resize or rotation.
   useEffect(() => {
+    const first = tips[0];
+    if (first !== undefined && !tips.some(tip => tip.id === activeId)) {
+      setActiveId(first.id);
+      activeRef.current = 0;
+    }
+    align();
     const el = track.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => {
-      const previous = el.style.scrollBehavior;
-      el.style.scrollBehavior = 'auto';
-      el.scrollLeft = activeRef.current * el.clientWidth;
-      el.style.scrollBehavior = previous;
-    });
+    const observer = new ResizeObserver(align);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [orderKey]);
+
+  function go(index: number): void {
+    const clamped = Math.max(0, Math.min(tips.length - 1, index));
+    const tip = tips[clamped];
+    if (tip === undefined) return;
+    // Move the card immediately: a track with no laid-out width emits no scroll
+    // event, and the arrows would otherwise appear to do nothing.
+    setActiveId(tip.id);
+    const el = track.current;
+    if (el && el.clientWidth > 0) el.scrollTo({ left: clamped * el.clientWidth });
+  }
   return <section className="community-carousel" role="region" aria-roledescription="carousel" aria-label="Reddit experiences for this stage" data-testid="community-tip">
     <div className="community-carousel-heading">
       <p className="micro-label">From Reddit · Personal experiences</p>
@@ -39,7 +58,10 @@ export function CommunityCarousel({ tips, initialId }: { readonly tips: readonly
     </div>
     <div className="community-track" ref={track} onScroll={() => {
       const el = track.current;
-      if (el && el.clientWidth > 0) setActive(Math.max(0, Math.min(tips.length - 1, Math.round(el.scrollLeft / el.clientWidth))));
+      if (!el || el.clientWidth <= 0) return;
+      const index = Math.max(0, Math.min(tips.length - 1, Math.round(el.scrollLeft / el.clientWidth)));
+      const tip = tips[index];
+      if (tip !== undefined) setActiveId(tip.id);
     }} onKeyDown={event => {
       if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();

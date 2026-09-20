@@ -31,7 +31,7 @@ export function createReductionPlanStore(
   return {
     load: () => readRecord(adapter, key),
     save: (record) => {
-      if (!isValidRecord(record)) {
+      if (!isValidReductionPlanRecord(record)) {
         throw new RangeError(`invalid reduction plan record: ${JSON.stringify(record)}`);
       }
       adapter.setItem(key, JSON.stringify(record));
@@ -52,14 +52,14 @@ function readRecord(adapter: StorageAdapter, key: string): ReductionPlanRecord |
     adapter.removeItem(key);
     return null;
   }
-  if (!isValidRecord(parsed)) {
+  if (!isValidReductionPlanRecord(parsed)) {
     adapter.removeItem(key);
     return null;
   }
   return parsed;
 }
 
-function isValidRecord(value: unknown): value is ReductionPlanRecord {
+export function isValidReductionPlanRecord(value: unknown): value is ReductionPlanRecord {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
   return (

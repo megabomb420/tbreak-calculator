@@ -14,6 +14,7 @@ import type { ResultView } from '../application/presentation/result-presentation
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
+import { RESET_MODE } from './recovery-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
@@ -27,8 +28,11 @@ import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
+import type { ToleranceRecoveryOutlook } from '../domain/recovery/recovery-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
+import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
+import { PredictedResetPanel } from './predicted-reset.tsx';
 
 export interface TodayLiveData {
   readonly now: number;
@@ -41,6 +45,11 @@ export interface TodayLiveData {
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
   readonly supportAreas: readonly SupportArea[];
+  /** Recovery outlook of the active break's own frozen record, when it has
+   * one; drives the closed Recovery outlook disclosure on the active card. */
+  readonly outlook: ToleranceRecoveryOutlook | null;
+  /** Live check-in facts for that outlook panel (the result screen's view). */
+  readonly checkinFacts: RecoveryCheckinFactsView | null;
 }
 
 export interface TodayProfileData {
@@ -307,6 +316,17 @@ function ActiveBreakCard(props: TodayScreenProps) {
         <BreakJourney view={journey} />
         <BreakResearchNote day={view.day} />
       </details>
+      {props.live.outlook !== null ? (
+        <details className="result-disclosure today-outlook" data-testid="today-outlook">
+          <summary>{RESET_MODE.reset}</summary>
+          <PredictedResetPanel
+            outlook={props.live.outlook}
+            historical={false}
+            contextLabel={null}
+            checkinFacts={props.live.checkinFacts}
+          />
+        </details>
+      ) : null}
       <div className="footer-links">
         <button type="button" className="text-back" data-testid="today-edit-support" onClick={props.onEditSupport}>
           Choose advice topics

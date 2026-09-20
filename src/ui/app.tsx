@@ -39,7 +39,7 @@ import {
 import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../application/progress/result-view.ts';
 import { type StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import { type StoredTrack } from '../application/progress/tracking-record.ts';
-import { type PwaUpdateStatus } from '../application/settings/settings.ts';
+import { type PwaUpdateStatus, APP_VERSION } from '../application/settings/settings.ts';
 import {
   createWebBackedDurable,
   deleteAllLocalData,
@@ -54,9 +54,20 @@ import {
 } from '../application/persistence/calculation-record.ts';
 import { createdAtIso, PreviousBreakSheet, type PreviousBreakDraft } from './previous-break-sheet.tsx';
 import { newRecordId } from '../application/persistence/ids.ts';
+import {
+  applyBackup,
+  backupCounts,
+  backupFileName,
+  createBackup,
+  parseBackup,
+  serializeBackup,
+  type ParsedBackup,
+} from '../application/backup/backup.ts';
+import { downloadTextFile, pickTextFile, type PickedTextFile } from './backup-file.ts';
 import { toPreviousBreakInput } from '../application/persistence/previous-break-store.ts';
 import type { StoredPreviousBreak } from '../application/persistence/previous-break-store.ts';
-import { findPreviousBreak } from '../application/history/history-model.ts';
+import { findPreviousBreak, lastedDays } from '../application/history/history-model.ts';
+import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
 import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
 import { checkinRowsForBreakContext } from '../application/presentation/recovery-checkin-facts.ts';
 import { StorageBanner } from './storage-banner.tsx';
@@ -108,7 +119,7 @@ import { RESULT } from './result-copy.ts';
 import { ChooseBreakDays } from './choose-break-days.tsx';
 import { CHOSEN_BREAK, CHOSEN_BREAK_MAX_DAYS, CHOSEN_BREAK_MIN_DAYS } from './break-copy.ts';
 import { CalendarIcon } from './icons.tsx';
-import { SettingsModal } from './settings-modal.tsx';
+import { SettingsModal, type BackupStatus } from './settings-modal.tsx';
 import { ScienceBasicsPanel } from './science-basics.tsx';
 import { Shell } from './shell.tsx';
 import { LogUseSheet } from './log-use.tsx';
@@ -157,6 +168,10 @@ export interface AppProps {
   readonly updateStatus?: PwaUpdateStatus;
   /** Applies an available update from Settings (same mechanism as snackbar). */
   readonly onUpdateNow?: () => void;
+  /** Saves a backup file on the device (overridable in tests). */
+  readonly saveBackupFile?: (name: string, text: string) => void;
+  /** Reads the file chosen for a restore (overridable in tests). */
+  readonly pickBackupFile?: () => Promise<PickedTextFile | null>;
 }
 
 export function App({
@@ -169,6 +184,8 @@ export function App({
   onDismissUpdate,
   updateStatus,
   onUpdateNow,
+  saveBackupFile = downloadTextFile,
+  pickBackupFile = pickTextFile,
 }: AppProps) {
   const [shell, dispatch] = useReducer(shellReducer, INITIAL_SHELL_STATE);
   const progress = useMemo(() => createQuestionnaireProgressStore(storage), [storage]);
@@ -196,6 +213,11 @@ export function App({
   const [scienceOpen, setScienceOpen] = useState(false);
   const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
   const [scienceFromSettings, setScienceFromSettings] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<{
+    readonly fileName: string;
+    readonly backup: ParsedBackup;
+  } | null>(null);
 
   // A live day counter should not drift while the app stays open. Re-render
   // from the injected clock on a slow tick and when the tab regains focus.
@@ -353,6 +375,16 @@ export function App({
         }
       : null;
 
+  /** Recovery outlook for Today's active-break disclosure: only the frozen
+   * record the running attempt itself owns. A chosen-duration plan stores no
+   * calculation, so the companion fallback must not supply one. */
+  const activeRecordId =
+    liveAttempt !== null && liveAttempt.status === 'active' ? liveAttempt.calculationRecordId : null;
+  const activeOutlook =
+    activeRecordId !== null && companionSnapshot?.runId === activeRecordId
+      ? recoveryOutlookFromRecord(durableSnap.calculations.find((record) => record.id === activeRecordId) ?? null)
+      : null;
+
   const liveData: TodayLiveData = {
     now,
     active: activeView !== null ? { attempt: liveAttempt!, view: activeView } : null,
@@ -370,6 +402,8 @@ export function App({
         ? exposureFromProfile(companionSnapshot.snapshot.profile)
         : null,
     supportAreas,
+    outlook: activeOutlook,
+    checkinFacts,
   };
   const suggestedLimits = profileSnapshot?.snapshot.kind === 'use_profile'
     ? suggestedReductionLimits({
@@ -793,9 +827,13 @@ export function App({
     }
     const endedSegment = attempt.segments[attempt.segments.length - 1];
     const endedAt = endedSegment !== undefined && endedSegment.endedAt !== null ? endedSegment.endedAt : attempt.updatedAt;
+    // The rating describes the abstinence that actually happened, so the linked
+    // previous break records the elapsed days rather than the plan's target. A
+    // segment list that yields no elapsed day keeps the target.
+    const elapsedDays = lastedDays(attempt.segments, nowAt);
     const record: StoredPreviousBreak = {
       id: newRecordId('pb', nowAt),
-      durationDays: attempt.targetDurationDays,
+      durationDays: elapsedDays !== null && elapsedDays >= 1 ? elapsedDays : attempt.targetDurationDays,
       toleranceReductionScore: score,
       endedAt: new Date(endedAt).toISOString(),
       createdAt: new Date(nowAt).toISOString(),
@@ -1127,6 +1165,47 @@ export function App({
     submitAnswer({ step: 'Q3-opt', value: { skip: true } });
   }
 
+  // --- local backup (export / restore) -------------------------------------
+
+  function exportData(): void {
+    const nowAt = clock.now();
+    const file = createBackup({ durable, adapter: storage }, { exportedAt: nowAt, appVersion: APP_VERSION });
+    const name = backupFileName(nowAt);
+    try {
+      saveBackupFile(name, serializeBackup(file));
+      setBackupStatus({ kind: 'exported', fileName: name });
+    } catch {
+      setBackupStatus({ kind: 'export_failed' });
+    }
+  }
+
+  async function restoreData(): Promise<void> {
+    const picked = await pickBackupFile();
+    if (picked === null) return;
+    const result = parseBackup(picked.text);
+    if (!result.ok) {
+      setPendingRestore(null);
+      setBackupStatus({ kind: 'rejected', error: result.error });
+      return;
+    }
+    setBackupStatus(null);
+    setPendingRestore({ fileName: picked.name, backup: result.backup });
+  }
+
+  function confirmRestore(): void {
+    if (pendingRestore === null) return;
+    const fileName = pendingRestore.fileName;
+    applyBackup({ durable, adapter: storage }, pendingRestore.backup);
+    setSession(null);
+    setFlow(null);
+    setPersonalisationOpen(false);
+    setScienceOpen(false);
+    setOutcomeAttempt(null);
+    setPendingRestore(null);
+    setBackupStatus({ kind: 'restored', fileName });
+    refresh();
+  }
+
   // --- render --------------------------------------------------------------
 
   const canStartPlan = liveAttempt === null && liveTracking === null && liveReductionPlan === null;
@@ -1369,7 +1448,22 @@ export function App({
           setScienceFromSettings(true);
           setScienceOpen(true);
         }}
-        onClose={() => dispatch({ type: 'close_settings' })}
+        onClose={() => {
+          setPendingRestore(null);
+          dispatch({ type: 'close_settings' });
+        }}
+        onExportData={exportData}
+        onRestoreData={() => {
+          void restoreData();
+        }}
+        backupStatus={backupStatus}
+        pendingRestore={
+          pendingRestore === null
+            ? null
+            : { fileName: pendingRestore.fileName, counts: backupCounts(pendingRestore.backup) }
+        }
+        onConfirmRestore={confirmRestore}
+        onCancelRestore={() => setPendingRestore(null)}
         onDeleteEverything={() => {
           deleteAllLocalData(storage, durable);
           setSession(null);

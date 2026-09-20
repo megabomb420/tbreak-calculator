@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.25.1**
+Version: **0.26.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -25,7 +25,7 @@ branching questionnaire
   -> local persistence
 ```
 
-Runtime generative AI is intentionally not part of the product architecture (see §12). Numeric detection rules, jurisdiction packs, telemetry, and export/import are not v1 components.
+Runtime generative AI is intentionally not part of the product architecture (see §12). Numeric detection rules, jurisdiction packs, telemetry, and cloud sync are not v1 components.
 
 ## 2. V1 component boundary
 
@@ -40,7 +40,8 @@ Runtime generative AI is intentionally not part of the product architecture (see
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
 - BreakOutlookV1 day-by-day presentation over those windows (Result / Today), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
 - versioned recovery-outlook interpretation over frozen tolerance results (current `tolerance-recovery-outlook-v2`, retained v1 for legacy records): a profile-sensitive window, separate biological-reference wording, time milestones, capped factual personal history, recorded check-in facts, and post-break outcome marks (`break-outcome-marks-v1`) — deterministic, local, and offline;
-- IndexedDB persistence and complete local deletion; and
+- IndexedDB persistence and complete local deletion;
+- local backup export/restore of the stored records through Settings, with validated replace semantics (§9); and
 - PWA shell/offline support, with the single service-worker update state (snackbar + Settings About) driven from `registerSW` in `src/ui/main.tsx`;
 
 ### Defer beyond v1
@@ -49,7 +50,7 @@ Runtime generative AI is intentionally not part of the product architecture (see
 - cutoff, analyte, laboratory, device, or jurisdiction schemas;
 - Ireland-specific rules;
 - telemetry;
-- export/import and cloud sync; and
+- cloud sync; and
 - a runtime evidence registry.
 
 The deferred features receive clean interfaces only when implementation begins. V1 MUST NOT collect or persist placeholder data for them.
@@ -112,7 +113,7 @@ tests/
   ui/
 ```
 
-There is no v1 `telemetry`, `import-export`, `evidence-registry`, or detection-pack directory.
+There is no v1 `telemetry`, `evidence-registry`, or detection-pack directory. The local backup is the application-layer `application/backup/backup.ts` module (no browser APIs) plus the browser plumbing in `ui/backup-file.ts`.
 
 ## 4. Domain interfaces
 
@@ -329,6 +330,10 @@ Historical records are never silently recalculated after a policy update. An exp
 
 The app MUST support deletion of individual check-ins/breaks and deletion of all local data. It MUST not claim encryption beyond browser/platform storage unless a verified encryption design is later implemented.
 
+**Local backup (0.26.0):** Settings → **Your data** writes a `tbreak-backup-YYYY-MM-DD.json` file and restores from a chosen one. The file is pretty-printed JSON with the envelope `{ format: 'tbreak-backup', formatVersion: 1, appVersion, exportedAt, data }`, owned by the application-layer `src/application/backup/backup.ts` (no browser APIs); `src/ui/backup-file.ts` holds only the browser plumbing (download anchor, file picker mounted inside the open dialog). `data` carries one registry entry per record family — `snapshot`, `calculations`, `attempts`, `tracking`, `checkins`, `previousBreaks`, `reductionRecords`, `reductionPlan`, `outcomeMarks`, `companionPersonalisation` — each payload exactly what that store's `load()` returns. Excluded by design: the questionnaire draft, the transient result-overlay flag, the derived `post-break-plans` mirror, the one-off migration marker, and already-corrupt rows.
+
+Import parses every payload with the store's own load-time parser before writing anything, so a rejected file changes nothing; a missing store key means empty. A confirmed restore replaces all local data through the same wipe path as delete-everything, so families the file omits end up empty; the wipe runs before the writes, so an I/O failure mid-restore is the one non-atomic case. A unit test requires every `LOCAL_DATA_KEYS` entry and every `DurableSnapshot` field to be claimed by a backup store or named in `BACKUP_EXCLUDED_KEYS` / `BACKUP_EXCLUDED_SNAPSHOT_FIELDS`, so a new store must declare its backup status.
+
 Schema migrations are forward-only, tested, and non-destructive. A failed migration must leave the existing database recoverable.
 
 ## 10. UI contracts
@@ -405,9 +410,9 @@ Generate profiles to prove that prohibited inputs cannot affect ranges, toleranc
 
 ### Persistence, offline, and accessibility tests
 
-Test migrations, local deletion, unavailable storage, offline calculation, policy-version history preservation, keyboard/screen-reader flow, color contrast, touch targets, narrow viewports, reduced motion, and error recovery. Uncertainty must not rely on color alone.
+Test migrations, local deletion, backup export/restore validation and replace semantics, unavailable storage, offline calculation, policy-version history preservation, keyboard/screen-reader flow, color contrast, touch targets, narrow viewports, reduced motion, and error recovery. Uncertainty must not rely on color alone.
 
-Pack conflict tests, controlled device vocabularies, telemetry tests, and import/export tests are added only when those deferred features enter scope. Runtime generative AI has no contract tests because it is not part of the product architecture (section 12).
+Pack conflict tests, controlled device vocabularies, and telemetry tests are added only when those deferred features enter scope. Runtime generative AI has no contract tests because it is not part of the product architecture (section 12).
 
 ## 14. Versioning and change control
 
@@ -464,4 +469,4 @@ Release checks cover source-grounded uncertainty, the nonmedical disclaimer, loc
 
 - numeric detection and its rule infrastructure;
 - Ireland jurisdiction rules;
-- telemetry, export/import, cloud sync, formal evidence registry, and confidence recalibration.
+- telemetry, cloud sync, formal evidence registry, and confidence recalibration.

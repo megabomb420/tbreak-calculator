@@ -60,7 +60,7 @@ function readSnapshot(adapter: StorageAdapter, key: string): QuestionnaireSnapsh
     adapter.removeItem(key);
     return null;
   }
-  if (!isValidRecord(parsed)) {
+  if (!isValidQuestionnaireSnapshotRecord(parsed)) {
     adapter.removeItem(key);
     return null;
   }
@@ -68,13 +68,13 @@ function readSnapshot(adapter: StorageAdapter, key: string): QuestionnaireSnapsh
 }
 
 function writeSnapshot(adapter: StorageAdapter, key: string, record: QuestionnaireSnapshotRecord): void {
-  if (!isValidRecord(record)) {
+  if (!isValidQuestionnaireSnapshotRecord(record)) {
     throw new RangeError(`invalid questionnaire snapshot record: ${JSON.stringify(record)}`);
   }
   adapter.setItem(key, JSON.stringify(record));
 }
 
-function isValidRecord(value: unknown): value is QuestionnaireSnapshotRecord {
+export function isValidQuestionnaireSnapshotRecord(value: unknown): value is QuestionnaireSnapshotRecord {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
   return (
