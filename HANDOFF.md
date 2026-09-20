@@ -128,7 +128,9 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.25.1. This release closes the 0.25.0 round — it retires the dead adaptive-recalculation code, reconciles the specs with the app and adds the regressions that were missing — and it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested.
+Resume current main after 0.25.1. This release closes the 0.25.0 round — it retires the dead adaptive-recalculation code, reconciles the specs with the app and adds the regressions that were missing — and it does not claim the earlier whole-product review is complete.
+
+Physical iOS Safari has now been exercised by the owner on an iPhone 17 Pro: the app works correctly, including the one-tap check-in, undo and the swipeable carousel. The single observation was more empty space than expected at the bottom of the screen. That is open, not diagnosed: the bottom band is either the tab bar's own padding in the installed app (`8px + env(safe-area-inset-bottom)`, about 42px under the labels on a home-indicator device) or the band reserved for the iOS 26 Liquid Glass toolbar when the app runs in Safari (`8px +` the measured bleed, which the viewport contract documents at 120px collapsed and 216px expanded). See the two known carousel behaviours below for the related presentation items. Other iOS devices and older iOS versions remain untested.
 
 The next open product question is unchanged and still needs an owner decision before any code moves: whether a completed break's outcome should record actual elapsed time rather than the original target. It remains unchanged.
 
