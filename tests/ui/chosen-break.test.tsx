@@ -347,7 +347,7 @@ describe('chosen-duration scheduling edge cases', () => {
 });
 
 describe('active-break check-in reflection', () => {
-  it('marks the current day checked and shows progress after No + Save', () => {
+  it('marks the current day checked and shows progress after one tap', () => {
     const storage = createMemoryStorage();
     const anchor = toInstant(AT - DAY_MS); // day 2 at AT
     createBreakAttemptsStore(storage).save({
@@ -368,8 +368,6 @@ describe('active-break check-in reflection', () => {
     expect(screen.queryByTestId('checkin-progress')).toBeNull();
 
     fireEvent.click(cta);
-    fireEvent.click(screen.getByTestId('checkin-no'));
-    fireEvent.click(screen.getByTestId('checkin-save'));
 
     // The journey day marker is checked…
     const day2 = screen.getByTestId('journey-day-2');
@@ -382,8 +380,10 @@ describe('active-break check-in reflection', () => {
     // …and progress is shown.
     expect(screen.getByTestId('checkin-progress').textContent).toBe('1 of 10 days recorded');
 
-    // The action stays tappable (report a later use or add symptoms).
-    fireEvent.click(after);
-    expect(screen.getByTestId('checkin-flow')).toBeTruthy();
+    // Repeated taps cannot duplicate the saved entry; correction stays visible.
+    expect((after as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId('undo-checkin'));
+    expect(screen.getByTestId('checkin-cta').textContent).toBe('Check in');
+    expect(screen.queryByTestId('checkin-progress')).toBeNull();
   });
 });

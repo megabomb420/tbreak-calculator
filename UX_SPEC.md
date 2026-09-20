@@ -2,7 +2,7 @@
 
 Version: **0.17.0**
 
-Current revision (0.22.0): practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
+Current revision (0.23.0): direct reversible check-in, cancelable use logging, touch-controlled Reddit carousel; practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -93,7 +93,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
   - companion personalisation (optional after calculation and later through **Choose advice topics**);
-  - the daily check-in;
+  - optional symptom ratings;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
   - interruption confirmation ("confirm when you used");
@@ -170,7 +170,7 @@ No install gate, no notification prompt, no sign-in. Install is offered from Set
 | Slider with live readout | use-days (0–30), previous-break score (0–10) | min 44 pt thumb, value label above thumb |
 | Stepper (− value +) | sessions, previous-break duration, flower grams, user plan limits | tap-hold repeats; tapping the value opens a numeric pad escape hatch |
 | Date wheel + day-part chips | last use, previous-break end, interruption `usedAt` | §4.3 |
-| Toggle / two-card choice | check-in THC-use question | |
+| Direct action | one-tap no-use check-in; separate optional symptoms and THC-use form | |
 | Single-line text | check-in note (optional) | the only keyboard in v1 |
 
 ### 4.3 Date/time entry (maps to `SourcedValue<timestamp>`)
@@ -602,25 +602,16 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 - Quiet footer actions: **Choose advice topics**, and **End break early** (confirm dialog; neutral resulting state).
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
 
-### 10.2 Daily check-in — use-first design
+### 10.2 Daily check-in — one direct action
 
-The check-in exists primarily to catch the one event that changes the plan: THC use. Symptom ratings are secondary and optional.
+**Check in** on Today records a no-use entry immediately. Its helper states **Record today without THC** before saving. The saved state reads **Checked in today**, with **Saved · No THC reported**. Repeat taps cannot create duplicates in the current abstinence day.
 
-**Screen 1 (the whole required flow):**
+**Undo** remains next to the receipt, including after reload. It removes exactly the latest no-use entry in the current abstinence day and segment. Earlier entries, symptom ratings on other entries, and prior days remain. If multiple legacy entries exist, each Undo removes one; the checked state stays until no entry remains for that day.
 
-> **Check-in — Day 12**
->
-> **Any THC since your last check-in?**
-> - **No** 
-> - **Yes**
->
-> [ Save ]   [ Add how you're feeling → ]
+**How are you feeling?** opens optional ratings directly. **Log THC use** opens the date-confirmation form directly. Neither action asks a preliminary Yes/No question. Closing either unsaved form leaves persisted data intact. Saving ratings also records a no-use check-in; the form states this explicitly.
 
-- **No → Save:** done. Two taps total. This is the daily fast path.
-- **Yes:** immediately opens the interruption sheet (§10.3); symptom entry is not offered on a use day (the plan event dominates; ratings on a use day add noise).
-- **Add how you're feeling →** opens the optional symptom screen.
+**Optional symptom screen:**
 
-**Screen 2 (optional symptoms):**
 
 > **How are you feeling?** *(optional — skip any)*
 >
@@ -644,7 +635,7 @@ The check-in exists primarily to catch the one event that changes the plan: THC 
 
 ### 10.3 Interruption ("I used") flow
 
-1. Sheet: **"When did you use?"** — date control §4.3, constrained to after the current segment start (and not in the future). Required. Until confirmed, the attempt is `interrupted_time_needed`: every day counter and target date everywhere shows a "paused" badge instead of a number.
+1. Sheet: **"When did you use?"** — date control §4.3, constrained to after the current segment start (and not in the future). Required. Opening or canceling this form does not change persisted state. On confirmation, the application performs the existing suspend/confirm lifecycle transitions together and persists only the confirmed result. Older saved `interrupted_time_needed` states remain supported and offer **I didn’t use THC — undo report**, which restores the original open segment without fabricating use.
 2. On confirm — mandated phrasing (spec §7.9.7):
 
    > **Plan restarted from your latest use.**
@@ -843,10 +834,17 @@ Acceptance: every path in §5.1 reachable with the stated step counts; every ter
 
 ## 16. Practical daily support (0.22.0)
 
-Today prioritises what the person can do now: check-in, current phase context, two advice topics and one activity for the day. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
+Today prioritises what the person can do now: direct check-in with correction, optional ratings, two advice topics and one activity for the day. General phase context sits under **What to expect**. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
 
 Recent ratings outrank preferences. Every saved topic participates across days; no first-choice-only action. Advice names its basis (a dated rating, a chosen topic or an optional stage suggestion). No fresh ratings is a distinct state, not zero symptoms. A manual browser exposes all eleven topics without changing saved preferences. The same component serves chosen/calculated breaks and open-ended tracking.
 
-Check-in remains use-first and optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back inside check-in preserves edits. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
+Check-in follows the direct-action contract in §10.2. Optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back/Close cancels unsaved ratings. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
 
-One separate community example uses the label **From Reddit · Personal experience**, an individual attribution, an uncertainty note and a link to the reviewed discussion. No medical treatment claims are sourced to Reddit. Advice and curated examples remain available offline; links require a connection.
+A manually controlled carousel of three community examples uses the label **From Reddit · Personal experience**, an individual attribution, an uncertainty note and a link to the reviewed discussion. No medical treatment claims are sourced to Reddit. Advice and curated examples remain available offline; links require a connection.
+
+
+## 17. PWA interaction polish (0.23.0)
+
+The Reddit carousel supports native horizontal touch scrolling with scroll snapping, previous/next buttons, position controls and arrow keys. It never auto-advances while the user reads. Only the visible slide has interactive links; position is announced and preserved when resizing. Content and labels remain available offline, with external sources opening only on request.
+
+Touch feedback is brief and never delays persistence or navigation: pressed states, a check-mark confirmation, and short sheet/guide transitions. `prefers-reduced-motion` disables decorative motion and smooth scrolling. Existing safe-area, keyboard, dialog Back/Escape and offline storage contracts stay in place. The helper that finds today's latest check-in excludes future, invalid and pre-segment entries and uses the established abstinence-day boundaries.

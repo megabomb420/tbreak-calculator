@@ -1,6 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import { CHECKIN, SYMPTOM_FIELDS } from './break-copy.ts';
-import { CheckIcon, CloseIcon } from './icons.tsx';
+import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
 export interface SymptomValues {
@@ -16,18 +16,13 @@ const EMPTY_SYMPTOMS: SymptomValues = { craving: null, sleep: null, irritability
 export interface CheckInProps {
   /** Abstinence day shown in the header ("Check-in — Day N"). */
   readonly day: number;
-  readonly onNoUseSave: () => void;
-  /** User tapped "Yes": parent suspends timing and opens confirmation. */
-  readonly onUseReported: () => void;
   readonly onSymptomsSave: (symptoms: SymptomValues, note: string | null) => void;
   readonly onClose: () => void;
 }
 
-export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, onClose }: CheckInProps) {
+export function CheckInFlow({ day, onSymptomsSave, onClose }: CheckInProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onClose);
-  const [screen, setScreen] = useState<'question' | 'symptoms'>('question');
-  const [noSelected, setNoSelected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [symptoms, setSymptoms] = useState<SymptomValues>(EMPTY_SYMPTOMS);
   const [note, setNote] = useState('');
@@ -36,7 +31,7 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
     <div
       className="questionnaire-overlay"
       data-testid="checkin-flow"
-      data-screen={screen}
+      data-screen="symptoms"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkin-title"
@@ -50,110 +45,19 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
           {`${CHECKIN.title} — Day ${day}`}
         </h2>
       </header>
-      {screen === 'question' ? (
-        <QuestionScreen
-          noSelected={noSelected}
-          busy={busy}
-          onSelectNo={() => setNoSelected(true)}
-          onYes={() => {
-            if (busy) return;
-            setBusy(true);
-            onUseReported();
-          }}
-          onSave={() => {
-            if (!noSelected || busy) return;
-            setBusy(true);
-            onNoUseSave();
-          }}
-          onAddSymptoms={() => {
-            setNoSelected(true);
-            setScreen('symptoms');
-          }}
-        />
-      ) : (
         <SymptomsScreen
           symptoms={symptoms}
           note={note}
           onChange={setSymptoms}
           onNoteChange={setNote}
-          onBack={() => setScreen('question')}
+          onBack={onClose}
           onSave={(symptoms, note) => {
             if (busy) return;
             setBusy(true);
             onSymptomsSave(symptoms, note);
           }}
         />
-      )}
     </div>
-  );
-}
-
-function QuestionScreen({
-  noSelected,
-  busy,
-  onSelectNo,
-  onYes,
-  onSave,
-  onAddSymptoms,
-}: {
-  readonly noSelected: boolean;
-  readonly busy: boolean;
-  readonly onSelectNo: () => void;
-  readonly onYes: () => void;
-  readonly onSave: () => void;
-  readonly onAddSymptoms: () => void;
-}) {
-  return (
-    <>
-      <div className="questionnaire-body flow-body">
-        <div className="stack">
-          <h3 className="card-title">{CHECKIN.question}</h3>
-          <div className="two-choice">
-          <button
-            type="button"
-            className={noSelected ? 'choice-card selected' : 'choice-card'}
-            data-testid="checkin-no"
-            disabled={busy}
-            onClick={onSelectNo}
-          >
-              <span className="choice-copy">
-                <span className="choice-title">{CHECKIN.no}</span>
-                <span className="meta">{CHECKIN.noHelper}</span>
-              </span>
-              <span className="choice-check">
-                <CheckIcon size={16} />
-              </span>
-            </button>
-            <button
-              type="button"
-              className="choice-card"
-              data-testid="checkin-yes"
-              disabled={busy}
-              onClick={onYes}
-            >
-              <span className="choice-copy">
-                <span className="choice-title">{CHECKIN.yes}</span>
-                <span className="meta">{CHECKIN.yesHelper}</span>
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <footer className="questionnaire-footer">
-        <button
-          type="button"
-          className="cta-primary"
-          disabled={!noSelected || busy}
-          data-testid="checkin-save"
-          onClick={onSave}
-        >
-          {CHECKIN.save}
-        </button>
-        <button type="button" className="text-back" data-testid="add-symptoms" onClick={onAddSymptoms}>
-          {`${CHECKIN.addSymptoms} →`}
-        </button>
-      </footer>
-    </>
   );
 }
 
@@ -195,7 +99,7 @@ function SymptomsScreen({
               {CHECKIN.symptomsTitle}
             </h3>
             <p className="meta" data-testid="symptoms-helper">
-              {CHECKIN.symptomsHelper}
+              {CHECKIN.symptomsHelper} Saving also records today without THC.
             </p>
           </header>
           {SYMPTOM_FIELDS.map((field) => (

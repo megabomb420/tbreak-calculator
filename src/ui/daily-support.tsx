@@ -1,3 +1,4 @@
+import { CommunityCarousel } from './community-carousel.tsx';
 import { useId, useState } from 'preact/hooks';
 import { presentDailySupport, SUPPORT_GUIDES, SUPPORT_SOURCES, type DailySupportInput } from '../application/presentation/daily-support.ts';
 import { compareCheckins } from '../application/presentation/checkin-comparison.ts';
@@ -12,12 +13,12 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
   const comparison = compareCheckins(view.currentCheckins, { breakDay: input.day });
   return (
     <section className="daily-support" data-testid="today-guidance" data-window={view.window.id} aria-label="Advice for today">
-      <header className="daily-context">
-        <p className="micro-label">{view.window.label} · What you may notice</p>
+      <details className="daily-context">
+        <summary><span className="micro-label">{view.window.label} · What to expect</span></summary>
         <h3 className="card-title" data-testid="guidance-headline">{view.window.headline}</h3>
         <p className="body" data-testid="guidance-context">{view.window.context}</p>
         <p className="meta daily-symptom-context">{view.window.mayNotice.join(' · ')}</p>
-      </header>
+      </details>
 
       <div className="daily-help" data-testid="guidance-help">
         <div className="daily-section-heading">
@@ -72,13 +73,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
         </div>
       </details>
 
-      <aside className="community-tip" data-testid="community-tip">
-        <p className="micro-label">From Reddit · Personal experience</p>
-        <h4>{view.communityTip.title}</h4>
-        <p className="body">{view.communityTip.text}</p>
-        <p className="meta">An individual’s experience, not evidence that it will work for everyone.</p>
-        <a className="text-link source-link" href={view.communityTip.href} target="_blank" rel="noopener noreferrer">Read the r/Petioles discussion ↗</a>
-      </aside>
+      <CommunityCarousel key={view.day} initialId={view.communityTip.id} />
 
       {comparison.available ? <details className="result-disclosure daily-comparison">
         <summary>Your recorded changes</summary><CheckinComparisonBlock view={comparison} />

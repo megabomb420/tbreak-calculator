@@ -256,17 +256,28 @@ describe('Today plan management (Plan Detail removed)', () => {
 });
 
 describe('daily check-in', () => {
-  it('No + Save is the fast path and stores a no-use check-in', () => {
+  it('supports direct check-in, undo and cancelable use entry on open-ended tracking', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, { ...toleranceProfile(), goal: 'abstinence' });
+    seedTrack(storage, storedTrack());
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('checkin-cta'));
+    expect(checkinsOf(storage)).toHaveLength(1);
+    expect(screen.getByTestId('checkin-cta').textContent).toBe('Checked in today');
+    fireEvent.click(screen.getByTestId('undo-checkin'));
+    expect(checkinsOf(storage)).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('report-use'));
+    expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('tracking');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
+  });
+
+  it('one tap records a no-use check-in with no question', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
     fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(screen.getByTestId('checkin-flow').getAttribute('data-screen')).toBe('question');
-    const save = screen.getByTestId('checkin-save') as HTMLButtonElement;
-    expect(save.disabled).toBe(true);
-    fireEvent.click(screen.getByTestId('checkin-no'));
-    fireEvent.click(screen.getByTestId('checkin-save'));
     expect(screen.queryByTestId('checkin-flow')).toBeNull();
     const checkin = checkinsOf(storage)[0] as { usedThc: boolean; craving: null };
     expect(checkin.usedThc).toBe(false);
@@ -278,7 +289,6 @@ describe('daily check-in', () => {
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('checkin-cta'));
     fireEvent.click(screen.getByTestId('add-symptoms'));
     expect(screen.getByTestId('checkin-flow').getAttribute('data-screen')).toBe('symptoms');
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
@@ -298,38 +308,49 @@ describe('daily check-in', () => {
     expect(checkin.usedThc).toBe(false);
   });
 
-  it('Yes moves straight to interruption without symptom entry', () => {
+  it('Log THC use opens confirmation without changing the plan', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('checkin-cta'));
-    fireEvent.click(screen.getByTestId('checkin-yes'));
+    fireEvent.click(screen.getByTestId('report-use'));
     expect(screen.queryByTestId('checkin-flow')).toBeNull();
     const confirm = screen.getByTestId('confirm-use');
     expect(confirm.getAttribute('data-scope')).toBe('attempt');
-    expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
+    expect(attemptsOf(storage)[0]?.status).toBe('active');
     // No check-in is recorded until the use is confirmed.
     expect(checkinsOf(storage)).toHaveLength(0);
   });
 
-  it('a repeated Yes after interruption reopens confirm-when instead of closing the flow', () => {
+  it('canceling a mistaken use report leaves Today active and allows reopening', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('checkin-cta'));
-    fireEvent.click(screen.getByTestId('checkin-yes'));
+    fireEvent.click(screen.getByTestId('report-use'));
     expect(screen.getByTestId('confirm-use')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
-    fireEvent.click(screen.getByTestId('confirm-when-cta'));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
+    fireEvent.click(screen.getByTestId('report-use'));
     expect(screen.getByTestId('confirm-use').getAttribute('data-scope')).toBe('attempt');
-    expect(attemptsOf(storage)[0]?.status).toBe('interrupted_time_needed');
+    expect(attemptsOf(storage)[0]?.status).toBe('active');
   });
 });
 
 describe('interruption confirmation', () => {
+  it('can undo a mistaken pending report left by an older release', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    const attempt = storedAttempt({ status: 'interrupted_time_needed' });
+    seedAttempt(storage, attempt);
+    renderApp(storage);
+    fireEvent.click(screen.getByTestId('dismiss-unconfirmed-use'));
+    expect(screen.getByTestId('state-active-break')).toBeTruthy();
+    expect(attemptsOf(storage)[0]?.status).toBe('active');
+    expect(attemptsOf(storage)[0]?.segments).toEqual(attempt.segments);
+    expect(checkinsOf(storage)).toHaveLength(0);
+  });
+
   it('confirming when restarts the plan and records the use-day check-in', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());

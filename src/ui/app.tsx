@@ -1,3 +1,4 @@
+import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { presentSavedResult, savedUseProfile } from '../application/calculation/saved-result.ts';
 import { GoalCards } from './questionnaire-controls.tsx';
 import { useEffect, useMemo, useReducer, useState } from 'preact/hooks';
@@ -540,41 +541,28 @@ export function App({
     }
   }
 
+  function dismissUnconfirmedUse(): void {
+    const state = readSessionState();
+    const at = clock.now();
+    const attemptId = liveData.interruptedAttempt?.id;
+    const trackId = attemptId === undefined ? liveData.interruptedTracking?.id : undefined;
+    // Older releases persisted a pending interruption on the first tap.
+    // No confirmed use or closed segment exists to undo in this state.
+    persistBreakSession({ ...state,
+      attempts: state.attempts.map(row => row.id === attemptId && row.status === 'interrupted_time_needed' ? { ...row, status: 'active' as const, updatedAt: at } : row),
+      tracking: state.tracking.map(row => row.id === trackId && row.status === 'interrupted_time_needed' ? { ...row, status: 'tracking' as const, updatedAt: at } : row),
+    });
+    refresh();
+  }
+
   function handleUseReported(): void {
-    const nowAt = clock.now();
+    // Opening a form is reversible. Suspend only as part of a confirmed save.
     const latest = readSessionState();
     const attempt = currentLiveAttempt(latest.attempts);
     const tracking = currentLiveTracking(latest.tracking);
-    if (attempt?.status === 'interrupted_time_needed') {
-      const start = currentSegmentAnchor(attempt.segments);
-      if (start !== null) setFlow({ kind: 'confirm-use', scope: 'attempt', segmentStart: start });
-      return;
-    }
-    if (tracking?.status === 'interrupted_time_needed') {
-      const start = currentSegmentAnchor(tracking.segments);
-      if (start !== null) setFlow({ kind: 'confirm-use', scope: 'tracking', segmentStart: start });
-      return;
-    }
-    let scope: ConfirmScope = attempt?.status === 'active' ? 'attempt' : 'tracking';
-    let segmentStart: Instant | null = null;
-    if (attempt?.status === 'active') {
-      const outcome = suspendBreak(latest, attempt.id, nowAt);
-      if (outcome.ok) {
-        persistBreakSession(outcome.state);
-        segmentStart = currentSegmentAnchor(outcome.state.attempts.find((row) => row.id === attempt.id)?.segments ?? []);
-      }
-    } else if (tracking?.status === 'tracking') {
-      const outcome = suspendTracking(latest, tracking.id, nowAt);
-      if (outcome.ok) {
-        persistBreakSession(outcome.state);
-        scope = 'tracking';
-        segmentStart = currentSegmentAnchor(outcome.state.tracking.find((row) => row.id === tracking.id)?.segments ?? []);
-      }
-    }
-    if (segmentStart !== null) {
-      setFlow({ kind: 'confirm-use', scope, segmentStart });
-    }
-    refresh();
+    const owner = attempt ?? tracking;
+    const segmentStart = owner ? currentSegmentAnchor(owner.segments) : null;
+    if (segmentStart !== null) setFlow({ kind: 'confirm-use', scope: attempt ? 'attempt' : 'tracking', segmentStart });
   }
 
   function confirmUse(scope: ConfirmScope, usedAt: Instant, usedAtIso: string): boolean {
@@ -584,10 +572,14 @@ export function App({
     const tracking = currentLiveTracking(latest.tracking);
     const id = scope === 'attempt' ? attempt?.id : tracking?.id;
     if (id === undefined) return false;
-    const outcome =
-      scope === 'attempt'
-        ? confirmBreakUse(latest, { id, usedAt, usedAtIso, now: nowAt })
-        : confirmTrackingUse(latest, { id, usedAt, usedAtIso, now: nowAt });
+    const pending = scope === 'attempt' && attempt?.status === 'active'
+      ? suspendBreak(latest, id, nowAt)
+      : scope === 'tracking' && tracking?.status === 'tracking'
+        ? suspendTracking(latest, id, nowAt) : { ok: true as const, state: latest };
+    if (!pending.ok) return false;
+    const outcome = scope === 'attempt'
+      ? confirmBreakUse(pending.state, { id, usedAt, usedAtIso, now: nowAt })
+      : confirmTrackingUse(pending.state, { id, usedAt, usedAtIso, now: nowAt });
     if (!outcome.ok) return false;
     persistBreakSession(outcome.state);
     const snapshot = durable.load().snapshot;
@@ -972,9 +964,27 @@ export function App({
     refresh();
   }
 
+  function currentCheckinContext() {
+    const state = readSessionState();
+    const attempt = currentLiveAttempt(state.attempts);
+    const track = currentLiveTracking(state.tracking);
+    const owner = attempt?.status === 'active' ? attempt : track?.status === 'tracking' ? track : null;
+    const at = clock.now();
+    return { state, at, owner, index: latestTodayCheckin(state.checkins, owner ? currentSegmentAnchor(owner.segments) : null, at) };
+  }
+
   function saveNoUse(): void {
-    persistBreakSession(recordNoUseCheckin(readSessionState(), clock.now()));
-    setFlow(null);
+    const { state, at, owner, index } = currentCheckinContext();
+    if (owner === null || index >= 0) return;
+    persistBreakSession(recordNoUseCheckin(state, at));
+    refresh();
+  }
+
+  function undoCheckin(): void {
+    const { state, index } = currentCheckinContext();
+    if (index < 0) return;
+    // Remove exactly the latest entry. Earlier ratings and other days survive.
+    try { durable.saveCheckins(state.checkins.filter((_, i) => i !== index)); } catch { /* Storage status is shown by the shell. */ }
     refresh();
   }
 
@@ -1269,8 +1279,12 @@ export function App({
             onRecalculate={openRecalculate}
             onSeeBreakRange={seeBreakRange}
             onStartTracking={startTracking}
-            onCheckIn={openCheckIn}
+            onCheckIn={saveNoUse}
+            onAddSymptoms={openCheckIn}
+            onUndoCheckin={undoCheckin}
+            onReportUse={handleUseReported}
             onConfirmWhen={confirmWhen}
+            onDismissUnconfirmedUse={dismissUnconfirmedUse}
             onEndEarly={endEarly}
             onCancelPlanned={cancelPlanned}
             onOpenTrackingDetail={openTrackingDetail}
@@ -1406,9 +1420,7 @@ export function App({
           onStartBreak={startPlan}
           onChooseBreakDays={confirmChosenDays}
           canStartPlan={canStartPlan}
-          onCheckInNo={saveNoUse}
           onCheckInSymptoms={saveSymptoms}
-          onUseReported={handleUseReported}
           onConfirmUse={confirmUse}
           onRecalculate={openRecalculate}
           onUpdatePreparation={updatePreparation}
@@ -1514,9 +1526,7 @@ function FlowRenderer({
   onStartBreak,
   onChooseBreakDays,
   canStartPlan,
-  onCheckInNo,
   onCheckInSymptoms,
-  onUseReported,
   onConfirmUse,
   onRecalculate,
   onUpdatePreparation,
@@ -1545,9 +1555,7 @@ function FlowRenderer({
   readonly onStartBreak: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
   readonly onChooseBreakDays: (days: number) => void;
   readonly canStartPlan: boolean;
-  readonly onCheckInNo: () => void;
   readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
-  readonly onUseReported: () => void;
   readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
   readonly onRecalculate: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
@@ -1602,8 +1610,6 @@ function FlowRenderer({
       return checkInDay !== null ? (
         <CheckInFlow
           day={checkInDay}
-          onNoUseSave={onCheckInNo}
-          onUseReported={onUseReported}
           onSymptomsSave={onCheckInSymptoms}
           onClose={onClose}
         />

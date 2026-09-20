@@ -150,8 +150,6 @@ describe('Today phase states (0.11)', () => {
     seedSnapshot(storage, snapshot);
     seedAttempt(storage, activeAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(screen.getByTestId('checkin-flow')).toBeTruthy();
     fireEvent.click(screen.getByTestId('add-symptoms'));
     const flow = screen.getByTestId('checkin-flow');
     expect(flow.getAttribute('data-screen')).toBe('symptoms');

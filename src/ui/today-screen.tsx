@@ -1,3 +1,4 @@
+import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
 import { useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
@@ -68,7 +69,11 @@ export interface TodayScreenProps {
   readonly onSeeBreakRange: () => void;
   readonly onStartTracking: () => void;
   readonly onCheckIn: () => void;
+  readonly onAddSymptoms: () => void;
+  readonly onUndoCheckin: () => void;
+  readonly onReportUse: () => void;
   readonly onConfirmWhen: () => void;
+  readonly onDismissUnconfirmedUse: () => void;
   readonly onEndEarly: (id: string) => void;
   readonly onCancelPlanned: (id: string) => void;
   readonly onOpenTrackingDetail: () => void;
@@ -214,6 +219,23 @@ function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => vo
   );
 }
 
+function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenProps; readonly checked: boolean }) {
+  return <div className="quick-checkin" data-testid="quick-checkin">
+    <button type="button" className={checked ? 'cta-primary is-checked' : 'cta-primary'}
+      data-testid="checkin-cta" aria-pressed={checked} disabled={checked} onClick={props.onCheckIn}>
+      {checked ? <><CheckIcon size={20} /><span>Checked in today</span></> : <><CheckIcon size={20} /><span>Check in</span></>}
+    </button>
+    <div className="checkin-receipt">
+      <p className="meta" role="status">{checked ? 'Saved · No THC reported' : 'Record today without THC'}</p>
+      {checked ? <button type="button" className="text-back" data-testid="undo-checkin" aria-label="Undo latest check-in" onClick={props.onUndoCheckin}>Undo</button> : null}
+    </div>
+    <div className="checkin-secondary-actions">
+      <button type="button" className="checkin-secondary" data-testid="add-symptoms" onClick={props.onAddSymptoms}>How are you feeling?</button>
+      <button type="button" className="checkin-secondary" data-testid="report-use" onClick={props.onReportUse}>Log THC use</button>
+    </div>
+  </div>;
+}
+
 // --- Live timing states -----------------------------------------------------
 
 function ActiveBreakCard(props: TodayScreenProps) {
@@ -234,16 +256,15 @@ function ActiveBreakCard(props: TodayScreenProps) {
   // Days with a recorded no-use check-in up to and including today, used for
   // the quiet progress line and the "Checked in today" CTA state.
   const recordedDays = new Set<number>();
-  let checkedToday = false;
+  const checkedToday = latestTodayCheckin(props.live.checkins, anchor, props.live.now) >= 0;
   if (anchor !== null) {
     for (const row of props.live.checkins) {
       if (row.usedThc) continue;
       const recorded = parseSubmittedTimestamp(row.recordedAt);
-      if (recorded === null) continue;
+      if (recorded === null || recorded < anchor || recorded > props.live.now) continue;
       const day = abstinenceDayAt(recorded, anchor);
       if (day < 1 || day > view.day) continue;
       recordedDays.add(day);
-      if (day === view.day) checkedToday = true;
     }
   }
   const journey = presentBreakJourney(
@@ -272,16 +293,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         </p>
       ) : null}
       <div className="today-actions">
-        <button
-          type="button"
-          className={checkedToday ? 'cta-primary is-checked' : 'cta-primary'}
-          data-testid="checkin-cta"
-          onClick={props.onCheckIn}
-        >
-          {checkedToday ? (
-            <><CheckIcon size={18} /><span className="checkin-cta-label">{ACTIVE_BREAK_CARD.checkedToday}</span></>
-          ) : ACTIVE_BREAK_CARD.checkIn}
-        </button>
+        <QuickCheckinActions props={props} checked={checkedToday} />
         {view.atOrPastTargetDate ? (
           <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
             {ACTIVE_BREAK_CARD.markComplete}
@@ -369,6 +381,7 @@ function InterruptedCard(props: TodayScreenProps) {
       <button type="button" className="cta-primary" data-testid="confirm-when-cta" onClick={props.onConfirmWhen}>
         {INTERRUPTED_CARD.confirmWhen}
       </button>
+      <button type="button" className="text-back" data-testid="dismiss-unconfirmed-use" onClick={props.onDismissUnconfirmedUse}>I didn’t use THC — undo report</button>
     </article>
   );
 }
@@ -416,9 +429,7 @@ function TrackingCard(props: TodayScreenProps) {
         </h2>
       </button>
       <div className="today-actions">
-        <button type="button" className="cta-primary" data-testid="checkin-cta" onClick={props.onCheckIn}>
-          {TRACKING_CARD.checkIn}
-        </button>
+        <QuickCheckinActions props={props} checked={latestTodayCheckin(props.live.checkins, currentSegmentAnchor(tracking.track.segments), props.live.now) >= 0} />
       </div>
       {tracking.view !== null ? (
         <DailySupport input={{

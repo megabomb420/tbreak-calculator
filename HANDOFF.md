@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.22.0
+# Handoff — T-Break Calculator 0.23.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-Today is the practical daily companion. The active card shows the day/target hero, the full-width check-in action, phase context, two relevant advice topics and one practical activity for the day. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
+Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom/use actions, expandable phase context, two relevant advice topics and one practical activity for the day. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -22,6 +22,16 @@ Today leads with the check-in and practical advice. Fresh symptom ratings take p
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.23.0 — direct check-in and PWA interaction (2026-09-20)
+
+- Today records a no-use check-in with one tap; no Yes/No or Save screen. The action explains its meaning before saving, shows a saved receipt afterward, and prevents duplicate taps in the current abstinence day. The same controls serve finite breaks and open-ended tracking.
+- Persistent **Undo** removes only the latest no-use record in the current day/segment; earlier entries and other days survive. It works after reload and offline. **How are you feeling?** opens the optional ratings directly; **Log THC use** opens date confirmation directly.
+- Opening/canceling a use form no longer suspends the plan. Suspend and confirm use execute together on the existing pure session state, and only the confirmed result is persisted. Existing legacy pending interruptions can be dismissed as mistaken reports without inventing a use event or changing the segment anchor.
+- Reddit experiences are a native swipe/scroll-snap carousel with arrows, position controls and keyboard support. No automatic advance. Inactive slides are inert; resize preserves position. The same three reviewed sources and personal-experience labels remain.
+- General phase information moves behind **What to expect**, keeping practical advice higher on Today. Restrained press feedback, check-mark animation and sheet/guide transitions reinforce actions without delaying them. Reduced-motion preferences are respected. Existing PWA shell/safe-area/offline contracts remain.
+
+Validation: 564 unit/domain/golden tests and 163 UI tests pass; typecheck and production build pass. Production-bundle Chromium smoke covered one-tap save, reload, persistent undo, cancelable use entry, symptom advice, carousel arrows, keyboard navigation, an actual touch swipe, position retention after resize, 320/390/720px without horizontal overflow, reduced motion, and offline reload/undo. Today and carousel screenshots were visually inspected. No browser exceptions. Physical iOS Safari remains untested.
 
 ## Release 0.22.0 — practical daily support (2026-09-20)
 
@@ -86,9 +96,9 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.22.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
+Resume current main after 0.23.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.22.0. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.23.0. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

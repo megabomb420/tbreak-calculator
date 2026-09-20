@@ -3,7 +3,7 @@ import type { Instant } from '../domain/schemas/time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { DateControl } from './questionnaire-controls.tsx';
 import { INTERRUPTION, RESTART_COPY_BREAK, RESTART_COPY_TRACKING, RESTART_DONE, RESTART_RECALCULATE, GUIDANCE_CHROME } from './break-copy.ts';
-import { CloseIcon, PauseIcon } from './icons.tsx';
+import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { presentUnplannedUseRecovery } from '../application/presentation/break-guidance.ts';
 import { implementationIntentions, type BreakPreparation } from '../application/break/preparation.ts';
@@ -65,8 +65,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
         ) : (
           <div className="stack">
             <p className="paused-note" data-testid="paused-note">
-              <PauseIcon size={18} />
-              {INTERRUPTION.paused}
+              Your day count changes only after you confirm. Close this screen if you opened it by mistake.
             </p>
             <p className="meta">{INTERRUPTION.dateHelper}</p>
             <DateControl
@@ -91,6 +90,7 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
             </button>
           </>
         ) : (
+          <>
           <button
             type="button"
             className="cta-primary"
@@ -100,6 +100,8 @@ export function ConfirmUse({ scope, segmentStart, now, onConfirm, onClose, onRec
           >
             {INTERRUPTION.confirm}
           </button>
+          <button type="button" className="text-back" onClick={onClose}>Cancel</button>
+          </>
         )}
       </footer>
     </div>
