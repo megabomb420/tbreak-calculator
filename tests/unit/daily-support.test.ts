@@ -61,3 +61,24 @@ test('a missing anchor cannot reuse another break’s symptoms', () => {
   const view = presentDailySupport({ ...base, anchor: null, checkins: [row({ anxiety: 10 })] });
   assert.ok(view.selections.every(item => item.recordedAt === null));
 });
+test('Reddit experiences stay inside the current break stage', () => {
+  for (const day of [1, 4, 10, 17, 24, 40]) {
+    const view = presentDailySupport({ ...base, day });
+    assert.ok(view.communityTips.length >= 3, `expected several experiences on day ${day}`);
+    assert.ok(
+      view.communityTips.every(tip => tip.windows.includes(view.window.id)),
+      `day ${day} included an experience outside ${view.window.id}`,
+    );
+  }
+});
+test('a stage-matched experience related to the current issue leads the carousel', () => {
+  const view = presentDailySupport({
+    ...base,
+    day: 10,
+    supportAreas: ['sleep'],
+    checkins: [row({ sleep: 1 })],
+  });
+  assert.equal(view.window.id, 'days_7_14');
+  assert.ok(view.communityTip.windows.includes('days_7_14'));
+  assert.ok(view.communityTip.areas.includes('sleep'));
+});

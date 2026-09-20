@@ -126,15 +126,11 @@ export function resolvedPath(answers: QuestionnaireAnswers): QuestionnaireStepId
     return path;
   }
   if (goal === 'reduction') {
-    path.push('Q2R');
-    if (answers.breakRequested === undefined) return path;
-    if (answers.breakRequested === false) {
-      // Reduction without a requested break does not consume duration,
-      // sessions, products/routes, or a last-use timestamp.
-      path.push('Q2');
-      return path;
-    }
-    path.push(...toleranceFromGoalChoice(answers));
+    // Cutting down is its own tracker, not a detour through the T-break
+    // questionnaire. Frequency and typical sessions are the only inputs
+    // needed to propose editable behavioural limits.
+    path.push('Q2');
+    if ((answers.thcUseDaysLast30 ?? 0) > 0) path.push('Q4');
     return path;
   }
   path.push(...toleranceFromGoalChoice(answers));
@@ -280,24 +276,22 @@ function estimatedPathLength(answers: QuestionnaireAnswers): number {
   if (goal === undefined) return 7;
   if (goal === 'abstinence') return 3;
   if (goal === 'detection_information') return 3;
-  const reductionPrefix = goal === 'reduction' ? 1 : 0;
-  if (goal === 'reduction' && answers.breakRequested === undefined) return 7;
-  if (goal === 'reduction' && answers.breakRequested === false) return 3;
+  if (goal === 'reduction') return (answers.thcUseDaysLast30 ?? 0) > 0 ? 3 : 2;
   const days = answers.thcUseDaysLast30;
-  if (days === undefined) return 6 + reductionPrefix;
-  if (days === 0) return 4 + reductionPrefix;
-  if (days <= 3) return 4 + reductionPrefix;
-  return 6 + reductionPrefix;
+  if (days === undefined) return 6;
+  if (days === 0) return 4;
+  if (days <= 3) return 4;
+  return 6;
 }
 
 function isFullyResolved(answers: QuestionnaireAnswers): boolean {
   if (answers.goal === undefined) return false;
-  if (answers.goal === 'reduction' && answers.breakRequested === undefined) return false;
-  if (answers.goal === 'tolerance_reset' || (answers.goal === 'reduction' && answers.breakRequested === true)) {
+  if (answers.goal === 'tolerance_reset') {
     return answers.thcUseDaysLast30 !== undefined;
   }
-  if (answers.goal === 'reduction' && answers.breakRequested === false) {
-    return answers.thcUseDaysLast30 !== undefined;
+  if (answers.goal === 'reduction') {
+    return answers.thcUseDaysLast30 !== undefined &&
+      (answers.thcUseDaysLast30 === 0 || answers.sessionsPerUseDay !== undefined);
   }
   return true;
 }
@@ -413,9 +407,6 @@ function pruneAnswers(answers: QuestionnaireAnswers): QuestionnaireAnswers {
 
   const pathOf = (partial: QuestionnaireAnswers): QuestionnaireStepId[] => resolvedPath(partial);
 
-  if (next.goal === 'reduction' && answers.breakRequested !== undefined) {
-    next.breakRequested = answers.breakRequested;
-  }
   if (pathOf(next).includes('Q2') && answers.thcUseDaysLast30 !== undefined) {
     next.thcUseDaysLast30 = answers.thcUseDaysLast30;
   }

@@ -19,10 +19,6 @@ import {
   PLAN_LENS,
   RESULT,
 } from './result-copy.ts';
-import {
-  DEFAULT_REDUCTION_DAYS_PER_WEEK,
-  DEFAULT_REDUCTION_SESSIONS,
-} from '../application/progress/reduction-plan.ts';
 import { HISTORY } from './copy.ts';
 import { CloseIcon } from './icons.tsx';
 import { WithdrawalTrack } from './withdrawal-track.tsx';
@@ -51,13 +47,10 @@ export interface ResultScreenProps {
   readonly onStartBreak?: () => void;
   /** Starts open-ended tracking (abstinence / baseline-low results). */
   readonly onStartTracking?: () => void;
+  /** Opens the single cut-down setup sheet from a reduction result. */
+  readonly onStartReduction?: () => void;
   /** False hides baseline Keep tracking (no last-use anchor stored). */
   readonly trackingAvailable?: boolean;
-  readonly reductionPlan?: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
-  readonly onReductionPlanChange?: (plan: {
-    readonly maxUseDaysPerWeek: number;
-    readonly maxSessionsPerUseDay: number;
-  }) => void;
   readonly historical?: boolean;
   readonly runningPlanNotice?: boolean;
   /** The frozen calculation this result came from, when one exists. Drives the
@@ -84,9 +77,8 @@ export function ResultScreen({
   onStartOver,
   onStartBreak,
   onStartTracking,
+  onStartReduction,
   trackingAvailable = true,
-  reductionPlan = null,
-  onReductionPlanChange,
   historical = false,
   runningPlanNotice = false,
   outlookRecord = null,
@@ -129,8 +121,6 @@ export function ResultScreen({
           onOpenNominalThc={() => setThcOpen(true)}
           onBreakRecommendation={onBreakRecommendation}
           onDetectionBasics={onDetectionBasics}
-          reductionPlan={reductionPlan}
-          onReductionPlanChange={onReductionPlanChange}
           historical={historical}
           outlookRecord={outlookRecord}
           checkinFacts={checkinFacts}
@@ -150,6 +140,7 @@ export function ResultScreen({
           onStartOver={onStartOver}
           onStartBreak={historical ? undefined : onStartBreak}
           onStartTracking={historical ? undefined : onStartTracking}
+          onStartReduction={historical ? undefined : onStartReduction}
           trackingAvailable={trackingAvailable}
           onRecalculate={onRecalculate}
           onDelete={onDelete}
@@ -167,8 +158,6 @@ function ResultBody({
   onOpenNominalThc,
   onBreakRecommendation,
   onDetectionBasics,
-  reductionPlan,
-  onReductionPlanChange,
   historical,
   outlookRecord,
   checkinFacts,
@@ -183,11 +172,6 @@ function ResultBody({
   readonly onOpenNominalThc: () => void;
   readonly onBreakRecommendation: () => void;
   readonly onDetectionBasics: () => void;
-  readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
-  readonly onReductionPlanChange?: (plan: {
-    readonly maxUseDaysPerWeek: number;
-    readonly maxSessionsPerUseDay: number;
-  }) => void;
   readonly historical: boolean;
   readonly outlookRecord: CalculationRecord | null;
   readonly checkinFacts: RecoveryCheckinFactsView | null;
@@ -320,8 +304,6 @@ function ResultBody({
           historical={historical}
           onEditStep={onEditStep}
           onSeeBreakRange={onSeeBreakRange}
-          reductionPlan={reductionPlan}
-          onReductionPlanChange={onReductionPlanChange}
         />
       );
     case 'baseline_low':
@@ -519,27 +501,15 @@ function ReductionBody({
   historical,
   onEditStep,
   onSeeBreakRange,
-  reductionPlan,
-  onReductionPlanChange,
 }: {
   readonly answers: readonly AnswerRow[];
   readonly historical?: boolean;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
   readonly onSeeBreakRange: () => void;
-  readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
-  readonly onReductionPlanChange?: (plan: {
-    readonly maxUseDaysPerWeek: number;
-    readonly maxSessionsPerUseDay: number;
-  }) => void;
 }) {
-  const [days, setDays] = useState(Math.max(1, reductionPlan?.maxUseDaysPerWeek ?? DEFAULT_REDUCTION_DAYS_PER_WEEK));
-  const [sessions, setSessions] = useState(reductionPlan?.maxSessionsPerUseDay ?? DEFAULT_REDUCTION_SESSIONS);
-
-  function commit(nextDays: number, nextSessions: number) {
-    setDays(nextDays);
-    setSessions(nextSessions);
-    onReductionPlanChange?.({ maxUseDaysPerWeek: nextDays, maxSessionsPerUseDay: nextSessions });
-  }
+  const useDays = Number(answers.find((answer) => answer.id === 'useDays')?.value ?? 0);
+  const sessions = Number(answers.find((answer) => answer.id === 'sessions')?.value ?? 1);
+  const weekly = useDays === 0 ? 0 : Math.max(1, Math.ceil((useDays / 30) * 7));
 
   return (
     <div className="stack">
@@ -550,25 +520,19 @@ function ReductionBody({
         </h2>
         <p className="body">{RESULT.reductionBody}</p>
       </header>
-      {historical ? <p className="meta">Use limits belong to your cut-down plan. Open that plan in History to review its limits and logged sessions.</p> : <section className="card">
-        <h3 className="card-title">{RESULT.limitsHeading}</h3>
-        <ReductionStepper
-          label={RESULT.maxDaysWeek}
-          value={days}
-          min={1}
-          max={7}
-          testId="limit-days"
-          onChange={(value) => commit(value, sessions)}
-        />
-        <ReductionStepper
-          label={RESULT.maxSessions}
-          value={sessions}
-          min={1}
-          max={9}
-          testId="limit-sessions"
-          onChange={(value) => commit(days, value)}
-        />
-      </section>}
+      <section className="reduction-intro" data-testid="reduction-intro">
+        <div className="reduction-baseline">
+          <p className="micro-label">Your current pattern</p>
+          <p className="reduction-baseline-value">About {weekly} {weekly === 1 ? 'day' : 'days'} a week</p>
+          <p className="meta">Usually {sessions} {sessions === 1 ? 'session' : 'sessions'} on a use day</p>
+        </div>
+        <ol className="reduction-steps">
+          <li><span>1</span><p><strong>Choose a weekly cap.</strong> This is a ceiling, not a target to fill.</p></li>
+          <li><span>2</span><p><strong>Choose a session cap.</strong> One sitting counts as one session.</p></li>
+          <li><span>3</span><p><strong>Log sessions only.</strong> The app handles use days and the rolling week.</p></li>
+        </ol>
+      </section>
+      {historical ? <p className="meta">The limits and logged sessions belong to the cut-down plan saved in History.</p> : null}
       <section className="result-section">
         <p className="body">{RESULT.reductionSoft}</p>
         <button type="button" className="cta-secondary" onClick={onSeeBreakRange}>
@@ -589,6 +553,7 @@ function ResultActions({
   onStartOver,
   onStartBreak,
   onStartTracking,
+  onStartReduction,
   trackingAvailable,
   onRecalculate,
   onDelete,
@@ -601,6 +566,7 @@ function ResultActions({
   readonly onStartOver: () => void;
   readonly onStartBreak?: () => void;
   readonly onStartTracking?: () => void;
+  readonly onStartReduction?: () => void;
   readonly trackingAvailable: boolean;
   readonly onRecalculate?: () => void;
   readonly onDelete?: () => void;
@@ -660,10 +626,12 @@ function ResultActions({
         </button>
       );
     case 'reduction_planning':
-      return (
-        <button type="button" className="cta-primary" onClick={onAcknowledge}>
-          {RESULT.done}
+      return onStartReduction !== undefined ? (
+        <button type="button" className="cta-primary" data-testid="setup-reduction-plan" onClick={onStartReduction}>
+          {RESULT.startReductionPlan}
         </button>
+      ) : (
+        <button type="button" className="cta-primary" onClick={onAcknowledge}>{RESULT.done}</button>
       );
     case 'baseline_low':
       return (
@@ -701,39 +669,6 @@ function ResultActions({
         </button>
       );
   }
-}
-
-function ReductionStepper({
-  label,
-  value,
-  min,
-  max,
-  testId,
-  onChange,
-}: {
-  readonly label: string;
-  readonly value: number;
-  readonly min: number;
-  readonly max: number;
-  readonly testId: string;
-  readonly onChange: (value: number) => void;
-}) {
-  return (
-    <div className="stepper-field meta">
-      <span>{label}</span>
-      <span className="stepper">
-        <button type="button" className="stepper-button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, value - 1))}>
-          −
-        </button>
-        <output className="stepper-value" data-testid={testId}>
-          {value}
-        </output>
-        <button type="button" className="stepper-button" aria-label={`Increase ${label}`} onClick={() => onChange(Math.min(max, value + 1))}>
-          +
-        </button>
-      </span>
-    </div>
-  );
 }
 
 function AnswersCard({

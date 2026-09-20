@@ -425,11 +425,11 @@ describe('questionnaire routing for current pattern duration', () => {
     assert.deepEqual(resolvedPath({ goal: 'abstinence' }), ['Q1', 'Q6', 'Q2A']);
     assert.deepEqual(
       resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 10 }),
-      ['Q1', 'Q2R', 'Q2'],
+      ['Q1', 'Q2', 'Q4'],
     );
     assert.deepEqual(
       resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 10 }),
-      ['Q1', 'Q2R', 'Q6', 'Q2', 'Q3', 'Q4', 'Q5'],
+      ['Q1', 'Q2', 'Q4'],
     );
     // Detection never asks Q6.
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);

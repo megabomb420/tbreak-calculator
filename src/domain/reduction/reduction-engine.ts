@@ -297,9 +297,11 @@ export function suggestedReductionLimits(
   baseline: Pick<ReductionBaseline, 'thcUseDaysLast30' | 'sessionsPerUseDay'>,
 ): ReductionLimits {
   const currentWeeklyRate = Math.max(1, Math.ceil((baseline.thcUseDaysLast30 / 30) * 7));
-  const suggestedDays = Math.max(1, Math.min(7, Math.ceil(currentWeeklyRate / 2)));
-  const suggestedSessions =
-    baseline.sessionsPerUseDay === null || baseline.sessionsPerUseDay > 1 ? 1 : 1;
+  // A starting suggestion is one clear step below the reported pattern. It is
+  // deliberately editable: the tracker is a behavioural commitment, not a
+  // prescribed dose or a claim that halving use is universally realistic.
+  const suggestedDays = Math.max(1, Math.min(7, currentWeeklyRate - 1));
+  const suggestedSessions = Math.max(1, (baseline.sessionsPerUseDay ?? 1) - 1);
   return {
     maxUseDaysPerWeek: suggestedDays,
     maxSessionsPerUseDay: suggestedSessions,

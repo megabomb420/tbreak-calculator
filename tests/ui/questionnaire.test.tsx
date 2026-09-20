@@ -84,19 +84,20 @@ describe('Q1 tap-advance, persistence, resume, start over', () => {
 });
 
 describe('goal chips and branching', () => {
-  it('opens the reduction path at Q2R from the Q1 goal card', () => {
+  it('opens cut down directly at recent use-days', () => {
     openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2R');
-    expect(screen.getByRole('heading', { name: STEP_COPY.Q2R.title })).toBeTruthy();
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
+    expect(screen.getByRole('heading', { name: STEP_COPY.Q2.title })).toBeTruthy();
   });
 
-  it('does not ask last use on the reduction-no-break path', () => {
+  it('asks only use-days and typical sessions for a cut-down baseline', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Not now/ }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q4');
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('reduction_planning');
@@ -106,6 +107,8 @@ describe('goal chips and branching', () => {
     if (snapshot?.snapshot.kind === 'use_profile') {
       expect(snapshot.snapshot.profile.breakRequested).toBe(false);
       expect(snapshot.snapshot.profile.lastUseAt.value).toBeNull();
+      expect(snapshot.snapshot.profile.sessionsPerUseDay.value).toBe(1);
+      expect(snapshot.snapshot.profile.currentPatternDuration?.value).toBeNull();
     }
   });
 });

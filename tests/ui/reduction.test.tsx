@@ -3,14 +3,13 @@
 // Proves the deterministic behaviours users see: plan creation from the
 // cut-down summary, quick THC-use logging with correct session/use-day
 // semantics, live plan-state feedback, the review rule after two breach days,
-// post-break takeover for occasional/reduced modes, limit recommit, and the
-// adaptive recalculation that freezes a NEW record (old stays immutable).
+// post-break takeover for occasional/reduced modes, and limit recommit. Session
+// logging deliberately does not create or rewrite tolerance calculations.
 
 import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { FIRST_LAUNCH } from '../../src/ui/copy.ts';
-import { RESULT } from '../../src/ui/result-copy.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
@@ -30,17 +29,6 @@ import type { ReductionLimits, ReductionPlan, UseEvent } from '../../src/domain/
 
 const AT = toInstant(1787184000000); // fixed instant (UTC noon)
 const DAY_MS = 24 * 60 * 60 * 1000;
-const clock = fixedClock(AT);
-
-/** Clicks the product chip carrying the given data-value inside a sheet. */
-function pickProduct(scope: HTMLElement, value: string): void {
-  const chip = within(scope)
-    .getAllByTestId('log-product')
-    .find((el) => el.getAttribute('data-value') === value);
-  if (chip === undefined) throw new Error(`no log-product chip for ${value}`);
-  fireEvent.click(chip);
-}
-
 function renderApp(storage: StorageAdapter = createMemoryStorage(), at = AT) {
   return render(<App storage={storage} clock={fixedClock(at)} />);
 }
@@ -143,7 +131,8 @@ describe('active reduction plan', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
     fireEvent.click(screen.getByTestId('start-reduction-plan'));
     const sheet = screen.getByTestId('reduction-start-sheet');
-    expect(sheet.textContent ?? '').toMatch(/Suggested from your pattern/);
+    expect(sheet.textContent ?? '').toMatch(/Recent pattern/);
+    expect(sheet.textContent ?? '').toMatch(/Plan cap/);
     fireEvent.click(screen.getByTestId('reduction-start-save'));
     expect(screen.queryByTestId('reduction-start-sheet')).toBeNull();
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('reduction-active');
@@ -163,20 +152,18 @@ describe('active reduction plan', () => {
 
     fireEvent.click(screen.getByTestId('log-use-cta'));
     let sheet = screen.getByTestId('log-use');
-    pickProduct(sheet, 'flower');
     fireEvent.click(within(sheet).getByTestId('log-use-save'));
     expect(screen.queryByTestId('log-use')).toBeNull();
-    expect(screen.getByTestId('reduction-card').textContent).toMatch(/Today: 1 \/ 1 session/);
+    expect(screen.getByTestId('reduction-sessions-value').textContent).toBe('1of 1');
 
     fireEvent.click(screen.getByTestId('log-use-cta'));
     sheet = screen.getByTestId('log-use');
-    // Use-again fast path prefills the previous product/route.
-    fireEvent.click(within(sheet).getByTestId('log-use-again'));
+    // The previous product and route are already prefilled; one tap saves.
     fireEvent.click(within(sheet).getByTestId('log-use-save'));
-    expect(screen.getByTestId('reduction-card').textContent).toMatch(/Today: 2 \/ 1 sessions/);
-    expect(screen.getByTestId('reduction-card').textContent).toMatch(/Above your plan today/);
+    expect(screen.getByTestId('reduction-sessions-value').textContent).toBe('2of 1');
+    expect(screen.getByTestId('reduction-sessions-status').textContent).toMatch(/session cap passed/i);
     // Two sessions on the same local day are ONE use day, not two.
-    expect(screen.getByTestId('reduction-card').textContent).toMatch(/Last 7 days: 1 \/ 7 use days/);
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('1of 7');
     const plans = createReductionRecordsStore(storage).load().plans;
     expect(plans[0]?.events.length).toBe(2);
   });
@@ -250,10 +237,10 @@ describe('active reduction plan', () => {
     fireEvent.click(within(sheet).getByTestId('limit-days-inc'));
     fireEvent.click(screen.getByTestId('reduction-start-save'));
     expect(createReductionRecordsStore(storage).load().plans[0]?.limits.maxUseDaysPerWeek).toBe(4);
-    expect(screen.getByTestId('reduction-card').textContent).toMatch(/Last 7 days: 0 \/ 4 use days/);
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('0of 4');
   });
 
-  it('adaptive recalculation freezes a NEW record and leaves the old calculation untouched', () => {
+  it('logging a session never creates or rewrites a tolerance calculation', () => {
     const storage = createMemoryStorage();
     seedProfile(storage, toleranceProfile());
     const baseline = {
@@ -271,59 +258,45 @@ describe('active reduction plan', () => {
     }
     seedPlan(storage, basePlan({ limits: { maxUseDaysPerWeek: 7, maxSessionsPerUseDay: 3 }, baseline, events }));
     renderApp(storage);
-    const before = createCalculationRecordsStore(storage).load().records.length;
-    expect(before).toBe(1);
-    // Logging one more session today pushes observed use to a higher band and
-    // triggers the adaptive recalculation after the event is persisted.
+    const before = createCalculationRecordsStore(storage).load();
+    expect(before.records).toHaveLength(1);
     fireEvent.click(screen.getByTestId('log-use-cta'));
     const sheet = screen.getByTestId('log-use');
-    pickProduct(sheet, 'flower');
     fireEvent.click(within(sheet).getByTestId('log-use-save'));
-    const after = createCalculationRecordsStore(storage).load().records;
-    expect(after.length).toBe(2);
-    // The old frozen record is still present and unchanged.
-    const oldRecord = after.find((row) => row.id === 'run-1');
-    expect(oldRecord?.result.type).toBe('tolerance');
-    expect(after[0]?.policyVersion).toBe('tolerance-v3');
-    // Today keeps owning the reduction card (no invented interruption).
+    expect(createCalculationRecordsStore(storage).load()).toEqual(before);
+    expect(createReductionRecordsStore(storage).load().plans[0]?.events).toHaveLength(events.length + 1);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('reduction-active');
   });
 
-  it('refreshes the break recommendation from the tracked pattern', () => {
+  it('keeps break-recommendation recalculation out of the active cut-down card', () => {
     const storage = createMemoryStorage();
     seedProfile(storage, toleranceProfile());
     seedPlan(storage, basePlan({ events: [eventAt(0, 'flower', 1)] }));
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('reduction-refresh-cta'));
-    const sheet = screen.getByTestId('reduction-refresh');
-    expect(sheet.textContent ?? '').toMatch(/tracked so far: 1/);
-    fireEvent.click(within(sheet).getByTestId('refresh-next-1'));
-    fireEvent.click(within(sheet).getByText(/Prefer not to say/));
-    fireEvent.click(within(sheet).getByTestId('refresh-save'));
+    expect(screen.queryByTestId('reduction-refresh-cta')).toBeNull();
     expect(screen.queryByTestId('reduction-refresh')).toBeNull();
-    const records = createCalculationRecordsStore(storage).load().records;
-    expect(records.length).toBe(2);
-    expect(records[0]?.id).not.toBe('run-1');
+    expect(screen.getByTestId('reduction-edit')).toBeTruthy();
+    expect(createCalculationRecordsStore(storage).load().records).toHaveLength(1);
   });
 });
 
 
 describe('cut-down continuity and history', () => {
-  it('carries edited result limits into the start sheet and persists accessible strategy choices', () => {
+  it('uses one setup sheet from the result and persists optional guardrails', () => {
     const storage = createMemoryStorage();
     seedProfile(storage, reductionProfile({ thcUseDaysLast30: { value: 25, provenance: 'user_estimate' } }));
     renderApp(storage);
     fireEvent.click(screen.getByTestId('view-result'));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase Max sessions on a use day' }));
-    fireEvent.click(screen.getByRole('button', { name: RESULT.done }));
-    fireEvent.click(screen.getByTestId('start-reduction-plan'));
-    expect(screen.getByTestId('limit-days').textContent).toBe('4');
-    expect(screen.getByTestId('limit-sessions').textContent).toBe('2');
+    expect(screen.queryByTestId('limit-days')).toBeNull();
+    fireEvent.click(screen.getByTestId('setup-reduction-plan'));
+    expect(screen.getByTestId('limit-days').textContent).toBe('5');
+    expect(screen.getByTestId('limit-sessions').textContent).toBe('1');
+    fireEvent.click(screen.getByTestId('limit-sessions-inc'));
+    fireEvent.click(screen.getByText('Optional guardrails'));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Avoid concentrates' }));
     fireEvent.click(screen.getByTestId('reduction-start-save'));
     const plan = createReductionRecordsStore(storage).load().plans[0];
-    expect(plan?.limits).toEqual({ maxUseDaysPerWeek: 4, maxSessionsPerUseDay: 2 });
+    expect(plan?.limits).toEqual({ maxUseDaysPerWeek: 5, maxSessionsPerUseDay: 2 });
     expect(plan?.strategy.avoidConcentrates).toBe(true);
   });
 

@@ -195,35 +195,42 @@ describe('result screens from engine output', () => {
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2D');
   });
 
-  it('does not render a withdrawal track on reduction-no-break planning', () => {
+  it('keeps cut-down planning behavioural and sends setup to one dedicated sheet', () => {
     renderApp();
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Not now/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
     expect(screen.getByTestId('result-screen').getAttribute('data-kind')).toBe('reduction_planning');
     expect(screen.queryByTestId('withdrawal-track')).toBeNull();
+    expect(screen.queryByTestId('limit-days')).toBeNull();
+    expect(screen.getByTestId('setup-reduction-plan')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('setup-reduction-plan'));
+    expect(screen.getByTestId('reduction-start-sheet')).toBeTruthy();
     expect(screen.getByTestId('limit-days')).toBeTruthy();
   });
 
-  it('persists reduction limits and shows them on Today', () => {
+  it('persists the chosen cut-down limits and restores the active tracker', () => {
     const storage = createMemoryStorage();
-    renderApp(storage);
+    const first = renderApp(storage);
     fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
     fireEvent.click(screen.getByRole('button', { name: /Cut down/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Not now/ }));
     fireEvent.input(screen.getByTestId('use-days-slider'), { target: { value: '8' } });
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.continue }));
+    fireEvent.click(screen.getByTestId('setup-reduction-plan'));
     expect(screen.getByTestId('limit-days').textContent).toBe('1');
-    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase Max use days per week' }));
+    fireEvent.click(screen.getByTestId('limit-days-inc'));
+    fireEvent.click(screen.getByTestId('limit-days-inc'));
     expect(screen.getByTestId('limit-days').textContent).toBe('3');
-    fireEvent.click(screen.getByRole('button', { name: RESULT.done }));
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
-    expect(screen.getByTestId('reduction-limits').textContent).toMatch(/Up to 3 use days a week/);
-    fireEvent.click(screen.getByTestId('view-result'));
-    expect(screen.getByTestId('limit-days').textContent).toBe('3');
+    fireEvent.click(screen.getByTestId('reduction-start-save'));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('reduction-active');
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('0of 3');
+    first.unmount();
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('reduction-active');
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('0of 3');
   });
 
   it('treats a corrupt snapshot as absent and recovers to first-launch', () => {

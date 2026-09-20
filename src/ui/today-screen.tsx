@@ -1,4 +1,3 @@
-import { CannabisMark } from './cannabis-mark.tsx';
 import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
 import { useState } from 'preact/hooks';
@@ -16,7 +15,7 @@ import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './cop
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
-import { CheckIcon, DeviceIcon, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
+import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
@@ -27,7 +26,6 @@ import { BreakJourney } from './break-journey.tsx';
 import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
-import type { ReductionTrajectoryView } from '../application/presentation/reduction-trajectory.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
@@ -72,7 +70,6 @@ export interface TodayScreenProps {
   readonly onCheckIn: () => void;
   readonly onAddSymptoms: () => void;
   readonly onUndoCheckin: () => void;
-  readonly onReportUse: () => void;
   readonly onConfirmWhen: () => void;
   readonly onDismissUnconfirmedUse: () => void;
   readonly onEndEarly: (id: string) => void;
@@ -82,13 +79,8 @@ export interface TodayScreenProps {
   readonly onMarkComplete: (id: string) => void;
   readonly onAcknowledgeComplete: () => void;
   readonly onStopTracking: () => void;
-  /** Active cut-down plan feedback line (shown on the reduction card). */
-  readonly reductionFeedback: string | null;
-  /** Deterministic frozen-record trajectory for the live reduction plan. */
-  readonly reductionTrajectory?: ReductionTrajectoryView | null;
   readonly onOpenReductionStart: () => void;
   readonly onLogUse: () => void;
-  readonly onOpenReductionRefresh: () => void;
   readonly onPauseReduction: () => void;
   readonly onResumeReduction: () => void;
   readonly onEndReduction: () => void;
@@ -164,7 +156,7 @@ function FirstLaunch({ onGetStarted }: { readonly onGetStarted: () => void }) {
     <div className="stack" data-testid="state-first-launch">
       <div className="hero">
         <div className="brand-mark">
-          <CannabisMark size={44} />
+          <IntervalMark size={32} />
         </div>
         <h2 className="title">{FIRST_LAUNCH.title}</h2>
         <p className="body">{FIRST_LAUNCH.promise}</p>
@@ -230,10 +222,7 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
       <p className="meta" role="status">{checked ? 'Saved · A day off THC' : 'Tap to log a day off THC'}</p>
       {checked ? <button type="button" className="text-back" data-testid="undo-checkin" aria-label="Undo latest check-in" onClick={props.onUndoCheckin}>Undo</button> : null}
     </div>
-    <div className="checkin-secondary-actions">
-      <button type="button" className="checkin-secondary" data-testid="add-symptoms" onClick={props.onAddSymptoms}>How are you feeling?</button>
-      <button type="button" className="checkin-secondary" data-testid="report-use" onClick={props.onReportUse}>Log THC use</button>
-    </div>
+    <button type="button" className="checkin-secondary checkin-secondary-wide" data-testid="add-symptoms" onClick={props.onAddSymptoms}>How are you feeling?</button>
   </div>;
 }
 
@@ -280,7 +269,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      <span className="result-lens-orbit" aria-hidden="true"><CannabisMark size={170} /></span>
+      <span className="result-lens-orbit" aria-hidden="true" />
       <header className="today-live-head">
         <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
         <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
@@ -500,81 +489,23 @@ function phaseForDay(day: number, target: number | null): string {
 
 const REDUCTION_CARD = {
   eyebrow: 'Cutting down',
-  title: 'Your cut-down plan',
+  title: 'This rolling week',
   pausedNote: 'Plan paused.',
-  logUse: 'Log THC use',
+  logUse: 'Log a session',
   pause: 'Pause',
-  pauseAndReview: 'Pause & review',
   resume: 'Resume',
   editPlan: 'Edit plan',
   endPlan: 'End plan',
   reviewBody:
-    'Your plan was exceeded twice in the last 7 days. Consider a 3\u20137 day pause and review your limits.',
+    'Your limits were crossed on two days in this rolling week. Adjust the plan if it was unrealistic, or pause it if you want some space.',
   endConfirmTitle: 'End your cut-down plan?',
   endConfirmBody:
     'Ending closes this plan and stops tracking use against these limits. Your saved result and history stay on this device.',
-  useDayLimitCopy: 'Last 7 days: {0} / {1} use days',
-  sessionLimitCopy: 'Today: {0} / {1} sessions',
-  useDayLimitSingleCopy: 'Last 7 days: {0} / 1 use day',
-  sessionLimitSingleCopy: 'Today: {0} / 1 session',
-  aboveWeek: 'Above your use-day plan this week',
-  aboveToday: 'Above your plan today',
+  aboveWeek: 'Weekly cap passed',
+  aboveToday: 'Today’s session cap passed',
   concentrateLogged:
     'A concentrate was logged \u2014 your plan says avoid concentrates.',
-  refreshRecommendation: 'Update your break recommendation',
-  trajectoryMoved: 'Your tracked use is now in a different planning band.',
-  trajectoryStarted: 'Started reduction: {0}/30 use days \u00b7 plan target {1} days',
-  trajectoryCurrent: 'Current tracked: {0}/30 use days \u00b7 plan target {1} days',
-  trajectorySameBand:
-    'Your tracked profile is currently in the same planning band.',
 } as const;
-
-function reductionStateDaysLine(rolling: number, cap: number): string {
-  if (cap === 1) {
-    return rolling === 1
-      ? 'Last 7 days: 1 / 1 use day'
-      : `Last 7 days: ${rolling} / 1 use days`;
-  }
-  return REDUCTION_CARD.useDayLimitCopy
-    .replace('{0}', String(rolling))
-    .replace('{1}', String(cap));
-}
-
-function reductionStateSessionsLine(sessions: number, cap: number): string {
-  if (cap === 1) {
-    return sessions === 1
-      ? 'Today: 1 / 1 session'
-      : `Today: ${sessions} / 1 sessions`;
-  }
-  return REDUCTION_CARD.sessionLimitCopy
-    .replace('{0}', String(sessions))
-    .replace('{1}', String(cap));
-}
-
-function ReductionTrajectoryLine({ view }: { readonly view: ReductionTrajectoryView }) {
-  if (!view.moved) {
-    return (
-      <p className="meta" data-testid="reduction-trajectory" data-state="same-band">
-        {REDUCTION_CARD.trajectorySameBand}
-      </p>
-    );
-  }
-  return (
-    <section className="reduction-trajectory" data-testid="reduction-trajectory" data-state="moved">
-      <p className="body">{REDUCTION_CARD.trajectoryMoved}</p>
-      <p className="meta">
-        {REDUCTION_CARD.trajectoryStarted
-          .replace('{0}', String(view.baselineUseDays))
-          .replace('{1}', String(view.baselineTargetDays))}
-      </p>
-      <p className="meta">
-        {REDUCTION_CARD.trajectoryCurrent
-          .replace('{0}', String(view.currentUseDays))
-          .replace('{1}', String(view.currentTargetDays))}
-      </p>
-    </section>
-  );
-}
 
 function ReductionActiveCard(props: TodayScreenProps) {
   const live = props.live.reduction;
@@ -583,18 +514,16 @@ function ReductionActiveCard(props: TodayScreenProps) {
   const { plan, state } = live;
   const paused = plan.status === 'paused';
   const review = plan.status === 'review_recommended' || state.reviewRecommended;
-  const pauseLabel = review ? REDUCTION_CARD.pauseAndReview : REDUCTION_CARD.pause;
   const shownStatus = paused ? 'paused' : review ? 'review_recommended' : 'active';
+  const useProgress = Math.min(100, (state.rollingUseDays / plan.limits.maxUseDaysPerWeek) * 100);
+  const sessionProgress = Math.min(100, (state.todaySessions / plan.limits.maxSessionsPerUseDay) * 100);
+  const daysLeft = Math.max(0, plan.limits.maxUseDaysPerWeek - state.rollingUseDays);
+  const sessionsLeft = Math.max(0, plan.limits.maxSessionsPerUseDay - state.todaySessions);
 
   return (
     <article className="today-plan-card" data-testid="reduction-card" data-status={shownStatus}>
       <p className="eyebrow">{REDUCTION_CARD.eyebrow}</p>
       <h2 className="card-title">{REDUCTION_CARD.title}</h2>
-      {props.reductionFeedback !== null ? (
-        <p className="today-note meta" data-testid="reduction-feedback">
-          {props.reductionFeedback}
-        </p>
-      ) : null}
       {paused ? (
         <p className="paused-note" data-testid="reduction-paused">
           <PauseIcon size={18} />
@@ -605,28 +534,43 @@ function ReductionActiveCard(props: TodayScreenProps) {
           {review ? (
             <section className="review-banner" data-testid="reduction-review">
               <p className="body">{REDUCTION_CARD.reviewBody}</p>
-              <button
-                type="button"
-                className="cta-secondary"
-                data-testid="reduction-pause-cta"
-                onClick={props.onPauseReduction}
-              >
-                {pauseLabel}
-              </button>
+              <div className="cta-row">
+                <button
+                  type="button"
+                  className="cta-secondary"
+                  data-testid="reduction-adjust-cta"
+                  onClick={props.onRecommitReduction}
+                >
+                  Adjust limits
+                </button>
+                <button
+                  type="button"
+                  className="text-back"
+                  data-testid="reduction-pause-cta"
+                  onClick={props.onPauseReduction}
+                >
+                  Pause plan
+                </button>
+              </div>
             </section>
           ) : null}
-          <div className="stack" data-testid="reduction-state">
-            <p className="meta">{reductionStateDaysLine(state.rollingUseDays, plan.limits.maxUseDaysPerWeek)}</p>
-            {state.useDaysExceeded ? <p className="meta">{REDUCTION_CARD.aboveWeek}</p> : null}
-            <p className="meta">{reductionStateSessionsLine(state.todaySessions, plan.limits.maxSessionsPerUseDay)}</p>
-            {state.sessionsExceededToday ? <p className="meta">{REDUCTION_CARD.aboveToday}</p> : null}
+          <div className="reduction-metrics" data-testid="reduction-state">
+            <section className={state.useDaysExceeded ? 'reduction-metric is-over' : 'reduction-metric'}>
+              <p className="micro-label">Use days · last 7 days</p>
+              <p className="reduction-metric-value" data-testid="reduction-use-days-value"><strong>{state.rollingUseDays}</strong><span>of {plan.limits.maxUseDaysPerWeek}</span></p>
+              <div className="reduction-meter" aria-hidden="true"><span style={{ width: `${useProgress}%` }} /></div>
+              <p className="meta" data-testid="reduction-use-days-status">{state.useDaysExceeded ? REDUCTION_CARD.aboveWeek : `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left under your cap`}</p>
+            </section>
+            <section className={state.sessionsExceededToday ? 'reduction-metric is-over' : 'reduction-metric'}>
+              <p className="micro-label">Sessions · today</p>
+              <p className="reduction-metric-value" data-testid="reduction-sessions-value"><strong>{state.todaySessions}</strong><span>of {plan.limits.maxSessionsPerUseDay}</span></p>
+              <div className="reduction-meter" aria-hidden="true"><span style={{ width: `${sessionProgress}%` }} /></div>
+              <p className="meta" data-testid="reduction-sessions-status">{state.sessionsExceededToday ? REDUCTION_CARD.aboveToday : state.todaySessions === 0 ? 'Nothing logged today' : `${sessionsLeft} ${sessionsLeft === 1 ? 'session' : 'sessions'} left under your cap`}</p>
+            </section>
             {plan.strategy.avoidConcentrates && state.strategyExceededToday ? (
               <p className="meta">{REDUCTION_CARD.concentrateLogged}</p>
             ) : null}
           </div>
-          {props.reductionTrajectory !== null && props.reductionTrajectory !== undefined ? (
-            <ReductionTrajectoryLine view={props.reductionTrajectory} />
-          ) : null}
         </>
       )}
       <div className="today-actions">
@@ -659,16 +603,6 @@ function ReductionActiveCard(props: TodayScreenProps) {
         <button type="button" className="text-back" data-testid="reduction-edit" onClick={props.onRecommitReduction}>
           {REDUCTION_CARD.editPlan}
         </button>
-        {plan.events.length > 0 ? (
-          <button
-            type="button"
-            className="text-back"
-            data-testid="reduction-refresh-cta"
-            onClick={props.onOpenReductionRefresh}
-          >
-            {REDUCTION_CARD.refreshRecommendation}
-          </button>
-        ) : null}
         <button type="button" className="text-back" data-testid="reduction-end" onClick={() => setConfirmEnd(true)}>
           {REDUCTION_CARD.endPlan}
         </button>
@@ -829,9 +763,9 @@ function ReductionSummary(props: TodayScreenProps) {
   return (
     <article className="today-plan-card" data-testid="state-profile-no-break">
       <p className="eyebrow">Cutting down</p>
-      <h2 className="card-title">Cutting down — without a full break.</h2>
+      <h2 className="card-title">Set limits, then log only when you use.</h2>
       {plan !== null ? (
-        <ul className="driver-list" data-testid="reduction-limits">
+        <ul className="driver-list" data-testid="reduction-limits" aria-label="Suggested starting limits">
           <li className="driver-item">
             <span className="driver-mark" aria-hidden="true" />
             <span>{reductionDaysLine(plan.maxUseDaysPerWeek)}</span>
@@ -844,6 +778,7 @@ function ReductionSummary(props: TodayScreenProps) {
       ) : (
         <p className="meta">{RESULT.reductionBody}</p>
       )}
+      <p className="meta">The tracker counts sessions and use days across a rolling week. Days off need no entry.</p>
       <div className="cta-row">
         <button
           type="button"

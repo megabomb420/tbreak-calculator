@@ -1,5 +1,6 @@
-// Reduction trajectory UI (0.9.0): frozen-record movement on the active
-// reduction card, from the actual stored numbers.
+// Cut-down stays a behavioural tracker. Frozen tolerance calculations may
+// exist in history, but they must not turn the active card into a medical
+// trajectory or be regenerated whenever a session is logged.
 
 import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
@@ -125,8 +126,8 @@ function logFlowerUse(): void {
   fireEvent.click(within(sheet).getByTestId('log-use-save'));
 }
 
-describe('reduction trajectory on the active card', () => {
-  it('renders actual movement from the adaptive record versus the pre-plan record', () => {
+describe('cut-down card separation from tolerance calculations', () => {
+  it('logs a session without creating an adaptive calculation or trajectory', () => {
     const storage = createMemoryStorage();
     // Realistic timeline: the questionnaire ran before the plan, and the plan
     // started well before "now" (fixed clock).
@@ -152,24 +153,10 @@ describe('reduction trajectory on the active card', () => {
 
     logFlowerUse();
     const after = createCalculationRecordsStore(storage).load().records;
-    expect(after.length).toBe(2);
-    const adaptive = after[0]!;
-    const baseline = after[1]!;
-    const currentUse = adaptive.snapshot.kind === 'use_profile' ? adaptive.snapshot.profile.thcUseDaysLast30.value : null;
-    const baselineUse = baseline.snapshot.kind === 'use_profile' ? baseline.snapshot.profile.thcUseDaysLast30.value : null;
-    expect(currentUse).not.toBeNull();
-    expect(baselineUse).toBe(10);
-    const targetCurrent = adaptive.result.value.kind === 'tolerance_result' ? adaptive.result.value.preferredTargetDays : null;
-    const targetBaseline = baseline.result.value.kind === 'tolerance_result' ? baseline.result.value.preferredTargetDays : null;
-    expect(targetCurrent).not.toBeNull();
-    expect(targetBaseline).not.toBeNull();
-
-    const card = screen.getByTestId('reduction-card');
-    const trajectory = screen.getByTestId('reduction-trajectory');
-    expect(trajectory.getAttribute('data-state')).toBe('moved');
-    expect(card.textContent).toContain('Your tracked use is now in a different planning band.');
-    expect(trajectory.textContent).toContain(`Started reduction: ${baselineUse}/30 use days · plan target ${targetBaseline} days`);
-    expect(trajectory.textContent).toContain(`Current tracked: ${currentUse}/30 use days · plan target ${targetCurrent} days`);
+    expect(after).toHaveLength(1);
+    expect(after[0]?.id).toBe('run-1');
+    expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
+    expect(screen.getByTestId('reduction-sessions-value').textContent).toBe('1of 3');
   });
 
   it('renders nothing with a single frozen record', () => {
@@ -181,7 +168,7 @@ describe('reduction trajectory on the active card', () => {
     expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
   });
 
-  it('shows the neutral same-band line when the newest record keeps the older band and target', () => {
+  it('does not leak comparisons between old calculation records onto Today', () => {
     const storage = createMemoryStorage();
     seedProfileAndRecord(storage, toleranceProfile(10));
     // A second post-plan record with the identical profile: same band/target.
@@ -190,8 +177,8 @@ describe('reduction trajectory on the active card', () => {
     seedRecords(storage, [second, first]);
     seedPlan(storage, basePlan({ events: [] }));
     renderApp(storage);
-    const trajectory = screen.getByTestId('reduction-trajectory');
-    expect(trajectory.getAttribute('data-state')).toBe('same-band');
-    expect(trajectory.textContent).toContain('Your tracked profile is currently in the same planning band.');
+    expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
+    expect(screen.getByTestId('reduction-card').textContent).not.toContain('planning band');
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('0of 7');
   });
 });

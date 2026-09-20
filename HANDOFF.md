@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.24.0
+# Handoff — T-Break Calculator 0.25.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom/use actions, expandable phase context, two relevant advice topics and one practical activity for the day. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
+Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, expandable phase context, two relevant advice topics, one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -22,6 +22,17 @@ Today leads with the check-in and practical advice. Fresh symptom ratings take p
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.25.0 — discreet identity, stage-matched experiences and usable cut down
+
+- Replaced the explicit botanical/green identity with the documented ink-navy, slate and warm-sand system. The cannabis leaf is removed; the installed icon remains the neutral pause mark. Subtle depth, press feedback, sheet entry and carousel motion remain, with reduced-motion support. The fixed-scale PWA gesture contract from 0.24.0 is retained.
+- Cut down is now a short independent flow: recent use days, then typical sessions. It no longer asks whether the user also wants a T-break, last-use timing, pattern duration, products or routes. The result explains the tracker and opens one setup sheet; limits are not edited twice.
+- Starting limits are a manageable first step below the reported weekly pattern rather than an automatic halving. The live card shows two glanceable meters — distinct use days in the rolling seven-day window and sessions today — with direct edit, pause and end controls. Crossing limits on two days offers both **Adjust limits** and **Pause plan**.
+- **Log a session** exists only on an active cut-down plan. Time defaults to Now, the last/baseline product and route are prefilled, product detail is optional, and one save adds exactly one session. Logging does not create, refresh or rewrite a tolerance calculation.
+- Standard T-break and open-ended abstinence Today cards no longer expose **Log THC use**. **Check in** still records the current no-use day immediately and **Undo** corrects an accidental tap. Legacy `interrupted_time_needed` records remain recoverable, so upgrading does not strand older data.
+- The Reddit carousel now contains 17 reviewed paraphrased experience cards from 12 r/Petioles discussions. Cards are tagged to the current withdrawal window (opening days, days 2–6, week 2, weeks 3–4 and beyond day 28); current sleep/craving/appetite/etc. topics rank matching accounts first. Up to five relevant cards rotate without autoplay, and each remains labelled as an individual experience rather than a prediction.
+
+Validation for 0.25.0: 566 unit/domain/golden tests and 163 UI tests pass, plus typecheck and the production build. New regression coverage fixes the cut-down route and setup contract, prevents session logging from generating tolerance records, verifies THC logging is absent from T-break/tracking, and checks that every displayed Reddit card belongs to the current stage.
 
 ## Release 0.24.0 — botanical visual identity and stable touch scale
 
@@ -104,9 +115,9 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.24.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
+Resume current main after 0.25.0. The present release focuses on the daily companion and cut-down usability; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.24.0. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.25.0. The deploying commit and workflow identify the release.
 
 ## Validation and release
 
@@ -115,9 +126,9 @@ Run `npm test`, `npm run typecheck`, and `npm run build` before pushing. CI repe
 Manual release smoke checklist:
 
 1. Fresh tolerance questionnaire: Pick a date → Continue → result → start now or schedule → reload.
-2. Active break: check-in without use, symptoms, report use, confirm time, reopen plan, edit support, return from nested references with Back/Escape.
+2. Active break: one-tap check-in, Undo, symptoms, no THC-use log, reopen plan, edit support, stage-matched Reddit carousel, return from nested references with Back/Escape.
 3. Calculator during a break: detection result names the selected sample; saving another result preserves the active plan.
-4. Abstinence and reduction: valid start actions, log use, edit limits, end tracking; zero-use route remains reachable.
+4. Abstinence and reduction: abstinence has no THC-use log; cut down has direct session logging, edit/pause/end controls, rolling-day counting and the zero-use route remains reachable.
 5. History: open frozen result, edit an answer, previous-break save/add/edit, completed-target boundary and outcome linkage tests.
 6. Mobile 320/390/430 widths, landscape and desktop: footer actions and navigation remain reachable; selected dates and errors are visible; no horizontal page overflow.
 7. Production: Settings version, service-worker update, reload/persistence, cached app operation, and successful Pages deployment.

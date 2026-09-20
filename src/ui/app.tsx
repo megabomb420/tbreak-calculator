@@ -41,9 +41,6 @@ import { type StoredAttempt } from '../application/progress/break-attempt-record
 import { type StoredTrack } from '../application/progress/tracking-record.ts';
 import { type PwaUpdateStatus } from '../application/settings/settings.ts';
 import {
-  REDUCTION_PLAN_SCHEMA_VERSION,
-} from '../application/progress/reduction-plan.ts';
-import {
   createWebBackedDurable,
   deleteAllLocalData,
   deleteHistoryRecord,
@@ -62,7 +59,6 @@ import type { StoredPreviousBreak } from '../application/persistence/previous-br
 import { findPreviousBreak } from '../application/history/history-model.ts';
 import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
 import { checkinRowsForBreakContext } from '../application/presentation/recovery-checkin-facts.ts';
-import { reductionTrajectory } from '../application/presentation/reduction-trajectory.ts';
 import { StorageBanner } from './storage-banner.tsx';
 import { InstallHint, UpdateSnackbar, isStandaloneDisplay } from './pwa-ui.tsx';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
@@ -75,7 +71,6 @@ import {
   trackingDayView,
 } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
-import { decideTrackingRecalculation } from '../application/calculation/adaptive-recalc.ts';
 import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
 import {
   endPlan as endReductionPlan,
@@ -89,16 +84,14 @@ import {
 import {
   derivePlanState,
   suggestedReductionLimits,
-  observedPattern,
   type ReductionBaseline,
   type ReductionLimits,
   type ReductionPlan,
   type ThcStrategy,
   type UseEvent,
 } from '../domain/reduction/reduction-engine.ts';
-import type { CurrentPatternDurationBand, Goal, PostBreakMode, ProductKind, Route } from '../domain/schemas/enums.ts';
+import type { Goal, PostBreakMode, ProductKind, Route } from '../domain/schemas/enums.ts';
 import type { UseProfileInput } from '../domain/schemas/profile.ts';
-import type { RawAnswerSnapshot } from '../application/questionnaire/snapshot.ts';
 import { parseSubmittedTimestamp, type Instant } from '../domain/schemas/time.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { systemClock, type Clock } from '../infrastructure/clock.ts';
@@ -120,7 +113,6 @@ import { ScienceBasicsPanel } from './science-basics.tsx';
 import { Shell } from './shell.tsx';
 import { LogUseSheet } from './log-use.tsx';
 import { OutcomeCapture } from './outcome-capture.tsx';
-import { ReductionRefreshSheet } from './reduction-refresh-sheet.tsx';
 import { ReductionStartSheet } from './reduction-start-sheet.tsx';
 import { TodayScreen, type TodayLiveData, type TodayProfileData } from './today-screen.tsx';
 import {
@@ -151,8 +143,7 @@ export type Flow =
   | { readonly kind: 'previous-break'; readonly editId: string | null }
   | { readonly kind: 'detox-evidence' }
   | { readonly kind: 'reduction-start' }
-  | { readonly kind: 'log-use' }
-  | { readonly kind: 'reduction-refresh' };
+  | { readonly kind: 'log-use' };
 
 export interface AppProps {
   readonly storage: StorageAdapter;
@@ -198,7 +189,6 @@ export function App({
   const [flow, setFlow] = useState<Flow | null>(null);
   const [now, setNow] = useState<Instant>(() => clock.now());
   const [installHintDismissed, setInstallHintDismissed] = useState(false);
-  const [reductionFeedback, setReductionFeedback] = useState<string | null>(null);
   /** Completed break awaiting the one-time 0-10 outcome rating after a return
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
@@ -291,15 +281,6 @@ export function App({
     });
     return rows === null ? null : { rows };
   }, [checkinsRecord, attemptsRecord, now]);
-
-  /** Frozen-record trajectory for the active reduction plan card. */
-  const trajectoryView = useMemo(
-    () =>
-      liveReductionPlan === null
-        ? null
-        : reductionTrajectory(durableSnap.calculations, liveReductionPlan.startedAt),
-    [durableSnap.calculations, liveReductionPlan],
-  );
 
   /** After a confirmed return use, surface the one-time outcome capture for
    * the newest eligible completed attempt without a mark, if any. */
@@ -555,16 +536,6 @@ export function App({
     refresh();
   }
 
-  function handleUseReported(): void {
-    // Opening a form is reversible. Suspend only as part of a confirmed save.
-    const latest = readSessionState();
-    const attempt = currentLiveAttempt(latest.attempts);
-    const tracking = currentLiveTracking(latest.tracking);
-    const owner = attempt ?? tracking;
-    const segmentStart = owner ? currentSegmentAnchor(owner.segments) : null;
-    if (segmentStart !== null) setFlow({ kind: 'confirm-use', scope: attempt ? 'attempt' : 'tracking', segmentStart });
-  }
-
   function confirmUse(scope: ConfirmScope, usedAt: Instant, usedAtIso: string): boolean {
     const nowAt = clock.now();
     const latest = readSessionState();
@@ -744,7 +715,6 @@ export function App({
 
   /** Opens the quick THC-use log sheet for the live plan. */
   function openLogUse(): void {
-    setReductionFeedback(null);
     setFlow({ kind: 'log-use' });
   }
 
@@ -795,7 +765,6 @@ export function App({
       utcOffsetMinutes: -new Date().getTimezoneOffset(),
     });
     upsertReductionPlan(updated);
-    runAdaptiveRecalc(updated);
     refresh();
     // A logged THC use on the reduction tracker is a return after the break:
     // offer the one-time outcome rating for an eligible completed break.
@@ -855,75 +824,6 @@ export function App({
       { attemptId: attempt.id, status: 'skipped', updatedAt: nowAt },
     ]);
     setOutcomeAttempt(null);
-    refresh();
-  }
-
-  /** Latest tolerance_result profile for an adaptive comparison, or null. */
-  function latestToleranceProfile(): UseProfileInput | null {
-    for (const record of durable.load().calculations) {
-      if (record.result.type === 'tolerance' && record.result.value.kind === 'tolerance_result') {
-        if (record.snapshot.kind === 'use_profile') return record.snapshot.profile;
-      }
-    }
-    return null;
-  }
-
-  function runAdaptiveRecalc(plan: ReductionPlan): void {
-    const latestProfile = latestToleranceProfile();
-    if (latestProfile === null) return;
-    const decision = decideTrackingRecalculation({
-      latestProfile,
-      baseline: plan.baseline,
-      events: plan.events,
-      now: clock.now(),
-      utcOffsetMinutes: -new Date().getTimezoneOffset(),
-    });
-    if (decision.mode !== 'recalculated' || decision.profile === null) return;
-    const nowAt = clock.now();
-    const snapshot: RawAnswerSnapshot = { kind: 'use_profile', profile: decision.profile };
-    try {
-      const frozen = freezeCalculation(newRecordId('calc', nowAt), snapshot, nowAt);
-      durable.putCalculation(frozen);
-      setReductionFeedback(RESULT.reductionRecalculated);
-    } catch {
-      // A failing adaptive record must not break the log flow.
-    }
-  }
-
-  /** Manual pattern refresh from the reduction plan: rebuilds a NEW calculation
-   * from the user's updated answers (never fabricating a 30-day profile) and
-   * leaves the questionnaire snapshot untouched. */
-  function refreshReductionRecommendation(answers: {
-    readonly thcUseDaysLast30: number;
-    readonly currentPatternDuration: string | null;
-  }): void {
-    const latestProfile = latestToleranceProfile();
-    if (latestProfile === null) {
-      setFlow(null);
-      return;
-    }
-    const nowAt = clock.now();
-    const profile: UseProfileInput = {
-      ...latestProfile,
-      thcUseDaysLast30: { value: answers.thcUseDaysLast30, provenance: 'user_estimate' },
-      currentPatternDuration:
-        answers.currentPatternDuration === null
-          ? undefined
-          : {
-              value: answers.currentPatternDuration as CurrentPatternDurationBand,
-              provenance: 'user_estimate',
-            },
-      lastUseAt: latestProfile.lastUseAt,
-    };
-    try {
-      const snapshot: RawAnswerSnapshot = { kind: 'use_profile', profile };
-      const frozen = freezeCalculation(newRecordId('calc', nowAt), snapshot, nowAt);
-      durable.putCalculation(frozen);
-    } catch {
-      // A failing refresh record must not crash the shell.
-    }
-    setReductionFeedback(RESULT.reductionRefreshed);
-    setFlow(null);
     refresh();
   }
 
@@ -1072,8 +972,9 @@ export function App({
 
   function seeBreakRange() {
     if (snapshotRecord === null) return;
-    const answers = answersFromSnapshot(snapshotRecord.snapshot);
-    const next = { currentStep: 'Q2R' as const, answers: { ...answers, goal: 'reduction' as const } };
+    const prior = answersFromSnapshot(snapshotRecord.snapshot);
+    const answers = { ...prior, goal: 'tolerance_reset' as const, breakRequested: undefined };
+    const next = { currentStep: restoreStep(answers, clock.now()), answers };
     persist(next);
     setSession(next);
     refresh();
@@ -1282,7 +1183,6 @@ export function App({
             onCheckIn={saveNoUse}
             onAddSymptoms={openCheckIn}
             onUndoCheckin={undoCheckin}
-            onReportUse={handleUseReported}
             onConfirmWhen={confirmWhen}
             onDismissUnconfirmedUse={dismissUnconfirmedUse}
             onEndEarly={endEarly}
@@ -1292,11 +1192,8 @@ export function App({
             onMarkComplete={markComplete}
             onAcknowledgeComplete={acknowledgeCompletion}
             onStopTracking={stopCurrentTracking}
-            reductionFeedback={reductionFeedback}
-            reductionTrajectory={trajectoryView}
             onOpenReductionStart={() => setFlow({ kind: 'reduction-start' })}
             onLogUse={openLogUse}
-            onOpenReductionRefresh={() => setFlow({ kind: 'reduction-refresh' })}
             onPauseReduction={pauseLiveReduction}
             onResumeReduction={resumeLiveReduction}
             onEndReduction={endLiveReduction}
@@ -1378,26 +1275,10 @@ export function App({
           onStartOver={resetFailedCalculation}
           onStartBreak={canStartPlan ? openBreakStart : undefined}
           onStartTracking={canStartPlan ? startTracking : undefined}
+          onStartReduction={canStartPlan ? () => setFlow({ kind: 'reduction-start' }) : undefined}
           trackingAvailable={resultModel.kind === 'baseline_low' ? anchor !== null : true}
           outlookRecord={liveOutlookRecord}
           checkinFacts={checkinFacts}
-          reductionPlan={
-            reductionPlan === null
-              ? suggestedLimits
-              : {
-                  maxUseDaysPerWeek: reductionPlan.maxUseDaysPerWeek,
-                  maxSessionsPerUseDay: reductionPlan.maxSessionsPerUseDay,
-                }
-          }
-          onReductionPlanChange={(plan) => {
-            durable.saveReductionPlan({
-              schemaVersion: REDUCTION_PLAN_SCHEMA_VERSION,
-              maxUseDaysPerWeek: plan.maxUseDaysPerWeek,
-              maxSessionsPerUseDay: plan.maxSessionsPerUseDay,
-              updatedAt: clock.now(),
-            });
-            refresh();
-          }}
           onAddPastBreak={
             resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
           }
@@ -1435,13 +1316,11 @@ export function App({
           onEditSupport={() => setPersonalisationOpen(true)}
           reductionPlan={liveReductionPlan}
           savedReductionLimits={reductionPlan}
-          utcOffsetMinutes={utcOffsetMinutes}
           onStartReduction={startReductionFromProfile}
           onCommitReduction={recommitLiveReduction}
           onLogReductionUse={(planId, usedAt, product, route) =>
             logReductionUseEvent(planId, usedAt, product, route)
           }
-          onRefreshReduction={refreshReductionRecommendation}
         />
       ) : null}
       {flow?.kind === 'previous-break' ? (
@@ -1537,11 +1416,9 @@ function FlowRenderer({
   onEditSupport,
   reductionPlan,
   savedReductionLimits,
-  utcOffsetMinutes,
   onStartReduction,
   onCommitReduction,
   onLogReductionUse,
-  onRefreshReduction,
 }: {
   readonly flow: Flow;
   readonly targetDays: number;
@@ -1566,14 +1443,9 @@ function FlowRenderer({
   readonly onEditSupport: () => void;
   readonly reductionPlan: ReductionPlan | null;
   readonly savedReductionLimits: ReductionLimits | null;
-  readonly utcOffsetMinutes: number;
   readonly onStartReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
   readonly onCommitReduction: (limits: ReductionLimits, strategy: ThcStrategy) => boolean;
   readonly onLogReductionUse: (planId: string, usedAt: Instant, product: ProductKind, route: Route) => boolean;
-  readonly onRefreshReduction: (answers: {
-    readonly thcUseDaysLast30: number;
-    readonly currentPatternDuration: string | null;
-  }) => void;
 }) {
   switch (flow.kind) {
     case 'choose-break-days':
@@ -1653,16 +1525,6 @@ function FlowRenderer({
           onLog={(usedAt, product, route) =>
             onLogReductionUse(reductionPlan.id, usedAt, product, route)
           }
-          onClose={onClose}
-        />
-      ) : null;
-    case 'reduction-refresh':
-      return reductionPlan !== null ? (
-        <ReductionRefreshSheet
-          now={now}
-          observed={observedPattern(reductionPlan.events, now, utcOffsetMinutes)}
-          baseline={reductionPlan.baseline}
-          onRefresh={onRefreshReduction}
           onClose={onClose}
         />
       ) : null;

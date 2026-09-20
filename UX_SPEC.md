@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.17.0**
+Version: **0.25.0**
 
-Current revision (0.24.0): botanical forest/cream/lime visual identity and requested touch zoom lock; direct reversible check-in, cancelable use logging, touch-controlled Reddit carousel; practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
+Current revision (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -19,7 +19,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 
 ### 1.2 Design principles
 
-1. **Fast to an answer.** The shortest useful path is 3 questions; the longest is 7. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Companion preferences are offered only after the calculation.
+1. **Fast to an answer.** Cut down takes two inputs after choosing the goal; the longest tolerance path is six steps including the goal. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Companion preferences are offered only after the calculation.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
 4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v3 anchor rule), Why-this-result copy, and break-outlook wording — and, in the single bounded tolerance-v3 case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years), the recommended range itself by one band; it is never a days-added formula.
@@ -110,11 +110,11 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Day/target hero, immediate check-in CTA, current phase context, two relevant advice guides and a daily practical activity. All guides are available under **Help with something else**. A separate labelled Reddit experience links to its original discussion. The shared journey and research note are under **Your break timeline**. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. |
-| `interrupted` | attempt `interrupted_time_needed` | Timing suspended; card: "You marked that you used THC. Confirm when, so your plan can restart." CTA **Confirm when** |
+| `active-break` | attempt `active` | Day/target hero, immediate no-use check-in with Undo, current phase context, two relevant advice guides, a daily practical activity and up to five stage-matched Reddit experience cards. All guides are available under **Help with something else**. The shared journey and research note are under **Your break timeline**. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. No THC-use log appears here. |
+| `interrupted` | legacy attempt `interrupted_time_needed` | Upgrade-safe recovery surface for an older pending use report. Timing is suspended; **Confirm when** or dismiss the unconfirmed report. New releases do not create this state from active-break Today. |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
-| `reduction-active` | live (non-ended) active reduction plan, no break/tracking state | Reduction card: rolling 7-day use-day count vs the plan limit, today's sessions, limits/breach state, **Log THC use**, **Edit plan**, recalculation/refresh CTA |
+| `reduction-active` | live (non-ended) active reduction plan, no break/tracking state | Reduction card: two meters for distinct use days in the rolling seven-day window and sessions today; **Log a session**, **Edit plan**, **Pause**, **End plan**. Two breach days prompt **Adjust limits** and **Pause plan**. No tolerance recalculation occurs from logs. |
 | `detection-only` | user has only run detection | Last detection summary card, CTA **Get a break recommendation** |
 
 **Precedence:** `interrupted` > `active-break` > `completed-break` (until acknowledged) > `abstinence-tracking` > `reduction-active` > `profile-no-break` > `no-profile` > `first-launch`. The `detection-only` state applies only when no profile or tracking exists at all; once any calculation or tracking exists, those states win and detection history lives in `History`.
@@ -216,9 +216,9 @@ Q1 goal
  │      ├─ 1–3   → Q3 last use (≤30 days) → TERMINAL tolerance result
  │      └─ 4–30  → Q3 last use (≤30 days) → Q4 sessions → Q5 products & routes → TERMINAL tolerance result
  ├─ reduction
- │    Q2R break wanted?
- │      ├─ Yes → Q6 current-pattern duration → identical to the tolerance_reset path from Q2
- │      └─ Not now → Q2 use days → TERMINAL reduction planning (no Q6)
+ │    Q2 use days
+ │      ├─ 0     → TERMINAL baseline-low
+ │      └─ 1–30  → Q4 typical sessions → TERMINAL reduction planning
  ├─ abstinence
  │    Q6 current-pattern duration → Q2A last use (any past date, or "I still use — today") → TERMINAL abstinence planning
  └─ detection_information
@@ -232,11 +232,10 @@ Field mapping:
 | Step | Schema field | Shown when |
 |---|---|---|
 | Q1 | `goal` | always |
-| Q2R | `breakRequested` | reduction only (fixed by rule for other goals) |
-| Q6 | `currentPatternDuration` (`user_estimate`) | first use-profile question after Q1 (tolerance_reset), after Q2R = Yes (reduction with a break), and on abstinence; skipped on reduction-no-break and detection |
-| Q2 | `thcUseDaysLast30` (`user_estimate`) | tolerance_reset, reduction (after Q6 when a break is requested) |
+| Q6 | `currentPatternDuration` (`user_estimate`) | first use-profile question after Q1 on tolerance-reset and abstinence; skipped on reduction and detection |
+| Q2 | `thcUseDaysLast30` (`user_estimate`) | tolerance-reset after Q6; immediately after Q1 on reduction |
 | Q2A / Q3 / Q3-opt | `lastUseAt` (`user_estimate`) | abstinence; use-days 1–30; optional when use-days = 0 |
-| Q4 | `sessionsPerUseDay` (`user_estimate`) | range-requested routes, use-days 4–30 only |
+| Q4 | `sessionsPerUseDay` (`user_estimate`) | tolerance-reset at 4–30 use-days; reduction at 1–30 use-days |
 | Q5 | `products[]`, `routes[]` | range-requested routes, use-days 4–30 only |
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
@@ -254,14 +253,7 @@ Q4/Q5 are asked on range-requested routes from **4 use-days up** because the tol
 > - **Stay off THC** — I'm quitting or already have
 > - **Drug test info** — understand detection basics
 
-**Q2R — Break wanted** (reduction only; two cards)
-
-> **Do you want to take a full break as part of cutting down?**
->
-> - **Yes** — plan a complete break
-> - **Not now** — I just want to reduce
-
-Helper: "You can change this later."
+`Q2R` remains a parseable legacy step id so an old saved draft can migrate safely, but no current route renders it. **Plan a T-break instead** changes the goal to tolerance-reset and enters that questionnaire directly.
 
 **Q2 — Use days** (slider 0–30, large readout; quick presets under the slider: `Rarely (1–3)`, `Weekends (≈8)`, `Most days (25)`, `Daily (30)`)
 
@@ -366,12 +358,11 @@ Helper: "This only changes which notes we show you — it never changes the scie
 
 ### 5.3 Skip conditions (consolidated)
 
-- Q2R only for `reduction`.
-- Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset`, after Q2R = Yes on reduction-with-a-break, and after Q1 on abstinence. Skipped on reduction-no-break and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
-- Q2 (use days) after Q6 on the tolerance route; Q3 (last use) only when use-days ∈ 1–30; replaced by optional Q3-opt when use-days = 0.
-- Q4/Q5 only on range-requested routes when use-days ∈ 4–30 (intensity can change the classification from 4 up); optional when present at 1–3, never asked at 0.
+- Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset` and abstinence. It is skipped on reduction and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
+- Q2 (use days) follows Q6 on the tolerance route and follows Q1 directly on reduction. Q3 (last use) appears only on tolerance when use-days ∈ 1–30; it is replaced by optional Q3-opt when tolerance use-days = 0.
+- Q4/Q5 appear on tolerance when use-days ∈ 4–30 because intensity can change that classification. Reduction asks Q4 alone for every positive use-day answer because session frequency sets the behavioural plan baseline; it never asks Q5. Neither route asks Q4 at 0.
 - Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording. **Depends on validation change D2 (§15).**
-- Reduction-no-break asks no last use and no duration: the engine attaches no withdrawal display and no target on this route, so those answers would be harvested and unused. **Depends on validation change D3 (§15).**
+- Reduction asks no last use, duration, product or route: the tracker needs only frequency and typical sessions. The engine attaches no withdrawal display and no target on this route. **Depends on validation change D3 (§15).**
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
 - Previous breaks and post-break mode never appear in the initial questionnaire (§7, §8).
 
@@ -380,12 +371,11 @@ Helper: "This only changes which notes we show you — it never changes the scie
 | Goal | Min steps | Typical | Max |
 |---|---|---|---|
 | tolerance_reset | 3 (use-days 0, Q3-opt skipped) | 4 (use-days 1–3) or 6 (use-days 4–30) | 6 (use-days 4–30) |
-| reduction (break) | 4 | 5 (use-days 1–3) or 7 (use-days 4–30) | 7 (use-days 4–30) |
-| reduction (no break) | 3 | 3 | 3 |
+| reduction | 2 (use-days 0) | 3 (use-days 1–30) | 3 |
 | abstinence | 3 | 3 | 3 |
 | detection_information | 3 | 3 | 3 |
 
-Duration (Q6) is counted in every consuming min/typical/max: it is the first use-profile question, before use-days. Q4/Q5 are counted on range-requested routes from 4 use-days up (a 0-day tolerance_reset path remains 3 steps when optional Q3-opt is skipped, 4 when answered; the longest reduction-with-break path is 7). Companion personalisation is not counted because it is not part of the questionnaire.
+Duration (Q6) is counted only on the tolerance and abstinence routes that use it. Q4/Q5 are counted on tolerance from 4 use-days up; reduction uses only Q4 after a positive frequency answer. A 0-day tolerance-reset path remains 3 steps when optional Q3-opt is skipped and 4 when answered. Companion personalisation is not counted because it is not part of the questionnaire.
 
 ---
 
@@ -529,11 +519,13 @@ Present only when the engine returns a non-null `HistoryInsight`. Copy per §14,
 
 ### 9.4 Reduction planning screen (`planning_only`, goal = reduction, no break)
 
-- Header: "Cutting down — without a full break."
-- Body: qualitative guidance only (no invented numbers): set your own weekly limit, favour lower potency, avoid rapid repeat dosing, remember edibles' delayed onset.
-- Interactive: user-defined limits (max use days/week stepper; optional max sessions/use day stepper) — stored as the user's plan, never fed to an engine.
-- Soft card: "A full break resets tolerance faster than cutting down — **see your break range**" → re-enters the questionnaire at Q2R with answers preloaded.
+- Header: **Build a cut-down plan you can actually track.**
+- Body explains the two behavioural caps and that only sessions are logged; days off need no entry.
+- A compact baseline shows estimated current use-days/week and reported sessions/use-day, followed by the three tracker rules. Limits are not edited on the result itself.
+- Primary **Set up cut-down plan** opens the one limit sheet. It compares the recent pattern with the live editable plan cap, then offers optional guardrails behind disclosure. Suggested limits are one deliberate step below the reported pattern, bounded to at least one day/session; they are editable user commitments, not prescribed doses.
+- Secondary **Plan a T-break instead** changes the goal to tolerance-reset and resumes at the first missing tolerance answer with applicable frequency/session answers retained.
 - No withdrawal timeline (the engine attaches none on this route; the UI MUST NOT fabricate one).
+- Starting the plan returns to Today. Session logs never generate or refresh a tolerance calculation.
 
 ### 9.5 Baseline-low screen (`not_applicable`, use-days = 0)
 
@@ -608,7 +600,9 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 
 **Undo** remains next to the receipt, including after reload. It removes exactly the latest no-use entry in the current abstinence day and segment. Earlier entries, symptom ratings on other entries, and prior days remain. If multiple legacy entries exist, each Undo removes one; the checked state stays until no entry remains for that day.
 
-**How are you feeling?** opens optional ratings directly. **Log THC use** opens the date-confirmation form directly. Neither action asks a preliminary Yes/No question. Closing either unsaved form leaves persisted data intact. Saving ratings also records a no-use check-in; the form states this explicitly.
+**How are you feeling?** opens optional ratings directly. There is no THC-use log on an active T-break or open-ended abstinence tracker; that log belongs only to cut down. Closing the unsaved symptom form leaves persisted data intact. Saving ratings also records a no-use check-in; the form states this explicitly. A user can correct an accidental direct check-in with **Undo**.
+
+Older releases could persist `interrupted_time_needed` before use timing was confirmed. That legacy state remains dismissible or confirmable so an upgrade never strands a plan; it is not reachable from the current active-break controls.
 
 **Optional symptom screen:**
 
@@ -688,10 +682,10 @@ Implemented in `src/ui/styles.css`. Identity is dusk navy + warm sand, not weed-
 | `accent/soft` | `#1A2830` | selected fills |
 | `text/primary` | `#F0EDE6` | warm parchment |
 | `text/secondary` | `#A7B0BD` | helpers, meta |
-| `text/faint` | `#6E7785` | micro-labels, disabled |
+| `text/faint` | `#959EAC` | micro-labels, disabled |
 | `state/warn` | `#D4A574` | uncertainty / validation warnings |
 | `state/error` | `#C97A72` | validation / delete only |
-| `state/ok` | `#7D9A8A` | past/complete marks only — not brand |
+| `state/ok` | `#829EB0` | past/complete marks only — the same muted blue family, never green branding |
 
 Primary CTAs are parchment-on-ink (`text/primary` fill, `accent/fg` label), not accent-green buttons. Colour never carries meaning alone — always icon + text.
 
@@ -840,7 +834,7 @@ Recent ratings outrank preferences. Every saved topic participates across days; 
 
 Check-in follows the direct-action contract in §10.2. Optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back/Close cancels unsaved ratings. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
 
-A manually controlled carousel of three community examples uses the label **From Reddit · Personal experience**, an individual attribution, an uncertainty note and a link to the reviewed discussion. No medical treatment claims are sourced to Reddit. Advice and curated examples remain available offline; links require a connection.
+A manually controlled carousel draws from 17 reviewed paraphrase cards across 12 r/Petioles discussions. Every card is tagged to one or more current break windows (`days_1_3`, `days_2_6`, `days_7_14`, `days_14_21`, `days_21_28`, `beyond_28`); Today displays at most five cards from the active window and ranks cards matching the currently selected sleep/craving/appetite/etc. areas first. Each card shows the reported period, uses the label **From Reddit · Personal experiences**, states that it is not a prediction and links to the original discussion. No medical treatment claim is sourced to Reddit. Curated text remains available offline; links require a connection.
 
 
 ## 17. PWA interaction polish (0.23.0)
@@ -850,6 +844,8 @@ The Reddit carousel supports native horizontal touch scrolling with scroll snapp
 Touch feedback is brief and never delays persistence or navigation: pressed states, a check-mark confirmation, and short sheet/guide transitions. `prefers-reduced-motion` disables decorative motion and smooth scrolling. Existing safe-area, keyboard, dialog Back/Escape and offline storage contracts stay in place. The helper that finds today's latest check-in excludes future, invalid and pre-segment entries and uses the established abstinence-day boundaries.
 
 
-## 18. Touch scale and visual tone (0.24.0)
+## 18. Touch scale and visual tone (0.25.0)
 
-The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits. Warm botanical colours and a local vector cannabis mark replace the cold navy styling. Clinical/source guidance remains available within topic details; daily UI copy uses plain language.
+The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits.
+
+The visual system is deliberately discreet: ink navy, slate blue and warm sand; no weed green, cannabis leaf, smoke or dispensary signalling. The installed icon stays a neutral pause/interval mark. Soft gradients, hairlines, small press states, sheet entrance and carousel movement provide app-like depth without becoming flashy. `prefers-reduced-motion` removes decorative movement. Clinical/source material remains behind relevant disclosures; the daily surface speaks in direct everyday language.

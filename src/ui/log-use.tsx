@@ -15,14 +15,14 @@ import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
 const LOG_USE = {
-  title: 'Log THC use',
-  close: 'Close log use',
-  when: 'When did you use?',
+  title: 'Log a session',
+  close: 'Close session log',
+  intro: 'This adds one session and marks that calendar day as a use day. Nothing is recorded on days you do not use.',
+  when: 'When was it?',
+  details: 'Product details (optional)',
   product: 'What did you use?',
-  productHelper: 'Pick one.',
   route: 'How did you take it?',
-  useAgainPrefix: 'Use again: ',
-  save: 'Save',
+  save: 'Save session',
   cancel: 'Cancel',
   saveFailed: 'Could not save this use event.',
 } as const;
@@ -33,7 +33,7 @@ const PRODUCT_CHIPS: ReadonlyArray<{ readonly id: ProductKind; readonly label: s
   { id: 'concentrate', label: 'Dab / concentrate' },
   { id: 'edible', label: 'Edible' },
   { id: 'oil', label: 'Oil' },
-  { id: 'other', label: 'Other' },
+  { id: 'other', label: 'Not specified' },
 ];
 
 const ROUTES: readonly Route[] = ['smoking', 'vaping', 'dabbing', 'oral', 'sublingual', 'other'];
@@ -57,19 +57,14 @@ const DEFAULT_ROUTE: Record<ProductKind, Route> = {
 };
 
 const TIME_CHIPS: ReadonlyArray<{
-  readonly id: 'now' | '1h' | '2h' | 'yesterday';
+  readonly id: 'now' | '2h' | 'yesterday';
   readonly label: string;
   readonly offsetMs: number;
 }> = [
   { id: 'now', label: 'Now', offsetMs: 0 },
-  { id: '1h', label: '1 hour ago', offsetMs: -MILLIS_PER_HOUR },
-  { id: '2h', label: '2 hours ago', offsetMs: -2 * MILLIS_PER_HOUR },
+  { id: '2h', label: 'Earlier today', offsetMs: -2 * MILLIS_PER_HOUR },
   { id: 'yesterday', label: 'Yesterday', offsetMs: -MILLIS_PER_DAY },
 ];
-
-function productLabel(product: ProductKind): string {
-  return PRODUCT_CHIPS.find((chip) => chip.id === product)?.label ?? product;
-}
 
 export interface LogUseSheetProps {
   readonly plan: ReductionPlan;
@@ -80,19 +75,20 @@ export interface LogUseSheetProps {
 
 export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const saveRef = useRef<HTMLButtonElement>(null);
   useFocusTrap(true, rootRef, onClose);
-  const [timeId, setTimeId] = useState<'now' | '1h' | '2h' | 'yesterday'>('now');
-  const [product, setProduct] = useState<ProductKind | null>(null);
-  const [route, setRoute] = useState<Route | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  const chip = TIME_CHIPS.find((item) => item.id === timeId) ?? TIME_CHIPS[0]!;
-  const usedAt = toInstant(now + chip.offsetMs);
   const latest =
     plan.events.length === 0
       ? null
       : plan.events.reduce((a, b) => (a.usedAt >= b.usedAt ? a : b));
+  const initialProduct = latest?.product ?? plan.baseline.products[0] ?? 'other';
+  const initialRoute = latest?.route ?? plan.baseline.routes[0] ?? DEFAULT_ROUTE[initialProduct];
+  const [timeId, setTimeId] = useState<'now' | '2h' | 'yesterday'>('now');
+  const [product, setProduct] = useState<ProductKind>(initialProduct);
+  const [route, setRoute] = useState<Route>(initialRoute);
+  const [failed, setFailed] = useState(false);
+
+  const chip = TIME_CHIPS.find((item) => item.id === timeId) ?? TIME_CHIPS[0]!;
+  const usedAt = toInstant(now + chip.offsetMs);
 
   function selectProduct(next: ProductKind): void {
     setProduct(next);
@@ -101,22 +97,11 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
   }
 
   function save(): void {
-    if (product === null || route === null) return;
     if (onLog(usedAt, product, route)) {
       onClose();
       return;
     }
     setFailed(true);
-  }
-
-  function useAgain(): void {
-    if (latest === null) return;
-    setProduct(latest.product);
-    setRoute(latest.route);
-    setFailed(false);
-    window.requestAnimationFrame(() => {
-      saveRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
   }
 
   return (
@@ -138,17 +123,7 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
       </header>
       <div className="questionnaire-body flow-body">
         <div className="stack">
-          {latest !== null ? (
-            <button
-              type="button"
-              className="chip"
-              data-testid="log-use-again"
-              onClick={useAgain}
-            >
-              {LOG_USE.useAgainPrefix}
-              {`${productLabel(latest.product)} · ${ROUTE_LABELS[latest.route]}`}
-            </button>
-          ) : null}
+          <p className="body log-session-intro">{LOG_USE.intro}</p>
           <section>
             <p className="micro-label" id="log-time-label">
               {LOG_USE.when}
@@ -168,28 +143,26 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
               ))}
             </div>
           </section>
-          <section>
-            <p className="micro-label" id="log-product-label">
-              {LOG_USE.product}
-            </p>
-            <p className="meta">{LOG_USE.productHelper}</p>
-            <div className="chip-row wrap" role="group" aria-labelledby="log-product-label">
-              {PRODUCT_CHIPS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={product === item.id ? 'chip selected' : 'chip'}
-                  aria-pressed={product === item.id}
-                  data-testid="log-product"
-                  data-value={item.id}
-                  onClick={() => selectProduct(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </section>
-          {product !== null ? (
+          <details className="log-use-details">
+            <summary>{LOG_USE.details}</summary>
+            <section>
+              <p className="micro-label" id="log-product-label">{LOG_USE.product}</p>
+              <div className="chip-row wrap" role="group" aria-labelledby="log-product-label">
+                {PRODUCT_CHIPS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={product === item.id ? 'chip selected' : 'chip'}
+                    aria-pressed={product === item.id}
+                    data-testid="log-product"
+                    data-value={item.id}
+                    onClick={() => selectProduct(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </section>
             <section>
               <label className="micro-label" id="log-route-label" htmlFor="log-route-select">
                 {LOG_USE.route}
@@ -198,7 +171,7 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
                 id="log-route-select"
                 className="date-input"
                 data-testid="log-route"
-                value={route ?? ''}
+                value={route}
                 aria-labelledby="log-route-label"
                 onChange={(event) => {
                   const next = (event.target as HTMLSelectElement).value as Route;
@@ -213,7 +186,7 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
                 ))}
               </select>
             </section>
-          ) : null}
+          </details>
           {failed ? (
             <p className="meta" data-testid="log-use-error">
               {LOG_USE.saveFailed}
@@ -228,9 +201,7 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
         <button
           type="button"
           className="cta-primary"
-          disabled={product === null || route === null}
           data-testid="log-use-save"
-          ref={saveRef}
           onClick={save}
         >
           {LOG_USE.save}

@@ -70,9 +70,10 @@ export function ScienceBasicsPanel({ onClose }: { readonly onClose: () => void }
         </section>
         <section className="reading-section">
           <h3 className="card-title">Experiences from Reddit</h3>
-          <p className="body">These are selected, paraphrased experiences from individual commenters, checked on 20 September 2026. They suggest things to try; they do not establish effectiveness, typical recovery times or medical treatment.</p>
+          <p className="body">These are selected, paraphrased experiences from individual commenters, checked on 20 September 2026. Today matches them to the broad stage of the break; the reported days are still personal experiences, not a recovery schedule.</p>
           <p className="meta">Only the described idea is included. Other advice in the linked discussion has not been endorsed. The app does not load Reddit or send your data there; links open externally.</p>
-          {COMMUNITY_TIPS.map(tip => <a className="text-link source-link" href={tip.href} key={tip.id} target="_blank" rel="noopener noreferrer">r/Petioles · {tip.thread} ↗</a>)}
+          {COMMUNITY_TIPS.filter((tip, index, all) => all.findIndex(item => item.href === tip.href) === index)
+            .map(tip => <a className="text-link source-link" href={tip.href} key={tip.href} target="_blank" rel="noopener noreferrer">r/Petioles · {tip.thread} ↗</a>)}
         </section>
       </div>
     </div>

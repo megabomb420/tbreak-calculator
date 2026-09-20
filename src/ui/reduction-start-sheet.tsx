@@ -14,19 +14,19 @@ import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
 const REDUCTION_START = {
-  title: 'Your cut-down plan',
+  title: 'Set your weekly limits',
+  editTitle: 'Edit your weekly limits',
   close: 'Close cut-down plan',
-  daysLimit: 'Max use days per week',
-  sessionsLimit: 'Max sessions on a use day',
-  strategyHeading: 'Your strategy (optional)',
-  strategyHelper: 'Pick any that fit how you want to cut down.',
-  heuristicNote: 'These are your own behavioural limits, not a medically proven dose.',
+  daysLimit: 'Use days in a rolling week',
+  sessionsLimit: 'Sessions on a use day',
+  strategyHeading: 'Optional guardrails',
+  strategyHelper: 'Add any rules you want the tracker to flag.',
+  heuristicNote: 'These are limits you choose, not a prescribed dose. You can edit them whenever the plan stops fitting real life.',
+  howItWorks: 'Log a session when you use. The app counts sessions today and distinct use days across the last 7 days. Days off need no entry.',
   start: 'Start plan',
   save: 'Save changes',
   cancel: 'Cancel',
   alreadyRunning: 'A plan is already running.',
-  suggestedPrefix: 'Suggested from your pattern:',
-  suggestedSuffix: 'you set the final limits.',
 } as const;
 
 const STRATEGY_OPTIONS: ReadonlyArray<{
@@ -42,14 +42,8 @@ const STRATEGY_OPTIONS: ReadonlyArray<{
 /** App defaults when neither an existing plan nor a profile is available. */
 const FALLBACK_LIMITS: ReductionLimits = { maxUseDaysPerWeek: 3, maxSessionsPerUseDay: 1 };
 
-function suggestionLine(suggested: ReductionLimits): string {
-  const days =
-    suggested.maxUseDaysPerWeek === 1 ? '1 day/week' : `${suggested.maxUseDaysPerWeek} days/week`;
-  const sessions =
-    suggested.maxSessionsPerUseDay === 1
-      ? '1 session/use day'
-      : `${suggested.maxSessionsPerUseDay} sessions/use day`;
-  return `${REDUCTION_START.suggestedPrefix} ${days} \u00b7 ${sessions} \u2014 ${REDUCTION_START.suggestedSuffix}`;
+function weeklyEstimate(daysLast30: number): number {
+  return daysLast30 === 0 ? 0 : Math.max(1, Math.ceil((daysLast30 / 30) * 7));
 }
 
 export interface ReductionStartSheetProps {
@@ -91,6 +85,8 @@ export function ReductionStartSheet({
   const [failed, setFailed] = useState(false);
 
   const editing = existing !== null;
+  const currentDays = weeklyEstimate(profile?.thcUseDaysLast30?.value ?? existing?.baseline.thcUseDaysLast30 ?? 0);
+  const currentSessions = profile?.sessionsPerUseDay?.value ?? existing?.baseline.sessionsPerUseDay ?? null;
 
   function toggleStrategy(key: keyof ThcStrategy, checked: boolean): void {
     setStrategy((current) => ({ ...current, [key]: checked }));
@@ -116,18 +112,26 @@ export function ReductionStartSheet({
         <div className="sheet-handle" aria-hidden="true" />
         <header className="modal-header">
           <h2 id={titleId} className="card-title">
-            {REDUCTION_START.title}
+            {editing ? REDUCTION_START.editTitle : REDUCTION_START.title}
           </h2>
           <button type="button" className="icon-button" aria-label={REDUCTION_START.close} onClick={onClose}>
             <CloseIcon />
           </button>
         </header>
         <div className="modal-body stack">
-          {suggested !== null && !editing && savedLimits == null ? (
-            <p className="meta" data-testid="reduction-suggestion">
-              {suggestionLine(suggested)}
-            </p>
-          ) : null}
+          <section className="reduction-setup-summary" data-testid="reduction-suggestion">
+            <div>
+              <p className="micro-label">Recent pattern</p>
+              <strong>About {currentDays} {currentDays === 1 ? 'day' : 'days'} / week</strong>
+              <span>{currentSessions === null ? 'Sessions not recorded' : `${currentSessions} ${currentSessions === 1 ? 'session' : 'sessions'} / use day`}</span>
+            </div>
+            <span className="reduction-setup-arrow" aria-hidden="true">→</span>
+            <div>
+              <p className="micro-label">Plan cap</p>
+              <strong>{days} {days === 1 ? 'day' : 'days'} / week</strong>
+              <span>{sessions} {sessions === 1 ? 'session' : 'sessions'} / use day</span>
+            </div>
+          </section>
           <section>
             <p className="micro-label" id="reduction-days-label">
               {REDUCTION_START.daysLimit}
@@ -184,8 +188,8 @@ export function ReductionStartSheet({
               </button>
             </div>
           </section>
-          <section>
-            <h3 className="card-title">{REDUCTION_START.strategyHeading}</h3>
+          <details className="reduction-guardrails">
+            <summary>{REDUCTION_START.strategyHeading}</summary>
             <p className="meta">{REDUCTION_START.strategyHelper}</p>
             <div className="choice-list">
               {STRATEGY_OPTIONS.map((option) => (
@@ -209,7 +213,8 @@ export function ReductionStartSheet({
                 </label>
               ))}
             </div>
-          </section>
+          </details>
+          <p className="reduction-how-it-works">{REDUCTION_START.howItWorks}</p>
           <p className="meta" data-testid="reduction-heuristic-note">
             {REDUCTION_START.heuristicNote}
           </p>

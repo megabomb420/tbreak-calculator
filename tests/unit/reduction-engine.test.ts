@@ -221,9 +221,10 @@ describe('reduction engine: starting-limit heuristic', () => {
     };
     const suggestion = suggestedReductionLimits(heavy);
     assert.ok(suggestion.maxUseDaysPerWeek >= 1 && suggestion.maxUseDaysPerWeek <= 7);
-    // 27/30 -> ~7 days/week current -> suggestion roughly half (>= 3).
-    assert.ok(suggestion.maxUseDaysPerWeek >= 3 && suggestion.maxUseDaysPerWeek < 7);
-    assert.equal(suggestion.maxSessionsPerUseDay, 1);
+    // Start one deliberate step below the reported pattern, not at an
+    // unnecessarily aggressive half-rate that is hard to sustain.
+    assert.equal(suggestion.maxUseDaysPerWeek, 6);
+    assert.equal(suggestion.maxSessionsPerUseDay, 2);
   });
 });
 

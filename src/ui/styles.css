@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  --bg-base: #101710;
-  --bg-mist: #141f16;
-  --bg-card: #1b281d;
-  --bg-raised: #263729;
-  --bg-hover: #304332;
-  --fg: #f5f0df;
-  --fg-muted: #bcc8ae;
-  --fg-faint: #a8b59b;
-  --accent: #c2dc85;
-  --accent-strong: #e1cb98;
-  --accent-fg: #172011;
-  --accent-soft: #2c3d25;
-  --ok: #a7cc80;
+  --bg-base: #0a0d12;
+  --bg-mist: #10151c;
+  --bg-card: #151b24;
+  --bg-raised: #1d2530;
+  --bg-hover: #232c3a;
+  --fg: #f0ede6;
+  --fg-muted: #a7b0bd;
+  --fg-faint: #959eac;
+  --accent: #8fa9b8;
+  --accent-strong: #d7c4a8;
+  --accent-fg: #10141a;
+  --accent-soft: #1a2830;
+  --ok: #829eb0;
   --warn: #d4a574;
   --error: #c97a72;
   --hairline: color-mix(in oklab, var(--fg) 12%, transparent);
@@ -1343,7 +1343,7 @@ details.card > summary::-webkit-details-marker {
   }
 
   #app {
-    background: #0b110c;
+    background: #07090c;
   }
 }
 
@@ -2530,7 +2530,7 @@ select,
 
 /* ---------------------------------------------------------------------------
    0.9.0 Recovery Intelligence.
-   Result-mode segment, Predicted-reset panel and reduction trajectory.
+   Result-mode segment and Predicted-reset panel.
    Interval design tokens only; the 0.8.1 selection/touch contract and the
    focus-visible / reduced-motion rules above are untouched.
 --------------------------------------------------------------------------- */
@@ -2641,16 +2641,6 @@ select,
   text-transform: uppercase;
   color: var(--fg-faint);
   font-weight: 600;
-}
-
-.reduction-trajectory {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-  padding: var(--space-3);
-  background: color-mix(in oklab, var(--accent) 6%, var(--bg-card));
-  border-radius: var(--radius-lg);
 }
 
 /* ---------------------------------------------------------------------------
@@ -3819,8 +3809,8 @@ input[aria-invalid='true'] { border-color: var(--error); }
 
 /* 0.21.2 — checked-in state for the active-Today Check in action.
    Once today's check-in is recorded the primary action reads as done (and
-   stays tappable to add symptoms or report a use later); a quiet progress
-   line sits beneath it. Presentation only. */
+   its separate Undo action remains available); a quiet progress line sits
+   beneath it. Presentation only. */
 .today-live-card .cta-primary.is-checked {
   display: inline-flex;
   align-items: center;
@@ -3956,29 +3946,68 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .daily-context > summary .micro-label { margin: 0; }
 .daily-context[open] > .card-title { margin-top: 12px; }
 
-/* 0.24 — botanical, warm and touch-first. */
+/* 0.25 — discreet ink-and-sand identity with stable touch scale. */
 html, body, #app, .app-shell, .app-main, .questionnaire-overlay,
 .questionnaire-body, .modal-root, .modal-sheet, .modal-body, .result-body,
 .community-track, .outlook-strip { touch-action: pan-x pan-y; }
 input:not([type="range"]), textarea, select { font-size: max(16px, 1rem); }
-.app-wordmark { display: flex; align-items: center; gap: 10px; }
-.app-leaf { display: grid; place-items: center; width: 36px; height: 36px; color: var(--accent); background: var(--accent-soft); border-radius: 12px; }
-.screen-title { font-family: var(--font-body); font-weight: 600; letter-spacing: -.025em; }
-.brand-mark { color: var(--accent); background: var(--accent-soft); width: 76px; height: 76px; border-radius: 26px; display: grid; place-items: center; transform: rotate(-6deg); }
-.brand-mark svg { transform: rotate(6deg); }
-.hero .title { max-width: 12ch; font-size: clamp(2.4rem, 10vw, 3.5rem); line-height: 1.06; }
-.today-live-card { background: linear-gradient(150deg, #2a402a 0, #1b281d 330px, #19241c 100%); border-color: color-mix(in oklab, var(--accent) 22%, transparent); }
-.today-live-card .result-lens-orbit { right: -36px; top: -24px; border: 0; opacity: .11; transform: rotate(22deg); color: var(--accent); }
-.today-live-card .result-lens-orbit::before, .today-live-card .result-lens-orbit::after { display: none; }
-.today-live-card .plan-day-title { color: #f5f0df; }
-.cta-primary { background: var(--accent); color: var(--accent-fg); }
-.quick-checkin > .cta-primary:not(.is-checked) { background: linear-gradient(145deg, #d1e99b, #b6d375); color: #172011; box-shadow: 0 6px 24px #0b130d30; }
-.today-live-card .quick-checkin > .is-checked { background: #324c2e; color: #e0edc7; box-shadow: inset 0 0 0 1px #a7cc8045; }
-.tab-button.selected { background: var(--accent-soft); color: var(--accent); }
-.daily-advice { padding: 16px; border: 1px solid #b9d98b1a; border-radius: 18px; background: #a7cc8008; }
+.checkin-secondary-wide { width: 100%; }
+.daily-advice { padding: 16px; border: 1px solid var(--hairline); border-radius: 18px; background: color-mix(in oklab, var(--fg) 2%, transparent); }
 .daily-advice-number { display: grid; place-items: center; flex: 0 0 26px; height: 26px; padding: 0; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
 .daily-advice-heading { gap: 10px; }
 .daily-advice h4 { font-size: 1rem; }
-.daily-practice { border-left-color: var(--accent); }
-.community-carousel { border-color: #e1cb9836; background: linear-gradient(145deg, #e1cb980d, #c2dc8506); }
-.community-slide h4 { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent-strong); }
+.community-carousel { background: linear-gradient(145deg, color-mix(in oklab, var(--accent-strong) 6%, transparent), color-mix(in oklab, var(--accent) 3%, transparent)); }
+.community-slide h4 { font-family: var(--font-display); font-size: 1.2rem; color: var(--fg); }
+.community-period { width: fit-content; margin: 0 0 8px; padding: 5px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; }
+
+/* 0.25 — one clear cut-down setup and a glanceable weekly tracker. */
+.reduction-intro {
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(145deg, color-mix(in oklab, var(--accent) 7%, transparent), transparent 58%), var(--bg-card);
+}
+.reduction-baseline { padding: 20px; border-bottom: 1px solid var(--hairline); }
+.reduction-baseline .micro-label, .reduction-baseline .meta { margin: 0; }
+.reduction-baseline-value { margin: 6px 0 2px; font-family: var(--font-display); font-size: 1.55rem; line-height: 1.2; }
+.reduction-steps { list-style: none; display: flex; flex-direction: column; gap: 0; margin: 0; padding: 6px 20px; }
+.reduction-steps li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 14px 0; border-top: 1px solid var(--hairline); }
+.reduction-steps li:first-child { border-top: 0; }
+.reduction-steps li > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-mono); font-size: .72rem; }
+.reduction-steps p { margin: 0; color: var(--fg-muted); font-size: .875rem; line-height: 1.5; }
+.reduction-steps strong { color: var(--fg); font-weight: 650; }
+
+.reduction-setup-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 16px; border: 1px solid var(--hairline); border-radius: 18px; background: color-mix(in oklab, var(--fg) 2%, transparent); }
+.reduction-setup-summary > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.reduction-setup-summary .micro-label { margin: 0; }
+.reduction-setup-summary strong { font-size: .95rem; }
+.reduction-setup-summary span:not(.reduction-setup-arrow) { color: var(--fg-muted); font-size: .75rem; line-height: 1.35; }
+.reduction-setup-arrow { color: var(--accent-strong); }
+.reduction-guardrails { border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 2px 0; }
+.reduction-guardrails > summary, .log-use-details > summary { min-height: 48px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; color: var(--accent-strong); font-size: .875rem; font-weight: 650; }
+.reduction-guardrails > summary::-webkit-details-marker, .log-use-details > summary::-webkit-details-marker { display: none; }
+.reduction-guardrails > summary::after, .log-use-details > summary::after { content: '+'; color: var(--fg-muted); font-size: 1.15rem; }
+.reduction-guardrails[open] > summary::after, .log-use-details[open] > summary::after { content: '−'; }
+.reduction-guardrails .choice-list { margin: 12px 0 16px; }
+.reduction-how-it-works { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); color: var(--fg-muted); font-size: .8125rem; line-height: 1.55; }
+
+.reduction-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.reduction-metric { min-width: 0; padding: 14px; border: 1px solid var(--hairline); border-radius: 16px; background: color-mix(in oklab, var(--fg) 2%, transparent); }
+.reduction-metric .micro-label, .reduction-metric .meta { margin: 0; }
+.reduction-metric .micro-label { min-height: 2.5em; line-height: 1.25; }
+.reduction-metric .meta { margin-top: 9px; font-size: .7rem; line-height: 1.4; }
+.reduction-metric-value { display: flex; align-items: baseline; gap: 5px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.reduction-metric-value strong { font-family: var(--font-display); font-size: 2rem; line-height: 1; font-weight: 520; }
+.reduction-metric-value span { color: var(--fg-muted); font-size: .8rem; }
+.reduction-meter { height: 4px; overflow: hidden; border-radius: 999px; background: var(--bg-raised); }
+.reduction-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 240ms var(--ease-out); }
+.reduction-metric.is-over { border-color: color-mix(in oklab, var(--warn) 55%, transparent); }
+.reduction-metric.is-over .reduction-meter > span { background: var(--warn); }
+.log-session-intro { margin: 0; padding: 16px; border-radius: 16px; background: var(--accent-soft); }
+.log-use-details { border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+.log-use-details section { margin: 4px 0 18px; }
+
+@media (max-width: 350px) {
+  .reduction-metrics { grid-template-columns: 1fr; }
+  .reduction-metric .micro-label { min-height: 0; }
+}

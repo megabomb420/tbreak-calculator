@@ -9,7 +9,7 @@ export const RESULT = {
   keepTracking: 'Keep tracking',
   done: 'Done',
   checkAnotherTest: 'Check another test type',
-  seeBreakRange: 'See your break range',
+  seeBreakRange: 'Plan a T-break instead',
   edit: 'Edit',
   answersHeading: 'Your answers',
   whyHeading: 'Why this result',
@@ -30,11 +30,11 @@ export const RESULT = {
   withdrawalHeader: 'Typical patterns across people — not a personal prediction.',
   sleepCopy: "Sleep can take longer to normalise for heavier users — there's no fixed end date.",
   abstinenceTitle: 'Staying off THC — your plan.',
-  reductionTitle: 'Cutting down — without a full break.',
+  reductionTitle: 'Build a cut-down plan you can actually track.',
   reductionBody:
-    'Set weekly limits in advance. Favour lower potency, avoid rapid repeat dosing, and allow for the delayed onset of edibles.',
+    'Set two limits: how many days a week you use, and how many sessions fit inside a use day. Log only when you use; days off need no check-in.',
   reductionSoft:
-    'You can also plan a full break as part of cutting down.',
+    'If you would rather stop completely for a while, calculate a T-break instead.',
   abstinenceTodayBody:
     'Open-ended tracking adds a daily check-in without setting an end date.',
   unavailableTitle: 'This calculation is unavailable.',
@@ -46,9 +46,7 @@ export const RESULT = {
   limitsHeading: 'Your limits',
   maxDaysWeek: 'Max use days per week',
   maxSessions: 'Max sessions on a use day',
-  startReductionPlan: 'Start your cut-down plan',
-  reductionRecalculated: 'Your break recommendation was updated from your tracked use.',
-  reductionRefreshed: 'Break recommendation refreshed from your updated pattern.',
+  startReductionPlan: 'Set up cut-down plan',
 } as const;
 
 export function reductionDaysLine(days: number): string {

@@ -1,4 +1,3 @@
-import { CannabisMark } from './cannabis-mark.tsx';
 import type { ComponentChildren } from 'preact';
 import type { AppTab, ShellState } from '../application/shell/shell-controller.ts';
 import { OPEN_SETTINGS } from './copy.ts';
@@ -29,7 +28,7 @@ export function Shell({ shell, onSelectTab, onOpenSettings, onOpenScience, child
       inert={inert || undefined}
     >
       <header className="app-header">
-        <div className="app-wordmark"><span className="app-leaf"><CannabisMark /></span><h1 className="screen-title">{title}</h1></div>
+        <h1 className="screen-title">{title}</h1>
         <div className="header-actions">
         {onOpenScience ? <button type="button" className="text-link" onClick={onOpenScience}>Science</button> : null}
         <button

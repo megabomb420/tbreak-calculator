@@ -4,7 +4,7 @@
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
-import { primaryWindowForDay } from '../../domain/guidance/evidence-guidance-v1.ts';
+import { primaryWindowForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
 export const DAILY_SUPPORT_VERSION = 'daily-support-v1';
 export const SUPPORT_SOURCES = {
@@ -155,18 +155,35 @@ const MAINTENANCE_PRACTICES = [DAILY_PRACTICES[8]!, DAILY_PRACTICES[10]!, DAILY_
 export interface CommunityTip {
   readonly id: string;
   readonly areas: readonly SupportArea[];
+  readonly windows: readonly WithdrawalWindowId[];
+  readonly period: string;
   readonly title: string;
   readonly text: string;
   readonly href: string;
   readonly thread: string;
 }
 
-// Curated paraphrases checked 2026-09-20. Only the named practical idea is
-// included; linking a discussion does not endorse its other comments.
+// Curated paraphrases checked 2026-09-20. These remain individual accounts,
+// not a second symptom timeline. `windows` only controls when an account is
+// contextually useful; it does not turn the reported day into a prediction.
 export const COMMUNITY_TIPS: readonly CommunityTip[] = [
-  { id: 'quiet-wind-down', areas: ['sleep', 'dreams'], title: 'Give the evening a quieter ending', text: 'One r/Petioles commenter described reading or light tidying before bed instead of ending the evening with scrolling or a stimulating show.', href: 'https://www.reddit.com/r/Petioles/comments/15z1nlx/sleeping_on_a_t_break_advice/', thread: 'Sleeping on a T Break advice' },
-  { id: 'paper-puzzle', areas: ['cravings', 'boredom', 'routine'], title: 'Keep your hands occupied', text: 'A commenter in r/Petioles found a paper sudoku book useful: holding a pencil and working on a puzzle gave their hands something to do during cravings.', href: 'https://www.reddit.com/r/Petioles/comments/153a0dk/what_are_some_methods_that_helped_you_guys_get/', thread: 'Getting through the first week' },
-  { id: 'different-ritual', areas: ['routine', 'cravings', 'boredom'], title: 'Replace the preparation ritual', text: 'One r/Petioles commenter replaced reaching for the grinder with making tea, including choosing the cup and taking time over preparation. The idea was having a different ritual to reach for.', href: 'https://www.reddit.com/r/Petioles/comments/1dvgefb/help_hit_me_with_your_best_tbreak_tips/', thread: 'Readers’ practical t-break tips' },
+  { id: 'day-one-mental', areas: ['cravings', 'routine', 'boredom'], windows: ['days_1_3', 'days_2_6'], period: 'Day 1 → day 6', title: 'The mental part changed before everything else', text: 'A commenter with a very heavy previous pattern described day 1 as the hardest mentally. By day 6 the urge to smoke had faded for them, even though other withdrawal discomfort had not.', href: 'https://www.reddit.com/r/Petioles/comments/17syg5o/even_a_14day_tolerance_break_seems_impossible_for/', thread: 'Even a 14-day break seems impossible' },
+  { id: 'days-one-four-rough', areas: ['cravings', 'anxiety', 'appetite', 'headaches'], windows: ['days_1_3', 'days_2_6'], period: 'Days 1–4', title: 'One person’s rough opening stretch', text: 'A daily user called days 1–4 the worst part of a 30-day break, with strong cravings, nausea, headache and anxiety. Their energy and daily routine felt much better later in the month.', href: 'https://www.reddit.com/r/Petioles/comments/v2hl1r/i_took_a_break_for_30_days_ended_on_saturday_and/', thread: 'A 30-day break, day by day' },
+  { id: 'days-two-four-appetite', areas: ['appetite', 'irritability'], windows: ['days_2_6'], period: 'Days 2–4', title: 'Appetite and patience took the hit', text: 'Someone writing on day 7 said days 2–4 had been their worst: almost no appetite and a much shorter temper. Craving was not their main issue, which is a useful reminder that breaks do not all feel alike.', href: 'https://www.reddit.com/r/Petioles/comments/1ggxlf3/my_current_t_break_symptoms_and_my_thoughts_on/', thread: 'Current break symptoms on day 7' },
+  { id: 'days-one-four-sleep', areas: ['sleep', 'appetite'], windows: ['days_2_6', 'days_7_14'], period: 'Days 1–10', title: 'Sleep and appetite eased after day 4', text: 'A commenter on day 10 reported poor sleep and low appetite during days 1–4, then a much easier stretch. They found being around other people helped with the empty time.', href: 'https://www.reddit.com/r/Petioles/comments/17syg5o/even_a_14day_tolerance_break_seems_impossible_for/', thread: 'Even a 14-day break seems impossible' },
+  { id: 'quiet-wind-down', areas: ['sleep', 'dreams'], windows: ['days_1_3', 'days_2_6', 'days_7_14'], period: 'Early nights', title: 'A quieter ending to the evening', text: 'One commenter described reading or doing light tidying before bed instead of ending the evening with scrolling or a stimulating show.', href: 'https://www.reddit.com/r/Petioles/comments/15z1nlx/sleeping_on_a_t_break_advice/', thread: 'Sleeping on a T-break' },
+  { id: 'paper-puzzle', areas: ['cravings', 'boredom', 'routine'], windows: ['days_1_3', 'days_2_6', 'days_7_14'], period: 'First week', title: 'Something physical for the empty moment', text: 'A commenter found a paper sudoku book useful: holding a pencil and working on a puzzle gave their hands and attention somewhere else to go during cravings.', href: 'https://www.reddit.com/r/Petioles/comments/153a0dk/what_are_some_methods_that_helped_you_guys_get/', thread: 'Getting through the first week' },
+  { id: 'day-seven-still-hard', areas: ['cravings', 'routine'], windows: ['days_7_14'], period: 'Day 7', title: 'The first week did not end on schedule', text: 'One poster reached day 7 and was still thinking about smoking constantly. Replies ranged from “day 6 was my hardest” to feeling a shift around days 10–14. Their thread shows how uneven the same week can be.', href: 'https://www.reddit.com/r/Petioles/comments/1comaqo/i_am_on_day_7_of_a_30_day_tbreak_and_it_doesnt/', thread: 'Day 7 still feels difficult' },
+  { id: 'day-seven-fatigue', areas: ['low_mood', 'boredom', 'routine'], windows: ['days_7_14'], period: 'Around day 7', title: 'The acute part eased; flatness remained', text: 'A commenter said their sweating, stomach trouble and high anxiety usually eased by day 7, while fatigue and low mood could linger. Music, cooking, games, walking and seeing people were the activities they used then.', href: 'https://www.reddit.com/r/Petioles/comments/1comaqo/i_am_on_day_7_of_a_30_day_tbreak_and_it_doesnt/', thread: 'Day 7 still feels difficult' },
+  { id: 'day-ten-dreams', areas: ['appetite', 'dreams', 'sleep'], windows: ['days_7_14'], period: 'Day 10', title: 'Appetite returned before dreams settled', text: 'A day-10 commenter reported that night sweats had stopped and their usual appetite was back, while dreams were still unusually vivid.', href: 'https://www.reddit.com/r/Petioles/comments/u2cmku/withdrawal_symptoms_on_day_3_of_my_tolerance_break/', thread: 'Withdrawal symptoms on day 3' },
+  { id: 'days-ten-fourteen-lift', areas: ['anxiety', 'low_mood', 'routine'], windows: ['days_7_14', 'days_14_21'], period: 'Days 10–14', title: 'For some, this was the turning point', text: 'In one discussion, separate commenters described a small lift around day 10 and the good beginning to outweigh the bad by day 14. Others in the same thread still struggled, so this is experience rather than a deadline.', href: 'https://www.reddit.com/r/Petioles/comments/1comaqo/i_am_on_day_7_of_a_30_day_tbreak_and_it_doesnt/', thread: 'Day 7 still feels difficult' },
+  { id: 'day-fourteen-craving-spike', areas: ['cravings', 'anxiety'], windows: ['days_7_14', 'days_14_21'], period: 'Day 14', title: 'A craving can arrive late', text: 'One poster had almost no cravings for two weeks, then experienced an abrupt, intense urge on day 14. The timing surprised them; a calmer first week had not made later cravings impossible.', href: 'https://www.reddit.com/r/Petioles/comments/1blbe76/day_14_the_cravings_are_craaazy/', thread: 'A strong craving on day 14' },
+  { id: 'different-ritual', areas: ['routine', 'cravings', 'boredom'], windows: ['days_7_14', 'days_14_21'], period: 'Around week 2', title: 'Make the ritual visible', text: 'A day-14 commenter mimed their old preparation routine without using. For them, acting it out exposed how much of the pull was the familiar sequence itself.', href: 'https://www.reddit.com/r/Petioles/comments/1dvgefb/help_hit_me_with_your_best_tbreak_tips/', thread: 'Readers’ practical T-break tips' },
+  { id: 'week-three-sleep', areas: ['sleep', 'dreams'], windows: ['days_14_21', 'days_21_28'], period: 'Week 3', title: 'Sleep was the last obvious problem', text: 'A commenter entering week 3 said they no longer missed THC and felt much better overall, but insomnia had taken the full three weeks to ease and sleep still was not completely normal.', href: 'https://www.reddit.com/r/Petioles/comments/1comaqo/i_am_on_day_7_of_a_30_day_tbreak_and_it_doesnt/', thread: 'Day 7 still feels difficult' },
+  { id: 'day-twenty-two-rethink', areas: ['sleep', 'anxiety', 'routine'], windows: ['days_21_28'], period: 'Day 22', title: 'A seven-day plan became a longer pause', text: 'One person reached day 22 after originally planning a week. Some insomnia and anxiety remained, but feeling more productive made them question whether they wanted to return yet.', href: 'https://www.reddit.com/r/Petioles/comments/pnyhex/has_anyone_taken_a_tolerance_break_for_a_week_or/', thread: 'When a short break changes the plan' },
+  { id: 'later-energy-routine', areas: ['routine', 'sleep', 'boredom'], windows: ['days_14_21', 'days_21_28', 'beyond_28'], period: 'After the early days', title: 'More energy changed the morning routine', text: 'After a difficult first four days, one person reported more energy, waking with the alarm, feeling rested and arriving at work on time during the rest of a 30-day break.', href: 'https://www.reddit.com/r/Petioles/comments/v2hl1r/i_took_a_break_for_30_days_ended_on_saturday_and/', thread: 'A 30-day break, day by day' },
+  { id: 'after-month-perspective', areas: ['routine', 'anxiety'], windows: ['days_21_28', 'beyond_28'], period: 'After 39 days', title: 'The old amount no longer fit', text: 'After 39 days, a former daily user found that a relatively small return session became uncomfortably strong. The experience changed how they thought about moderation and all-night sessions.', href: 'https://www.reddit.com/r/Petioles/comments/s0dwms/to_those_who_have_completed_a_successful_30_day/', thread: 'Returning after a 30+ day break' },
+  { id: 'beyond-ninety-variable', areas: ['cravings', 'anxiety', 'low_mood', 'sleep'], windows: ['beyond_28'], period: 'Around 90 days', title: 'Better did not mean symptom-free', text: 'One long-term daily user said sleep and most other things were better after 90 days, while occasional cravings, anxiety and flat days still appeared. Their account is a useful counterweight to tidy recovery stories.', href: 'https://www.reddit.com/r/Petioles/comments/159owf8/weird_day_after_90_days/', thread: 'A difficult day after 90 days' },
 ];
 
 type RatedField = 'craving' | 'sleep' | 'irritability' | 'anxiety' | 'appetite';
@@ -216,12 +233,24 @@ export function presentDailySupport(input: DailySupportInput) {
     selections.push({ area, reason: preferred.includes(area) ? 'A topic you chose' : 'An option for this part of your break', recordedAt: null });
   }
   const hasSymptoms = ratings.length > 0;
-  const community = COMMUNITY_TIPS.filter(tip => tip.areas.some(area => selections.some(item => item.area === area)));
-  const communityTip = community.length ? community[(day - 1) % community.length]! : COMMUNITY_TIPS[(day - 1) % COMMUNITY_TIPS.length]!;
+  const stageCommunity = COMMUNITY_TIPS.filter(tip => tip.windows.includes(window.id));
+  const matchingCommunity = stageCommunity.filter(tip => tip.areas.some(area => selections.some(item => item.area === area)));
+  const restCommunity = stageCommunity.filter(tip => !matchingCommunity.includes(tip));
+  // Rotate accounts so the carousel changes over time, but do it inside each
+  // relevance tier. A day offset must never push a matching sleep/craving/etc.
+  // account behind unrelated stories.
+  const rotate = <T,>(rows: readonly T[]): readonly T[] => {
+    if (rows.length === 0) return [];
+    const at = (day - 1) % rows.length;
+    return [...rows.slice(at), ...rows.slice(0, at)];
+  };
+  const orderedCommunity = [...rotate(matchingCommunity), ...rotate(restCommunity)];
+  const communityTips = (orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS]).slice(0, 5);
+  const communityTip = communityTips[0]!;
   const replacement = input.preparation?.replacementAction?.trim();
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
-    version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip,
+    version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip, communityTips,
     status: hasSymptoms ? 'Picked from your recent check-ins and topics.' : 'Add how you’re feeling to make these tips more personal.',
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,

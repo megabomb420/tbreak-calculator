@@ -51,11 +51,11 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     assert.equal(validated.ok, true);
   });
 
-  it('skips last use on reduction-no-break and still validates', () => {
+  it('builds a cut-down baseline without collecting T-break-only fields', () => {
     const answers = answerAll([
       { step: 'Q1', value: 'reduction' },
-      { step: 'Q2R', value: false },
       { step: 'Q2', value: 8 },
+      { step: 'Q4', value: 2 },
     ]);
     const result = finishQuestionnaire(answers, NOW);
     assert.equal(result.status, 'complete');
@@ -64,6 +64,9 @@ describe('raw-answer snapshot (UX_SPEC 4.5, validation wiring)', () => {
     }
     assert.equal(result.snapshot.profile.breakRequested, false);
     assert.deepEqual(result.snapshot.profile.lastUseAt, missingValue());
+    assert.deepEqual(result.snapshot.profile.sessionsPerUseDay, { value: 2, provenance: 'user_estimate' });
+    assert.deepEqual(result.snapshot.profile.products, []);
+    assert.deepEqual(result.snapshot.profile.routes, []);
     assert.equal(validateAndNormalizeProfile(result.snapshot.profile, NOW).ok, true);
   });
 

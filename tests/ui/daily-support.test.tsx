@@ -61,16 +61,14 @@ describe('practical Today advice', () => {
     expect(screen.getByTestId('advice-sleep').textContent).toContain('Sleep quality 2/10');
   });
 
-  it('a confirmed use changes the clock only on save', () => {
+  it('keeps the break clock and plan unchanged when checking in', () => {
     const { storage } = setup();
+    const before = createBreakAttemptsStore(storage).load()!.attempts[0]!.segments;
     fireEvent.click(screen.getByTestId('checkin-cta'));
-    fireEvent.click(screen.getByTestId('report-use'));
-    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.segments).toHaveLength(1);
-    fireEvent.click(within(screen.getByTestId('confirm-use')).getByRole('button', { name: 'Today', exact: true }));
-    fireEvent.click(screen.getByTestId('confirm-use-submit'));
-    expect(screen.getByTestId('restart-confirmed')).toBeTruthy();
-    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.segments).toHaveLength(2);
-    expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(true);
+    expect(screen.queryByTestId('report-use')).toBeNull();
+    expect(screen.queryByTestId('confirm-use')).toBeNull();
+    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.segments).toEqual(before);
+    expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(false);
   });
 
   it('opens specific guides independently of saved preferences and keeps Reddit distinct from clinical sources', () => {

@@ -65,7 +65,7 @@ describe('start and first-step / goal routing', () => {
       answers: { goal: 'tolerance_reset' },
     });
     assert.deepEqual(startSession('reduction'), {
-      currentStep: 'Q2R',
+      currentStep: 'Q2',
       answers: { goal: 'reduction' },
     });
     assert.deepEqual(startSession('abstinence'), {
@@ -118,24 +118,10 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     ]);
   });
 
-  it('inserts Q2R for reduction and follows the break / no-break fork', () => {
-    assert.deepEqual(resolvedPath({ goal: 'reduction' }), ['Q1', 'Q2R']);
-    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: false }), ['Q1', 'Q2R', 'Q2']);
-    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: true }), ['Q1', 'Q2R', 'Q6', 'Q2']);
-    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 20 }), [
-      'Q1',
-      'Q2R',
-      'Q6',
-      'Q2',
-      'Q3',
-      'Q4',
-      'Q5',
-    ]);
-    assert.deepEqual(resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 20 }), [
-      'Q1',
-      'Q2R',
-      'Q2',
-    ]);
+  it('keeps reduction to the two inputs needed for a practical cut-down plan', () => {
+    assert.deepEqual(resolvedPath({ goal: 'reduction' }), ['Q1', 'Q2']);
+    assert.deepEqual(resolvedPath({ goal: 'reduction', thcUseDaysLast30: 0 }), ['Q1', 'Q2']);
+    assert.deepEqual(resolvedPath({ goal: 'reduction', thcUseDaysLast30: 20 }), ['Q1', 'Q2', 'Q4']);
   });
 
   it('asks abstinence for duration before last use, and detection only for matrix then context', () => {
@@ -143,16 +129,13 @@ describe('resolved paths (UX_SPEC 5.1 / 5.3)', () => {
     assert.deepEqual(resolvedPath({ goal: 'detection_information' }), ['Q1', 'Q2D', 'Q3D']);
   });
 
-  it('keeps the longest scientific path at 7 steps and never asks Q4/Q5 below 4 use-days', () => {
+  it('keeps tolerance detail separate from the short cut-down path', () => {
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 3 }).length, 4);
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 10 }).length, 6);
     assert.equal(resolvedPath({ goal: 'tolerance_reset', thcUseDaysLast30: 16 }).length, 6);
-    assert.equal(
-      resolvedPath({ goal: 'reduction', breakRequested: true, thcUseDaysLast30: 30 }).length,
-      7,
-    );
+    assert.equal(resolvedPath({ goal: 'reduction', thcUseDaysLast30: 30 }).length, 3);
     assert.equal(resolvedPath({ goal: 'abstinence' }).length, 3);
-    assert.equal(resolvedPath({ goal: 'reduction', breakRequested: false, thcUseDaysLast30: 20 }).length, 3);
+    assert.equal(resolvedPath({ goal: 'reduction', thcUseDaysLast30: 0 }).length, 2);
   });
 });
 
@@ -167,13 +150,14 @@ describe('next / back / impossible transitions', () => {
     );
   });
 
-  it('sends reduction-no-break to TERMINAL after use-days (no last-use step)', () => {
+  it('asks for typical sessions after positive cut-down use-days, then terminates', () => {
     const answers: QuestionnaireAnswers = {
       goal: 'reduction',
-      breakRequested: false,
       thcUseDaysLast30: 12,
     };
-    assert.equal(nextDestination('Q2', answers, NOW), 'TERMINAL');
+    assert.equal(nextDestination('Q2', answers, NOW), 'Q4');
+    assert.equal(nextDestination('Q4', { ...answers, sessionsPerUseDay: 2 }, NOW), 'TERMINAL');
+    assert.equal(nextDestination('Q2', { goal: 'reduction', thcUseDaysLast30: 0 }, NOW), 'TERMINAL');
   });
 
   it('rejects next() on an incomplete step and jumps that are not on the path', () => {
@@ -185,10 +169,7 @@ describe('next / back / impossible transitions', () => {
     assert.equal(previousStep('Q1', { goal: 'tolerance_reset' }), null);
     assert.equal(previousStep('Q6', { goal: 'tolerance_reset' }), 'Q1');
     assert.equal(previousStep('Q2', { goal: 'tolerance_reset' }), 'Q6');
-    assert.equal(
-      previousStep('Q3', { goal: 'reduction', breakRequested: true, thcUseDaysLast30: 10 }),
-      'Q2',
-    );
+    assert.equal(previousStep('Q4', { goal: 'reduction', thcUseDaysLast30: 10 }), 'Q2');
     assert.equal(previousStep('Q2D', { goal: 'detection_information' }), 'Q1');
   });
 });
@@ -238,17 +219,25 @@ describe('applyAnswer: re-branch and drop invalidated fields', () => {
     assert.deepEqual(after.routes, ['smoking']);
   });
 
-  it('drops last-use when switching to reduction-no-break (field is not collected)', () => {
+  it('drops T-break-only fields when switching to reduction', () => {
     const before: QuestionnaireAnswers = {
-      goal: 'reduction',
-      breakRequested: true,
+      goal: 'tolerance_reset',
       thcUseDaysLast30: 10,
       lastUseAt: withinWindowIso(),
+      currentPatternDuration: '1_to_6_months',
+      sessionsPerUseDay: 2,
+      products: ['flower'],
+      routes: ['smoking'],
     };
-    const after = applyAnswer(before, { step: 'Q2R', value: false }, NOW);
-    assert.equal(after.breakRequested, false);
+    const after = applyAnswer(before, { step: 'Q1', value: 'reduction' }, NOW);
+    assert.equal(after.goal, 'reduction');
+    assert.equal(after.breakRequested, undefined);
     assert.equal(after.thcUseDaysLast30, 10);
+    assert.equal(after.sessionsPerUseDay, 2);
     assert.equal(after.lastUseAt, undefined);
+    assert.equal(after.currentPatternDuration, undefined);
+    assert.equal(after.products, undefined);
+    assert.equal(after.routes, undefined);
   });
 
   it('drops inapplicable fields when the goal changes, keeping only the new goal', () => {

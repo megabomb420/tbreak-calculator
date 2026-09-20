@@ -73,7 +73,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
         </div>
       </details>
 
-      <CommunityCarousel key={view.day} initialId={view.communityTip.id} />
+      <CommunityCarousel key={view.day} tips={view.communityTips} initialId={view.communityTip.id} />
 
       {comparison.available ? <details className="result-disclosure daily-comparison">
         <summary>Your recorded changes</summary><CheckinComparisonBlock view={comparison} />
