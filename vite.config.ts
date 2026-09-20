@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => {
           start_url: base,
           scope: base,
           id: base,
-          background_color: '#0A0D12',
-          theme_color: '#0A0D12',
+          background_color: '#101710',
+          theme_color: '#101710',
           icons: [
             { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
             { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

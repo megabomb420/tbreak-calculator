@@ -79,6 +79,6 @@ describe('independent companion personalisation flow', () => {
     }} />);
     expect(screen.getByTestId('advice-anxiety').textContent).toContain('A topic you chose');
     expect(screen.getByTestId('advice-sleep').textContent).toContain('A topic you chose');
-    expect(screen.getByTestId('advice-basis').textContent).toContain('No symptom ratings');
+    expect(screen.getByTestId('advice-basis').textContent).toContain('Add how you’re feeling');
   });
 });

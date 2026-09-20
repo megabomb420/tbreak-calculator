@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  --bg-base: #0a0d12;
-  --bg-mist: #10151c;
-  --bg-card: #151b24;
-  --bg-raised: #1d2530;
-  --bg-hover: #232c3a;
-  --fg: #f0ede6;
-  --fg-muted: #a7b0bd;
-  --fg-faint: #959eac;
-  --accent: #8fa9b8;
-  --accent-strong: #d7c4a8;
-  --accent-fg: #10141a;
-  --accent-soft: #1a2830;
-  --ok: #7d9a8a;
+  --bg-base: #101710;
+  --bg-mist: #141f16;
+  --bg-card: #1b281d;
+  --bg-raised: #263729;
+  --bg-hover: #304332;
+  --fg: #f5f0df;
+  --fg-muted: #bcc8ae;
+  --fg-faint: #a8b59b;
+  --accent: #c2dc85;
+  --accent-strong: #e1cb98;
+  --accent-fg: #172011;
+  --accent-soft: #2c3d25;
+  --ok: #a7cc80;
   --warn: #d4a574;
   --error: #c97a72;
   --hairline: color-mix(in oklab, var(--fg) 12%, transparent);
@@ -1343,7 +1343,7 @@ details.card > summary::-webkit-details-marker {
   }
 
   #app {
-    background: #07090c;
+    background: #0b110c;
   }
 }
 
@@ -3955,3 +3955,30 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .daily-context[open] > summary::after { content: '−'; }
 .daily-context > summary .micro-label { margin: 0; }
 .daily-context[open] > .card-title { margin-top: 12px; }
+
+/* 0.24 — botanical, warm and touch-first. */
+html, body, #app, .app-shell, .app-main, .questionnaire-overlay,
+.questionnaire-body, .modal-root, .modal-sheet, .modal-body, .result-body,
+.community-track, .outlook-strip { touch-action: pan-x pan-y; }
+input:not([type="range"]), textarea, select { font-size: max(16px, 1rem); }
+.app-wordmark { display: flex; align-items: center; gap: 10px; }
+.app-leaf { display: grid; place-items: center; width: 36px; height: 36px; color: var(--accent); background: var(--accent-soft); border-radius: 12px; }
+.screen-title { font-family: var(--font-body); font-weight: 600; letter-spacing: -.025em; }
+.brand-mark { color: var(--accent); background: var(--accent-soft); width: 76px; height: 76px; border-radius: 26px; display: grid; place-items: center; transform: rotate(-6deg); }
+.brand-mark svg { transform: rotate(6deg); }
+.hero .title { max-width: 12ch; font-size: clamp(2.4rem, 10vw, 3.5rem); line-height: 1.06; }
+.today-live-card { background: linear-gradient(150deg, #2a402a 0, #1b281d 330px, #19241c 100%); border-color: color-mix(in oklab, var(--accent) 22%, transparent); }
+.today-live-card .result-lens-orbit { right: -36px; top: -24px; border: 0; opacity: .11; transform: rotate(22deg); color: var(--accent); }
+.today-live-card .result-lens-orbit::before, .today-live-card .result-lens-orbit::after { display: none; }
+.today-live-card .plan-day-title { color: #f5f0df; }
+.cta-primary { background: var(--accent); color: var(--accent-fg); }
+.quick-checkin > .cta-primary:not(.is-checked) { background: linear-gradient(145deg, #d1e99b, #b6d375); color: #172011; box-shadow: 0 6px 24px #0b130d30; }
+.today-live-card .quick-checkin > .is-checked { background: #324c2e; color: #e0edc7; box-shadow: inset 0 0 0 1px #a7cc8045; }
+.tab-button.selected { background: var(--accent-soft); color: var(--accent); }
+.daily-advice { padding: 16px; border: 1px solid #b9d98b1a; border-radius: 18px; background: #a7cc8008; }
+.daily-advice-number { display: grid; place-items: center; flex: 0 0 26px; height: 26px; padding: 0; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
+.daily-advice-heading { gap: 10px; }
+.daily-advice h4 { font-size: 1rem; }
+.daily-practice { border-left-color: var(--accent); }
+.community-carousel { border-color: #e1cb9836; background: linear-gradient(145deg, #e1cb980d, #c2dc8506); }
+.community-slide h4 { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent-strong); }

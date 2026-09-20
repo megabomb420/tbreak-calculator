@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.23.0
+# Handoff — T-Break Calculator 0.24.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -22,6 +22,14 @@ Today leads with the check-in and practical advice. Fresh symptom ratings take p
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.24.0 — botanical visual identity and stable touch scale
+
+- Warm forest/olive surfaces, cream typography, lime actions and an original local vector cannabis mark replace the cold navy presentation. Daily tips are grouped into soft cards. Welcome, advice-basis and saved check-in copy use everyday language; scientific content and help-seeking guidance remain intact.
+- Requested mobile zoom lock: viewport scale limits, `pan-x pan-y` on scrolling surfaces, non-passive guards for multi-touch and Safari gesture events. One-finger scrolling, carousel swiping, sliders, editable text and desktop keyboard zoom are preserved. Text-entry controls use at least 16px to avoid focus zoom. System/browser accessibility overrides may still take precedence; physical iOS testing remains outstanding.
+- No dependencies, schema or calculation changes. Existing PWA icons remain unchanged; the new mark is inside the app. The manifest and browser theme match the forest background.
+
+Validation for 0.24.0: all 727 tests, typecheck and production build passed. Chromium mobile smoke verified check-in, actual pinch keeping scale 1, cancelable Safari gesture guards, unaffected single-touch events, carousel touch swipe and 320/390px layouts. The Today screenshot was visually reviewed.
 
 ## Release 0.23.0 — direct check-in and PWA interaction (2026-09-20)
 
@@ -96,9 +104,9 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.23.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
+Resume current main after 0.24.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.23.0. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.24.0. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

@@ -6,9 +6,9 @@ export const APP_NAME = 'T-Break Calculator';
 export const APP_SHORT_NAME = 'T-Break';
 
 export const FIRST_LAUNCH = {
-  title: APP_NAME,
+  title: 'A little space from THC.',
   promise:
-    'Plan a tolerance break, cut down, or stay off THC. Keep track of your days and how you feel.',
+    'Taking a t-break, cutting back, or stopping? Keep your days, check-ins and practical tips in one place.',
   reassurances: [
     { id: 'offline', label: 'Works offline' },
     { id: 'local', label: 'Stored only on this device' },

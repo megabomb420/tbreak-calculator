@@ -222,7 +222,7 @@ export function presentDailySupport(input: DailySupportInput) {
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip,
-    status: hasSymptoms ? 'Advice uses your recent ratings and chosen topics.' : 'No symptom ratings from the last 48 hours. These are suggestions for this stage; a check-in can make them more relevant.',
+    status: hasSymptoms ? 'Picked from your recent check-ins and topics.' : 'Add how you’re feeling to make these tips more personal.',
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,
     plannedAlternative: replacement ? `At your usual use time, try your planned alternative: “${replacement}”.` : null,

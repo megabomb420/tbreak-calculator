@@ -25,7 +25,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
           <h3 className="card-title">What matters today</h3>
           <p className="meta" data-testid="advice-basis">{view.status}</p>
         </div>
-        {view.allComfortable ? <p className="daily-comfortable" data-testid="comfortable-checkin">Your recent ratings show little difficulty across the five areas you recorded. You do not need symptoms for a break to count.</p> : null}
+        {view.allComfortable ? <p className="daily-comfortable" data-testid="comfortable-checkin">Things look fairly settled in your check-in. A break can be uneventful, too.</p> : null}
         {view.selections.map((selection, index) => (
           <article className="daily-advice" key={selection.area} data-testid={`advice-${selection.area}`}>
             <div className="daily-advice-heading">

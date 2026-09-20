@@ -2,7 +2,7 @@
 
 Version: **0.17.0**
 
-Current revision (0.23.0): direct reversible check-in, cancelable use logging, touch-controlled Reddit carousel; practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
+Current revision (0.24.0): botanical forest/cream/lime visual identity and requested touch zoom lock; direct reversible check-in, cancelable use logging, touch-controlled Reddit carousel; practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -848,3 +848,8 @@ A manually controlled carousel of three community examples uses the label **From
 The Reddit carousel supports native horizontal touch scrolling with scroll snapping, previous/next buttons, position controls and arrow keys. It never auto-advances while the user reads. Only the visible slide has interactive links; position is announced and preserved when resizing. Content and labels remain available offline, with external sources opening only on request.
 
 Touch feedback is brief and never delays persistence or navigation: pressed states, a check-mark confirmation, and short sheet/guide transitions. `prefers-reduced-motion` disables decorative motion and smooth scrolling. Existing safe-area, keyboard, dialog Back/Escape and offline storage contracts stay in place. The helper that finds today's latest check-in excludes future, invalid and pre-segment entries and uses the established abstinence-day boundaries.
+
+
+## 18. Touch scale and visual tone (0.24.0)
+
+The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits. Warm botanical colours and a local vector cannabis mark replace the cold navy styling. Clinical/source guidance remains available within topic details; daily UI copy uses plain language.

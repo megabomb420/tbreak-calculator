@@ -1,3 +1,4 @@
+import { CannabisMark } from './cannabis-mark.tsx';
 import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
 import { useState } from 'preact/hooks';
@@ -15,7 +16,7 @@ import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './cop
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
-import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
+import { CheckIcon, DeviceIcon, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
@@ -163,7 +164,7 @@ function FirstLaunch({ onGetStarted }: { readonly onGetStarted: () => void }) {
     <div className="stack" data-testid="state-first-launch">
       <div className="hero">
         <div className="brand-mark">
-          <IntervalMark size={32} />
+          <CannabisMark size={44} />
         </div>
         <h2 className="title">{FIRST_LAUNCH.title}</h2>
         <p className="body">{FIRST_LAUNCH.promise}</p>
@@ -226,7 +227,7 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
       {checked ? <><CheckIcon size={20} /><span>Checked in today</span></> : <><CheckIcon size={20} /><span>Check in</span></>}
     </button>
     <div className="checkin-receipt">
-      <p className="meta" role="status">{checked ? 'Saved · No THC reported' : 'Record today without THC'}</p>
+      <p className="meta" role="status">{checked ? 'Saved · A day off THC' : 'Tap to log a day off THC'}</p>
       {checked ? <button type="button" className="text-back" data-testid="undo-checkin" aria-label="Undo latest check-in" onClick={props.onUndoCheckin}>Undo</button> : null}
     </div>
     <div className="checkin-secondary-actions">
@@ -279,7 +280,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      <span className="result-lens-orbit" aria-hidden="true" />
+      <span className="result-lens-orbit" aria-hidden="true"><CannabisMark size={170} /></span>
       <header className="today-live-head">
         <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
         <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
