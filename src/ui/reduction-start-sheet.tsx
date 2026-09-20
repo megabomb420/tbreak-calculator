@@ -6,6 +6,7 @@ import type { UseProfileInput } from '../domain/schemas/profile.ts';
 import type { Instant } from '../domain/schemas/time.ts';
 import {
   suggestedReductionLimits,
+  weeklyUseDayRate,
   type ReductionLimits,
   type ReductionPlan,
   type ThcStrategy,
@@ -41,10 +42,6 @@ const STRATEGY_OPTIONS: ReadonlyArray<{
 
 /** App defaults when neither an existing plan nor a profile is available. */
 const FALLBACK_LIMITS: ReductionLimits = { maxUseDaysPerWeek: 3, maxSessionsPerUseDay: 1 };
-
-function weeklyEstimate(daysLast30: number): number {
-  return daysLast30 === 0 ? 0 : Math.max(1, Math.ceil((daysLast30 / 30) * 7));
-}
 
 export interface ReductionStartSheetProps {
   readonly now: Instant;
@@ -85,7 +82,7 @@ export function ReductionStartSheet({
   const [failed, setFailed] = useState(false);
 
   const editing = existing !== null;
-  const currentDays = weeklyEstimate(profile?.thcUseDaysLast30?.value ?? existing?.baseline.thcUseDaysLast30 ?? 0);
+  const currentDays = weeklyUseDayRate(profile?.thcUseDaysLast30?.value ?? existing?.baseline.thcUseDaysLast30 ?? 0);
   const currentSessions = profile?.sessionsPerUseDay?.value ?? existing?.baseline.sessionsPerUseDay ?? null;
 
   function toggleStrategy(key: keyof ThcStrategy, checked: boolean): void {

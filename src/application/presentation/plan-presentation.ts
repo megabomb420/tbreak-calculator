@@ -2,7 +2,7 @@
 //
 // Day counts, target dates, completion eligibility, withdrawal positions and
 // phase selection come from this module — never from component math. The plan
-// ring/track represents plan time only (abstinence time from the authoritative
+// track represents plan time only (abstinence time from the authoritative
 // anchor), never biological recovery.
 
 import { MILLIS_PER_DAY, type Instant } from '../../domain/schemas/time.ts';

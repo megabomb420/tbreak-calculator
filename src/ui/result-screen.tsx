@@ -4,6 +4,7 @@ import type { AnswerRow, ResultView } from '../application/presentation/result-p
 import type { QuestionnaireStepId } from '../application/questionnaire/engine.ts';
 import { calculateNominalFlowerThc } from '../domain/nominal-thc/nominal-thc-engine.ts';
 import { NOMINAL_THC_POLICY_V1 } from '../domain/policies/nominal-thc-policy-v1.ts';
+import { weeklyUseDayRate } from '../domain/reduction/reduction-engine.ts';
 import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
 import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
 import {
@@ -509,7 +510,7 @@ function ReductionBody({
 }) {
   const useDays = Number(answers.find((answer) => answer.id === 'useDays')?.value ?? 0);
   const sessions = Number(answers.find((answer) => answer.id === 'sessions')?.value ?? 1);
-  const weekly = useDays === 0 ? 0 : Math.max(1, Math.ceil((useDays / 30) * 7));
+  const weekly = weeklyUseDayRate(useDays);
 
   return (
     <div className="stack">

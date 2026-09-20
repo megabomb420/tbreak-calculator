@@ -20,19 +20,15 @@
 // positive) so the same instants never duplicate or silently disappear when a
 // timezone changes.
 //
-// The rule that recomputes the tolerance recommendation NEVER adds days per
-// logged event. It re-runs the full tolerance engine on an observed profile
-// derived from tracked events (see `observedPattern`), or asks for the minimum
-// missing refresh data when 30 days of exact history do not exist yet.
+// Logging a session never rewrites a tolerance recommendation. Tracked events
+// drive the plan's own state only: they never regenerate, refresh or rewrite a
+// frozen calculation record, and a stored record stays immutable.
 
 import type { ProductKind, Route } from '../schemas/enums.ts';
-import type { RecommendedRangeDays } from '../schemas/result.ts';
 import { toInstant, type Instant } from '../schemas/time.ts';
 
 export const REDUCTION_ROLLING_WINDOW_DAYS = 7;
-export const REDUCTION_OBSERVATION_WINDOW_DAYS = 30;
 export const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
-export const MIN_OBSERVED_USE_DAYS_FOR_PROFILE = 4;
 
 export type ReductionPlanStatus = 'active' | 'review_recommended' | 'paused' | 'ended';
 
@@ -111,22 +107,6 @@ export interface ReductionPlanState {
   /** True when >= 2 distinct breach days sit inside the rolling window
    * (the documented 3-7 day pause/review product rule). */
   readonly reviewRecommended: boolean;
-}
-
-export interface ObservedPattern {
-  /** Distinct use days in the last 30 local days. */
-  readonly useDaysLast30: number;
-  /** Total sessions in the window / use days, rounded; null below 1. */
-  readonly sessionsPerUseDay: number | null;
-  readonly products: readonly ProductKind[];
-  readonly routes: readonly Route[];
-  readonly lastUseAt: Instant | null;
-  /** True when tracked events span >= 30 days, so the 30-day use-day count is
-   * derived from exact data rather than a lower-bound estimate. */
-  readonly hasFullThirtyDayCoverage: boolean;
-  /** True when the observed window has enough use days (>= 4) to build a
-   * tolerance-v3 profile without the user re-estimating frequency. */
-  readonly sufficientForProfile: boolean;
 }
 
 /**
@@ -284,105 +264,30 @@ export function statusAfterEvents(
 }
 
 /**
+ * Reported weekly use-day rate: whole use days per week implied by the reported
+ * 30-day count. Shared by the starting-limit suggestion and the tracker's
+ * pattern line so the two can never disagree.
+ */
+export function weeklyUseDayRate(thcUseDaysLast30: number): number {
+  return thcUseDaysLast30 <= 0 ? 0 : Math.ceil((thcUseDaysLast30 / 30) * 7);
+}
+
+/**
  * Product heuristic for starting limits based on the user's estimated
  * current pattern. Transparent, bounded, editable, never presented as a
- * medical recommendation. The day cap aims at roughly half of the current
- * weekly use-day rate, clamped to 1..7; the session cap is 1 when the current
- * pattern has more than one session on a use day, otherwise the user is free
- * to choose. When the current pattern is already below these suggestions the
- * heuristic returns a cap equal to the current rate (never harsher than the
- * user's own pattern without consent).
+ * medical recommendation. The day cap is one clear step below the reported
+ * weekly use-day rate, clamped to 1..7; the session cap is one step below the
+ * reported sessions per use day, floored at 1. A starting suggestion is always
+ * editable — the tracker is a behavioural commitment, not a prescribed dose or
+ * a claim that halving use is universally realistic.
  */
 export function suggestedReductionLimits(
   baseline: Pick<ReductionBaseline, 'thcUseDaysLast30' | 'sessionsPerUseDay'>,
 ): ReductionLimits {
-  const currentWeeklyRate = Math.max(1, Math.ceil((baseline.thcUseDaysLast30 / 30) * 7));
-  // A starting suggestion is one clear step below the reported pattern. It is
-  // deliberately editable: the tracker is a behavioural commitment, not a
-  // prescribed dose or a claim that halving use is universally realistic.
-  const suggestedDays = Math.max(1, Math.min(7, currentWeeklyRate - 1));
+  const suggestedDays = Math.max(1, Math.min(7, weeklyUseDayRate(baseline.thcUseDaysLast30) - 1));
   const suggestedSessions = Math.max(1, (baseline.sessionsPerUseDay ?? 1) - 1);
   return {
     maxUseDaysPerWeek: suggestedDays,
     maxSessionsPerUseDay: suggestedSessions,
   };
-}
-
-/**
- * Observed pattern from exact tracked events (last 30 local days). Distinguishes
- * what the tracker knows exactly from what is still an estimate.
- */
-export function observedPattern(
-  events: readonly UseEvent[],
-  now: Instant,
-  utcOffsetMinutes: number,
-): ObservedPattern {
-  const windowEvents = eventsInWindow(events, now, utcOffsetMinutes, REDUCTION_OBSERVATION_WINDOW_DAYS);
-  const daySet = new Set(windowEvents.map((event) => dayKeyOfEvent(event, utcOffsetMinutes)));
-  const useDaysLast30 = daySet.size;
-  const totalSessions = windowEvents.length;
-  const sessionsPerUseDay =
-    useDaysLast30 === 0
-      ? null
-      : Math.max(1, Math.min(9, Math.round(totalSessions / useDaysLast30)));
-  const productSet = new Set<ProductKind>();
-  const routeSet = new Set<Route>();
-  for (const event of windowEvents) {
-    productSet.add(event.product);
-    routeSet.add(event.route);
-  }
-  const products = [...productSet];
-  const routes = [...routeSet];
-  const lastUseAt =
-    windowEvents.length === 0
-      ? null
-      : toInstant(Math.max(...windowEvents.map((event) => event.usedAt)));
-  const oldestObserved = events.length === 0 ? null : Math.min(...events.map((event) => event.usedAt));
-  const hasFullThirtyDayCoverage =
-    oldestObserved !== null && now - oldestObserved >= REDUCTION_OBSERVATION_WINDOW_DAYS * MILLIS_PER_DAY;
-  return {
-    useDaysLast30,
-    sessionsPerUseDay,
-    products,
-    routes,
-    lastUseAt,
-    hasFullThirtyDayCoverage,
-    sufficientForProfile: useDaysLast30 >= MIN_OBSERVED_USE_DAYS_FOR_PROFILE,
-  };
-}
-
-/**
- * True when an observed pattern differs from the current tolerance profile's
- * inputs in a way that could change a v3 recommendation. Used to decide
- * whether an adaptive recalculation would create a *different* result (and so
- * a new history record) instead of churning identical ones.
- */
-export function observedDiffersFromBaseline(
-  observed: ObservedPattern,
-  baseline: ReductionBaseline,
-): boolean {
-  const baselineDays = baseline.thcUseDaysLast30;
-  const bandOf = (days: number): number => {
-    if (days === 0) return 0;
-    if (days <= 3) return 1;
-    if (days <= 15) return 2;
-    if (days <= 25) return 3;
-    return 4;
-  };
-  if (bandOf(observed.useDaysLast30) !== bandOf(baselineDays)) return true;
-  const observedSessions = observed.sessionsPerUseDay ?? baseline.sessionsPerUseDay ?? 0;
-  const baselineSessions = baseline.sessionsPerUseDay ?? 0;
-  const observedHigh = observedSessions >= 2;
-  const baselineHigh = baselineSessions >= 2;
-  if (observedHigh !== baselineHigh) return true;
-  if (observed.products.includes('concentrate') !== baseline.products.includes('concentrate')) return true;
-  if (observed.routes.includes('dabbing') !== baseline.routes.includes('dabbing')) return true;
-  return false;
-}
-
-/** Validates a candidate tolerance profile range is inside the evidence
- * bounds; helper for tests that prove recalculation never exceeds 28. */
-export function rangeWithinEvidenceBounds(range: RecommendedRangeDays | null): boolean {
-  if (range === null) return true;
-  return range.min >= 2 && range.max <= 28 && range.min <= range.max;
 }

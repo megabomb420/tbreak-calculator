@@ -199,6 +199,47 @@ describe('active reduction plan', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('profile-no-break');
   });
 
+  it('offers both review actions and returns the plan to active after a limit edit', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile());
+    // Two breach days inside the rolling week are what logging those sessions
+    // leaves behind, so the plan is already in the stored review state.
+    seedPlan(
+      storage,
+      basePlan({
+        status: 'review_recommended',
+        events: [
+          eventAt(1, 'flower', 1),
+          eventAt(1, 'flower', 2),
+          eventAt(0, 'flower', 3),
+          eventAt(0, 'flower', 4),
+        ],
+      }),
+    );
+    renderApp(storage);
+    expect(screen.getByTestId('reduction-card').getAttribute('data-status')).toBe('review_recommended');
+    expect(screen.getByTestId('reduction-review')).toBeTruthy();
+    expect(screen.getByTestId('reduction-adjust-cta').textContent).toBe('Adjust limits');
+    expect(screen.getByTestId('reduction-pause-cta').textContent).toBe('Pause plan');
+
+    fireEvent.click(screen.getByTestId('reduction-adjust-cta'));
+    const sheet = screen.getByTestId('reduction-start-sheet');
+    expect(within(sheet).getByRole('heading', { name: 'Edit your weekly limits' })).toBeTruthy();
+    expect(within(sheet).getByTestId('reduction-start-save').textContent).toBe('Save changes');
+    // Lift both capped limits above the two logged use days.
+    fireEvent.click(within(sheet).getByTestId('limit-days-inc'));
+    fireEvent.click(within(sheet).getByTestId('limit-sessions-inc'));
+    expect(within(sheet).getByTestId('limit-days').textContent).toBe('4');
+    fireEvent.click(within(sheet).getByTestId('reduction-start-save'));
+
+    expect(screen.queryByTestId('reduction-start-sheet')).toBeNull();
+    const plan = createReductionRecordsStore(storage).load().plans[0];
+    expect(plan?.limits).toEqual({ maxUseDaysPerWeek: 4, maxSessionsPerUseDay: 2 });
+    expect(plan?.status).toBe('active');
+    expect(screen.getByTestId('reduction-card').getAttribute('data-status')).toBe('active');
+    expect(screen.queryByTestId('reduction-review')).toBeNull();
+  });
+
   it('hands Today to the same tracker after an occasional-mode break completes', () => {
     const storage = createMemoryStorage();
     seedProfile(storage, toleranceProfile(), 'run-1');

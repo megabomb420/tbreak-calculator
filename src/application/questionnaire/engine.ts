@@ -22,6 +22,8 @@ import { isInstantInWindow, type DateWindowKind } from './date-answers.ts';
 
 export const QUESTIONNAIRE_STEP_IDS = [
   'Q1',
+  // Legacy-only: kept so an old saved draft with this step still loads. No
+  // resolved path contains it, so the questionnaire never routes here.
   'Q2R',
   'Q2',
   'Q3',

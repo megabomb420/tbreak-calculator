@@ -11,7 +11,6 @@ import {
   derivePlanState,
   distinctUseDaysInWindow,
   MILLIS_PER_DAY,
-  observedPattern,
   sessionsOnDay,
   statusAfterEvents,
   suggestedReductionLimits,
@@ -228,32 +227,6 @@ describe('reduction engine: starting-limit heuristic', () => {
   });
 });
 
-describe('reduction engine: observed pattern provenance', () => {
-  it('derives exact use days/sessions/products from events over 30 local days', () => {
-    const events: UseEvent[] = [];
-    // 10 distinct use days over the last 12 days; two sessions on one day.
-    for (let daysAgo = 12; daysAgo >= 1; daysAgo -= 1) {
-      events.push(eventDaysAgo(daysAgo));
-    }
-    events.push(eventAt(NOW - 3600e3, 'concentrate', 'dabbing'));
-    events.push(eventAt(NOW - 60e3, 'concentrate', 'dabbing'));
-    const observed = observedPattern(events, NOW, UTC);
-    assert.equal(observed.useDaysLast30, 13);
-    assert.equal(observed.sufficientForProfile, true);
-    assert.equal(observed.hasFullThirtyDayCoverage, false);
-    assert.ok(observed.products.includes('concentrate'));
-    assert.ok(observed.routes.includes('dabbing'));
-    assert.equal(observed.lastUseAt, NOW - 60e3);
-  });
-
-  it('flags full 30-day coverage only once tracked history spans 30 days', () => {
-    const events = [eventAt(NOW - 31 * DAY_MS), eventAt(NOW - 5 * DAY_MS)];
-    const observed = observedPattern(events, NOW, UTC);
-    assert.equal(observed.hasFullThirtyDayCoverage, true);
-  });
-});
-
-
 describe('reduction window timezone regressions', () => {
   it('subtracts calendar days without applying the timezone twice', () => {
     for (const offset of [-720, -300, -60, 0, 60, 840]) {
@@ -265,7 +238,5 @@ describe('reduction window timezone regressions', () => {
   it('excludes the eighth local day from a seven-day window west of UTC', () => {
     const events = [eventAt(Date.parse('2026-06-03T18:00:00Z')), eventAt(Date.parse('2026-06-04T18:00:00Z'))];
     assert.equal(distinctUseDaysInWindow(events, NOW, -300), 1);
-    const thirty = observedPattern([eventAt(NOW - 30 * DAY_MS), eventAt(NOW - 29 * DAY_MS)], NOW, -300);
-    assert.equal(thirty.useDaysLast30, 1);
   });
 });

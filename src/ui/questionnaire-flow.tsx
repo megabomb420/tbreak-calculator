@@ -167,6 +167,9 @@ function StepControl({
   switch (step) {
     case 'Q1':
       return <GoalCards onSelect={(goal) => onAdvance({ step: 'Q1', value: goal })} />;
+    // Legacy-only: 'Q2R' stays a valid step id so an old saved draft still
+    // loads, but no resolved path contains it (restoreStep drops off-path
+    // steps), so a live session can never reach this branch.
     case 'Q2R':
       return <BreakCards selected={answers.breakRequested} onSelect={(value) => onAdvance({ step: 'Q2R', value })} />;
     case 'Q2':

@@ -1,7 +1,7 @@
 # Evidence content specification
 
-App version: **0.17.0**
-Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2` (numeric rules unchanged).
+App version: **0.25.1**
+Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v2` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
 Current communication contract: UI ranges are **planning ranges** and the secondary result mode is **Recovery outlook**. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
@@ -168,7 +168,7 @@ Tone is copy-only. It MUST NOT change `recommendedRangeDays` or `preferredTarget
 | lighter | 1–3 use-days, no concentrate/dabbing, and short or missing duration |
 | typical | everything else, including long-established infrequent use |
 
-Result, Today, and Plan Detail MUST reuse this module. Result shows the full span. Today shows the current day only. Plan Detail shows the running journey. Since 0.7.2 the roadmap presented by Result and Plan Detail groups consecutive days with equivalent guidance into labelled ranges (`Days N–M`); the exact per-day content behind that grouping is unchanged and the grouping itself is a presentation transform with no effect on any day's content, windows, milestones, or tone.
+Result and Today MUST reuse this module. Result shows the full span; Today shows the current day plus the running journey. Since 0.7.2 the roadmap presented by Result and Today groups consecutive days with equivalent guidance into labelled ranges (`Days N–M`); the exact per-day content behind that grouping is unchanged and the grouping itself is a presentation transform with no effect on any day's content, windows, milestones, or tone.
 
 Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v3 rules — the planning target inside the recommended range, plus the recommended range itself only in the single bounded case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years moves one band to 21–28). The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
@@ -205,10 +205,10 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outloo
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support v1 (0.22.0, 2026-09-20)
+## 15. Daily support v2 (0.25.1)
 
 `src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
@@ -216,14 +216,43 @@ The practical layer contains eleven symptom/habit guides, 28 original daily acti
 
 Selection uses the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only. Missing values remain unknown. Subsequent unrated check-ins do not erase ratings; tied timestamps favour later entries. Up to two topics are selected, with remaining slots rotating through saved preferences then stage-relevant practical defaults. Recent comfortable ratings suppress the corresponding problem suggestion. Every topic remains manually accessible.
 
+### Community experiences
+
+The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles discussions**; the content version is `daily-support-v2`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
+
+| `windows[]` tag | Stage |
+|---|---|
+| `days_1_3` | opening days |
+| `days_2_6` | days 2–6 |
+| `days_7_14` | week 2 |
+| `days_14_21` | week 3 |
+| `days_21_28` | week 4 |
+| `beyond_28` | beyond day 28 |
+
+Today displays **at most five** cards from the active window, ranking cards that match the currently selected advice areas first and rotating the rest day to day. The window tag only decides when a card is contextually useful; it does not turn the reported day into a prediction.
+
 Source roles (checked 2026-09-20):
 
 - [NSW Health, Management of Withdrawal from Alcohol and Other Drugs, section 6](https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34): withdrawal context and supportive care. No medication protocols are reproduced.
 - [NHS insomnia](https://www.nhs.uk/conditions/insomnia/), [nausea](https://www.nhs.uk/symptoms/feeling-sick-nausea/), [headaches](https://www.nhs.uk/symptoms/headaches/): general self-care and relevant escalation signs, not THC-specific efficacy trials.
 - [Lee et al., 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3986824/): sleep/dream variability during abstinence; no personal sleep-resolution date.
 - [UVM practical break guide](https://www.uvm.edu/health/t-break-week-1): routines, alternatives and coping examples. Its claims about a universal break length/THC clearance are not used.
-- Reddit discussion [sleep](https://www.reddit.com/r/Petioles/comments/15z1nlx/sleeping_on_a_t_break_advice/): a comment describing quiet reading or tidying before bed.
-- Reddit discussion [first week](https://www.reddit.com/r/Petioles/comments/153a0dk/what_are_some_methods_that_helped_you_guys_get/): a comment describing paper sudoku to occupy hands during cravings.
-- Reddit discussion [break tips](https://www.reddit.com/r/Petioles/comments/1dvgefb/help_hit_me_with_your_best_tbreak_tips/): a comment describing making tea as a replacement preparation ritual.
 
-Reddit content is labelled individual experience and is distinct from clinical/self-care guidance. Only the named idea is endorsed for inclusion; other comments, supplement regimens, detox claims and guaranteed timelines are excluded. Curated paraphrases are bundled locally, with source links that navigate externally. No live feed, scraping at runtime or user-data transmission is added.
+Reviewed r/Petioles discussions behind the 17 cards:
+
+| Discussion | Cards drawn from it |
+|---|---|
+| [Even a 14-day break seems impossible](https://www.reddit.com/r/Petioles/comments/17syg5o/even_a_14day_tolerance_break_seems_impossible_for/) | `day-one-mental`, `days-one-four-sleep` |
+| [A 30-day break, day by day](https://www.reddit.com/r/Petioles/comments/v2hl1r/i_took_a_break_for_30_days_ended_on_saturday_and/) | `days-one-four-rough`, `later-energy-routine` |
+| [Current break symptoms on day 7](https://www.reddit.com/r/Petioles/comments/1ggxlf3/my_current_t_break_symptoms_and_my_thoughts_on/) | `days-two-four-appetite` |
+| [Sleeping on a T-break](https://www.reddit.com/r/Petioles/comments/15z1nlx/sleeping_on_a_t_break_advice/) | `quiet-wind-down` |
+| [Getting through the first week](https://www.reddit.com/r/Petioles/comments/153a0dk/what_are_some_methods_that_helped_you_guys_get/) | `paper-puzzle` |
+| [Day 7 still feels difficult](https://www.reddit.com/r/Petioles/comments/1comaqo/i_am_on_day_7_of_a_30_day_tbreak_and_it_doesnt/) | `day-seven-still-hard`, `day-seven-fatigue`, `days-ten-fourteen-lift`, `week-three-sleep` |
+| [Withdrawal symptoms on day 3](https://www.reddit.com/r/Petioles/comments/u2cmku/withdrawal_symptoms_on_day_3_of_my_tolerance_break/) | `day-ten-dreams` |
+| [A strong craving on day 14](https://www.reddit.com/r/Petioles/comments/1blbe76/day_14_the_cravings_are_craaazy/) | `day-fourteen-craving-spike` |
+| [Readers’ practical T-break tips](https://www.reddit.com/r/Petioles/comments/1dvgefb/help_hit_me_with_your_best_tbreak_tips/) | `different-ritual` |
+| [When a short break changes the plan](https://www.reddit.com/r/Petioles/comments/pnyhex/has_anyone_taken_a_tolerance_break_for_a_week_or/) | `day-twenty-two-rethink` |
+| [Returning after a 30+ day break](https://www.reddit.com/r/Petioles/comments/s0dwms/to_those_who_have_completed_a_successful_30_day/) | `after-month-perspective` |
+| [A difficult day after 90 days](https://www.reddit.com/r/Petioles/comments/159owf8/weird_day_after_90_days/) | `beyond-ninety-variable` |
+
+Reddit content is labelled individual experience and is distinct from clinical/self-care guidance; each card states that it is not a prediction of the user's own break. Only the named idea is endorsed for inclusion; other comments, supplement regimens, detox claims and guaranteed timelines are excluded. Curated paraphrases are bundled locally, with source links that navigate externally. No live feed, scraping at runtime or user-data transmission is added.

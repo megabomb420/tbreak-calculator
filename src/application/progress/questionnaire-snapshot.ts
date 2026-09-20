@@ -16,7 +16,7 @@ import {
   PRODUCT_KINDS,
   ROUTES,
 } from '../../domain/schemas/enums.ts';
-import { isCoreSourcedValue, isRecord } from './record-codec.ts';
+import { isCoreSourcedValue } from './record-codec.ts';
 import { isCompanionPersonalisation } from '../questionnaire/companion.ts';
 
 export const QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION = 'questionnaire-snapshot-v1' as const;

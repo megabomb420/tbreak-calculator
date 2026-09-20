@@ -19,7 +19,6 @@ import {
 import type {
   ReductionBaseline,
   ReductionLimits,
-  ReductionOrigin,
   ReductionPlan,
   ReductionPlanStatus,
   ThcStrategy,

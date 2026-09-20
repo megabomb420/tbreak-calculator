@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.17.0**
+Version: **0.25.1**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -38,7 +38,7 @@ Runtime generative AI is intentionally not part of the product architecture (see
 - branching questionnaire;
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
-- BreakOutlookV1 day-by-day presentation over those windows (Result / Today / Plan Detail), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
+- BreakOutlookV1 day-by-day presentation over those windows (Result / Today), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
 - versioned recovery-outlook interpretation over frozen tolerance results (current `tolerance-recovery-outlook-v2`, retained v1 for legacy records): a profile-sensitive window, separate biological-reference wording, time milestones, capped factual personal history, recorded check-in facts, and post-break outcome marks (`break-outcome-marks-v1`) — deterministic, local, and offline;
 - IndexedDB persistence and complete local deletion; and
 - PWA shell/offline support, with the single service-worker update state (snackbar + Settings About) driven from `registerSW` in `src/ui/main.tsx`;
@@ -191,9 +191,10 @@ goal
   |        (sessions, products and routes only when use days are 4-30)
   |
   |-- reduction
-  |     -> explicit breakRequested
-  |     -> if true: tolerance path (duration first, identical to tolerance reset)
-  |     -> if false: use days -> reduction planning, no duration/last use collected
+  |     -> use days -> optional sessions
+  |     -> 0 use days: baseline-low; otherwise reduction (cut-down) planning,
+  |        no duration/last use collected
+  |        (`Q2R` survives only as a parseable legacy step id)
   |
   |-- abstinence
   |     -> current-pattern duration (first use-profile question)
@@ -209,7 +210,7 @@ goal
 
 The single `UseProfile.lastUseAt` feeds tolerance, withdrawal, and active break timing. Detection v1 does not need it because it emits no numeric elapsed-time interpretation; if the screen shows elapsed time for general orientation, it references the same profile field and does not copy it into `DetectionRequest`.
 
-`currentPatternDuration` is collected as exposure context and is the first use-profile question on the routes that use it (tolerance reset, reduction with a break, abstinence). Under tolerance-v3 it selects the deterministic *planning target* inside the final range (lower anchor for a recently established pattern; upper anchor for a medium/long-established or missing duration) and may move the recommended range itself only in the single bounded case of a frequent (16–25 use-days) long-established pattern (one band to 21–28). There is no duration-to-days formula. Legacy profiles without the field remain valid.
+`currentPatternDuration` is collected as exposure context and is the first use-profile question on the routes that use it (tolerance reset and abstinence; the shipped reduction route collects no duration). Under tolerance-v3 it selects the deterministic *planning target* inside the final range (lower anchor for a recently established pattern; upper anchor for a medium/long-established or missing duration) and may move the recommended range itself only in the single bounded case of a frequent (16–25 use-days) long-established pattern (one band to 21–28). There is no duration-to-days formula. Legacy profiles without the field remain valid.
 
 V1 MUST NOT ask for cutoff, lab baseline, creatinine, device, planned test date, jurisdiction, employer identity, health, medication, age, sex, BMI, hydration, exercise, or perceived metabolism. Lifetime cannabis-use duration is not asked; only how long the *current* pattern has been typical.
 
@@ -224,7 +225,7 @@ The coordinator performs these steps:
 1. capture the raw branch answers and explicit calculation timestamp;
 2. validate field provenance, cross-field consistency, and both directions of the 30-day rule;
 3. normalise timestamps and domain values;
-4. call only the engine required by the explicit goal and `breakRequested` value;
+4. call only the engine required by the explicit goal (the snapshot derives `breakRequested` from the goal; no questionnaire route asks it);
 5. validate the core output and optional blocks separately;
 6. freeze the structured result;
 7. render it with deterministic message templates; and
@@ -274,10 +275,8 @@ persisted under the `reduction-records-v2` application store
 (`src/application/progress/reduction-record.ts`; see CALCULATOR_SPEC §10.1).
 Their events are sessions recorded as UTC instants grouped by the local
 calendar day; logging use in reduction mode never interrupts, restarts, or
-re-anchors a break attempt. Adaptive recalculation
-(`src/application/calculation/adaptive-recalc.ts`) re-runs tolerance-v3 on
-the observed profile and freezes a NEW calculation record; old records stay
-immutable.
+re-anchors a break attempt, and tracked use never generates or rewrites a
+calculation record. Frozen calculation records stay immutable.
 
 ## 9. Local persistence
 
@@ -450,8 +449,8 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 - elapsed withdrawal and interruption restart mechanics;
 - outside-range/mixed previous-history behaviour;
 - tolerance-v3 multi-factor bounded exposure classification and the in-range history target override;
-- active reduction tracking (`reduction-records-v2`) with the derived 3–7-day pause/review rule, plus adaptive recalculation that freezes new calculation records;
-- the deterministic recovery-outlook presentation boundary (`tolerance-recovery-outlook-v1`), post-break outcome capture (`break-outcome-marks-v1`, offered once per completed break after a real return to THC, never for continued abstinence), and the frozen-record reduction trajectory (0.9.0);
+- active reduction tracking (`reduction-records-v2`) with the derived two-breach-day review rule; the tracker never generates or rewrites a calculation record;
+- the deterministic recovery-outlook presentation boundary (`tolerance-recovery-outlook-v2`), post-break outcome capture (`break-outcome-marks-v1`, offered once per completed break after a real return to THC, never for continued abstinence);
 - strict v1 input minimisation;
 - qualitative-only detection;
 - minimal local-only architecture; and

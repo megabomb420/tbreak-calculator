@@ -6,7 +6,7 @@ import type { SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v1';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v2';
 export const SUPPORT_SOURCES = {
   withdrawal: { label: 'NSW Health · cannabis withdrawal', href: 'https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34', kind: 'Clinical guidance' },
   sleep: { label: 'NHS · sleep advice', href: 'https://www.nhs.uk/conditions/insomnia/', kind: 'General self-care' },
@@ -251,7 +251,7 @@ export function presentDailySupport(input: DailySupportInput) {
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip, communityTips,
-    status: hasSymptoms ? 'Picked from your recent check-ins and topics.' : 'Add how you’re feeling to make these tips more personal.',
+    status: hasSymptoms ? 'Picked from your recent check-ins and topics.' : 'Tap How are you feeling? to make these tips more personal.',
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,
     plannedAlternative: replacement ? `At your usual use time, try your planned alternative: “${replacement}”.` : null,

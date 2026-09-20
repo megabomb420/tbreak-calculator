@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.25.0
+# Handoff — T-Break Calculator 0.25.1
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -22,6 +22,19 @@ Today leads with the check-in and practical advice. Fresh symptom ratings take p
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.25.1 — consistency pass (closes the 0.25.0 round)
+
+No screen, flow, engine number or stored contract changed. This release retires the adaptive-recalculation path that 0.25.0 had already disconnected, and brings documentation, tests and styles back in line with the shipped app.
+
+- **Adaptive recalculation is retired in code as well as in behaviour.** The 0.25.0 round removed its only caller (the cut-down refresh sheet, the in-card tolerance comparison and `runAdaptiveRecalc`), which left `src/application/calculation/adaptive-recalc.ts`, `src/application/presentation/reduction-trajectory.ts`, the domain helpers behind them (`observedPattern`, `observedDiffersFromBaseline`, `rangeWithinEvidenceBounds` and their constants) and their unit suites orphaned and green. All are deleted. Logging a session in a cut-down plan never generates, refreshes or rewrites a calculation record; frozen records stay immutable.
+- **Legacy compatibility is preserved deliberately.** `Q2R` remains a parseable step id so a saved draft from the pre-0.25.0 cut-down flow still loads; `resolvedPath` never contains it and `restoreStep` drops off-path steps, so the questionnaire can no longer route there. The retained rendering branch and its copy are now labelled legacy-only in the code instead of looking like dead weight.
+- **Documentation matches the app.** ARCHITECTURE.md and CALCULATOR_SPEC.md no longer describe adaptive recalculation, the retired `breakRequested` questionnaire branching or Plan Detail as live behaviour; EVIDENCE_CONTENT_SPEC.md §15 inventories the shipped 17 community cards from 12 r/Petioles discussions with their `windows[]` stage tags; UX_SPEC.md's stale claims (questionnaire step count, tab count, the removed plan-day ring, landed prerequisite annotations, a duplicated section number) are corrected. All four spec version stamps are current.
+- **One rule, one implementation.** The reported weekly use-day rate is a single `weeklyUseDayRate` helper shared by the starting-limit suggestion and the tracker's pattern line, replacing three copies that disagreed at zero use days. Copy: the cut-down result and Today use one label for the same action ("Plan a T-break instead"), the advice-basis line names the control it points at, and `suggestedReductionLimits` documents the shipped one-step-below policy instead of the old halving wording.
+- **Hygiene.** Dead stylesheet rules orphaned across 0.22.0–0.25.0 (`today-guidance`, `two-choice`, `stepper-field`, `today-note`, `checkin-secondary-actions`) are removed; the shared advice surface carries the `daily-support` test id that matches its component; `DAILY_SUPPORT_VERSION` is `daily-support-v2`, reflecting the 0.25.0 card inventory change; five unused imports are gone.
+- **New regressions.** The community carousel (stage filtering, one-card arrow steps, end behaviour, inert inactive slides, no autoplay), the two-breach-day review banner offering both **Adjust limits** and **Pause plan** and returning the plan to `active` after an edit, and recovery of a legacy `interrupted_time_needed` **tracking** record (the break-attempt variant was already covered).
+
+Validation: the full suite passes — **553 unit/domain/golden tests and 167 UI tests (720 total)** — plus typecheck and the production build. The three new UI cases were mutation-checked on throwaway copies of the source (removing `inert`, wrapping the carousel instead of stopping, adding an auto-advance, disabling the window filter, and stranding a recommit in `review_recommended` each fail their case).
 
 ## Release 0.25.0 — discreet identity, stage-matched experiences and usable cut down
 
@@ -115,9 +128,13 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.25.0. The present release focuses on the daily companion and cut-down usability; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
+Resume current main after 0.25.1. This release closes the 0.25.0 round — it retires the dead adaptive-recalculation code, reconciles the specs with the app and adds the regressions that were missing — and it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.25.0. The deploying commit and workflow identify the release.
+The next open product question is unchanged and still needs an owner decision before any code moves: whether a completed break's outcome should record actual elapsed time rather than the original target. It remains unchanged.
+
+Two known 0.25.0 presentation behaviours are recorded here rather than changed in this release. The community carousel holds its position by index, so saving a check-in that re-orders the card list can change which account is on screen under the user; and its arrows move the track by scrolling, so their effect depends on a laid-out track width (in a zero-width or hidden track the counter and `inert` state would not follow the buttons, which stay enabled).
+
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.25.1. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

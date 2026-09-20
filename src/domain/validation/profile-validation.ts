@@ -21,7 +21,7 @@ import {
   type ProductKind,
   type Route,
 } from '../schemas/enums.ts';
-import type { PreviousBreakInput, UseProfileInput, ValidatedPreviousBreak, ValidatedUseProfile } from '../schemas/profile.ts';
+import type { UseProfileInput, ValidatedPreviousBreak, ValidatedUseProfile } from '../schemas/profile.ts';
 import { missingValue, sourcedValueInvariantError, type SourcedValue } from '../schemas/sourced-value.ts';
 import { parseSubmittedTimestamp, THIRTY_DAY_WINDOW_MS, toInstant, type Instant } from '../schemas/time.ts';
 

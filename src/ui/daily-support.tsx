@@ -12,7 +12,7 @@ export function DailySupport({ input }: { readonly input: DailySupportInput }) {
   const [opened, setOpened] = useState<SupportArea | null>(null);
   const comparison = compareCheckins(view.currentCheckins, { breakDay: input.day });
   return (
-    <section className="daily-support" data-testid="today-guidance" data-window={view.window.id} aria-label="Advice for today">
+    <section className="daily-support" data-testid="daily-support" data-window={view.window.id} aria-label="Advice for today">
       <details className="daily-context">
         <summary><span className="micro-label">{view.window.label} · What to expect</span></summary>
         <h3 className="card-title" data-testid="guidance-headline">{view.window.headline}</h3>

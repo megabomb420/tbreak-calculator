@@ -13,7 +13,6 @@ import {
   type ReductionLimits,
   type ReductionOrigin,
   type ReductionPlan,
-  type ReductionPlanStatus,
   type ThcStrategy,
   type UseEvent,
 } from './reduction-engine.ts';

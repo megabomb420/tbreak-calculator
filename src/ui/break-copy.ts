@@ -273,7 +273,7 @@ export const PROFILE_NO_BREAK = {
   recalculate: 'Recalculate',
   keepTracking: 'Keep tracking',
   startTracking: 'Start tracking',
-  seeBreakRange: 'See your break range',
+  seeBreakRange: 'Plan a T-break instead',
   saved: 'Your calculation is saved on this device.',
 } as const;
 

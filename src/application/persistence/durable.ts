@@ -59,7 +59,6 @@ import {
 } from './calculation-record.ts';
 import {
   createPreviousBreaksStore,
-  emptyPreviousBreaks,
   PREVIOUS_BREAKS_KEY,
   type StoredPreviousBreak,
 } from './previous-break-store.ts';

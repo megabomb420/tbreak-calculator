@@ -1,6 +1,6 @@
 # T-Break UX specification
 
-Version: **0.25.0**
+Version: **0.25.1**
 
 Current revision (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
@@ -165,12 +165,12 @@ No install gate, no notification prompt, no sign-in. Install is offered from Set
 
 | Control | Used for | Notes |
 |---|---|---|
-| Large single-select cards | goal, break-yes/no, matrix, context | full-width, min 56 pt, one tap selects **and** advances |
+| Large single-select cards | goal, matrix, context | full-width, min 56 pt, one tap selects **and** advances |
 | Multi-select chips | products, routes | toggling does not advance; `Continue` required |
 | Slider with live readout | use-days (0–30), previous-break score (0–10) | min 44 pt thumb, value label above thumb |
 | Stepper (− value +) | sessions, previous-break duration, flower grams, user plan limits | tap-hold repeats; tapping the value opens a numeric pad escape hatch |
 | Date wheel + day-part chips | last use, previous-break end, interruption `usedAt` | §4.3 |
-| Direct action | one-tap no-use check-in; separate optional symptoms and THC-use form | |
+| Direct action | one-tap no-use check-in; optional symptom ratings; the THC-session log exists only inside an active cut-down plan (§10.2) | |
 | Single-line text | check-in note (optional) | the only keyboard in v1 |
 
 ### 4.3 Date/time entry (maps to `SourcedValue<timestamp>`)
@@ -198,7 +198,7 @@ Every path ends in exactly one of:
 
 1. **Tolerance result** (`tolerance_result`) — §9.1.
 2. **Abstinence planning** (`planning_only`) — §9.3.
-3. **Reduction planning** (`planning_only`, no break) — §9.4.
+3. **Reduction (cut-down) planning** (`planning_only`, goal = reduction) — §9.4.
 4. **Baseline-low** (`not_applicable`) — §9.5.
 5. **Detection result** (`qualitative_only`) — §9.6.
 
@@ -361,8 +361,8 @@ Helper: "This only changes which notes we show you — it never changes the scie
 - Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset` and abstinence. It is skipped on reduction and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
 - Q2 (use days) follows Q6 on the tolerance route and follows Q1 directly on reduction. Q3 (last use) appears only on tolerance when use-days ∈ 1–30; it is replaced by optional Q3-opt when tolerance use-days = 0.
 - Q4/Q5 appear on tolerance when use-days ∈ 4–30 because intensity can change that classification. Reduction asks Q4 alone for every positive use-day answer because session frequency sets the behavioural plan baseline; it never asks Q5. Neither route asks Q4 at 0.
-- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording. **Depends on validation change D2 (§15).**
-- Reduction asks no last use, duration, product or route: the tracker needs only frequency and typical sessions. The engine attaches no withdrawal display and no target on this route. **Depends on validation change D3 (§15).**
+- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording.
+- Reduction asks no last use, duration, product or route: the tracker needs only frequency and typical sessions. The engine attaches no withdrawal display and no target on this route.
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
 - Previous breaks and post-break mode never appear in the initial questionnaire (§7, §8).
 
@@ -517,7 +517,7 @@ Present only when the engine returns a non-null `HistoryInsight`. Copy per §14,
 - **Start tracking** CTA → opens ongoing abstinence tracking (§9.8).
 - No return-to-use controls anywhere on this path.
 
-### 9.4 Reduction planning screen (`planning_only`, goal = reduction, no break)
+### 9.4 Reduction (cut-down) planning screen (`planning_only`, goal = reduction)
 
 - Header: **Build a cut-down plan you can actually track.**
 - Body explains the two behavioural caps and that only sessions are logged; days off need no entry.
@@ -572,7 +572,7 @@ The exclusive engine withdrawal strip (onset 1–3 / peak 2–6 / easing 4–14 
 
 ### 9.8 Abstinence / open-ended tracking state
 
-Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` with a target. **Depends on domain change D4 (§15)** — a tracking record without `targetDurationDays` and without `completed`:
+Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` with a target. It is a tracking record without `targetDurationDays` and without `completed`:
 
 - `Today` shows "Day N since your last use" (from `breakDay`), a check-in CTA, and the current phase focus line.
 - Check-ins are optional and open-ended; no streak-guilt copy.
@@ -589,7 +589,7 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 
 - Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
 - The live break journey (§9.7) is the running version of the result preview: Start → evidence phases → Target, with past-day check-in markers, the current leg marked "You are here", and future legs kept as expectations. Each leg's "may notice" / "can help" expectations sit behind its disclosure.
-- Practical daily advice renders before the journey, which is under **Your break timeline**. See §16 for the current advice selection and content contract.
+- Practical daily advice renders before the journey, which is under **Your break timeline**. See §17 for the current advice selection and content contract.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
 - Quiet footer actions: **Choose advice topics**, and **End break early** (confirm dialog; neutral resulting state).
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
@@ -623,8 +623,8 @@ Older releases could persist `interrupted_time_needed` before use timing was con
 >
 > [ Save ]
 
-- 10 always means "more of the named thing" (stronger craving, better sleep quality, stronger appetite). This pins the direction the domain schema leaves undefined (§15, R2).
-- Untouched sliders are stored as `null`. **Depends on domain change D5 (§15)** — `DailyCheckin` currently requires all five integers.
+- 10 always means "more of the named thing" (stronger craving, better sleep quality, stronger appetite). This pins the direction the domain schema leaves undefined; §15.2 D5 records the matching field semantics.
+- Untouched sliders are stored as `null`; each of the five `DailyCheckin` symptom fields accepts `integer 0..10 or null`.
 - Skipping days is normal; no punitive states, no streak pressure.
 
 ### 10.3 Interruption ("I used") flow
@@ -704,7 +704,7 @@ Primary CTAs are parchment-on-ink (`text/primary` fill, `accent/fg` label), not 
 - Surfaces use hairline rings (transparent mix of `--fg`) rather than heavy drop shadows. Radius is concentric: tiles 20, nested chips 999, sheets 24.
 - Spacing: 4 / 8 / 12 / 16 / 24 / 32 / 48; card padding 20; gutters 20.
 - One hero per screen: the range on results, the interval mark + title on first launch.
-- Progress graphics that are honest to the engines: slim questionnaire bar; recommended-break range band on a 0–28-day rail (v1 policy ceiling) with min/max labels and a plan marker at `preferredTargetDays`. Withdrawal is a status track (icon + text), not a chart; sleep stays undated. History is a list, not a graph. The plan day ring (labelled "plan progress") remains the graphic for the unbuilt break loop (§16 step 4).
+- Progress graphics that are honest to the engines: slim questionnaire bar; recommended-break range band on a 0–28-day rail (v1 policy ceiling) with min/max labels and a plan marker at `preferredTargetDays`. Withdrawal is a status track (icon + text), not a chart; sleep stays undated. History is a list, not a graph. The break loop is built (§10); the old plan day ring was removed in 0.20.0, and the active-break card reports plan progress through the **Day X of Y** label and the recorded-check-in line instead.
 
 ---
 
@@ -780,32 +780,32 @@ The recovery-outlook (“Recovery outlook”) content is separately versioned as
 
 ---
 
-## 15. Issues register — resolved / requires domain change / deferred
+## 15. Issues register — resolved / landed / deferred
 
 ### 15.1 Resolved in UX (no domain change needed)
 
 - **R1 — Last-use-first vs 30-day window (was a blocker).** Resolved by reordering: use-days is asked first, and the last-use wheel's valid window is derived from that answer (≤30 days when use-days 1–30; >30 days when 0). Both contradiction directions are impossible on a fresh path and handled by re-constrained re-entry after edits (§4.4).
-- **R2 — Reduction "not now" / last-use contradiction (was a blocker).** Resolved by removal: the reduction-no-break path no longer collects `lastUseAt` at all (the engine attaches no withdrawal display on this route, so the timestamp was unused). Requires D3 to pass validation.
+- **R2 — Reduction "not now" / last-use contradiction (was a blocker).** Resolved by removal: the cut-down route no longer collects `lastUseAt` at all (the engine attaches no withdrawal display on this route, so the timestamp was unused). D3 landed.
 - **R3 — Clock semantics (was a blocker).** Pinned in §2: anchor (`lastUseAt`), abstinence clock (`breakDay`), commitment marker (plan start, which never moves the clock). All day displays read `breakDay`; target dates are engine-computed.
 - **R4 — Today state precedence incl. resume and detection-only (was a blocker).** Pinned in §3.2 with explicit precedence and resume-card placement rules.
-- **R5 — Result hierarchy.** Resolved: one hero range; planning target demoted to a supporting meta line; single uncertainty sentence (§9.1).
+- **R5 — Result hierarchy.** Resolved: the actionable planning target leads as the hero, with the evidence range as the supporting meta line beneath it; single uncertainty sentence (§9.1).
 - **R6 — Detection elapsed-time implication.** Resolved: the personal "days since last use" line is removed from detection results (§9.6).
-- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8); companion preferences → optional post-calculation flow. Initial questionnaire is 2–7 steps; Q4/Q5 are asked from 4 use-days under tolerance-v3.
+- **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8); companion preferences → optional post-calculation flow. Initial questionnaire is 2–6 steps (§5.4); Q4/Q5 are asked from 4 use-days under tolerance-v3.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
 - **R9 — "The duration question feels pointless" (0.7.0).** Resolved by the tolerance-v2 target rule (`CALCULATOR_SPEC.md` §7.3): duration now selects the planning target anchor inside the unchanged evidence range — recently established (`under_1_month`, `1_to_6_months`) → lower anchor; established (≥ 6 months) or legacy-missing → upper anchor. The range never moves and no duration-to-days formula exists. UX wiring: position-aware "Plan for N days" line, duration + target-rationale driver bullets, and a deterministic planning-context note (never a percentage). Q6 routing is unchanged.
 
-### 15.2 Requires domain/spec change (small, explicit — must land before the affected UI ships)
+### 15.2 Domain/spec changes (all landed; retained as the decision record)
 
 - **D1 — Restrict sessions/products/routes requirement to the band that uses them.** `CALCULATOR_SPEC.md` §5 rule 7 currently requires `sessionsPerUseDay`, ≥1 product, and ≥1 route for *any* positive use-days; the intensity rule reads them only at ≥16. Change: require them only when `thcUseDaysLast30 ≥ 16`; keep the zero-day prohibition. Blocks Q4/Q5 conditional flow (§5.1). *(Formerly F1.)* **Superseded by tolerance-v3 (0.8.0):** the v3 classification reads intensity signals from 4 use-days up, so rule 7 now requires these fields when `thcUseDaysLast30 ≥ 4` on range-requested routes; they stay optional at 1–3 and are never required at 0.
 - **D2 — Drop the use-days requirement for abstinence.** `GOALS_REQUIRING_USE_DAYS` includes `abstinence`, but no abstinence output reads `thcUseDaysLast30`; asking it also re-imports the 30-day contradiction rules onto the quitting-today user. Change: abstinence requires only `lastUseAt`; rules 4–6 apply only when use-days is present. Blocks the 2-step abstinence flow (§5.1). *(New.)*
-- **D3 — Don't require `lastUseAt` for reduction-no-break.** Rule 6 requires `lastUseAt` whenever use-days > 0, regardless of goal; the reduction planning route consumes no timestamp. Change: rule 6 applies only on routes whose outputs use `lastUseAt` (tolerance_reset, reduction+break, abstinence). Blocks the 3-step reduction-no-break flow. *(New.)*
+- **D3 — Don't require `lastUseAt` for the cut-down route.** Rule 6 required `lastUseAt` whenever use-days > 0, regardless of goal; the reduction planning route consumes no timestamp. Change: rule 6 applies only on routes whose outputs use `lastUseAt` (tolerance_reset, abstinence, and legacy reduction-with-a-break input). **Landed:** the shipped reduction route collects no `lastUseAt`, and no route asks `breakRequested` — one cut-down flow. *(New.)*
 - **D4 — Abstinence tracking without a finite target.** `BreakAttempt` requires `targetDurationDays` and its terminal states assume completion; abstinence tracking is open-ended with no completion milestone. Change: nullable `targetDurationDays` (or a distinct open-ended tracking record type), with the interruption mechanics unchanged. Blocks §9.8. *(New.)*
 - **D5 — Nullable check-in symptom fields.** `DailyCheckin` requires all five 0–10 integers; the use-first check-in stores untouched sliders as `null`. Change: `craving | sleep | irritability | anxiety | appetite` become `integer 0..10 or null`, and the spec documents each field's anchor semantics (10 = more of the named thing). Blocks §10.2. *(Formerly F2, now a concrete change.)*
 
 ### 15.3 Safely deferred (no v1 action)
 
 - **Band-level use-days input** (accept 1–3 / 4–15 / 16–25 / 26–30 instead of an integer) — presets mitigate the burden; revisit if testing shows recall friction. *(Formerly F4.)*
-- **Withdrawal display on the reduction-no-break route** — engine attaches none; a reducer quitting from daily use may want it. Product decision, post-v1. *(Formerly F5.)*
+- **Withdrawal display on the cut-down route** — engine attaches none; a reducer quitting from daily use may want it. Product decision, post-v1. *(Formerly F5.)*
 - **Multi-matrix detection compare view** for "not sure which test" users. *(Formerly F6.)*
 - **Check-in trend chart** in History (v1.x candidate, §12.4).
 - **All-past withdrawal timeline display rule** for long-abstinent users — handled by copy in §9.3; formal display rule deferred. *(Formerly F7.)*
@@ -814,9 +814,9 @@ The recovery-outlook (“Recovery outlook”) content is separately versioned as
 
 ## 16. Implementation guidance
 
-Domain prerequisites from §15.2 must land first (D1–D5 are small validation/schema edits with test updates). Then:
+Domain prerequisites from §15.2 landed with the earlier slices (D1–D5 validation/schema edits). The slice sequence was:
 
-1. **Shell + state router** (§3): two tabs, gear-modal settings, transient-flow scaffolding, `Today` state machine with precedence and resume, local persistence of questionnaire progress.
+1. **Shell + state router** (§3): three tabs, gear-modal settings, transient-flow scaffolding, `Today` state machine with precedence and resume, local persistence of questionnaire progress.
 2. **Questionnaire engine** (§4–5): declarative steps from the §5.1 map; controls §4.2; date control §4.3; branch/re-branch; validation wiring.
 3. **Result screens** (§9) from real engine output + the §14 template layer.
 4. **Break loop** (§8, §10): break-start sheet, use-first check-in, interruption — wired to the break state machine.
@@ -826,7 +826,7 @@ Domain prerequisites from §15.2 must land first (D1–D5 are small validation/s
 Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output, plan, history record, or result-explanation.
 
 
-## 16. Practical daily support (0.22.0)
+## 17. Practical daily support (0.22.0)
 
 Today prioritises what the person can do now: direct check-in with correction, optional ratings, two advice topics and one activity for the day. General phase context sits under **What to expect**. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
 
@@ -837,14 +837,14 @@ Check-in follows the direct-action contract in §10.2. Optional symptoms remain 
 A manually controlled carousel draws from 17 reviewed paraphrase cards across 12 r/Petioles discussions. Every card is tagged to one or more current break windows (`days_1_3`, `days_2_6`, `days_7_14`, `days_14_21`, `days_21_28`, `beyond_28`); Today displays at most five cards from the active window and ranks cards matching the currently selected sleep/craving/appetite/etc. areas first. Each card shows the reported period, uses the label **From Reddit · Personal experiences**, states that it is not a prediction and links to the original discussion. No medical treatment claim is sourced to Reddit. Curated text remains available offline; links require a connection.
 
 
-## 17. PWA interaction polish (0.23.0)
+## 18. PWA interaction polish (0.23.0)
 
 The Reddit carousel supports native horizontal touch scrolling with scroll snapping, previous/next buttons, position controls and arrow keys. It never auto-advances while the user reads. Only the visible slide has interactive links; position is announced and preserved when resizing. Content and labels remain available offline, with external sources opening only on request.
 
 Touch feedback is brief and never delays persistence or navigation: pressed states, a check-mark confirmation, and short sheet/guide transitions. `prefers-reduced-motion` disables decorative motion and smooth scrolling. Existing safe-area, keyboard, dialog Back/Escape and offline storage contracts stay in place. The helper that finds today's latest check-in excludes future, invalid and pre-segment entries and uses the established abstinence-day boundaries.
 
 
-## 18. Touch scale and visual tone (0.25.0)
+## 19. Touch scale and visual tone (0.25.0)
 
 The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits.
 

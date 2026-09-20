@@ -1,6 +1,6 @@
 // Cut-down stays a behavioural tracker. Frozen tolerance calculations may
-// exist in history, but they must not turn the active card into a medical
-// trajectory or be regenerated whenever a session is logged.
+// exist in history, but logging a session must not regenerate one or expose a
+// tolerance comparison on the active card.
 
 import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
@@ -155,17 +155,7 @@ describe('cut-down card separation from tolerance calculations', () => {
     const after = createCalculationRecordsStore(storage).load().records;
     expect(after).toHaveLength(1);
     expect(after[0]?.id).toBe('run-1');
-    expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
     expect(screen.getByTestId('reduction-sessions-value').textContent).toBe('1of 3');
-  });
-
-  it('renders nothing with a single frozen record', () => {
-    const storage = createMemoryStorage();
-    seedProfileAndRecord(storage, toleranceProfile(10));
-    seedPlan(storage, basePlan({ events: [] }));
-    renderApp(storage);
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('reduction-active');
-    expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
   });
 
   it('does not leak comparisons between old calculation records onto Today', () => {
@@ -177,7 +167,6 @@ describe('cut-down card separation from tolerance calculations', () => {
     seedRecords(storage, [second, first]);
     seedPlan(storage, basePlan({ events: [] }));
     renderApp(storage);
-    expect(screen.queryByTestId('reduction-trajectory')).toBeNull();
     expect(screen.getByTestId('reduction-card').textContent).not.toContain('planning band');
     expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('0of 7');
   });

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { FIRST_LAUNCH } from '../../src/ui/copy.ts';
 import { QUESTIONNAIRE } from '../../src/ui/questionnaire-copy.ts';
-import { BREAK_START } from '../../src/ui/break-copy.ts';
+import { BREAK_START, INTERRUPTED_CARD } from '../../src/ui/break-copy.ts';
 import { RESTART_COPY_BREAK } from '../../src/ui/break-copy.ts';
 import { RESULT } from '../../src/ui/result-copy.ts';
 import {
@@ -348,6 +348,33 @@ describe('interruption confirmation', () => {
     expect(checkinsOf(storage)).toHaveLength(0);
   });
 
+  it('recovers a legacy interrupted tracking record without inventing a use', () => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, { ...toleranceProfile(), goal: 'abstinence' });
+    const track = storedTrack({ status: 'interrupted_time_needed' });
+    seedTrack(storage, track);
+    renderApp(storage);
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('interrupted');
+    const card = screen.getByTestId('state-interrupted');
+    expect(card.textContent).toContain(INTERRUPTED_CARD.titleTracking);
+    expect(card.textContent).toContain(INTERRUPTED_CARD.trackingBody);
+    fireEvent.click(screen.getByTestId('dismiss-unconfirmed-use'));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
+    expect(screen.getByTestId('tracking-day-label').textContent).toContain('Day 4');
+    // Tracking is live again on its original segment: the timeline keeps its
+    // anchor, no use event is invented and no target suddenly appears.
+    const stored = createTrackingRecordsStore(storage).load()?.records[0];
+    expect(stored?.status).toBe('tracking');
+    expect(stored?.segments).toEqual(track.segments);
+    expect('targetDurationDays' in (stored ?? {})).toBe(false);
+    expect(checkinsOf(storage)).toHaveLength(0);
+    const snapshot = createQuestionnaireSnapshotStore(storage).load();
+    expect(snapshot?.snapshot.kind).toBe('use_profile');
+    if (snapshot?.snapshot.kind === 'use_profile') {
+      expect(snapshot.snapshot.profile.lastUseAt.value).toBe(new Date(ANCHOR).toISOString());
+    }
+  });
+
   it('confirming when restarts the plan and records the use-day check-in', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
@@ -495,7 +522,7 @@ describe('evidence-guided companion', () => {
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    const guidance = screen.getByTestId('today-guidance');
+    const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
     expect(screen.getByTestId('guidance-primary-action').textContent).toBeTruthy();
@@ -517,7 +544,7 @@ describe('evidence-guided companion', () => {
       }),
     );
     renderApp(storage);
-    const guidance = screen.getByTestId('today-guidance');
+    const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     // The compact card merges the day's recommendations under one heading...
     expect(within(guidance).getByText('What matters today')).toBeTruthy();
@@ -578,7 +605,7 @@ describe('evidence-guided companion', () => {
     seedTrack(storage, storedTrack());
     renderApp(storage);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
-    expect(screen.getByTestId('today-guidance').getAttribute('data-window')).toBe('days_2_6');
+    expect(screen.getByTestId('daily-support').getAttribute('data-window')).toBe('days_2_6');
     fireEvent.click(screen.getByTestId('open-tracking-detail'));
     expect(screen.getByTestId('tracking-detail')).toBeTruthy();
     expect(screen.getByTestId('open-ended-note').textContent).toMatch(/no finish line/i);
@@ -602,7 +629,7 @@ describe('evidence-guided companion', () => {
     const longAnchor = toInstant(AT - 29 * DAY_MS);
     seedTrack(storage, storedTrack({ segments: [{ startedFromLastUseAt: longAnchor, endedAt: null, endReason: null }] }));
     renderApp(storage);
-    expect(screen.getByTestId('today-guidance').getAttribute('data-window')).toBe('beyond_28');
+    expect(screen.getByTestId('daily-support').getAttribute('data-window')).toBe('beyond_28');
     expect(screen.queryByTestId('mark-complete-cta')).toBeNull();
     fireEvent.click(screen.getByTestId('open-tracking-detail'));
     expect(screen.getByTestId('roadmap-stage-beyond_28').getAttribute('data-status')).toBe('current');

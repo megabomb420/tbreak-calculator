@@ -1433,11 +1433,6 @@ details.card > summary::-webkit-details-marker {
   gap: var(--space-3);
 }
 
-.today-note {
-  color: var(--fg-faint);
-  text-align: center;
-}
-
 .paused-note {
   display: inline-flex;
   align-items: center;
@@ -1528,13 +1523,6 @@ details.card > summary::-webkit-details-marker {
   background: var(--bg-raised);
 }
 
-.stepper-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
 .reduced-settings {
   display: flex;
   flex-direction: column;
@@ -1556,25 +1544,6 @@ details.card > summary::-webkit-details-marker {
 }
 
 /* Check-in ------------------------------------------------------------------ */
-
-.two-choice {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-
-.two-choice .choice-card {
-  min-height: 96px;
-  grid-template-columns: 1fr;
-  justify-items: start;
-  align-content: space-between;
-}
-
-.two-choice .choice-check {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
 
 .symptom-field {
   padding: var(--space-4);
@@ -1823,13 +1792,6 @@ details.card > summary::-webkit-details-marker {
 }
 
 /* Evidence-guided companion ------------------------------------------------ */
-
-.today-guidance {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  width: 100%;
-}
 
 .guidance-headline {
   margin: 0;
@@ -2168,10 +2130,6 @@ details.card > summary::-webkit-details-marker {
   color: var(--fg-faint);
 }
 
-.today-plan-card .today-guidance {
-  gap: var(--space-2);
-}
-
 .today-plan-card .guidance-milestone {
   padding: var(--space-2) var(--space-3);
 }
@@ -2477,8 +2435,7 @@ label,
 .slider-ticks,
 .progress-track,
 .progress-fill,
-.sheet-handle,
-.today-note {
+.sheet-handle {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -3192,43 +3149,6 @@ select,
   padding: var(--space-3) var(--space-3);
 }
 
-/* Open-ended tracking card: same guidance rhythm as the active-break card. */
-.today-plan-card.tracking > .today-guidance {
-  margin: 0 var(--space-3);
-  padding: var(--space-4) var(--space-3) var(--space-2);
-  border-top: 1px solid var(--hairline);
-}
-
-/* Compact Today guidance list: the concrete "what can help today" steps use
-   the quiet accent-dot markers of Plan Detail, not default bullets. */
-.today-plan-card .today-guidance .guidance-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.today-plan-card .today-guidance .guidance-list li {
-  position: relative;
-  padding-left: var(--space-4);
-  color: var(--fg-muted);
-}
-
-.today-plan-card .today-guidance .guidance-list li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 0.72em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--accent) 50%, transparent);
-}
-
-.today-plan-card .today-guidance .guidance-list li + li {
-  margin-top: var(--space-1);
-}
-
-
 /* 0.12.0 — unified visual system ---------------------------------------------
    The Predicted Reset result language (ResultLensHero / ResultInsight) becomes
    the shared surface contract across the app: one card surface (hairline
@@ -3902,7 +3822,6 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .checkin-receipt { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .checkin-receipt .meta { margin: 0; font-size: 0.75rem; }
 .checkin-receipt .text-back { min-height: 44px; padding: 8px 4px 8px 12px; color: var(--accent); }
-.checkin-secondary-actions { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8px; }
 .checkin-secondary { min-height: 46px; border: 1px solid var(--hairline); border-radius: 12px; padding: 10px 8px; background: color-mix(in oklab, var(--fg) 3%, transparent); font-size: 0.8125rem; font-weight: 600; }
 .checkin-secondary:hover { background: color-mix(in oklab, var(--fg) 7%, transparent); }
 .community-carousel { min-width: 0; overflow: hidden; border: 1px solid var(--hairline); border-radius: 18px; background: linear-gradient(150deg, color-mix(in oklab, var(--accent) 7%, transparent), transparent 80%); }

@@ -26,7 +26,7 @@ function setup() {
 describe('practical Today advice', () => {
   it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
     const { storage, app } = setup();
-    expect(screen.getByTestId('advice-basis').textContent).toContain('Add how you’re feeling');
+    expect(screen.getByTestId('advice-basis').textContent).toContain('Tap How are you feeling?');
     fireEvent.click(screen.getByTestId('add-symptoms'));
     fireEvent.click(screen.getByRole('button', { name: 'Set Sleep quality to zero' }));
     const craving = screen.getByRole('slider', { name: 'Craving' });
