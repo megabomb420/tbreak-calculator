@@ -2,7 +2,7 @@
 
 Version: **0.17.0**
 
-Current revision: coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
+Current revision (0.22.0): practical daily advice selected by recent symptoms and chosen topics; coherent Today / Calculator / History navigation; shared date entry and modal navigation; stable saved-plan ownership; elapsed-time completion; shorter progressive-disclosure reading paths; explicit research limits. This revision supersedes historical two-tab, Predicted reset, Evidence range, and premature target-reached wording. Numeric policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -89,10 +89,10 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Tabs (3):** `Today`, `Calculator`, `History`. Calculator exposes all four goals, draft resume and the latest saved use-profile result. Opening a new calculation does not end a live break.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
-- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the live journey, the compact today guidance, the full-width **Check in** action, and quiet end-early / support actions. Users think "how is my break going," which is a Today question.
+- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, an expandable live journey, and quiet end-early / advice-topic actions. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
-  - companion personalisation (optional after calculation and later through **Edit support**);
+  - companion personalisation (optional after calculation and later through **Choose advice topics**);
   - the daily check-in;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
@@ -110,7 +110,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Phase-aware card: eyebrow names the phase window (first days / common peak / settling in / past the peak / nearing the target / **Plan target reached** / **Beyond the plan**), the day/target line is the hero, and target date sits under it. A calm state note appears exactly at the target day and on beyond-plan days. The live journey renders beneath (past legs carry per-day check-in markers, the current leg marks "You are here", future legs stay expectations, and the per-phase "may notice" / "can help" expectations sit behind each leg's disclosure). Compact "what matters today" guidance follows, then the full-width **Check in** action; **Mark complete** appears from the target date. Quiet footer actions: **Edit support / Personalise your plan** and **End break early** (confirm dialog). The card is the whole plan surface — there is no separate detail screen |
+| `active-break` | attempt `active` | Day/target hero, immediate check-in CTA, current phase context, two relevant advice guides and a daily practical activity. All guides are available under **Help with something else**. A separate labelled Reddit experience links to its original discussion. The shared journey and research note are under **Your break timeline**. **Mark complete** appears from the target instant. Footer: **Choose advice topics** and **End break early**. |
 | `interrupted` | attempt `interrupted_time_needed` | Timing suspended; card: "You marked that you used THC. Confirm when, so your plan can restart." CTA **Confirm when** |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -597,9 +597,9 @@ The active-break card *is* the running plan; there is no pushed plan-detail scre
 
 - Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
 - The live break journey (§9.7) is the running version of the result preview: Start → evidence phases → Target, with past-day check-in markers, the current leg marked "You are here", and future legs kept as expectations. Each leg's "may notice" / "can help" expectations sit behind its disclosure.
-- Compact "what matters today" guidance (milestone + concrete help) renders once, beneath the journey.
+- Practical daily advice renders before the journey, which is under **Your break timeline**. See §16 for the current advice selection and content contract.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
-- Quiet footer actions: **Edit support / Personalise your plan**, and **End break early** (confirm dialog; neutral resulting state).
+- Quiet footer actions: **Choose advice topics**, and **End break early** (confirm dialog; neutral resulting state).
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
 
 ### 10.2 Daily check-in — use-first design
@@ -839,3 +839,14 @@ Domain prerequisites from §15.2 must land first (D1–D5 are small validation/s
 6. **(Cancelled) Runtime AI / DeepSeek** — intentionally not part of the product architecture. No runtime generative AI step exists; explanations and companion copy stay deterministic and local.
 
 Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output, plan, history record, or result-explanation.
+
+
+## 16. Practical daily support (0.22.0)
+
+Today prioritises what the person can do now: check-in, current phase context, two advice topics and one activity for the day. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and Science. The full journey is available through a disclosure rather than preceding today's advice.
+
+Recent ratings outrank preferences. Every saved topic participates across days; no first-choice-only action. Advice names its basis (a dated rating, a chosen topic or an optional stage suggestion). No fresh ratings is a distinct state, not zero symptoms. A manual browser exposes all eleven topics without changing saved preferences. The same component serves chosen/calculated breaks and open-ended tracking.
+
+Check-in remains use-first and optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back inside check-in preserves edits. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
+
+One separate community example uses the label **From Reddit · Personal experience**, an individual attribution, an uncertainty note and a link to the reviewed discussion. No medical treatment claims are sourced to Reddit. Advice and curated examples remain available offline; links require a connection.

@@ -10,9 +10,7 @@ import { createMemoryStorage } from '../../src/infrastructure/storage/storage-ad
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 import { sampleProfile, userValue } from '../helpers.ts';
-import { TodayGuidance } from '../../src/ui/today-guidance.tsx';
-import { presentTodayGuidance } from '../../src/application/presentation/break-guidance.ts';
-import { SUPPORT_AREA_COPY } from '../../src/ui/companion-copy.ts';
+import { DailySupport } from '../../src/ui/daily-support.tsx';
 
 const AT = toInstant(1787184000000);
 
@@ -69,19 +67,18 @@ describe('independent companion personalisation flow', () => {
     expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
   });
 
-  it('keeps Today focused on the first selected deterministic action', () => {
-    const view = presentTodayGuidance({
-      breakDay: 3,
+  it('shows more than the first saved topic, with the basis for each suggestion', () => {
+    render(<DailySupport input={{
+      day: 3,
+      now: AT,
+      anchor: AT - 2 * 86400000,
       targetDays: 14,
-      openEnded: false,
-      planned: false,
       preparation: null,
       checkins: [],
-    });
-    render(<TodayGuidance view={view} compact supportAreas={['sleep', 'cravings', 'anxiety']} />);
-    const actions = screen.getByTestId('guidance-primary-action');
-    expect(actions.textContent).toContain(SUPPORT_AREA_COPY.sleep.todayAction);
-    expect(actions.textContent).not.toContain(SUPPORT_AREA_COPY.cravings.todayAction);
-    expect(actions.textContent).not.toContain(SUPPORT_AREA_COPY.anxiety.todayAction);
+      supportAreas: ['sleep', 'cravings', 'anxiety'],
+    }} />);
+    expect(screen.getByTestId('advice-anxiety').textContent).toContain('A topic you chose');
+    expect(screen.getByTestId('advice-sleep').textContent).toContain('A topic you chose');
+    expect(screen.getByTestId('advice-basis').textContent).toContain('No symptom ratings');
   });
 });

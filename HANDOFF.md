@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.21.2
+# Handoff — T-Break Calculator 0.22.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -7,7 +7,7 @@ Live app: https://megabomb420.github.io/tbreak-calculator/
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-The break is presented as one journey. One shared vertical path (Start → evidence phases → Target) is rendered by the Calculator result (preview: every leg upcoming) and by the Today active-break card (live: Day X of Y, past legs carry per-day check-in markers, the current leg marks "You are here", and future legs stay expectations). Phases are the overlapping evidence windows from EvidenceGuidanceV1 — ranges and tendencies, never per-day symptom predictions. There is no separate plan-detail screen: the active-break Today card is the whole plan surface — hero head (phase eyebrow, Day X of Y, target date), the live journey with each leg's expectations behind its disclosure, the compact "what matters today" guidance, one full-width Check in action (Mark complete appears from the target date), and quiet footer actions (Edit support / Personalise your plan, End break early). The scheduled-break card owns Cancel plan, the completion card shows the post-break plan read-only, and everything else lives in History.
+Today is the practical daily companion. The active card shows the day/target hero, the full-width check-in action, phase context, two relevant advice topics and one practical activity for the day. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. Quiet footer actions are **Choose advice topics** and **End break early**. Scheduled cancellation, completed-break return plans and History keep their existing roles.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -15,13 +15,25 @@ Saved calculation numbers are immutable. `saved-result.ts` advances only withdra
 
 One shared dialog coordinator owns focus, background isolation, Escape and browser Back. Only the top dialog closes. References return to their parent; closed disclosures do not receive keyboard focus; destructive confirmations initially focus Cancel. Previous-break edits retain outcome linkage and Save & add another resets the form.
 
-Today leads with the journey and check-in. Practical guidance and trigger plans are shown once in the main reading path. Optional support preferences affect companion copy only, including abstinence detail; they never alter scientific calculations.
+Today leads with the check-in and practical advice. Fresh symptom ratings take priority; selected advice topics participate across days. A manual topic browser gives access to all eleven guides. Preferences and ratings select educational content only and never alter scientific calculations.
 
 ## Evidence decisions
 
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.22.0 — practical daily support (2026-09-20)
+
+- Replaced the old compact `TodayGuidance` UI with `DailySupport` across active calculated/chosen breaks, open-ended tracking and its detail view. Advice is visible ahead of the collapsed full timeline, with two actionable topics and a day-specific practical activity.
+- Added `daily-support-v1`: eleven guides explaining the problem, three concrete steps, common pitfalls, proportionate help-seeking guidance and direct references. The 28-day activity sequence and subsequent maintenance rotation are editorial planning, not exact-day biological predictions. The existing overlapping evidence windows, numeric engines, plan targets and immutable historical results are untouched.
+- Advice uses the latest non-null rating per field within 48 hours, bounded by the current segment anchor and the injected clock. Future, invalid, pre-segment and THC-use records are ignored. Sleep/appetite scales are correctly inverted for ordering; missing stays unknown; a later no-use-only entry does not erase rated symptoms. Equal-timestamp entries favour the later saved rating. The severity threshold (4 on the oriented scale), freshness limit and two-topic cap are product rules, not clinical thresholds.
+- All selected preferences participate through daily rotation after current symptom needs. Comfortably rated topics are not surfaced as current problems. **Choose advice topics** explains the selection; **Help with something else** opens any guide without changing saved preferences. No questionnaire re-entry or recalculation is required.
+- Check-in preserves the five existing scales/storage schema, adds clear descriptions and a past-24-hours/last-main-sleep frame, permits explicit zero and skipping a rating, and retains draft symptoms/notes when moving Back inside the flow. Private free-text notes remain unanalysed.
+- Three curated Reddit experiences (quiet wind-down, paper sudoku, replacing the preparation ritual) are labelled **Personal experience**, paraphrased and linked to the reviewed r/Petioles discussions. They do not supply medical claims or efficacy evidence. No live Reddit fetching, AI service or data transmission is added; all advice works offline.
+- Clinical/self-care sources are linked inside guides and in Science: NSW Health withdrawal guidance, NHS sleep/nausea/headaches, Lee et al. sustained-abstinence study, and UVM for practical habit ideas only. UVM's clearance/reset explanation and Reddit supplement/detox claims were not adopted.
+
+Validation: the full unit/domain/golden suite (564 tests) and full UI suite (159 tests, 19 files) pass; typecheck and the production build pass. Headless Chromium exercised the production bundle through chosen-duration setup → active Today → sleep 0/craving 8 check-in → immediately relevant advice → reload → manual nausea guide → saved topic selection → reload. The cached app restored the saved check-in and advice after an offline reload. Screenshots of Today, check-in and the detailed guide were visually inspected; 320/390/720px viewports had no horizontal overflow and the flow produced no browser exceptions. Physical iOS Safari has not been tested.
 
 ## Release 0.18.0 — completed scope (2026-09-06)
 
@@ -72,17 +84,11 @@ Validation: typecheck and the production build passed. New tests: `chosen-break`
 
 Validation: typecheck and the production build passed; 58 targeted UI tests (today-phases, break-loop, app, product-regressions, copy-safety) and 28 journey-presenter/outlook unit tests passed. A headless-browser pass at 390px compared Your plan / Recovery outlook / active-break Today: all three carry the same orbit artwork; on the live card the orbit is clipped inside the card and paints behind the hero head, Day X of Y stays the dominant display line, Check in is one full-width primary action in the mode-control material family (not the generic button, not a third tab), the card structure is unchanged, and the document/app/main panes show no horizontal overflow. This environment could not eyeball screenshots, so rendering was verified from the DOM, computed CSS and sampled pixels rather than by eye.
 
-## Pause / resume point
+## Resume point
 
-The owner requested another scoped release before their usage limit runs out. Ship 0.18.0 and resume the broader whole-product review after reset. This release does not claim that the original whole-product review is finished. Resume current main; do not repeat the initial repository/research audit. The prior shipped baseline was 0.17.0 (`1695a40109e130842ec99db2df2b0cc4d4c6acdc`).
+Resume current main after 0.22.0. The present release addresses practical daily support; it does not claim the earlier whole-product review is complete. Physical iOS Safari has not been tested. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behaviour; it remains unchanged.
 
-Final local validation: **542 domain/golden tests + 153 UI tests (695 total)**, TypeScript checks and production PWA build passed. Added regressions cover rolling calendar windows across offsets/month boundaries, preserving edited reduction limits, accessible strategy inputs, reduction history/session correction and frozen calculations, History focus restoration, and starting abstinence tracking from Calculator.
-
-Manual browser checks in this pass: isolated fresh cut-down intake/result/start, edit limits, log use, end plan, reduction history and browser Back/focus return; 320px form layout and 844×390 landscape; abstinence intake/start, check-in save, stop confirmation and retained history. Prior 0.17 checks covered 390px, Pick a date → Continue, active-break interruption, nested dialogs and production startup. Runtime dependency audit at that baseline had zero advisories; this release changes no dependencies.
-
-Remaining manual pass: physical iOS Safari has not been tested. Multi-viewport (320–1024px, landscape), production-offline reload and the scheduled/zero-use journeys have since been swept clean (0.21.x QA). Consider simplifying the large App coordinator only where it improves a concrete flow. Review whether completed-break outcome duration should record actual elapsed time rather than the original target before changing that behavior; it has not been changed in this release. Keep scientific policies and historical results intact.
-
-Release procedure: push the release commit to main, verify its Pages workflow, then confirm live Settings shows 0.21.2. The deploying commit and workflow are the release identifiers; no SHA is embedded here to avoid a self-referencing commit.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.22.0. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

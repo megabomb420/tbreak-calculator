@@ -206,3 +206,24 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outloo
 ## 14. Change control
 
 Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+
+
+## 15. Daily support v1 (0.22.0, 2026-09-20)
+
+`src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
+
+The practical layer contains eleven symptom/habit guides, 28 original daily activity prompts and a maintenance rotation. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
+
+Selection uses the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only. Missing values remain unknown. Subsequent unrated check-ins do not erase ratings; tied timestamps favour later entries. Up to two topics are selected, with remaining slots rotating through saved preferences then stage-relevant practical defaults. Recent comfortable ratings suppress the corresponding problem suggestion. Every topic remains manually accessible.
+
+Source roles (checked 2026-09-20):
+
+- [NSW Health, Management of Withdrawal from Alcohol and Other Drugs, section 6](https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34): withdrawal context and supportive care. No medication protocols are reproduced.
+- [NHS insomnia](https://www.nhs.uk/conditions/insomnia/), [nausea](https://www.nhs.uk/symptoms/feeling-sick-nausea/), [headaches](https://www.nhs.uk/symptoms/headaches/): general self-care and relevant escalation signs, not THC-specific efficacy trials.
+- [Lee et al., 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3986824/): sleep/dream variability during abstinence; no personal sleep-resolution date.
+- [UVM practical break guide](https://www.uvm.edu/health/t-break-week-1): routines, alternatives and coping examples. Its claims about a universal break length/THC clearance are not used.
+- Reddit discussion [sleep](https://www.reddit.com/r/Petioles/comments/15z1nlx/sleeping_on_a_t_break_advice/): a comment describing quiet reading or tidying before bed.
+- Reddit discussion [first week](https://www.reddit.com/r/Petioles/comments/153a0dk/what_are_some_methods_that_helped_you_guys_get/): a comment describing paper sudoku to occupy hands during cravings.
+- Reddit discussion [break tips](https://www.reddit.com/r/Petioles/comments/1dvgefb/help_hit_me_with_your_best_tbreak_tips/): a comment describing making tea as a replacement preparation ritual.
+
+Reddit content is labelled individual experience and is distinct from clinical/self-care guidance. Only the named idea is endorsed for inclusion; other comments, supplement regimens, detox claims and guaranteed timelines are excluded. Curated paraphrases are bundled locally, with source links that navigate externally. No live feed, scraping at runtime or user-data transmission is added.

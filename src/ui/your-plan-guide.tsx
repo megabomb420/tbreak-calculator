@@ -18,17 +18,17 @@ export function YourPlanGuide({
     <>
       <section className="plan-priority" data-testid="plan-priority">
         <div>
-          <p className="micro-label">{hasPersonalisation ? 'Your support areas' : 'Start here'}</p>
-          <h3 className="plan-priority-title">{view.primary.planLead}</h3>
+          <p className="micro-label">Advice during your break</p>
+          <h3 className="plan-priority-title">Choose what you want help with</h3>
           {hasPersonalisation ? (
             <ul className="support-area-summary" data-testid="support-area-summary">
               {view.areas.map((area) => <li key={area}>{supportAreasView([area]).primary.shortLabel}</li>)}
             </ul>
-          ) : <p className="body">{view.primary.todayAction}</p>}
+          ) : <p className="body">Today offers practical advice for your stage of the break. Optional symptom check-ins make it more relevant.</p>}
         </div>
         {onEditSupport ? (
           <button type="button" className="text-link" data-testid="edit-support" onClick={onEditSupport}>
-            {hasPersonalisation ? 'Edit support' : 'Personalise your plan'}
+            Choose advice topics
           </button>
         ) : null}
       </section>

@@ -29,6 +29,8 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
   const [screen, setScreen] = useState<'question' | 'symptoms'>('question');
   const [noSelected, setNoSelected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [symptoms, setSymptoms] = useState<SymptomValues>(EMPTY_SYMPTOMS);
+  const [note, setNote] = useState('');
 
   return (
     <div
@@ -70,6 +72,10 @@ export function CheckInFlow({ day, onNoUseSave, onUseReported, onSymptomsSave, o
         />
       ) : (
         <SymptomsScreen
+          symptoms={symptoms}
+          note={note}
+          onChange={setSymptoms}
+          onNoteChange={setNote}
           onBack={() => setScreen('question')}
           onSave={(symptoms, note) => {
             if (busy) return;
@@ -152,17 +158,22 @@ function QuestionScreen({
 }
 
 function SymptomsScreen({
+  symptoms,
+  note,
+  onChange,
+  onNoteChange,
   onBack,
   onSave,
 }: {
+  readonly symptoms: SymptomValues;
+  readonly note: string;
+  readonly onChange: (symptoms: SymptomValues) => void;
+  readonly onNoteChange: (note: string) => void;
   readonly onBack: () => void;
   readonly onSave: (symptoms: SymptomValues, note: string | null) => void;
 }) {
-  const [symptoms, setSymptoms] = useState<SymptomValues>(EMPTY_SYMPTOMS);
-  const [note, setNote] = useState('');
-
   function setField(field: keyof SymptomValues, value: number | null) {
-    setSymptoms((current) => ({ ...current, [field]: value }));
+    onChange({ ...symptoms, [field]: value });
   }
 
   function submit() {
@@ -184,7 +195,7 @@ function SymptomsScreen({
               {CHECKIN.symptomsTitle}
             </h3>
             <p className="meta" data-testid="symptoms-helper">
-              {`(${CHECKIN.symptomsHelper})`}
+              {CHECKIN.symptomsHelper}
             </p>
           </header>
           {SYMPTOM_FIELDS.map((field) => (
@@ -192,6 +203,7 @@ function SymptomsScreen({
               key={field.id}
               id={field.id}
               label={field.label}
+              description={field.description}
               zero={field.zero}
               ten={field.ten}
               value={symptoms[field.id]}
@@ -207,7 +219,7 @@ function SymptomsScreen({
               data-testid="checkin-note"
               aria-label={CHECKIN.noteLabel}
               enterKeyHint="done"
-              onInput={(event) => setNote((event.target as HTMLInputElement).value)}
+              onInput={(event) => onNoteChange((event.target as HTMLInputElement).value)}
             />
             <span className="meta">{CHECKIN.noteHelper}</span>
           </label>
@@ -232,6 +244,7 @@ function SymptomsScreen({
 function SymptomSlider({
   id,
   label,
+  description,
   zero,
   ten,
   value,
@@ -239,10 +252,11 @@ function SymptomSlider({
 }: {
   readonly id: string;
   readonly label: string;
+  readonly description: string;
   readonly zero: string;
   readonly ten: string;
   readonly value: number | null;
-  readonly onChange: (value: number) => void;
+  readonly onChange: (value: number | null) => void;
 }) {
   const armedRef = useRef(false);
   const shown = value ?? 0;
@@ -264,6 +278,7 @@ function SymptomSlider({
           {value === null ? 'Not set' : String(value)}
         </output>
       </header>
+      <p className="meta symptom-description" id={`symptom-${id}-help`}>{description}</p>
       <div className="slider-wrap symptom-slider" style={{ '--slider-pct': pct } as Record<string, string>}>
         <input
           type="range"
@@ -272,6 +287,7 @@ function SymptomSlider({
           step={1}
           value={shown}
           aria-label={label}
+          aria-describedby={`symptom-${id}-help`}
           aria-valuemin={0}
           aria-valuemax={10}
           aria-valuenow={value === null ? undefined : shown}
@@ -295,6 +311,10 @@ function SymptomSlider({
         <span>
           10 · {ten}
         </span>
+      </div>
+      <div className="symptom-actions">
+        <button type="button" className="text-back" aria-label={`Set ${label} to zero`} onClick={() => onChange(0)}>Use 0</button>
+        {value !== null ? <button type="button" className="text-back" aria-label={`Leave ${label} unrecorded`} onClick={() => onChange(null)}>Skip this rating</button> : null}
       </div>
     </section>
   );

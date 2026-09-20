@@ -372,6 +372,7 @@ export function App({
       : null;
 
   const liveData: TodayLiveData = {
+    now,
     active: activeView !== null ? { attempt: liveAttempt!, view: activeView } : null,
     interruptedAttempt: liveAttempt?.status === 'interrupted_time_needed' ? liveAttempt : null,
     interruptedTracking: liveTracking?.status === 'interrupted_time_needed' ? liveTracking : null,

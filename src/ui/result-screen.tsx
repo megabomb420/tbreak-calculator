@@ -293,8 +293,8 @@ function ResultBody({
           {onEditSupport ? (
             <section className="plan-priority" data-testid="abstinence-support">
               <div>
-                <p className="micro-label">Personalise your plan</p>
-                <p className="body">Choose the areas where practical support would help. This does not change the calculation.</p>
+                <p className="micro-label">Advice during your break</p>
+                <p className="body">Choose topics to see on Today. You can open any guide later, and symptom check-ins help select relevant advice.</p>
                 {supportAreas.length > 0 ? (
                   <ul className="support-area-summary" data-testid="support-area-summary">
                     {supportAreas.map((area) => <li key={area}>{supportAreaCopy(area).shortLabel}</li>)}
@@ -302,7 +302,7 @@ function ResultBody({
                 ) : null}
               </div>
               <button type="button" className="text-link" data-testid="edit-support" onClick={onEditSupport}>
-                {supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+                Choose advice topics
               </button>
             </section>
           ) : null}

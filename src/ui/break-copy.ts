@@ -110,7 +110,7 @@ export const CHECKIN = {
   save: 'Save',
   addSymptoms: "Add how you're feeling",
   symptomsTitle: 'How are you feeling?',
-  symptomsHelper: 'optional — skip any',
+  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Skip any. Your ratings help choose today’s advice.',
   noteLabel: 'Note (optional)',
   noteHelper: 'Private, stored only on this device, never analysed.',
   close: 'Close check-in',
@@ -118,11 +118,11 @@ export const CHECKIN = {
 } as const;
 
 export const SYMPTOM_FIELDS = [
-  { id: 'craving', label: 'Craving', zero: 'None', ten: 'Overwhelming' },
-  { id: 'sleep', label: 'Sleep quality', zero: 'Terrible', ten: 'Great' },
-  { id: 'irritability', label: 'Irritability', zero: 'Calm', ten: 'Very irritable' },
-  { id: 'anxiety', label: 'Anxiety', zero: 'None', ten: 'Severe' },
-  { id: 'appetite', label: 'Appetite', zero: 'None', ten: 'Normal / strong' },
+  { id: 'craving', label: 'Craving', description: 'How strong was the urge to use THC, including urges at your usual session time?', zero: 'None', ten: 'Overwhelming' },
+  { id: 'sleep', label: 'Sleep quality', description: 'Think about falling asleep, waking during the night and feeling rested. A higher score means better sleep.', zero: 'Terrible', ten: 'Great' },
+  { id: 'irritability', label: 'Irritability', description: 'Short temper, frustration or feeling more easily annoyed than usual.', zero: 'Calm', ten: 'Very irritable' },
+  { id: 'anxiety', label: 'Anxiety', description: 'Worry, tension, racing thoughts or feeling unable to settle.', zero: 'None', ten: 'Severe' },
+  { id: 'appetite', label: 'Appetite', description: 'How much did you want to eat? A higher score means a stronger appetite, not more nausea.', zero: 'None', ten: 'Normal / strong' },
 ] as const;
 
 // --- Interruption (UX_SPEC 10.3) -------------------------------------------

@@ -36,13 +36,13 @@ export function PersonalisationFlow({
         <button type="button" className="icon-button" aria-label="Close personalisation" onClick={onClose}>
           <CloseIcon />
         </button>
-        <h2 className="flow-title">Personalise your plan</h2>
+        <h2 className="flow-title">Choose advice topics</h2>
       </header>
       <div className="questionnaire-body flow-body">
         <section className="stack">
           <header>
             <h3 id="personalisation-title" className="title">What would you like help with?</h3>
-            <p className="meta">Choose any that apply. This tailors guidance but does not change your recommended days.</p>
+            <p className="meta">Pick topics to include in Today. Recent symptom ratings take priority; your other topics rotate between days. You can open any guide at any time.</p>
           </header>
           <div className="support-areas-control" data-testid="support-area-cards">
             {SUPPORT_AREA_GROUPS.map((group) => (
@@ -73,7 +73,7 @@ export function PersonalisationFlow({
       </div>
       <footer className="questionnaire-footer">
         <button type="button" className="cta-primary" data-testid="save-support-areas" onClick={() => onSave(areas)}>
-          Save support areas
+          Save topics
         </button>
         <button type="button" className="text-back" onClick={onClose}>Back</button>
       </footer>

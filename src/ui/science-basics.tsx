@@ -1,6 +1,7 @@
 import { useRef } from 'preact/hooks';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
+import { COMMUNITY_TIPS, SUPPORT_SOURCES } from '../application/presentation/daily-support.ts';
 
 const SECTIONS = [
   {
@@ -61,6 +62,18 @@ export function ScienceBasicsPanel({ onClose }: { readonly onClose: () => void }
           {section.links?.map((link) => <a className="text-link source-link" href={link.href} key={link.href}
             target="_blank" rel="noopener noreferrer">{link.label} ↗</a>)}
         </section>)}
+        <section className="reading-section">
+          <h3 className="card-title">Practical advice during a break</h3>
+          <p className="body">Today combines withdrawal guidance, general self-care and practical activities. Recent check-in ratings select relevant topics; they never change the tolerance calculation. The daily activity schedule and advice order are editorial choices, not clinically validated predictions.</p>
+          <p className="meta">University of Vermont is used for practical habit ideas, not to establish a reset duration or explain THC clearance.</p>
+          {Object.values(SUPPORT_SOURCES).map(source => <a className="text-link source-link" key={source.href} href={source.href} target="_blank" rel="noopener noreferrer">{source.kind} · {source.label} ↗</a>)}
+        </section>
+        <section className="reading-section">
+          <h3 className="card-title">Experiences from Reddit</h3>
+          <p className="body">These are selected, paraphrased experiences from individual commenters, checked on 20 September 2026. They suggest things to try; they do not establish effectiveness, typical recovery times or medical treatment.</p>
+          <p className="meta">Only the described idea is included. Other advice in the linked discussion has not been endorsed. The app does not load Reddit or send your data there; links open externally.</p>
+          {COMMUNITY_TIPS.map(tip => <a className="text-link source-link" href={tip.href} key={tip.id} target="_blank" rel="noopener noreferrer">r/Petioles · {tip.thread} ↗</a>)}
+        </section>
       </div>
     </div>
   );

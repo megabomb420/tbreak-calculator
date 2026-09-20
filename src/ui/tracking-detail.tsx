@@ -3,14 +3,13 @@ import type { DailyCheckin, UseProfileInput } from '../domain/schemas/profile.ts
 import type { Instant } from '../domain/schemas/time.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
 import { currentSegmentAnchor, trackingDayView } from '../application/presentation/plan-presentation.ts';
-import { presentBreakGuidance, presentCb1Education } from '../application/presentation/break-guidance.ts';
-import { exposureFromProfile } from '../domain/guidance/break-outlook.ts';
+import { presentCb1Education } from '../application/presentation/break-guidance.ts';
 import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import { GUIDANCE_CHROME, TRACKING_CARD } from './break-copy.ts';
 import { BackIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
-import { TodayGuidance } from './today-guidance.tsx';
+import { DailySupport } from './daily-support.tsx';
 import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -32,16 +31,6 @@ export function TrackingDetail(props: TrackingDetailProps) {
   useFocusTrap(true, rootRef, props.onBack);
   const [showDetox, setShowDetox] = useState(false);
   const dayView = trackingDayView(track, props.now);
-  const exposure = props.profile === null ? null : exposureFromProfile(props.profile);
-  const bundle = presentBreakGuidance({
-    breakDay: dayView?.day ?? null,
-    targetDays: null,
-    openEnded: true,
-    planned: false,
-    preparation: track.preparation,
-    checkins: props.checkins,
-    exposure,
-  });
   const outlook = presentOutlookForProfile({
     profile: props.profile ?? {
       goal: 'abstinence',
@@ -89,7 +78,10 @@ export function TrackingDetail(props: TrackingDetailProps) {
           <p className="meta" data-testid="open-ended-note">
             {GUIDANCE_CHROME.openEndedNote}
           </p>
-          <TodayGuidance compact showIntentions view={bundle.today} supportAreas={props.supportAreas} />
+          {dayView !== null ? <DailySupport input={{
+            day: dayView.day, now: props.now, anchor: currentSegmentAnchor(track.segments),
+            checkins: props.checkins, supportAreas: props.supportAreas ?? [], preparation: track.preparation,
+          }} /> : null}
           <details className="result-disclosure timeline-disclosure">
             <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
           </details>

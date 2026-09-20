@@ -20,9 +20,8 @@ import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
-import { TodayGuidance } from './today-guidance.tsx';
+import { DailySupport } from './daily-support.tsx';
 import { BreakJourney } from './break-journey.tsx';
-import { presentTodayGuidance } from '../application/presentation/break-guidance.ts';
 import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
@@ -32,6 +31,7 @@ import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/redu
 import type { SupportArea } from '../application/questionnaire/companion.ts';
 
 export interface TodayLiveData {
+  readonly now: number;
   readonly active: { readonly attempt: StoredAttempt; readonly view: ActiveBreakView } | null;
   readonly interruptedAttempt: StoredAttempt | null;
   readonly interruptedTracking: StoredTrack | null;
@@ -271,21 +271,6 @@ function ActiveBreakCard(props: TodayScreenProps) {
           {stateNote}
         </p>
       ) : null}
-      <BreakJourney view={journey} />
-      <TodayGuidance
-        compact
-        supportAreas={props.live.supportAreas}
-        view={presentTodayGuidance({
-          breakDay: view.day,
-          targetDays: view.targetDays,
-          openEnded: false,
-          planned: false,
-          preparation: attempt.preparation,
-          checkins: props.live.checkins,
-          exposure: props.live.exposure,
-        })}
-      />
-      <BreakResearchNote day={view.day} />
       <div className="today-actions">
         <button
           type="button"
@@ -308,9 +293,21 @@ function ActiveBreakCard(props: TodayScreenProps) {
           </p>
         ) : null}
       </div>
+      <DailySupport input={{
+        day: view.day, now: props.live.now,
+        anchor,
+        targetDays: view.targetDays,
+        checkins: props.live.checkins, supportAreas: props.live.supportAreas,
+        preparation: attempt.preparation,
+      }} />
+      <details className="result-disclosure daily-timeline">
+        <summary>Your break timeline</summary>
+        <BreakJourney view={journey} />
+        <BreakResearchNote day={view.day} />
+      </details>
       <div className="footer-links">
         <button type="button" className="text-back" data-testid="today-edit-support" onClick={props.onEditSupport}>
-          {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+          Choose advice topics
         </button>
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}
@@ -424,23 +421,17 @@ function TrackingCard(props: TodayScreenProps) {
         </button>
       </div>
       {tracking.view !== null ? (
-        <TodayGuidance
-          compact
-          supportAreas={props.live.supportAreas}
-          view={presentTodayGuidance({
-            breakDay: tracking.view.day,
-            targetDays: null,
-            openEnded: true,
-            planned: false,
-            preparation: tracking.track.preparation,
-            checkins: props.live.checkins,
-            exposure: props.live.exposure,
-          })}
-        />
+        <DailySupport input={{
+          day: tracking.view.day, now: props.live.now,
+          anchor: currentSegmentAnchor(tracking.track.segments),
+          targetDays: null,
+          checkins: props.live.checkins, supportAreas: props.live.supportAreas,
+          preparation: tracking.track.preparation,
+        }} />
       ) : null}
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
       <button type="button" className="text-link today-plan-link" data-testid="today-edit-support" onClick={props.onEditSupport}>
-        {props.live.supportAreas.length > 0 ? 'Edit support' : 'Personalise your plan'}
+        Choose advice topics
       </button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (
