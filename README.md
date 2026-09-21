@@ -2,7 +2,7 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.27.1** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
+**Version 0.28.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/)
 
 ## Product
 
@@ -30,6 +30,8 @@ npm run preview
 
 The development server uses port 8080. Preview serves the production build on port 4173. On Windows, use `npm.cmd` if a shell shim interferes. In a restricted workspace, point `TEMP` and `TMP` at a writable scratch directory for Vitest.
 
+`npm test` runs in the host timezone. `npm run test:tz` re-runs both runners under `America/Los_Angeles` and `Europe/Berlin` so local-calendar behaviour is asserted rather than assumed; the zones come from the two `.tz-*.env` files through `--env-file`, because a shell-assigned `TZ` is ignored on Windows. CI runs that pass as well.
+
 ## Architecture and evidence
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): boundaries, storage and current implementation.
@@ -45,4 +47,4 @@ Numeric policies remain `tolerance-v3`, `detection-copy-v1`, and `tolerance-reco
 
 Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/UI tests, type checks, production build, then GitHub Pages deployment. A failed validation prevents deployment. Vite uses the repository subpath `/tbreak-calculator/` in production.
 
-Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.27.1**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.
+Verify the Pages workflow succeeded, then open the live app and check Settings → About for **0.28.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.

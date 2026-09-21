@@ -28,6 +28,8 @@ export interface PendingRestore {
 export interface SettingsModalProps {
   readonly open: boolean;
   readonly persistent?: boolean;
+  /** A durable write this session was rejected, so saving here is not proven. */
+  readonly storageWriteFailed?: boolean;
   /** PWA freshness from the single existing updater; `undefined` hides the block. */
   readonly updateStatus?: PwaUpdateStatus;
   /** Applies the available update through the same mechanism as the snackbar. */
@@ -49,6 +51,7 @@ export interface SettingsModalProps {
 export function SettingsModal({
   open,
   persistent = true,
+  storageWriteFailed = false,
   updateStatus,
   onUpdateNow,
   onOpenScience,
@@ -104,6 +107,7 @@ export function SettingsModal({
               key={id}
               id={id}
               persistent={persistent}
+              storageWriteFailed={storageWriteFailed}
               updateStatus={id === 'app-info' ? updateStatus : undefined}
               onUpdateNow={id === 'app-info' ? onUpdateNow : undefined}
               onOpenScience={id === 'app-info' ? onOpenScience : undefined}
@@ -125,6 +129,7 @@ export function SettingsModal({
 function SettingsEntry({
   id,
   persistent,
+  storageWriteFailed,
   updateStatus,
   onUpdateNow,
   onOpenScience,
@@ -138,6 +143,7 @@ function SettingsEntry({
 }: {
   readonly id: SettingsMenuId;
   readonly persistent: boolean;
+  readonly storageWriteFailed: boolean;
   readonly updateStatus?: PwaUpdateStatus;
   readonly onUpdateNow?: () => void;
   readonly onOpenScience?: () => void;
@@ -165,7 +171,9 @@ function SettingsEntry({
       return (
         <section className="settings-entry" data-settings-entry="offline-note">
           <p className="body">{SETTINGS.offlineNote}</p>
-          <p className="meta">{persistent ? SETTINGS.storageOk : SETTINGS.storageUnavailable}</p>
+          <p className="meta" data-testid="storage-status">
+            {!persistent ? SETTINGS.storageUnavailable : storageWriteFailed ? SETTINGS.storageWriteFailed : SETTINGS.storageOk}
+          </p>
         </section>
       );
     case 'app-info':

@@ -44,8 +44,14 @@ describe('date chip mapping (UX_SPEC 4.3)', () => {
     assert.ok(iso);
     const parsed = parseSubmittedTimestamp(iso!);
     assert.ok(parsed !== null);
-    const elapsedDays = (NOW - parsed) / (24 * 3_600_000);
-    assert.ok(elapsedDays > 2 && elapsedDays < 3.5);
+    // The chip is a local-calendar answer: measure it in local days, not raw
+    // milliseconds, so the assertion holds in every host timezone.
+    const localStartOf = (at: number) => {
+      const date = new Date(at);
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    };
+    const dayDistance = (localStartOf(NOW) - localStartOf(parsed)) / (24 * 3_600_000);
+    assert.ok(dayDistance >= 2 && dayDistance <= 3);
     assert.equal(new Date(iso!).getHours(), DAY_PART_HOURS.evening);
   });
 

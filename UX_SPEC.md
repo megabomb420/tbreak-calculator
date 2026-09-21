@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.27.1**
+Version: **0.28.0**
 
-Current revision (0.27.1): a disclosure's marker and typography apply only to its own summary, so a closed phase leg inside the open timeline reads as closed rather than expanded. Earlier (0.27.0): advice is chosen only from the latest check-in ratings — one topic per area rated hard, no topic picker and no two-topic cap — and the phase context is always visible on the Today card. Earlier (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
+Current revision (0.28.0): storage now reports its own failures — a rejected durable write raises the storage banner and stops Settings claiming the change was saved, and a blocked or failed IndexedDB open no longer presents the emptied store as the user's data; the cut-down review banner follows the derived state; "Earlier today" can no longer record yesterday. Earlier (0.27.1): a disclosure's marker and typography apply only to its own summary, so a closed phase leg inside the open timeline reads as closed rather than expanded. Earlier (0.27.0): advice is chosen only from the latest check-in ratings — one topic per area rated hard, no topic picker and no two-topic cap — and the phase context is always visible on the Today card. Earlier (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
 
 ## 1. Product framing and design principles
 
@@ -124,8 +124,8 @@ Exactly one primary state at a time:
 
 One screen, no carousel:
 
-- Title: **T-Break Calculator**
-- Promise: "A private, on-device planner for tolerance breaks, cutting down, staying off, and drug-test basics."
+- Title: **A little space from THC.**
+- Promise: "Taking a t-break, cutting back, or stopping? Keep your days, check-ins and practical tips in one place."
 - Three reassurance lines (icon + one line): works offline · stored only on this device · no account needed.
 - Safety/eligibility block: slot `safety_first_launch` — final wording is a release blocker per `CALCULATOR_SPEC.md` §14 (age eligibility, health warnings, urgent-help pointer, disclaimer). The block ships in place; content comes from reviewed safety copy, never invented here.
 - CTA: **Get started** → questionnaire Q1.

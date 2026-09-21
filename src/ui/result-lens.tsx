@@ -8,6 +8,7 @@ export function ResultLensHero({
   summary,
   tone,
   labelledBy,
+  ariaLabel,
   valueTestId,
   summaryTestId,
   children,
@@ -19,6 +20,7 @@ export function ResultLensHero({
   readonly summary: string;
   readonly tone: 'plan' | 'recovery';
   readonly labelledBy?: string;
+  readonly ariaLabel?: string;
   readonly valueTestId?: string;
   readonly summaryTestId?: string;
   readonly children?: ComponentChildren;
@@ -30,6 +32,7 @@ export function ResultLensHero({
       <h2
         id={labelledBy}
         className="result-lens-value"
+        aria-label={ariaLabel}
         data-testid={valueTestId}
       >
         {prefix ? <><span className="result-lens-prefix">{prefix}</span>{' '}</> : null}

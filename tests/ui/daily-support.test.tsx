@@ -124,6 +124,13 @@ describe('practical Today advice', () => {
     expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
   });
 
+  it('discloses that a rating stops counting after 48 hours', () => {
+    setup();
+    const about = screen.getByText('How these suggestions are chosen').closest('details');
+    expect(about).toBeTruthy();
+    expect(about?.textContent ?? '').toMatch(/A rating stops counting after 48 hours/);
+  });
+
   it('allows explicit zero or skip and cancels without saving', () => {
     setup();
     fireEvent.click(screen.getByTestId('add-symptoms'));

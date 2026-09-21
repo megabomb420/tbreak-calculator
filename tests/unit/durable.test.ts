@@ -8,6 +8,8 @@ import {
   deleteHistoryRecord,
   ensureCalculationFromSnapshot,
   LOCAL_DATA_KEYS,
+  MIGRATED_WEB_STORAGE_KEYS,
+  MIGRATION_MARKER_KEY,
 } from '../../src/application/persistence/durable.ts';
 import { freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 import {
@@ -16,6 +18,8 @@ import {
   hydrateIndexedDbDurable,
   migrateWebStorageIntoDurable,
   openDurablePersistence,
+  openIndexedDb,
+  type IdbFactoryLike,
 } from '../../src/infrastructure/storage/indexeddb.ts';
 import { createQuestionnaireSnapshotStore } from '../../src/application/progress/questionnaire-snapshot.ts';
 import { QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION } from '../../src/application/progress/questionnaire-snapshot.ts';
@@ -23,6 +27,81 @@ import { sampleProfile } from '../helpers.ts';
 import { QUESTIONNAIRE_PROGRESS_KEY } from '../../src/application/progress/questionnaire-progress.ts';
 
 const AT = toInstant(1787184000000);
+
+interface FakeIdbRequest {
+  onsuccess: (() => void) | null;
+  onerror: (() => void) | null;
+  onblocked: (() => void) | null;
+  onupgradeneeded: (() => void) | null;
+  result: unknown;
+  error: Error | null;
+}
+
+/** Drives the open outcome by hand: no real IndexedDB is available in tests. */
+function fakeIndexedDbFactory(outcome: 'success' | 'blocked' | 'error'): {
+  readonly factory: IdbFactoryLike;
+  readonly state: { closeCalls: number; versionChangeHandler: (() => void) | null };
+  fireVersionChange(): void;
+} {
+  const state: { closeCalls: number; versionChangeHandler: (() => void) | null } = {
+    closeCalls: 0,
+    versionChangeHandler: null,
+  };
+  const request: FakeIdbRequest = {
+    onsuccess: null,
+    onerror: null,
+    onblocked: null,
+    onupgradeneeded: null,
+    result: undefined,
+    error: null,
+  };
+  const factory = {
+    open: () => {
+      request.result = {
+        objectStoreNames: { contains: () => true },
+        createObjectStore: () => undefined,
+        transaction: () => ({
+          objectStore: () => ({
+            getAll: () => request,
+            put: () => request,
+            delete: () => request,
+            clear: () => request,
+          }),
+        }),
+        get onversionchange() {
+          return state.versionChangeHandler;
+        },
+        set onversionchange(handler: (() => void) | null) {
+          state.versionChangeHandler = handler;
+        },
+        close() {
+          state.closeCalls += 1;
+        },
+      };
+      queueMicrotask(() => {
+        if (outcome === 'success') request.onsuccess?.();
+        else if (outcome === 'blocked') request.onblocked?.();
+        else request.onerror?.();
+      });
+      return request;
+    },
+  };
+  return {
+    factory: factory as unknown as IdbFactoryLike,
+    state,
+    fireVersionChange() {
+      state.versionChangeHandler?.();
+    },
+  };
+}
+
+function blockedIndexedDbFactory(): IdbFactoryLike {
+  return fakeIndexedDbFactory('blocked').factory;
+}
+
+function failingIndexedDbFactory(): IdbFactoryLike {
+  return fakeIndexedDbFactory('error').factory;
+}
 
 describe('durable persistence', () => {
   it('round-trips calculations, previous breaks, and attempts on web storage', () => {
@@ -156,5 +235,88 @@ describe('durable persistence', () => {
     const opened = await openDurablePersistence(createMemoryStorage(), true, null, createMemoryIndexedDbBackend());
     assert.equal(opened.durable.backend, 'indexeddb');
     assert.equal(opened.persistent, true);
+  });
+
+  it('clears the migrated Web Storage envelopes after a successful open', async () => {
+    const adapter = createMemoryStorage();
+    createWebBackedDurable(adapter).putPreviousBreak({
+      id: 'pb-1',
+      durationDays: 7,
+      toleranceReductionScore: null,
+      endedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: AT,
+    });
+    const opened = await openDurablePersistence(adapter, true, null, createMemoryIndexedDbBackend());
+    assert.equal(opened.persistent, true);
+    assert.equal(opened.migration?.ok, true);
+    for (const key of MIGRATED_WEB_STORAGE_KEYS) {
+      assert.equal(adapter.getItem(key), null);
+    }
+    assert.notEqual(adapter.getItem(MIGRATION_MARKER_KEY), null);
+    assert.equal(opened.durable.load().previousBreaks.length, 1);
+  });
+
+  it('reports not-persistent when the IndexedDB open is blocked', async () => {
+    const adapter = createMemoryStorage();
+    adapter.setItem(MIGRATION_MARKER_KEY, JSON.stringify({ schemaVersion: 'durable-migration-v1', migrated: true }));
+    const opened = await openDurablePersistence(adapter, true, blockedIndexedDbFactory());
+    assert.equal(opened.persistent, false);
+    assert.equal(opened.durable.load().previousBreaks.length, 0);
+  });
+
+  it('reports not-persistent when the IndexedDB open fails', async () => {
+    const adapter = createMemoryStorage();
+    adapter.setItem(MIGRATION_MARKER_KEY, JSON.stringify({ schemaVersion: 'durable-migration-v1', migrated: true }));
+    const opened = await openDurablePersistence(adapter, true, failingIndexedDbFactory());
+    assert.equal(opened.persistent, false);
+    assert.equal(opened.durable.load().calculations.length, 0);
+  });
+
+  it('reports not-persistent when a successful open cannot be hydrated', async () => {
+    const adapter = createMemoryStorage();
+    adapter.setItem(MIGRATION_MARKER_KEY, JSON.stringify({ schemaVersion: 'durable-migration-v1', migrated: true }));
+    const backend = createMemoryIndexedDbBackend();
+    backend.getAll = async () => {
+      throw new Error('indexeddb read failed');
+    };
+    const opened = await openDurablePersistence(adapter, true, null, backend);
+    assert.equal(opened.persistent, false);
+    assert.equal(opened.durable.backend, 'memory');
+  });
+
+  it('still uses Web Storage when there is no IndexedDB factory at all', async () => {
+    const adapter = createMemoryStorage();
+    createWebBackedDurable(adapter).putPreviousBreak({
+      id: 'pb-1',
+      durationDays: 7,
+      toleranceReductionScore: null,
+      endedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: AT,
+    });
+    const opened = await openDurablePersistence(adapter, true, null);
+    assert.equal(opened.persistent, true);
+    assert.equal(opened.durable.backend, 'web-storage');
+    assert.equal(opened.durable.load().previousBreaks.length, 1);
+  });
+
+  it('closes the connection when another tab upgrades the schema', async () => {
+    const fake = fakeIndexedDbFactory('success');
+    const backend = await openIndexedDb(fake.factory);
+    assert.notEqual(backend, null);
+    assert.equal(fake.state.closeCalls, 0);
+
+    fake.fireVersionChange();
+
+    assert.equal(fake.state.closeCalls, 1);
+    assert.equal(fake.state.versionChangeHandler !== null, true);
+  });
+
+  it('leaves the connection open while no upgrade is pending', async () => {
+    const fake = fakeIndexedDbFactory('success');
+    const backend = await openIndexedDb(fake.factory);
+    assert.notEqual(backend, null);
+    assert.equal(fake.state.closeCalls, 0);
   });
 });

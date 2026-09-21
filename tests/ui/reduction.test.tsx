@@ -25,6 +25,7 @@ import {
 import { createBreakAttemptsStore, type StoredAttempt } from '../../src/application/progress/break-attempt-record.ts';
 import { createCalculationRecordsStore } from '../../src/application/persistence/calculation-record.ts';
 import { freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
+import { localIsoDate } from '../../src/application/questionnaire/date-answers.ts';
 import type { ReductionLimits, ReductionPlan, UseEvent } from '../../src/domain/reduction/reduction-engine.ts';
 
 const AT = toInstant(1787184000000); // fixed instant (UTC noon)
@@ -166,6 +167,66 @@ describe('active reduction plan', () => {
     expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('1of 7');
     const plans = createReductionRecordsStore(storage).load().plans;
     expect(plans[0]?.events.length).toBe(2);
+  });
+
+  it('clears the review banner when the breach days age out, on the derived state alone', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile());
+    seedPlan(
+      storage,
+      basePlan({
+        status: 'review_recommended',
+        limits: { maxUseDaysPerWeek: 7, maxSessionsPerUseDay: 1 },
+        events: [
+          eventAt(5, 'flower', 1),
+          eventAt(5, 'flower', 2),
+          eventAt(1, 'flower', 3),
+          eventAt(1, 'flower', 4),
+        ],
+      }),
+    );
+    const first = renderApp(storage);
+    expect(screen.getByTestId('reduction-card').getAttribute('data-status')).toBe('review_recommended');
+    expect(screen.getByTestId('reduction-review')).toBeTruthy();
+    first.unmount();
+
+    renderApp(storage, toInstant(AT + 7 * DAY_MS));
+    expect(screen.getByTestId('reduction-card').getAttribute('data-status')).toBe('active');
+    expect(screen.queryByTestId('reduction-review')).toBeNull();
+    // No write happened: the stored status is still the one logging left behind.
+    expect(createReductionRecordsStore(storage).load().plans[0]?.status).toBe('review_recommended');
+  });
+
+  it('keeps "Earlier today" on today when the clock is just past local midnight', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile());
+    seedPlan(storage, basePlan({ limits: { maxUseDaysPerWeek: 7, maxSessionsPerUseDay: 1 } }));
+    const justAfterMidnight = toInstant(new Date(2026, 8, 15, 0, 30).getTime());
+    renderApp(storage, justAfterMidnight);
+    fireEvent.click(screen.getByTestId('log-use-cta'));
+    const sheet = screen.getByTestId('log-use');
+    fireEvent.click(within(sheet).getByTestId('log-time-2h'));
+    fireEvent.click(within(sheet).getByTestId('log-use-save'));
+    const event = createReductionRecordsStore(storage).load().plans[0]!.events[0]!;
+    expect(localIsoDate(event.usedAt)).toBe(localIsoDate(justAfterMidnight));
+    expect(event.usedAt).toBe(toInstant(new Date(2026, 8, 15).getTime()));
+    expect(screen.getByTestId('reduction-sessions-value').textContent).toBe('1of 1');
+    expect(screen.getByTestId('reduction-use-days-value').textContent).toBe('1of 7');
+  });
+
+  it('keeps the two-hour offset for "Earlier today" in the middle of the afternoon', () => {
+    const storage = createMemoryStorage();
+    seedProfile(storage, reductionProfile());
+    seedPlan(storage, basePlan({ limits: { maxUseDaysPerWeek: 7, maxSessionsPerUseDay: 1 } }));
+    const afternoon = toInstant(new Date(2026, 8, 15, 15, 0).getTime());
+    renderApp(storage, afternoon);
+    fireEvent.click(screen.getByTestId('log-use-cta'));
+    const sheet = screen.getByTestId('log-use');
+    fireEvent.click(within(sheet).getByTestId('log-time-2h'));
+    fireEvent.click(within(sheet).getByTestId('log-use-save'));
+    const event = createReductionRecordsStore(storage).load().plans[0]!.events[0]!;
+    expect(event.usedAt).toBe(toInstant(new Date(2026, 8, 15, 13, 0).getTime()));
+    expect(localIsoDate(event.usedAt)).toBe(localIsoDate(afternoon));
   });
 
   it('recommends a pause after two breach days and pause/end work', () => {

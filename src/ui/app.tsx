@@ -160,6 +160,10 @@ export interface AppProps {
   readonly clock?: Clock;
   readonly durable?: DurablePersistence;
   readonly persistent?: boolean;
+  /** A durable write this session was rejected (prop-driven in tests). */
+  readonly writeFailed?: boolean;
+  /** Subscribes to durable write failures so the banner can follow them. */
+  readonly onWriteFailure?: (listener: (failed: boolean) => void) => () => void;
   readonly updateReady?: boolean;
   readonly onReloadUpdate?: () => void;
   readonly onDismissUpdate?: () => void;
@@ -178,6 +182,8 @@ export function App({
   clock = systemClock,
   durable: durableProp,
   persistent = true,
+  writeFailed: writeFailedProp = false,
+  onWriteFailure,
   updateReady = false,
   onReloadUpdate,
   onDismissUpdate,
@@ -199,6 +205,12 @@ export function App({
       }),
     [durableProp, storage, persistent],
   );
+  // A rejected durable write must not leave the app claiming it saves.
+  const [storageWriteFailed, setStorageWriteFailed] = useState(writeFailedProp);
+  useEffect(() => {
+    const subscribe = onWriteFailure ?? ((listener: (failed: boolean) => void) => durable.onWriteFailure(listener));
+    return subscribe(setStorageWriteFailed);
+  }, [durable, onWriteFailure]);
   const [factsEpoch, setFactsEpoch] = useState(0);
   const [session, setSession] = useState<QuestionnaireSession | null>(null);
   const [lastUseWarning, setLastUseWarning] = useState(false);
@@ -1220,7 +1232,11 @@ export function App({
 
   return (
     <>
-      {!persistent ? <StorageBanner /> : null}
+      {!persistent ? (
+        <StorageBanner />
+      ) : storageWriteFailed ? (
+        <StorageBanner variant="write-failed" />
+      ) : null}
       <Shell
         shell={shell}
         onSelectTab={(tab: AppTab) => dispatch({ type: 'select_tab', tab })}
@@ -1420,6 +1436,7 @@ export function App({
       <SettingsModal
         open={shell.settingsOpen}
         persistent={persistent}
+        storageWriteFailed={storageWriteFailed}
         updateStatus={updateStatus}
         onUpdateNow={() => onUpdateNow?.()}
         onOpenScience={() => {

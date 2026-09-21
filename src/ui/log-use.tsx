@@ -11,6 +11,7 @@ import {
   toInstant,
   type Instant,
 } from '../domain/schemas/time.ts';
+import { localIsoDate } from '../application/questionnaire/date-answers.ts';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
@@ -56,14 +57,22 @@ const DEFAULT_ROUTE: Record<ProductKind, Route> = {
   other: 'other',
 };
 
+function earlierToday(now: Instant): Instant {
+  const twoHoursBack = now - 2 * MILLIS_PER_HOUR;
+  if (localIsoDate(toInstant(twoHoursBack)) === localIsoDate(now)) return toInstant(twoHoursBack);
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  return toInstant(dayStart.getTime());
+}
+
 const TIME_CHIPS: ReadonlyArray<{
   readonly id: 'now' | '2h' | 'yesterday';
   readonly label: string;
-  readonly offsetMs: number;
+  readonly resolve: (now: Instant) => Instant;
 }> = [
-  { id: 'now', label: 'Now', offsetMs: 0 },
-  { id: '2h', label: 'Earlier today', offsetMs: -2 * MILLIS_PER_HOUR },
-  { id: 'yesterday', label: 'Yesterday', offsetMs: -MILLIS_PER_DAY },
+  { id: 'now', label: 'Now', resolve: (now) => now },
+  { id: '2h', label: 'Earlier today', resolve: earlierToday },
+  { id: 'yesterday', label: 'Yesterday', resolve: (now) => toInstant(now - MILLIS_PER_DAY) },
 ];
 
 export interface LogUseSheetProps {
@@ -88,7 +97,7 @@ export function LogUseSheet({ plan, now, onLog, onClose }: LogUseSheetProps) {
   const [failed, setFailed] = useState(false);
 
   const chip = TIME_CHIPS.find((item) => item.id === timeId) ?? TIME_CHIPS[0]!;
-  const usedAt = toInstant(now + chip.offsetMs);
+  const usedAt = chip.resolve(now);
 
   function selectProduct(next: ProductKind): void {
     setProduct(next);

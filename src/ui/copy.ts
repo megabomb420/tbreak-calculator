@@ -45,6 +45,7 @@ export const SETTINGS = {
   installDesktop: 'Desktop: use the install icon in the address bar, or Install app in the browser menu.',
   offlineNote: 'Fully offline-capable · all data on this device',
   storageOk: 'Saving on this device.',
+  storageWriteFailed: 'The latest change may not have been saved on this device.',
   storageUnavailable: "This session can't be saved — results will vanish when you close the app.",
   appInfoTitle: 'About',
   appInfoVersion: 'T-Break Calculator',
@@ -157,6 +158,8 @@ export const PREVIOUS_BREAK = {
 
 export const STORAGE_BANNER = {
   message: "This session can't be saved — results will vanish when you close the app.",
+  /** A write this session was rejected; the in-memory copy may not survive. */
+  writeFailed: 'The latest change may not have been saved on this device.',
 } as const;
 
 export const PWA_UPDATE = {

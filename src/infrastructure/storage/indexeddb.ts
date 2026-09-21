@@ -106,6 +106,9 @@ interface IdbDatabaseLike {
   objectStoreNames: { contains(name: string): boolean };
   createObjectStore(name: string, options: { keyPath: string }): unknown;
   transaction(store: string | readonly string[], mode: 'readonly' | 'readwrite'): IdbTransactionLike;
+  /** Present on a real IDBDatabase; absent in minimal fakes. */
+  onversionchange?: (() => void) | null;
+  close?(): void;
 }
 
 export interface IdbFactoryLike {
@@ -175,6 +178,8 @@ export function openIndexedDb(
       };
       request.onsuccess = () => {
         const db = request.result;
+        // A second tab upgrading the schema would otherwise block forever.
+        db.onversionchange = () => db.close?.();
         finish(browserBackend(db));
       };
       request.onerror = () => finish(null);
@@ -400,17 +405,41 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
 export function createIndexedDbDurable(backend: IndexedDbBackend, initial: DurableSnapshot): DurablePersistence {
   let cache = initial;
   let chain: Promise<void> = Promise.resolve();
+  let writeFailed = false;
+  const listeners = new Set<(failed: boolean) => void>();
+
+  function report(failed: boolean): void {
+    if (writeFailed === failed) return;
+    writeFailed = failed;
+    for (const listener of listeners) listener(failed);
+  }
 
   function enqueue(work: () => Promise<void>): void {
-    chain = chain.then(work).catch(() => {
-      // A failed durable write must not throw into UI; the in-memory cache
-      // still holds the change for this session.
-    });
+    chain = chain.then(work).then(
+      () => {
+        report(false);
+      },
+      () => {
+        // A failed durable write must not throw into UI; the in-memory cache
+        // still holds the change for this session. The failure is reported so
+        // the app stops claiming the change is saved on this device.
+        report(true);
+      },
+    );
   }
 
   const api: DurablePersistence = {
     persistent: true,
     backend: 'indexeddb',
+    get writeFailed() {
+      return writeFailed;
+    },
+    onWriteFailure(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     load: () => cache,
     saveAttempts(attempts) {
       cache = { ...cache, attempts: [...attempts], postBreakPlans: [...plansFromAttempts(attempts)] };
@@ -750,7 +779,9 @@ export interface OpenDurableResult {
  * Web Storage envelopes, otherwise in-memory (degraded).
  *
  * Web Storage envelopes are not removed until IndexedDB writes have flushed.
- * A failed family or flush leaves the source envelopes in place.
+ * A failed family or flush leaves the source envelopes in place. When an
+ * IndexedDB factory exists but its open fails, the result is not-persistent:
+ * the migrated envelopes are already gone, so this boot cannot claim to save.
  */
 export async function openDurablePersistence(
   adapter: StorageAdapter,
@@ -758,7 +789,12 @@ export async function openDurablePersistence(
   indexedDBImpl: IdbFactoryLike | null | undefined = readIndexedDbFactory(),
   backendOverride: IndexedDbBackend | null = null,
 ): Promise<OpenDurableResult> {
-  const backend = backendOverride ?? (await openIndexedDb(indexedDBImpl ?? null));
+  let idbUnavailable = false;
+  let backend: IndexedDbBackend | null = backendOverride;
+  if (backend === null) {
+    idbUnavailable = indexedDBImpl !== null && indexedDBImpl !== undefined;
+    backend = await openIndexedDb(indexedDBImpl ?? null);
+  }
   if (backend !== null) {
     try {
       const initial = await hydrateIndexedDbDurable(backend);
@@ -771,9 +807,13 @@ export async function openDurablePersistence(
       return { durable, persistent: true, migration };
     } catch {
       // Fall through to Web Storage rather than destroy existing envelopes.
+      idbUnavailable = true;
     }
   }
-  if (webPersistent) {
+  // Web Storage holds no durable records once the migration emptied those
+  // keys, so an unavailable IndexedDB boots an empty app. Report it as
+  // not-persistent: the banner, not a silent empty state, tells the truth.
+  if (webPersistent && !idbUnavailable) {
     const durable = createWebBackedDurable(adapter, { persistent: true, backend: 'web-storage' });
     const snapshot = durable.load().snapshot;
     if (snapshot !== null) ensureCalculationFromSnapshot(durable, snapshot);

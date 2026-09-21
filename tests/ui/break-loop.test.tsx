@@ -398,12 +398,13 @@ describe('interruption confirmation', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
     const checkin = checkinsOf(storage)[0] as { usedThc: boolean; usedAt: { value: string } | null };
     expect(checkin.usedThc).toBe(true);
-    expect(checkin.usedAt?.value).toMatch(/^2026-08-20/);
+    const localDay = localIsoDate(AT);
+    expect(checkin.usedAt?.value?.slice(0, localDay.length)).toBe(localDay);
     // The authoritative profile anchor is updated to the confirmed use.
     const snapshot = createQuestionnaireSnapshotStore(storage).load();
     expect(snapshot?.snapshot.kind).toBe('use_profile');
     if (snapshot?.snapshot.kind === 'use_profile') {
-      expect(snapshot.snapshot.profile.lastUseAt.value).toMatch(/^2026-08-20/);
+      expect(snapshot.snapshot.profile.lastUseAt.value.slice(0, localDay.length)).toBe(localDay);
     }
   });
 

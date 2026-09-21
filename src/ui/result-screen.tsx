@@ -18,6 +18,7 @@ import {
   evidenceRangeLine,
   NOMINAL_THC,
   PLAN_LENS,
+  planHeroLabel,
   RESULT,
 } from './result-copy.ts';
 import { HISTORY } from './copy.ts';
@@ -202,6 +203,7 @@ function ResultBody({
             summary={PLAN_LENS.summary}
             tone="plan"
             labelledBy="result-title"
+            ariaLabel={planHeroLabel(view.preferredTargetDays)}
           >
             <p className="result-lens-meta">{evidenceRangeLine(view.rangeDays.min, view.rangeDays.max)}</p>
             <p className="meta">{view.uncertainty}</p>

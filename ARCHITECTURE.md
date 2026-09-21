@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.27.1**
+Version: **0.28.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -303,6 +303,14 @@ questionnaire draft and result-overlay
 flag remain on Web Storage. v0.3.x envelopes are migrated once,
 idempotently, and left in place if a family fails. The repository interface
 and record shapes are the boundary.
+
+**Storage honesty (0.28.0).** The durable facade reports its own failures
+instead of assuming they did not happen: `writeFailed` plus an
+`onWriteFailure` subscription fire on the transition into and out of a failed
+envelope write, so the app can stop claiming that a change was saved. A
+blocked or failed IndexedDB open no longer presents the emptied Web Storage
+envelopes as a successful store either — the facade reports itself
+not-persistent there, which is what the storage banner and Settings read.
 
 Minimal logical stores (IndexedDB, later slice) are:
 

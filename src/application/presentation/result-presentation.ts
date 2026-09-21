@@ -6,6 +6,7 @@
 
 import type { CurrentPatternDurationBand, DetectionMatrix } from '../../domain/schemas/enums.ts';
 import type { UseProfileInput } from '../../domain/schemas/profile.ts';
+import { parseSubmittedTimestamp } from '../../domain/schemas/time.ts';
 // Presentation-only structural copy (UX_SPEC 9.5–9.6). Not engine output.
 import type {
   DetectionResult,
@@ -18,6 +19,7 @@ import type {
 } from '../../domain/schemas/result.ts';
 import type { QuestionnaireStepId } from '../questionnaire/engine.ts';
 import { renderMessageCode } from './message-templates.ts';
+import { formatLocalDay } from './format.ts';
 import { primaryWindowForDay, primaryWindowIdForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 import {
   presentOutlookForProfile,
@@ -368,10 +370,11 @@ function answerRows(profile: UseProfileInput): AnswerRow[] {
     });
   }
   if (profile.lastUseAt.value !== null) {
+    const lastUse = parseSubmittedTimestamp(profile.lastUseAt.value);
     rows.push({
       id: 'lastUse',
       label: 'When you last used',
-      value: profile.lastUseAt.value.slice(0, 10),
+      value: lastUse === null ? profile.lastUseAt.value : formatLocalDay(lastUse),
       step: profile.goal === 'abstinence' ? 'Q2A' : profile.thcUseDaysLast30.value === 0 ? 'Q3-opt' : 'Q3',
     });
   }

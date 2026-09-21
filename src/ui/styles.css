@@ -3784,7 +3784,7 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .carousel-arrow { width: 44px; height: 44px; background: transparent; border: 0; border-radius: 50%; font-size: 1.25rem; }
 .carousel-arrow:disabled { opacity: 0.25; }
 .carousel-dots { display: flex; }
-.carousel-dots button { display: grid; place-items: center; width: 36px; height: 44px; border: 0; background: transparent; }
+.carousel-dots button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; background: transparent; }
 .carousel-dots span { width: 5px; height: 5px; border-radius: 999px; background: var(--fg-muted); opacity: 0.4; transition: width 160ms ease, opacity 160ms ease; }
 .carousel-dots [aria-current="true"] span { width: 18px; background: var(--accent); opacity: 1; }
 .community-disclaimer { margin: 0; padding: 0 18px 18px; font-size: 0.75rem; line-height: 1.5; }

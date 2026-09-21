@@ -524,7 +524,7 @@ function ReductionActiveCard(props: TodayScreenProps) {
   if (live === null) return null;
   const { plan, state } = live;
   const paused = plan.status === 'paused';
-  const review = plan.status === 'review_recommended' || state.reviewRecommended;
+  const review = state.reviewRecommended;
   const shownStatus = paused ? 'paused' : review ? 'review_recommended' : 'active';
   const useProgress = Math.min(100, (state.rollingUseDays / plan.limits.maxUseDaysPerWeek) * 100);
   const sessionProgress = Math.min(100, (state.todaySessions / plan.limits.maxSessionsPerUseDay) * 100);

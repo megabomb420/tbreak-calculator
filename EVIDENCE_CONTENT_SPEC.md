@@ -1,6 +1,6 @@
 # Evidence content specification
 
-App version: **0.27.1**
+App version: **0.28.0**
 Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v2` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
@@ -174,7 +174,7 @@ Current-pattern duration may change outlook wording, the personalisation note, W
 
 ## 13. Recovery outlook content (0.9.2)
 
-Content version: `tolerance-recovery-outlook-v2`. “Predicted reset” remains the compact navigation label; its lead defines the construct as a **likely tolerance recovery window**: a product estimate of when tolerance may approach a near-maximal reduction relative to the stored current pattern. It is not a full-reset claim, receptor percentage, detox estimate, drug-test prediction, or clinical endpoint. The unchanged tolerance-v3 plan, the predicted window, and the Day-28 human biological reference render as distinct concepts.
+Content version: `tolerance-recovery-outlook-v2`. “Recovery outlook” is the compact navigation label; its lead defines the construct as a **likely tolerance recovery window**: a product estimate of when tolerance may approach a near-maximal reduction relative to the stored current pattern. It is not a full-reset claim, receptor percentage, detox estimate, drug-test prediction, or clinical endpoint. The unchanged tolerance-v3 plan, the predicted window, and the Day-28 human biological reference render as distinct concepts.
 
 ### Fresh evidence table and classification
 

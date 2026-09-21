@@ -139,6 +139,11 @@ export interface DurableSnapshot {
 export interface DurablePersistence {
   readonly persistent: boolean;
   readonly backend: 'indexeddb' | 'web-storage' | 'memory';
+  /** True while writes are failing, so a rejected write is never silent. */
+  readonly writeFailed: boolean;
+  /** Subscribes to write-failure transitions. Idempotent while failures keep
+   * coming: `true` is reported once, then only when a later write succeeds. */
+  onWriteFailure(listener: (failed: boolean) => void): () => void;
   load(): DurableSnapshot;
   saveAttempts(attempts: readonly StoredAttempt[]): void;
   saveTracking(records: readonly StoredTrack[]): void;
@@ -180,6 +185,26 @@ export function createWebBackedDurable(
   adapter: StorageAdapter,
   options: { readonly persistent?: boolean; readonly backend?: DurablePersistence['backend'] } = {},
 ): DurablePersistence {
+  const listeners = new Set<(failed: boolean) => void>();
+  let writeFailed = false;
+
+  /** A rejected envelope write (quota, private mode) stays out of the UI. */
+  function write(work: () => void): void {
+    try {
+      work();
+      if (writeFailed) {
+        writeFailed = false;
+        for (const listener of listeners) listener(false);
+      }
+    } catch (error) {
+      if (!writeFailed) {
+        writeFailed = true;
+        for (const listener of listeners) listener(true);
+      }
+      throw error;
+    }
+  }
+
   const attemptsStore = createBreakAttemptsStore(adapter);
   const trackingStore = createTrackingRecordsStore(adapter);
   const checkinsStore = createCheckinsStore(adapter);
@@ -223,55 +248,92 @@ export function createWebBackedDurable(
   const api: DurablePersistence = {
     persistent,
     backend,
+    get writeFailed() {
+      return writeFailed;
+    },
+    onWriteFailure(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     load,
     saveAttempts(attempts) {
-      attemptsStore.save({ ...emptyBreakAttemptsRecord(), attempts: [...attempts] });
-      postBreakPlansStore.save({ ...emptyPostBreakPlans(), records: [...plansFromAttempts(attempts)] });
+      const next = { ...emptyBreakAttemptsRecord(), attempts: [...attempts] };
+      const plans = { ...emptyPostBreakPlans(), records: [...plansFromAttempts(attempts)] };
+      write(() => {
+        attemptsStore.save(next);
+        postBreakPlansStore.save(plans);
+      });
     },
     saveTracking(records) {
-      trackingStore.save({ ...emptyTrackingRecordsRecord(), records: [...records] });
+      const next = { ...emptyTrackingRecordsRecord(), records: [...records] };
+      write(() => {
+        trackingStore.save(next);
+      });
     },
     saveCheckins(checkins) {
-      checkinsStore.save({ ...emptyCheckinsRecord(), checkins: [...checkins] });
+      const next = { ...emptyCheckinsRecord(), checkins: [...checkins] };
+      write(() => {
+        checkinsStore.save(next);
+      });
     },
     saveReductionPlan(plan) {
-      if (plan === null) reductionStore.clear();
-      else reductionStore.save(plan);
+      write(() => {
+        if (plan === null) reductionStore.clear();
+        else reductionStore.save(plan);
+      });
     },
     saveReductionRecords(records) {
-      reductionRecordsStore.save({ ...emptyReductionRecords(), plans: [...records] });
+      const next = { ...emptyReductionRecords(), plans: [...records] };
+      write(() => {
+        reductionRecordsStore.save(next);
+      });
     },
     saveOutcomeMarks(marks) {
-      outcomeStore.save({ ...emptyBreakOutcomeEnvelope(), marks: [...marks] });
+      const next = { ...emptyBreakOutcomeEnvelope(), marks: [...marks] };
+      write(() => {
+        outcomeStore.save(next);
+      });
     },
     saveSnapshot(record) {
-      if (record === null) snapshots.clear();
-      else snapshots.save(record);
+      write(() => {
+        if (record === null) snapshots.clear();
+        else snapshots.save(record);
+      });
     },
     putCalculation(record) {
       const current = calculationsStore.load();
       const records = [record, ...current.records.filter((item) => item.id !== record.id)];
-      calculationsStore.save({ ...emptyCalculationRecords(), records, corrupt: current.corrupt });
+      write(() => {
+        calculationsStore.save({ ...emptyCalculationRecords(), records, corrupt: current.corrupt });
+      });
     },
     deleteCalculation(id) {
       const current = calculationsStore.load();
-      calculationsStore.save({
-        ...emptyCalculationRecords(),
-        records: current.records.filter((item) => item.id !== id),
-        corrupt: current.corrupt.filter((item) => item.id !== id),
+      write(() => {
+        calculationsStore.save({
+          ...emptyCalculationRecords(),
+          records: current.records.filter((item) => item.id !== id),
+          corrupt: current.corrupt.filter((item) => item.id !== id),
+        });
       });
     },
     putPreviousBreak(record) {
       const current = previousBreaksStore.load();
       const records = [record, ...current.records.filter((item) => item.id !== record.id)];
-      previousBreaksStore.save({ schemaVersion: current.schemaVersion, records, corrupt: current.corrupt });
+      write(() => {
+        previousBreaksStore.save({ schemaVersion: current.schemaVersion, records, corrupt: current.corrupt });
+      });
     },
     deletePreviousBreak(id) {
       const current = previousBreaksStore.load();
-      previousBreaksStore.save({
-        schemaVersion: current.schemaVersion,
-        records: current.records.filter((item) => item.id !== id),
-        corrupt: current.corrupt.filter((item) => item.id !== id),
+      write(() => {
+        previousBreaksStore.save({
+          schemaVersion: current.schemaVersion,
+          records: current.records.filter((item) => item.id !== id),
+          corrupt: current.corrupt.filter((item) => item.id !== id),
+        });
       });
     },
     deleteAttempt(id) {
@@ -292,25 +354,31 @@ export function createWebBackedDurable(
     },
     deleteCorrupt(id) {
       const current = calculationsStore.load();
-      calculationsStore.save({
-        ...emptyCalculationRecords(),
-        records: current.records.filter((item) => item.id !== id),
-        corrupt: current.corrupt.filter((item) => item.id !== id),
+      write(() => {
+        calculationsStore.save({
+          ...emptyCalculationRecords(),
+          records: current.records.filter((item) => item.id !== id),
+          corrupt: current.corrupt.filter((item) => item.id !== id),
+        });
       });
       const previous = previousBreaksStore.load();
-      previousBreaksStore.save({
-        schemaVersion: previous.schemaVersion,
-        records: previous.records.filter((item) => item.id !== id),
-        corrupt: previous.corrupt.filter((item) => item.id !== id),
+      write(() => {
+        previousBreaksStore.save({
+          schemaVersion: previous.schemaVersion,
+          records: previous.records.filter((item) => item.id !== id),
+          corrupt: previous.corrupt.filter((item) => item.id !== id),
+        });
       });
       api.deleteAttempt(id);
       api.deleteTracking(id);
       api.deleteCheckin(id);
     },
     deleteAll() {
-      for (const key of LOCAL_DATA_KEYS) {
-        adapter.removeItem(key);
-      }
+      write(() => {
+        for (const key of LOCAL_DATA_KEYS) {
+          adapter.removeItem(key);
+        }
+      });
     },
     flush() {
       return Promise.resolve();

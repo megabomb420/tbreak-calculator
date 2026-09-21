@@ -61,8 +61,9 @@ describe('result view mode segment (tolerance_result)', () => {
     expect(mode.getAttribute('role')).toBe('tablist');
     expect(screen.getByTestId('result-mode-plan').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('false');
-    // Default "Your plan": the hero still leads, unchanged.
-    expect(screen.getByRole('heading', { name: '7 days' })).toBeTruthy();
+    // Default "Your plan": the hero still leads, unchanged, with the planning
+    // target as its accessible label (§9.1).
+    expect(screen.getByRole('heading', { name: 'Plan for 7 days' })).toBeTruthy();
     expect(screen.getByTestId('break-journey')).toBeTruthy();
   });
 

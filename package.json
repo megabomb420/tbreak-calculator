@@ -1,6 +1,6 @@
 {
   "name": "tbreak-calculator",
-  "version": "0.27.1",
+  "version": "0.28.0",
   "private": true,
   "type": "module",
   "description": "Local-first T-Break calculator PWA. Deterministic domain core; browser shell.",
@@ -13,7 +13,10 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "node --test \"tests/unit/**/*.test.ts\" \"tests/golden/**/*.test.ts\" && vitest run",
-    "test:ui": "vitest run"
+    "test:ui": "vitest run",
+    "test:tz:pacific": "node --env-file=.tz-pacific.env --test tests/unit/**/*.test.ts tests/golden/**/*.test.ts && node --env-file=.tz-pacific.env node_modules/vitest/vitest.mjs run",
+    "test:tz:europe": "node --env-file=.tz-central-europe.env --test tests/unit/**/*.test.ts tests/golden/**/*.test.ts && node --env-file=.tz-central-europe.env node_modules/vitest/vitest.mjs run",
+    "test:tz": "npm run test:tz:pacific && npm run test:tz:europe"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",

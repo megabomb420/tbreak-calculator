@@ -50,6 +50,12 @@ describe('interaction-polish CSS contract', () => {
     expect(CSS).toMatch(/\.tile[\s\S]*?touch-action:\s*manipulation/);
   });
 
+  it('keeps the carousel dots at the app 44px touch-target width', () => {
+    const dots = CSS.match(/\.carousel-dots button \{[^}]*\}/)?.[0] ?? '';
+    expect(dots).toMatch(/width:\s*44px/);
+    expect(dots).toMatch(/height:\s*44px/);
+  });
+
   it('keeps editable and copyable content selectable', () => {
     const editableRule = CSS.match(/input,\n?\s*textarea,[\s\S]*?user-select:\s*text/);
     expect(editableRule).toBeTruthy();

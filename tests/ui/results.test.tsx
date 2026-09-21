@@ -49,7 +49,10 @@ describe('result screens from engine output', () => {
     expect(result.getAttribute('data-kind')).toBe('tolerance_result');
     // The actionable planning target leads the hero; the broad evidence range
     // is stated directly underneath so the two are never conflated.
-    expect(screen.getByRole('heading', { name: '7 days' })).toBeTruthy();
+    // UX_SPEC §9.1: the hero carries the actionable target as its accessible
+    // label, so the named dialog announces "Plan for 7 days", not "7 days".
+    expect(screen.getByRole('heading', { name: 'Plan for 7 days' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Plan for 7 days' })).toBeTruthy();
     expect(screen.getByTestId('result-lens-plan')).toBeTruthy();
     expect(result.textContent ?? '').toMatch(/Planning range: 7–14 days/);
     // 10 use days + "1–6 months" + a single flower session is a recently

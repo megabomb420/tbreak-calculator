@@ -9,6 +9,8 @@ import { explainDetection } from '../../src/domain/detection/detection-engine.ts
 import { TOLERANCE_POLICY_V3 } from '../../src/domain/policies/tolerance-policy-v3.ts';
 import { DETECTION_COPY_POLICY_V1 } from '../../src/domain/policies/detection-copy-policy-v1.ts';
 import { sampleProfile, userValue, absent, C0 } from '../helpers.ts';
+import { toInstant } from '../../src/domain/schemas/time.ts';
+import { formatLocalDay } from '../../src/ui/format.ts';
 import type { UseProfileInput } from '../../src/domain/schemas/profile.ts';
 import type { ToleranceResult } from '../../src/domain/schemas/result.ts';
 
@@ -119,5 +121,18 @@ describe('result presentation copies engine values and does not recompute them',
     assert.ok(view.matrixCopy.some((line) => line.includes('cutoff')));
     assert.ok(view.contextNote?.includes('Workplace cutoffs'));
     assert.equal(view.daysSinceLastUse, undefined);
+  });
+
+  it('renders the last-use answer row as the local calendar day, not a raw ISO slice', () => {
+    const lastUse = '2026-08-19T22:00:00Z';
+    const profile = sampleProfile({ lastUseAt: userValue(lastUse) });
+    const engine = calculateTolerance(profile, TOLERANCE_POLICY_V3, C0);
+    const view = presentToleranceResult(engine, profile);
+    assert.equal(view.kind, 'tolerance_result');
+    if (view.kind !== 'tolerance_result') return;
+    const row = view.answers.find((item) => item.id === 'lastUse');
+    assert.ok(row);
+    assert.doesNotMatch(row.value, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(row.value, formatLocalDay(toInstant(Date.parse(lastUse))));
   });
 });
