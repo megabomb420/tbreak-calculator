@@ -195,7 +195,8 @@ The two carousel presentation defects recorded in 0.25.1 are fixed in 0.26.0 (id
 Partial browser passes against live Pages:
 - Nested disclosure markers (0.27.1 / `6a6ef02`): PASS — outer timeline `–`, closed nested phase legs stay on `+`.
 - After 0.28.0 (`5ec9b28`): Today OK (Day 2 of 21); Check-in OK (Checked in today / Undo). Welcome / Calculator / Result / Backup incomplete (Auto-review blocked further browser actions).
-- Do not leave PLACEHOLDER / SEE_FILE / probe stubs on `main` — restore must write the full file in one commit.
+
+The restore probe that wrote the section above left its payload on `main`: `restore/handoff_chunk_00..07.b64`, `HANDOFF.md.zlib.b64` and the `restore-handoff.yml` workflow whose job decoded those chunks, committed the result and pushed it itself with `contents: write`. This file was already whole, so the payload had nothing left to decode; the eight chunks, the compressed blob and the workflow are removed, and nothing on `main` writes this file automatically any more. A documentation change belongs in one commit on the branch.
 
 
 Known limitation of the backup, documented rather than fixed: the restore wipes before it writes, so an I/O failure mid-write is the one case that is not atomic (a rejected file never is). One benign consequence, also documented rather than fixed: because the transient result-overlay flag is deliberately excluded from the file, a restore followed by a reload shows the "your result" overlay once — the same pre-worded state a freshly migrated device already reaches, costing no data and closing normally, and suppressing it would hide the restored plan from someone who has just moved to a new device.
