@@ -4,6 +4,11 @@
 // paused, ended) so ending a plan never deletes an earlier plan's events.
 // Envelope semantics mirror the break-attempt and tracking records stores.
 //
+// 0.29.0 added an optional per-event `utcOffsetMinutes`. The field is strictly
+// additive — a row written by an older build simply lacks it and is grouped
+// with the current offset, and an older build reading a newer row ignores it —
+// so the envelope version and key stay at v2 and no migration is needed.
+//
 // Legacy reduction-plan-v1 (plain user limits, never fed to an engine) stays
 // readable by its original store for migration; when a v2 plan starts from a
 // stored v1 limit record, the caller copies those limits into the plan's
@@ -143,6 +148,12 @@ function isValidEvent(value: unknown): value is UseEvent {
   if (typeof value.id !== 'string' || value.id === '') return false;
   if (!isInstantNumber(value.usedAt)) return false;
   if (!isInstantNumber(value.createdAt)) return false;
+  // The offset the session was logged at (0.29.0). Absent on rows written
+  // before it, which are grouped with the current offset; present but
+  // impossible (beyond UTC-14..UTC+14) is corrupt, like a bad instant.
+  if (value.utcOffsetMinutes !== undefined && !isIntInRange(value.utcOffsetMinutes, -840, 840)) {
+    return false;
+  }
   return isProductKind(value.product) && isRoute(value.route);
 }
 

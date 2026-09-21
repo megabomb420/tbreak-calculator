@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.28.0**
+Version: **0.29.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -274,10 +274,14 @@ Active reduction (cut-down) plans are a separate pure domain
 (`src/domain/reduction/reduction-engine.ts` + `reduction-plan-lifecycle.ts`)
 persisted under the `reduction-records-v2` application store
 (`src/application/progress/reduction-record.ts`; see CALCULATOR_SPEC §10.1).
-Their events are sessions recorded as UTC instants grouped by the local
-calendar day; logging use in reduction mode never interrupts, restarts, or
-re-anchors a break attempt, and tracked use never generates or rewrites a
-calculation record. Frozen calculation records stay immutable.
+Their events are sessions recorded as UTC instants, each carrying the UTC
+offset it was logged at, grouped by the local calendar day; a row written
+before 0.29.0 has no offset of its own and is grouped with the current one, and
+breach days are counted over day keys so no past session is re-interpreted
+under a later daylight-saving offset. Logging use in reduction mode never
+interrupts, restarts, or re-anchors a break attempt, and tracked use never
+generates or rewrites a calculation record. Frozen calculation records stay
+immutable.
 
 ## 9. Local persistence
 

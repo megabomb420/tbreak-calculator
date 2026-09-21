@@ -795,6 +795,9 @@ export function App({
       product,
       route,
       createdAt: nowAt,
+      // The offset where the session was logged, so the day it is counted
+      // against survives a later daylight-saving change.
+      utcOffsetMinutes: -new Date(usedAt).getTimezoneOffset(),
     };
     const updated = appendReductionUseEvent({
       plan,
@@ -1214,6 +1217,9 @@ export function App({
   const canStartPlan = liveAttempt === null && liveTracking === null && liveReductionPlan === null;
   const breakSheetTarget = toleranceTargetDays(resultModel ?? profileView);
   const breakDayAtStart = anchor === null ? 1 : abstinenceDayAt(now, anchor);
+  const breakSheetTargetDays =
+    flow?.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0);
+  const flowTrack = liveTracking?.status === 'tracking' ? liveTracking : null;
 
   const checkInDay =
     liveData.active !== null
@@ -1222,8 +1228,23 @@ export function App({
         ? liveData.tracking.view.day
         : null;
 
+  // The open flow, but only while it can actually render its dialog. An
+  // unrenderable flow would leave the background inert with no dialog, no
+  // Escape handler and no close action; the app would freeze with no way out.
+  const openFlow =
+    flow !== null &&
+    flowRendersDialog(flow, {
+      targetDays: breakSheetTargetDays,
+      track: flowTrack,
+      checkInDay,
+      segmentStart: flow.kind === 'confirm-use' ? flow.segmentStart : null,
+      reductionPlan: liveReductionPlan,
+    })
+      ? flow
+      : null;
+
   const overlayOpen =
-    session !== null || (resultModel !== null && flow === null) || flow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null;
+    session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null;
   const showInstallHint =
     !overlayOpen &&
     !installHintDismissed &&
@@ -1370,15 +1391,15 @@ export function App({
           onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
         />
       ) : null}
-      {flow !== null && flow.kind !== 'previous-break' ? (
+      {openFlow !== null && openFlow.kind !== 'previous-break' ? (
         <FlowRenderer
-          flow={flow}
-          targetDays={flow.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0)}
-          breakDayAtStart={flow.kind === 'break-start' && flow.customDays !== null ? 1 : breakDayAtStart}
+          flow={openFlow}
+          targetDays={breakSheetTargetDays}
+          breakDayAtStart={openFlow.kind === 'break-start' && openFlow.customDays !== null ? 1 : breakDayAtStart}
           now={now}
-          track={liveTracking?.status === 'tracking' ? liveTracking : null}
+          track={flowTrack}
           anchor={anchor}
-          segmentStart={flow.kind === 'confirm-use' ? flow.segmentStart : null}
+          segmentStart={openFlow.kind === 'confirm-use' ? openFlow.segmentStart : null}
           checkInDay={checkInDay}
           onClose={() => setFlow(null)}
           onStartBreak={startPlan}
@@ -1404,17 +1425,17 @@ export function App({
           }
         />
       ) : null}
-      {flow?.kind === 'previous-break' ? (
+      {openFlow?.kind === 'previous-break' ? (
         <PreviousBreakSheet
-          key={`${flow.editId ?? "new"}-${previousBreakRevision}`}
+          key={`${openFlow.editId ?? "new"}-${previousBreakRevision}`}
           now={now}
-          initial={flow.editId === null ? null : findPreviousBreak(durableSnap, flow.editId)}
+          initial={openFlow.editId === null ? null : findPreviousBreak(durableSnap, openFlow.editId)}
           onSave={savePreviousBreak}
           onDelete={
-            flow.editId === null
+            openFlow.editId === null
               ? undefined
               : () => {
-                  deleteHistoryRecord(durable, 'previous-break', flow.editId!);
+                  deleteHistoryRecord(durable, 'previous-break', openFlow.editId!);
                   setFlow(null);
                   refresh();
                 }
@@ -1479,6 +1500,42 @@ export function App({
       ) : null}
     </>
   );
+}
+
+/**
+ * Whether an open flow can render its own dialog. Each `FlowRenderer` branch
+ * returns null when the input it needs is missing, and a flow that renders
+ * nothing is worse than no flow: the shell treats *any* open flow as an overlay
+ * and makes the background inert, so with no dialog on screen there is no
+ * Escape handler, no focus trap and no close action — the app would freeze with
+ * no way out. Every caller supplies what its flow needs, so this is unreachable
+ * from the UI today; the gate keeps a future caller from getting there, and the
+ * two must agree whenever a branch changes.
+ */
+export function flowRendersDialog(
+  flow: Flow,
+  inputs: {
+    readonly targetDays: number;
+    readonly track: StoredTrack | null;
+    readonly checkInDay: number | null;
+    readonly segmentStart: Instant | null;
+    readonly reductionPlan: ReductionPlan | null;
+  },
+): boolean {
+  switch (flow.kind) {
+    case 'break-start':
+      return inputs.targetDays >= 1;
+    case 'tracking-detail':
+      return inputs.track !== null;
+    case 'checkin':
+      return inputs.checkInDay !== null;
+    case 'confirm-use':
+      return inputs.segmentStart !== null;
+    case 'log-use':
+      return inputs.reductionPlan !== null;
+    default:
+      return true;
+  }
 }
 
 function FlowRenderer({

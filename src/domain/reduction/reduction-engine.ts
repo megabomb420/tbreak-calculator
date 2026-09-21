@@ -16,16 +16,18 @@
 //     transparent product rule, never a biological reset claim.
 //
 // Day grouping uses the user's local calendar date. Events are stored as UTC
-// instants; callers pass the current UTC offset in minutes (east of UTC
-// positive) so the same instants never duplicate or silently disappear when a
-// timezone changes.
+// instants and each event carries the UTC offset in minutes (east of UTC
+// positive) that was in force where it was logged, so the same instants never
+// duplicate, disappear or move to another day when the timezone or a daylight-
+// saving rule changes. The offset a caller passes is the fallback for rows
+// written before that field existed.
 //
 // Logging a session never rewrites a tolerance recommendation. Tracked events
 // drive the plan's own state only: they never regenerate, refresh or rewrite a
 // frozen calculation record, and a stored record stays immutable.
 
 import type { ProductKind, Route } from '../schemas/enums.ts';
-import { toInstant, type Instant } from '../schemas/time.ts';
+import type { Instant } from '../schemas/time.ts';
 
 export const REDUCTION_ROLLING_WINDOW_DAYS = 7;
 export const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -66,6 +68,14 @@ export interface UseEvent {
   readonly route: Route;
   /** UTC instant the event row was created (immutable ordering key). */
   readonly createdAt: Instant;
+  /**
+   * UTC offset in effect where the session was logged (minutes east of UTC).
+   * The session's local calendar day is fixed by the offset in force when it
+   * happened, so a later daylight-saving change cannot move a past session to
+   * another day. Absent on rows written before 0.29.0: those are grouped with
+   * the caller's current offset, which is what they were grouped with before.
+   */
+  readonly utcOffsetMinutes?: number;
 }
 
 export interface ReductionPlan {
@@ -150,8 +160,13 @@ export function localDayKeysBetween(
   return keys;
 }
 
+/**
+ * Local day key for one event. An event carries the offset that was in force
+ * when it was logged; only a row written before that field existed (or a
+ * caller that has no event at hand) falls back to the caller's offset.
+ */
 export function dayKeyOfEvent(event: UseEvent, utcOffsetMinutes: number): string {
-  return dayKeyForInstant(event.usedAt, utcOffsetMinutes);
+  return dayKeyForInstant(event.usedAt, event.utcOffsetMinutes ?? utcOffsetMinutes);
 }
 
 function eventsInWindow(
@@ -190,6 +205,21 @@ export function sessionsOnDay(
   return events.filter((event) => dayKeyOfEvent(event, utcOffsetMinutes) === dayKey).length;
 }
 
+/** Distinct local days carrying at least one event inside a day-key range. */
+export function distinctUseDaysInDayRange(
+  events: readonly UseEvent[],
+  fromDayKey: string,
+  toDayKey: string,
+  utcOffsetMinutes: number,
+): number {
+  const days = new Set(
+    events
+      .map((event) => dayKeyOfEvent(event, utcOffsetMinutes))
+      .filter((dayKey) => dayKey >= fromDayKey && dayKey <= toDayKey),
+  );
+  return days.size;
+}
+
 function distinctBreachDays(
   events: readonly UseEvent[],
   limits: ReductionLimits,
@@ -203,12 +233,16 @@ function distinctBreachDays(
     // Session breach: sessions on the day exceed the per-day cap.
     const sessions = events.filter((event) => dayKeyOfEvent(event, utcOffsetMinutes) === dayKey).length;
     // Use-day breach: pushing the rolling 7-day count (ending that local day)
-    // over the weekly cap. Reference instant = end of that local day (clamped
-    // to now when the day is today), so evening events count on their day.
-    const localDayStartUtc = Date.parse(`${dayKey}T00:00:00.000Z`) - utcOffsetMinutes * 60 * 1000;
-    const endOfLocalDayUtc = localDayStartUtc + MILLIS_PER_DAY - 1;
-    const reference = toInstant(Math.min(now as number, endOfLocalDayUtc));
-    const rolling = distinctUseDaysInWindow(events, reference, utcOffsetMinutes);
+    // over the weekly cap. The window is a range of day keys, so an event is
+    // judged on the local day it was logged on rather than on the day today's
+    // offset would put it on, and a daylight-saving change cannot re-bucket a
+    // past breach day.
+    const rolling = distinctUseDaysInDayRange(
+      events,
+      dayKeyMinus(dayKey, REDUCTION_ROLLING_WINDOW_DAYS - 1, utcOffsetMinutes),
+      dayKey,
+      utcOffsetMinutes,
+    );
     if (sessions > limits.maxSessionsPerUseDay) breaches.push({ dayKey, reason: 'sessions' as const });
     if (rolling > limits.maxUseDaysPerWeek) breaches.push({ dayKey, reason: 'use_days' as const });
   }
