@@ -18,8 +18,8 @@ jobs:
           b64 = pathlib.Path('HANDOFF.md.zlib.b64').read_text().strip()
           data = zlib.decompress(base64.b64decode(b64))
           pathlib.Path('HANDOFF.md').write_bytes(data)
-          assert data.startswith(b'# Handoff')
-          assert b'Live verify 0.27.1' in data
+          assert data.startswith(b'# Handoff — T-Break Calculator 0.28.0')
+          assert len(data) > 40000
           print('restored', len(data), 'bytes')
           PY
           git config user.name "megabomb420"
@@ -28,6 +28,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No change"
           else
-            git commit -m "docs: restore HANDOFF.md + live verify nested markers (0.27.1)"
+            git commit -m "docs: restore full HANDOFF.md (0.28.0)"
             git push
           fi
