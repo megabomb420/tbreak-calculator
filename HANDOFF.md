@@ -211,6 +211,13 @@ The outcome-duration question is decided and shipped: a captured rating links th
 
 The two carousel presentation defects recorded in 0.25.1 are fixed in 0.26.0 (identity-based position; arrows that no longer depend on a scroll event), and the nested-disclosure marker defect found while adding the outlook disclosure is fixed in 0.27.1: the `.result-disclosure` summary rules are scoped to the disclosure's own summary and the phase legs carry their own marker pair, so each disclosure reports its own state instead of inheriting the parent's. Nothing in that family is outstanding.
 
+### Live verify 0.30.0 (2026-09-21)
+
+Browser pass against live Pages (`1a5bd2d`, Chrome headless, 390×780, no stored data):
+- The first-launch screen renders five safety paragraphs in the documented order (`[data-slot="safety_first_launch"]` measured at 350×328px), no horizontal overflow and no console or page errors.
+- The block pushes **Get started** below the fold: it scrolls into view at y=620 against a 64px tab bar at y=716 with no overlap, stays clickable and opens the questionnaire. The welcome screen is no longer one screenful tall — the trade for putting the slot in place rather than behind a tap.
+- The served bundle (`index-CLHCqm9k.js`, `index-DYSumzxN.css`) is byte-identical to the local build of the release commit.
+
 ### Live verify 0.29.0 (2026-09-21 ~22:35 Europe/Dublin)
 
 Browser pass against live Pages (`2405de9`, viewport 390×780, hard-refresh with cache bypass):
