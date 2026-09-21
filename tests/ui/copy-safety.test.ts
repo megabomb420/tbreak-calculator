@@ -70,9 +70,17 @@ describe('UI copy invariants', () => {
     expect(dumped).not.toMatch(/clean countdown/i);
   });
 
-  it('keeps the first-launch safety note factual and bounded', () => {
-    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).toMatch(/not medical advice/);
-    expect(FIRST_LAUNCH.safetyPending.toLowerCase()).toMatch(/not.*guaranteed.*test result/);
+  it('keeps the first-launch safety slot factual and bounded', () => {
+    const safety = FIRST_LAUNCH.safety.join(' ').toLowerCase();
+    expect(safety).toMatch(/not medical advice/);
+    expect(safety).toMatch(/not.*guaranteed.*test result/);
+    // The slot is a release blocker in `UX_SPEC` §3.3 / `CALCULATOR_SPEC` §14:
+    // age eligibility, the detection scope and the escalation lines have to be
+    // in it, not only the disclaimer.
+    expect(FIRST_LAUNCH.safety).toContain('For adults.');
+    expect(safety).toMatch(/not a flush protocol/);
+    expect(safety).toMatch(/urgent assessment/);
+    expect(safety).toMatch(/seek emergency help/);
   });
 
   it('keeps the check-in symptom anchors on the documented scale', () => {
@@ -132,6 +140,10 @@ describe('spec copy follows the shipped strings', () => {
     const evidenceSpec = readFileSync(resolve(ROOT, 'EVIDENCE_CONTENT_SPEC.md'), 'utf8');
     expect(uxSpec).toContain(FIRST_LAUNCH.title);
     expect(uxSpec).toContain(FIRST_LAUNCH.promise);
+    // The spec's §3.3 safety slot and the shipped block are the same lines.
+    for (const line of FIRST_LAUNCH.safety) {
+      expect(uxSpec).toContain(line);
+    }
     expect(uxSpec).not.toContain('A private, on-device planner');
     expect(evidenceSpec).not.toContain('“Predicted reset”');
     expect(evidenceSpec).toMatch(new RegExp(`“${recoveryCopy.RESET_MODE.reset}”[^.]{0,40}compact navigation label`));

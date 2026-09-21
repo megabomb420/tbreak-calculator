@@ -181,7 +181,11 @@ function FirstLaunch({ onGetStarted }: { readonly onGetStarted: () => void }) {
         })}
       </ul>
       <aside className="safety-slot" data-slot="safety_first_launch" aria-label="Safety information">
-        <p className="meta">{FIRST_LAUNCH.safetyPending}</p>
+        {FIRST_LAUNCH.safety.map((line) => (
+          <p key={line} className="meta">
+            {line}
+          </p>
+        ))}
       </aside>
       <button type="button" className="cta-primary" onClick={onGetStarted}>
         {FIRST_LAUNCH.cta}

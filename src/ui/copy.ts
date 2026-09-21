@@ -17,10 +17,22 @@ export const FIRST_LAUNCH = {
     { id: 'no-account', label: 'No account needed' },
   ],
   cta: 'Get started',
-  // UX_SPEC §3.3: the block ships in place; reviewed wording is a release
-  // blocker and is not invented here.
-  safetyPending:
+  // UX_SPEC §3.3 slot `safety_first_launch`. The block ships in place, and every
+  // line but the first is wording the app already publishes elsewhere:
+  // `result-presentation.ts` (DETECTION_BANNER), `evidence-guidance-v1.ts`
+  // (`notAProtocol`) and `daily-support.ts` (the anxiety/anger/low-mood
+  // `seekHelp` lines). "For adults." is the eligibility line the specs ask for
+  // and asserts nothing the app does not hold to. Health warnings for
+  // pregnancy, medication interactions and existing conditions have no reviewed
+  // source in this repository and are still owed by a clinical reviewer; they
+  // are not invented here, and neither is a jurisdiction-specific help number.
+  safety: [
+    'For adults.',
     'Planning guidance only — not medical advice or a guaranteed drug-test result.',
+    "Qualitative information only — this app doesn't estimate detection windows or test outcomes. This is not a flush protocol and not advice for influencing a drug test.",
+    'Get help if withdrawal feels unmanageable, or if you are worried about harming yourself or someone else — a clinician or drug support service can help you make a workable plan.',
+    'Chest pain, fainting or serious breathing difficulty need urgent assessment. If you might act on thoughts of self-harm, seek emergency help now.',
+  ],
 } as const;
 
 export const GOAL_CHIPS = [

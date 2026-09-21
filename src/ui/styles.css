@@ -368,6 +368,10 @@ summary:focus-visible {
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
+.safety-slot .meta + .meta {
+  margin-top: var(--space-2);
+}
+
 .cta-primary,
 .cta-secondary,
 .hold-delete,

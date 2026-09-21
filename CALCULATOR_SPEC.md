@@ -1,7 +1,7 @@
 # T-Break Calculator Specification
 
 Status: implemented deterministic core; release review scope is documented in HANDOFF.md
-Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.29.0)  
+Version: 0.2.0 (spec); Tolerance policy line: **tolerance-v3** (app 0.30.0)  
 Policy revision note (0.7.0): `currentPatternDuration` now selects the *planning target* inside the unchanged evidence range (section 7.3 target rule). It still never moves the range itself, and there is still no duration-to-days formula.  
 Flow revision note (0.7.1): questionnaire ordering only — Q6 is asked first on the routes that use duration (see section 4.3); no engine, range, target, or evidence change.  
 Release note (0.8.0): two changes land on main. (1) **tolerance-v3** replaces tolerance-v2 as the engine for new calculations: exposure classification is no longer a single-variable frequency lookup. Frequency (use days in 30) picks the base tier; intensity (sessions per use day ≥ 2, concentrates, dabbing) and chronicity (how long the current pattern has been typical) may move the classification at most ONE adjacent evidence tier; the broad evidence ranges 2–7 / 7–14 / 14–21 / 21–28 are unchanged and remain the outer bounds (never above 28). Sessions/products/routes are collected from 4 use-days up (not only ≥ 16), and clean in-range previous-break history may raise the planning target to the user's own best observed anchor — never the range. The result hero leads with the planning target and states the evidence range beneath it. (2) **Active reduction (cut-down) tracking** (`reduction-records-v2`) records exact THC-use events, derives plan state (rolling use-days, sessions, breach days, review rule), and replaces manual-only review with the transparent “two breach days in a rolling 7-day window → consider a 3–7 day pause and review” product rule. Details: sections 7.3, 7.5, 7.7 and 10.  
@@ -652,7 +652,7 @@ Golden fixtures freeze `calculatedAt`; equality is domain-structural rather than
 
 ### Release blockers for the deterministic consumer v1
 
-- reviewed safety/escalation content, including urgent help, dependency support, age eligibility, and applicable health warnings;
+- reviewed safety/escalation content, including urgent help, dependency support, age eligibility, and applicable health warnings. Partial for 0.30.0: the first-launch slot now carries age eligibility ("For adults."), the disclaimer, the detection-scope statement and two escalation lines, each one wording the app already ships. Still owed: health warnings for pregnancy, medication interactions and existing conditions, and a jurisdiction-specific urgent-help route — no service name or number exists anywhere in this repository, and neither is invented;
 - legal review and final medical/legal disclaimer wording for the intended launch jurisdictions;
 - a privacy/security review of local substance-use data, deletion behaviour, and platform storage claims; and
 - accessibility and offline verification of the implemented PWA.

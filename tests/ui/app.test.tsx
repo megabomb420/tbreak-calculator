@@ -130,7 +130,9 @@ describe('app shell', () => {
     expect(view.getAttribute('data-resume')).toBe('none');
     expect(screen.getByRole('heading', { name: FIRST_LAUNCH.title })).toBeTruthy();
     expect(screen.getByRole('button', { name: FIRST_LAUNCH.cta })).toBeTruthy();
-    expect(screen.getByText(FIRST_LAUNCH.safetyPending)).toBeTruthy();
+    for (const line of FIRST_LAUNCH.safety) {
+      expect(screen.getByText(line)).toBeTruthy();
+    }
     expect(document.querySelector('[data-slot="safety_first_launch"]')).toBeTruthy();
   });
 
