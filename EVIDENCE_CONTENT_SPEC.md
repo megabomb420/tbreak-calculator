@@ -1,6 +1,6 @@
 # Evidence content specification
 
-App version: **0.27.0**
+App version: **0.27.1**
 Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v2` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 

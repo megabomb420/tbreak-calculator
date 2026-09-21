@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.27.0**
+Version: **0.27.1**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:

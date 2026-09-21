@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.27.0
+# Handoff — T-Break Calculator 0.27.1
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/
@@ -22,6 +22,13 @@ Today leads with the check-in and practical advice. The advice list is chosen on
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.27.1 — a closed disclosure says it is closed
+
+- **The disclosure marker was inherited from the wrong element.** `.result-disclosure`'s summary rules were descendant selectors, so an open disclosure also applied its own "open" marker — and its 18px display typography — to every summary nested inside it. In practice, opening **Your break timeline** made each of its closed phase legs show "–" as if expanded, and pushed them from their intended small muted text up to the large display face. The rules are now scoped to the disclosure's own summary (`> summary`), and the phase legs carry their own marker pair plus the layout they were relying on, so each disclosure reports its own state.
+- No content, behaviour, storage or copy changed. Measured in a real browser at 390px before and after: three nested legs closed showed `font-family: Fraunces, 18px, marker "–"` before and `Figtree, 13px, marker "+"` after; with one leg opened, only that leg reads "–" and the other two stay "+". The outer "Your break timeline" heading is unchanged at Fraunces 18px with its own marker.
+
+Validation: **580 unit/domain/golden tests and 186 UI tests (766 total)** pass, plus typecheck and the production build.
 
 ## Release 0.27.0 — advice follows your check-ins, not a settings screen
 
@@ -153,7 +160,7 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.27.0. This release removes the advice-topic picker and the two-topic cap, so the "What matters today" list follows the check-in ratings alone; it keeps the phase context always visible on the Today card, and it records that the owner confirmed the backup on a real iPhone. It does not claim the earlier whole-product review is complete.
+Resume current main after 0.27.1. The 0.27.x line removes the advice-topic picker and the two-topic cap, so the "What matters today" list follows the check-in ratings alone; it keeps the phase context always visible on the Today card, fixes the disclosure marker that made closed phase legs look expanded, and records that the owner confirmed the backup on a real iPhone. It does not claim the earlier whole-product review is complete.
 
 Physical iOS Safari has been exercised by the owner on an iPhone 17 Pro: the app works correctly, including the one-tap check-in, Undo, the recorded-day line, the advice block and the swipeable carousel; the owner confirmed the trimmed tab bar reads better (the measurement and the trim are in the 0.25.1 section; the remaining 34px is the device's home-indicator safe area and is intentionally left); and the owner has now saved a backup and restored from one on the device, which closes the iOS gap 0.26.0 left open. Two implementation details exist for Safari's sake and should not be undone: the picker mounts its input inside the dialog, because the focus trap inerts background siblings and an inert input never receives the click, and the download anchor is attached to the document with its blob released only after 40 seconds, because Safari can still be starting a download when a synchronous revoke lands. Other iOS devices, older iOS versions and iPad layouts remain untested.
 
@@ -165,11 +172,11 @@ The advice picker is gone and should not come back without a deliberate decision
 
 The outcome-duration question is decided and shipped: a captured rating links the days actually abstained, not the plan's target. Nothing is pending on it.
 
-The two carousel presentation defects recorded here in 0.25.1 are fixed in 0.26.0 (identity-based position; arrows that no longer depend on a scroll event). One CSS defect found while adding the outlook disclosure stays open: `.result-disclosure[open] summary::after` is a descendant selector, so an open disclosure also applies its marker and heading font to *nested* summaries — visible today inside "Your break timeline". Fixing it properly means scoping the rule and reviewing every nested surface, which changes how the timeline legs currently look; it was left alone deliberately.
+The two carousel presentation defects recorded in 0.25.1 are fixed in 0.26.0 (identity-based position; arrows that no longer depend on a scroll event), and the nested-disclosure marker defect found while adding the outlook disclosure is fixed in 0.27.1: the `.result-disclosure` summary rules are scoped to the disclosure's own summary and the phase legs carry their own marker pair, so each disclosure reports its own state instead of inheriting the parent's. Nothing in that family is outstanding.
 
 Known limitation of the backup, documented rather than fixed: the restore wipes before it writes, so an I/O failure mid-write is the one case that is not atomic (a rejected file never is). One benign consequence, also documented rather than fixed: because the transient result-overlay flag is deliberately excluded from the file, a restore followed by a reload shows the "your result" overlay once — the same pre-worded state a freshly migrated device already reaches, costing no data and closing normally, and suppressing it would hide the restored plan from someone who has just moved to a new device.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.27.0. The deploying commit and workflow identify the release.
+Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.27.1. The deploying commit and workflow identify the release.
 
 ## Validation and release
 

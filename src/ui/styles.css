@@ -2357,7 +2357,17 @@ details.card > summary::-webkit-details-marker {
   cursor: pointer;
   color: var(--fg-muted);
   font-size: var(--text-sm);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  list-style: none;
 }
+
+.journey-leg-detail summary::-webkit-details-marker { display: none; }
+.journey-leg-detail summary::after { content: '+'; font-family: var(--font-body); color: var(--accent); font-size: 1.2rem; }
+.journey-leg-detail[open] summary::after { content: '–'; }
 
 .journey-leg-detail .guidance-block {
   margin-top: var(--space-2);
@@ -2796,7 +2806,7 @@ select,
   padding: var(--space-4) 0;
 }
 
-.result-disclosure summary {
+.result-disclosure > summary {
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -2809,9 +2819,9 @@ select,
   font-weight: 520;
 }
 
-.result-disclosure summary::-webkit-details-marker { display: none; }
-.result-disclosure summary::after { content: '+'; font-family: var(--font-body); color: var(--accent); font-size: 1.2rem; }
-.result-disclosure[open] summary::after { content: '–'; }
+.result-disclosure > summary::-webkit-details-marker { display: none; }
+.result-disclosure > summary::after { content: '+'; font-family: var(--font-body); color: var(--accent); font-size: 1.2rem; }
+.result-disclosure[open] > summary::after { content: '–'; }
 .result-disclosure > .body,
 .result-disclosure > .meta,
 .result-disclosure > .driver-list { margin-top: var(--space-3); }
