@@ -12,9 +12,9 @@ import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import { validateDailyCheckin } from '../../domain/validation/checkin-validation.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 import {
-  COMPANION_PERSONALISATION_VERSION,
-  isCompanionPersonalisationV2,
-  type CompanionPersonalisationV2,
+  emptyCompanionPersonalisation,
+  parseCompanionPersonalisation,
+  type CompanionPersonalisation,
 } from '../questionnaire/companion.ts';
 import {
   isValidStoredAttempt,
@@ -268,16 +268,15 @@ const STORES = {
     },
     count: (marks) => marks.length,
   }),
-  companionPersonalisation: defineBackupStore<CompanionPersonalisationV2>({
+  companionPersonalisation: defineBackupStore<CompanionPersonalisation>({
     keys: [COMPANION_PERSONALISATION_KEY],
     read: (input) => createCompanionPersonalisationStore(input.adapter).loadOrMigrate(),
-    empty: () => ({ schemaVersion: COMPANION_PERSONALISATION_VERSION, supportAreas: [] }),
-    parse: (value) =>
-      isCompanionPersonalisationV2(value) && new Set(value.supportAreas).size === value.supportAreas.length
-        ? value
-        : INVALID,
+    empty: () => emptyCompanionPersonalisation(),
+    // A file may carry the device-wide v2 list or the current record, which is
+    // bound to the break it was confirmed for; both read forward here.
+    parse: (value) => parseCompanionPersonalisation(value) ?? INVALID,
     write: (input, record) => {
-      createCompanionPersonalisationStore(input.adapter).saveAreas(record.supportAreas);
+      createCompanionPersonalisationStore(input.adapter).saveRecord(record);
     },
     count: (record) => record.supportAreas.length,
   }),

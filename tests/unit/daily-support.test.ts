@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { adviceSectionFor, presentDailySupport, SUPPORT_GUIDES, type DailySupportInput, type DailySupportView } from '../../src/application/presentation/daily-support.ts';
 import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
+import type { BreakFocus } from '../../src/application/questionnaire/companion.ts';
 
 const NOW = Date.parse('2026-09-20T12:00:00Z');
 const DAY = 86_400_000;
@@ -10,6 +11,13 @@ function shown(view: DailySupportView) {
 }
 
 const base: DailySupportInput = { day: 4, now: NOW, anchor: NOW - 3 * DAY, checkins: [], preparation: null, targetDays: 28 };
+/** The topics confirmed for a break, in taxonomy order, anchored to a day. */
+function focus(areas: BreakFocus['areas'], anchorDay = 1): BreakFocus {
+  return { areas, anchorDay, reusable: [] };
+}
+function reusable(areas: BreakFocus['areas']): BreakFocus {
+  return { areas: [], anchorDay: 1, reusable: areas };
+}
 function row(patch: Partial<DailyCheckin> = {}): DailyCheckin {
   return { recordedAt: new Date(NOW).toISOString(), craving: null, sleep: null, irritability: null, anxiety: null, appetite: null, usedThc: false, usedAt: null, note: null, ...patch };
 }
@@ -31,24 +39,59 @@ test('a day with no ratings keeps the day’s own practice and adds no default e
   assert.equal(view.defaultArea, 'cravings');
   assert.equal(shown(view).reason, 'For this stage of the break');
 });
-test('the topics the person chose lead an unrated day and take turns as the break advances', () => {
-  const areas = ['sleep', 'boredom'] as const;
-  const days = [1, 2, 3, 4, 5].map(day => presentDailySupport({ ...base, day, supportAreas: areas }).defaultArea);
-  // Alternating, so both chosen topics get days, in the person's own order.
+test('the topics confirmed for this break take turns, one break day at a time', () => {
+  const chosen = focus(['sleep', 'boredom']);
+  const days = [1, 2, 3, 4, 5].map(day => presentDailySupport({ ...base, day, focus: chosen }).defaultArea);
+  // Alternating in taxonomy order, so every confirmed topic gets days and the
+  // order the cards were tapped in means nothing.
   assert.deepEqual(days, ['sleep', 'boredom', 'sleep', 'boredom', 'sleep']);
-  assert.equal(shown(presentDailySupport({ ...base, supportAreas: areas })).reason, 'For this stage of the break');
+  assert.deepEqual(
+    [4, 5, 6].map(day => presentDailySupport({ ...base, day, focus: chosen }).areaSource),
+    ['chosen', 'chosen', 'chosen'],
+  );
 });
-test('a hard rating outranks the chosen topics', () => {
-  const view = presentDailySupport({ ...base, supportAreas: ['boredom'], checkins: [row({ anxiety: 8 })] });
-  assert.equal(view.defaultArea, 'anxiety');
+test('a turn is anchored to the day the set was confirmed, not to the day count', () => {
+  const anchored = focus(['sleep', 'boredom', 'nausea'], 4);
+  const days = [4, 5, 6, 7, 8].map(day => presentDailySupport({ ...base, day, focus: anchored }).defaultArea);
+  assert.deepEqual(days, ['sleep', 'boredom', 'nausea', 'sleep', 'boredom']);
+  // A restarted break drops back to the first topic of the set that day.
+  assert.equal(presentDailySupport({ ...base, day: 1, focus: anchored }).defaultArea, 'sleep');
+});
+test('topics kept from an earlier break steer nothing until they are confirmed', () => {
+  const view = presentDailySupport({ ...base, day: 4, focus: reusable(['boredom']) });
+  assert.equal(view.defaultArea, 'cravings');
+  assert.equal(view.areaSource, 'suggested');
+  assert.deepEqual(view.focus.reusable, ['boredom']);
+});
+test('a topic picked by hand leads the day on its own, even past the target', () => {
+  const view = presentDailySupport({
+    ...base, day: 28, targetDays: 28, pickedArea: 'nausea',
+    focus: focus(['boredom']),
+  });
+  assert.equal(view.defaultArea, 'nausea');
+  assert.equal(view.areaSource, 'picked');
+  assert.equal(presentDailySupport({ ...base, pickedArea: 'not-an-area' as never }).areaSource, 'suggested');
+});
+test('a stored rating explains a topic without replacing the one the person chose', () => {
+  const view = presentDailySupport({
+    ...base, focus: focus(['boredom']), checkins: [row({ anxiety: 8 })],
+  });
+  assert.equal(view.defaultArea, 'boredom');
+  assert.equal(view.areaSource, 'chosen');
+  assert.match(view.selections[0]!.reason, /Anxiety 8\/10 in your check-in/);
+  // With nothing chosen, the reading a legacy build stored still leads its day.
+  const legacy = presentDailySupport({ ...base, checkins: [row({ anxiety: 8 })] });
+  assert.equal(legacy.defaultArea, 'anxiety');
+  assert.equal(legacy.areaSource, 'suggested');
+  assert.match(adviceSectionFor(legacy, 'anxiety').reason, /Anxiety 8\/10 in your check-in/);
 });
 test('the target day keeps its own review ahead of the chosen topics', () => {
-  const view = presentDailySupport({ ...base, day: 28, targetDays: 28, supportAreas: ['boredom'] });
+  const view = presentDailySupport({ ...base, day: 28, targetDays: 28, focus: focus(['boredom']) });
   assert.equal(view.defaultArea, 'routine');
   assert.equal(view.practice.title, 'Review your next step');
 });
 test('no chosen topics leaves the day’s own practice exactly as it was', () => {
-  const withEmpty = presentDailySupport({ ...base, supportAreas: [] });
+  const withEmpty = presentDailySupport({ ...base, focus: focus([]) });
   const withoutField = presentDailySupport({ ...base });
   assert.deepEqual(withEmpty, withoutField);
   assert.equal(withEmpty.defaultArea, 'cravings');

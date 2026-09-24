@@ -1,15 +1,17 @@
 // Versioned editorial guidance, separate from every scientific calculator.
-// Ranking cutoffs and the 48-hour freshness limit are UI rules, not clinical
-// thresholds. Only a reported rating can raise a topic as a current problem;
-// the topics the person chose in the support sheet come next, and the day's
-// own practice holds the day only when nothing else does.
+// The day's topic has one order of preference: the topic the person picked by
+// hand for today, then the areas they confirmed for this break, which take
+// turns one day at a time from the day the set was confirmed, then a rating a
+// legacy build recorded, and finally the day's own practice. A rating is
+// readable but can no longer replace a topic the person chose. The 48-hour
+// freshness limit is a UI rule, not a clinical threshold.
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
-import type { SupportArea } from '../questionnaire/companion.ts';
+import { EMPTY_BREAK_FOCUS, isSupportArea, type BreakFocus, type SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
 import { triggerLabel } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v7';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v8';
 
 /** How many accounts the carousel holds. Enough that a picked topic has
  * company, few enough that the position dots stay tappable. */
@@ -365,10 +367,12 @@ export interface DailySupportInput {
   readonly checkins: readonly DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly targetDays?: number | null;
-  /** The topics the person asked the app to help with, in their own order.
-   * They lead the day only when no recent rating outranks them, and take
-   * turns as the break advances so every chosen topic gets days. */
-  readonly supportAreas?: readonly SupportArea[];
+  /** The topics confirmed for this break, with the ones left over from an
+   * earlier break. Only confirmed topics steer the day; the rest are offered
+   * for reuse. */
+  readonly focus?: BreakFocus;
+  /** The topic the person picked by hand for this break day, if any. */
+  readonly pickedArea?: SupportArea | null;
 }
 
 /** What Today shows for one topic: why it is here and the line to act on. */
@@ -394,6 +398,12 @@ export interface DailySupportView {
   readonly selections: readonly AdviceSelection[];
   /** The topic Today shows until the person picks another one. */
   readonly defaultArea: SupportArea;
+  /** Where that topic came from: the person's own pick, one of the topics
+   * confirmed for this break, or the app's own suggestion. */
+  readonly areaSource: 'picked' | 'chosen' | 'suggested';
+  /** The topics this break is being helped with, and any left over from an
+   * earlier break, so the block can offer the reuse instead of guessing. */
+  readonly focus: BreakFocus;
   /** The person's own plan, as far as it applies to any topic. */
   readonly plan: {
     readonly replacement: string;
@@ -481,14 +491,24 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
   const communityTips = orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS];
   const communityTip = communityTips[0]!;
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
-  // The person's own topics take turns by day so a list of them is not a list
-  // of one; a rating that crossed the threshold still leads, and a reached
-  // target still asks for the review that day.
-  const chosen = input.supportAreas ?? [];
-  const preferred = chosen.length === 0 ? null : chosen[(day - 1) % chosen.length]!;
+  const focus = input.focus ?? EMPTY_BREAK_FOCUS;
+  const areas = focus.areas;
+  // The confirmed topics take turns one break day at a time, anchored to the
+  // day the set was confirmed, so the same set gives the same topic on the
+  // same day and editing it never reshuffles the days already lived through.
+  const since = day - Math.min(Math.max(1, focus.anchorDay), day);
+  const turn = areas.length === 0 ? null : areas[since % areas.length]!;
+  // A reached target still asks for its own review that day, and a rating a
+  // legacy build recorded still leads when the person has chosen nothing —
+  // but never over a topic they did choose.
+  const automatic = atTarget ? 'routine' : turn ?? selections[0]?.area ?? practice.area;
+  const pickedArea = input.pickedArea != null && isSupportArea(input.pickedArea) ? input.pickedArea : null;
+  const defaultArea = pickedArea ?? automatic;
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections,
-    defaultArea: selections[0]?.area ?? (atTarget ? 'routine' : preferred ?? practice.area),
+    defaultArea,
+    areaSource: pickedArea !== null ? 'picked' : areas.includes(defaultArea) ? 'chosen' : 'suggested',
+    focus,
     plan: {
       replacement,
       triggerLine: triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,

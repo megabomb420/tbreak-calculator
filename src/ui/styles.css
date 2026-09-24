@@ -3697,6 +3697,13 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .daily-support { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .support-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .support-card .card-title { margin: 0; }
+/* Where today's topic came from, above its title: the person's own topic, the
+   one they picked by hand today, or the app's own suggestion first. */
+.support-card .advice-source { margin: 0 0 -4px; }
+/* The turn of this break's topics, and the one-tap offer to reuse the last
+   break's list, sit under the picker they explain. */
+.advice-topics { margin: 8px 0 0; line-height: 1.5; }
+.advice-topics .text-link { font-size: inherit; padding: 2px 0; min-height: 32px; }
 .support-card .advice-reason { margin: 0; line-height: 1.5; }
 .support-card .advice-first-step { margin: 0; }
 /* The check-in reminder: one quiet line on Today once the chosen time has

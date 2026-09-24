@@ -1,4 +1,4 @@
-import { useId, useState } from 'preact/hooks';
+import { useId } from 'preact/hooks';
 import {
   adviceSectionFor,
   communityTipsFor,
@@ -7,7 +7,7 @@ import {
   type DailySupportView,
 } from '../application/presentation/daily-support.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
-import { SUPPORT_AREA_COPY, SUPPORT_AREA_GROUPS } from './companion-copy.ts';
+import { SUPPORT_AREA_COPY, SUPPORT_AREA_GROUPS, SUPPORT_SHEET } from './companion-copy.ts';
 import { CommunityCarousel } from './community-carousel.tsx';
 import { ADVICE_PICKER } from './break-copy.ts';
 import { RIDE_IT_OUT } from './urge-copy.ts';
@@ -17,11 +17,18 @@ import { formatUrgeRemaining, urgeRemainingMs } from '../domain/urges/urge-sessi
 
 const TOPIC_ORDER: readonly SupportArea[] = SUPPORT_AREA_GROUPS.flatMap((group) => group.areas);
 
+const SOURCE_LABELS = {
+  picked: ADVICE_PICKER.sourcePicked,
+  chosen: ADVICE_PICKER.sourceChosen,
+  suggested: ADVICE_PICKER.sourceSuggested,
+} as const;
+
 /**
  * The day's practical help, always open: one topic on screen with its action,
- * the reasoning behind it, the remaining steps and the sources. Picking
- * another topic replaces the block in place and re-ranks the experiences
- * beneath it to match. A new break day resets the choice.
+ * the reasoning behind it, the remaining steps and the sources. The topics
+ * this break was set up with come first in the picker and every other guide
+ * follows them; picking one by hand replaces the block in place, and the app
+ * keeps that pick for the rest of the break day.
  */
 export interface DailySupportUrge {
   /** The timer that is still running, if any. */
@@ -30,13 +37,26 @@ export interface DailySupportUrge {
   readonly onOpen: () => void;
 }
 
-export function DailySupport({ view, urge }: { readonly view: DailySupportView; readonly urge?: DailySupportUrge }) {
-  return <DailyAdvice key={view.day} view={view} urge={urge} />;
+export interface DailySupportProps {
+  readonly view: DailySupportView;
+  readonly urge?: DailySupportUrge;
+  /** The topic the person picked by hand for this break day, if any. */
+  readonly picked: SupportArea | null;
+  readonly onPick: (area: SupportArea | null) => void;
+  /** Confirms, for this break, the topics stored from an earlier one. */
+  readonly onUseLast?: () => void;
+  /** Opens the support sheet, to choose or change this break's topics. */
+  readonly onChangeTopics?: () => void;
 }
 
-function DailyAdvice({ view, urge }: { readonly view: DailySupportView; readonly urge?: DailySupportUrge }) {
+export function DailySupport(props: DailySupportProps) {
+  // A new break day starts on its automatic topic, not on yesterday's pick.
+  return <DailyAdvice key={props.view.day} {...props} />;
+}
+
+function DailyAdvice({ view, urge, picked, onPick, onUseLast, onChangeTopics }: DailySupportProps) {
   const headingId = useId();
-  const [picked, setPicked] = useState<SupportArea | null>(null);
+  const chosenAreas = view.focus.areas;
   const shown = picked ?? view.defaultArea;
   const section = adviceSectionFor(view, shown);
   const guide = SUPPORT_GUIDES[shown];
@@ -49,6 +69,11 @@ function DailyAdvice({ view, urge }: { readonly view: DailySupportView; readonly
   // topic it belongs to.
   const practiceAside = !usePractice && view.practice.action !== action ? view.practice : null;
   const tips = communityTipsFor(view, shown);
+  // The break's own topics stay together at the top of the picker and the
+  // guides it was not set up with follow, so a topic that was asked for is
+  // never buried among the eleven.
+  const restAreas = TOPIC_ORDER.filter((area) => !chosenAreas.includes(area));
+  const reusableLabels = view.focus.reusable.map((area) => SUPPORT_AREA_COPY[area].shortLabel).join(', ');
   return (
     <>
       {view.allComfortable ? <p className="daily-comfortable" data-testid="comfortable-checkin">Things look fairly settled in your check-in. A break can be uneventful, too.</p> : null}
@@ -59,13 +84,34 @@ function DailyAdvice({ view, urge }: { readonly view: DailySupportView; readonly
             data-testid="advice-picker"
             aria-labelledby={headingId}
             value={picked ?? ''}
-            onInput={(event) => setPicked(event.currentTarget.value === '' ? null : event.currentTarget.value as SupportArea)}
+            onInput={(event) => onPick(event.currentTarget.value === '' ? null : event.currentTarget.value as SupportArea)}
           >
-            <option value="">{ADVICE_PICKER.suggestion}</option>
-            {TOPIC_ORDER.map((area) => <option key={area} value={area}>{SUPPORT_AREA_COPY[area].shortLabel}</option>)}
+            <option value="">{ADVICE_PICKER.suggestionOption(SUPPORT_AREA_COPY[view.defaultArea].shortLabel)}</option>
+            {chosenAreas.length > 0 ? (
+              <optgroup label={ADVICE_PICKER.topicGroup}>
+                {chosenAreas.map((area) => <option key={area} value={area}>{SUPPORT_AREA_COPY[area].shortLabel}</option>)}
+              </optgroup>
+            ) : null}
+            <optgroup label={ADVICE_PICKER.allTopicsGroup}>
+              {restAreas.map((area) => <option key={area} value={area}>{SUPPORT_AREA_COPY[area].shortLabel}</option>)}
+            </optgroup>
           </select>
         </div>
+        {chosenAreas.length > 0 ? (
+          <p className="meta advice-topics" data-testid="advice-topics">{SUPPORT_SHEET.turns}</p>
+        ) : (
+          <p className="meta advice-topics" data-testid="advice-topics">
+            {view.focus.reusable.length > 0 ? SUPPORT_SHEET.reuse(reusableLabels) : SUPPORT_SHEET.askChoose}
+            {view.focus.reusable.length > 0 && onUseLast !== undefined ? (
+              <> <button type="button" className="text-link" data-testid="support-use-last" onClick={onUseLast}>{SUPPORT_SHEET.reuseCta}</button></>
+            ) : null}
+            {onChangeTopics !== undefined ? (
+              <> <button type="button" className="text-link" data-testid="support-choose" onClick={onChangeTopics}>{view.focus.reusable.length > 0 ? SUPPORT_SHEET.reuseChange : SUPPORT_SHEET.askChooseCta}</button></>
+            ) : null}
+          </p>
+        )}
         <article className="support-card" data-testid="advice-block" data-area={shown}>
+          <p className="micro-label advice-source" data-testid="advice-source" data-source={view.areaSource}>{SOURCE_LABELS[view.areaSource]}</p>
           <h4 className="card-title" data-testid="advice-title">{usePractice ? view.practice.title : guide.title}</h4>
           {section.recordedAt !== null ? (
             <p className="meta advice-reason" data-testid="advice-reason">

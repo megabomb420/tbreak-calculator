@@ -108,6 +108,15 @@ export const ADVICE_PICKER = {
   avoid: 'What to avoid',
   help: 'When to get advice',
   suggestion: 'Today’s suggestion',
+  /** Where today's topic came from, above its title. */
+  sourcePicked: 'Your pick today',
+  sourceChosen: 'Your topic',
+  sourceSuggested: 'Today’s suggestion',
+  /** The two groups inside the picker. */
+  topicGroup: 'Your topics',
+  allTopicsGroup: 'All topics',
+  /** The first option names the topic the app would show by itself. */
+  suggestionOption: (label: string) => `Today’s suggestion: ${label}`,
   /** The day's own task, shown in the depth when another topic leads. */
   practice: 'Today’s own task',
 } as const;

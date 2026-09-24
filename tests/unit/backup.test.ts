@@ -124,7 +124,11 @@ function seedStores(storage: StorageAdapter): DurablePersistence {
     updatedAt: AT,
   });
   durable.saveOutcomeMarks([{ attemptId: 'attempt-1', status: 'captured', updatedAt: AT }]);
-  createCompanionPersonalisationStore(storage).saveAreas(['sleep', 'cravings']);
+  // The topics are bound to the break they were confirmed for, and today's
+  // hand-picked topic rides along: both are part of the record a file carries.
+  const companion = createCompanionPersonalisationStore(storage);
+  companion.saveAreas(['sleep', 'cravings'], { id: 'attempt-1', day: 3 });
+  companion.savePick({ breakId: 'attempt-1', day: 3, area: 'cravings' });
   storage.setItem(
     QUESTIONNAIRE_PROGRESS_KEY,
     JSON.stringify({
@@ -197,7 +201,11 @@ describe('local backup: round trip', () => {
     applyBackup({ durable: targetDurable, adapter: target }, parsed);
 
     assert.deepEqual(targetDurable.load(), sourceDurable.load());
-    assert.equal(createCompanionPersonalisationStore(target).loadOrMigrate().supportAreas.join(','), 'sleep,cravings');
+    const restored = createCompanionPersonalisationStore(target).loadOrMigrate();
+    assert.equal(restored.supportAreas.join(','), 'sleep,cravings');
+    assert.equal(restored.forBreak, 'attempt-1');
+    assert.equal(restored.confirmedDay, 3);
+    assert.deepEqual(restored.pick, { breakId: 'attempt-1', day: 3, area: 'cravings' });
   });
 
   it('restores into an IndexedDB-backed app and flushes the rows', async () => {

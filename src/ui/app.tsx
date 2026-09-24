@@ -153,7 +153,7 @@ import {
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
-import type { CompanionPersonalisationV1, SupportArea } from '../application/questionnaire/companion.ts';
+import { breakFocus, type CompanionPersonalisationV1, type SupportArea } from '../application/questionnaire/companion.ts';
 import { createCompanionPersonalisationStore } from '../application/progress/companion-personalisation.ts';
 
 export type Flow =
@@ -241,7 +241,6 @@ export function App({
   const [urgeOpen, setUrgeOpen] = useState(false);
   /** The session the open timer is about; null means "whichever is running". */
   const [urgeFocusId, setUrgeFocusId] = useState<string | null>(null);
-  const [supportOverride, setSupportOverride] = useState<readonly SupportArea[] | null>(null);
   const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
   const [scienceFromSettings, setScienceFromSettings] = useState(false);
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
@@ -295,12 +294,13 @@ export function App({
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
   const durableSnap = useMemo(() => durable.load(), [durable, factsEpoch]);
   // Loading still migrates a legacy record forward and rewrites it, so a
-  // backup keeps a device's data; the sheet is what writes new choices.
+  // backup keeps a device's data; the sheet is what writes new choices. The
+  // record is re-read on every refresh, so a write is always what the day
+  // shows and no shadow copy can drift from it.
   const storedCompanion = useMemo(
-    () => companionPreferences.loadOrMigrate(findLegacyCompanion(durableSnap)),
-    [companionPreferences, durableSnap],
+    () => companionPreferences.loadOrMigrate(findLegacyCompanion(durable.load())),
+    [companionPreferences, factsEpoch],
   );
-  const supportAreas = supportOverride ?? storedCompanion.supportAreas;
   const attemptsRecord = durableSnap.attempts;
   const trackingRecord = durableSnap.tracking;
   const checkinsRecord = durableSnap.checkins;
@@ -467,6 +467,34 @@ export function App({
       thcUseDaysLast30: profileSnapshot.snapshot.profile.thcUseDaysLast30.value ?? 0,
       sessionsPerUseDay: profileSnapshot.snapshot.profile.sessionsPerUseDay.value,
     }) : null;
+  /** The break Today is inside, whether it is running or waiting for a
+   * confirmation, with the break day the topics and the day's pick belong to. */
+  const liveBreak = liveData.active !== null
+    ? { id: liveData.active.attempt.id, day: liveData.active.view.day }
+    : liveData.tracking !== null && liveData.tracking.view !== null
+      ? { id: liveData.tracking.track.id, day: liveData.tracking.view.day }
+      // A suspended break resumes at day 1 of a new segment, so that is the day
+      // its topics and any hand-picked topic belong to.
+      : liveData.interruptedAttempt !== null
+        ? { id: liveData.interruptedAttempt.id, day: 1 }
+        : liveData.interruptedTracking !== null
+          ? { id: liveData.interruptedTracking.id, day: 1 }
+          : null;
+  const focus = useMemo(
+    () => breakFocus(storedCompanion, liveBreak?.id ?? null, liveBreak?.day ?? null),
+    [storedCompanion, liveBreak?.id, liveBreak?.day],
+  );
+  const pickedArea = storedCompanion.pick !== null && liveBreak !== null
+    && storedCompanion.pick.breakId === liveBreak.id && storedCompanion.pick.day === liveBreak.day
+    ? storedCompanion.pick.area
+    : null;
+  /** Topics kept from an earlier break: offered for reuse, never applied. */
+  const carriedTopics = storedCompanion.supportAreas.length > 0 && focus.areas.length === 0;
+  /** A break with no topics of its own is the one moment the sheet is asked
+   * for rather than opened by hand. */
+  const supportNeedsReview = storedCompanion.supportAreas.length === 0
+    || (liveBreak === null ? storedCompanion.forBreak !== null : focus.areas.length === 0);
+
   const profileData: TodayProfileData = {
     resultView: profileView,
     scheduled,
@@ -504,11 +532,34 @@ export function App({
     refresh();
   }
 
+  /** Saving from the sheet is a decision about the break in hand: the topics
+   * are bound to it, or kept for the break that starts next. */
   function saveSupportAreas(areas: readonly SupportArea[]): void {
-    const saved = companionPreferences.saveAreas(areas);
-    setSupportOverride(saved.supportAreas);
+    companionPreferences.saveAreas(areas, liveBreak);
     setSupportOpen(false);
     refresh();
+  }
+
+  /** One tap that reuses the topics kept from an earlier break. */
+  function reuseSupportAreas(): void {
+    if (liveBreak === null) return;
+    companionPreferences.confirmFor(liveBreak.id, liveBreak.day);
+    refresh();
+  }
+
+  /** The topic picked by hand, remembered for this break day only. */
+  function pickSupportArea(area: SupportArea | null): void {
+    if (liveBreak === null) return;
+    companionPreferences.savePick(area === null ? null : { breakId: liveBreak.id, day: liveBreak.day, area });
+    refresh();
+  }
+
+  /** Topics chosen before a break starts are the ones that break runs with; a
+   * set already bound to an earlier break is offered instead of inherited. */
+  function bindSupportToNewBreak(breakId: string): void {
+    const record = companionPreferences.loadOrMigrate(findLegacyCompanion(durable.load()));
+    if (record.forBreak !== null) return;
+    companionPreferences.confirmFor(breakId, 1);
   }
 
   function saveReminder(next: CheckinReminderRecord): void {
@@ -592,8 +643,9 @@ export function App({
     if (chosenDays !== null) {
       // Chosen-duration plan: no calculation exists, so nothing is recorded as
       // recommended and the day counter anchors to the chosen plan start.
+      const planId = newRecordId('break', nowAt);
       const next = createBreakPlan(latest, {
-        id: newRecordId('break', nowAt),
+        id: planId,
         calculationRecordId: null,
         targetDurationDays: chosenDays,
         targetSource: 'chosen',
@@ -604,6 +656,7 @@ export function App({
         preparation,
       });
       persistBreakSession(next);
+      bindSupportToNewBreak(planId);
       markResult('acknowledged');
       dispatch({ type: 'select_tab', tab: 'today' });
       setFlow(null);
@@ -615,8 +668,9 @@ export function App({
     if (calcId === null || lastUse === null) return;
     const viewForTarget = toleranceTargetDays(resultModel ?? profileView);
     if (viewForTarget === null) return;
+    const planId = newRecordId('break', nowAt);
     const next = createBreakPlan(latest, {
-      id: newRecordId('break', nowAt),
+      id: planId,
       calculationRecordId: calcId,
       targetDurationDays: viewForTarget,
       mode,
@@ -626,6 +680,7 @@ export function App({
       preparation,
     });
     persistBreakSession(next);
+    bindSupportToNewBreak(planId);
     markResult('acknowledged');
     dispatch({ type: 'select_tab', tab: 'today' });
     setFlow(null);
@@ -641,13 +696,15 @@ export function App({
     if (lastUse === null) return;
     const calcId = snapshotRunId();
     const nowAt = clock.now();
+    const trackId = newRecordId('track', nowAt);
     const next = createTracking(latest, {
-      id: newRecordId('track', nowAt),
+      id: trackId,
       calculationRecordId: calcId,
       startedAt: nowAt,
       anchor: lastUse,
     });
     persistBreakSession(next);
+    bindSupportToNewBreak(trackId);
     markResult('acknowledged');
     dispatch({ type: 'select_tab', tab: 'today' });
     refresh();
@@ -1174,7 +1231,9 @@ export function App({
         setLastUseWarning(false);
         // A finished break plan is the moment the app can ask what to help
         // with; a drug-test question has no daily advice to personalise.
-        if (finished.snapshot.kind === 'use_profile' && supportAreas.length === 0) setSupportOpen(true);
+        // A finished plan is the moment to ask what to help with: nothing
+        // chosen yet, or a list kept from an earlier break to review.
+        if (finished.snapshot.kind === 'use_profile' && supportNeedsReview) setSupportOpen(true);
         refresh();
         return;
       }
@@ -1374,8 +1433,14 @@ export function App({
             view={view}
             draft={facts.draft}
             onOpenNewPlan={() => setFlow({ kind: 'new-plan' })}
-            supportAreas={supportAreas}
-            onChangeSupport={() => setSupportOpen(true)}
+            support={{
+              focus,
+              pickedArea,
+              count: liveBreak === null ? storedCompanion.supportAreas.length : focus.areas.length,
+              onPickArea: pickSupportArea,
+              onUseLast: reuseSupportAreas,
+              onChange: () => setSupportOpen(true),
+            }}
             urge={{ running: runningUrge, now, onOpen: () => { setUrgeFocusId(null); setUrgeOpen(true); } }}
             reminder={{ due: reminderDue, time: reminder?.time ?? null }}
             live={liveData}
@@ -1473,7 +1538,8 @@ export function App({
           person just calculated stays visible behind it. */}
       {supportOpen ? (
         <SupportAreasSheet
-          initialAreas={supportAreas}
+          initialAreas={storedCompanion.supportAreas}
+          carried={carriedTopics}
           onSave={saveSupportAreas}
           onClose={() => setSupportOpen(false)}
         />

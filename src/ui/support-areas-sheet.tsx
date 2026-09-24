@@ -5,18 +5,21 @@ import { CheckIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 
 export interface SupportAreasSheetProps {
-  /** The topics already chosen, in the person's order. */
+  /** The topics stored on this device, in taxonomy order. */
   readonly initialAreas: readonly SupportArea[];
+  /** True when those topics were confirmed for an earlier break, so reusing
+   * them on this one is a decision rather than an inheritance. */
+  readonly carried: boolean;
   readonly onSave: (areas: readonly SupportArea[]) => void;
   readonly onClose: () => void;
 }
 
 /**
- * The topics the app should help with, chosen once after a calculation and
- * editable from Today afterwards. Nothing is written until Save, so backing
- * out leaves the previous choice exactly as it was.
+ * The topics this break should be helped with: chosen after a calculation,
+ * reviewed when a later break opens, and editable from Today. Nothing is
+ * written until Save, so backing out leaves the previous choice as it was.
  */
-export function SupportAreasSheet({ initialAreas, onSave, onClose }: SupportAreasSheetProps) {
+export function SupportAreasSheet({ initialAreas, carried, onSave, onClose }: SupportAreasSheetProps) {
   const [areas, setAreas] = useState<readonly SupportArea[]>(initialAreas);
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(true, rootRef, onClose);
@@ -52,7 +55,8 @@ export function SupportAreasSheet({ initialAreas, onSave, onClose }: SupportArea
         <section className="stack">
           <header>
             <h3 id="support-areas-title" className="title">{SUPPORT_SHEET.title}</h3>
-            <p className="meta">{SUPPORT_SHEET.intro}</p>
+            <p className="meta">{carried ? SUPPORT_SHEET.carried : SUPPORT_SHEET.intro}</p>
+            {carried ? <p className="meta">{SUPPORT_SHEET.intro}</p> : null}
           </header>
           <div className="support-areas-control" data-testid="support-area-cards">
             {SUPPORT_AREA_GROUPS.map((group) => (

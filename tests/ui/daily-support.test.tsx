@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/preact';
+import { useState } from 'preact/hooks';
 import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { createMemoryStorage } from '../../src/infrastructure/storage/storage-adapter.ts';
@@ -9,6 +10,7 @@ import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 import { DailySupport } from '../../src/ui/daily-support.tsx';
 import { communityTipsFor, presentDailySupport, SUPPORT_GUIDES } from '../../src/application/presentation/daily-support.ts';
+import type { SupportArea } from '../../src/application/questionnaire/companion.ts';
 
 const NOW = toInstant(Date.parse('2026-09-20T12:00:00Z'));
 const START = toInstant(NOW - 3 * 86_400_000);
@@ -39,17 +41,41 @@ function pick(area: string) {
   fireEvent.input(select);
 }
 
+/** The block alone, with the pick kept the way the app keeps it: the topic the
+ * person chose by hand is part of the day's state, so the view is built from
+ * it, exactly as Today builds it. */
+function Picker({ day, build }: {
+  readonly day: number;
+  readonly build: (picked: SupportArea | null) => ReturnType<typeof presentDailySupport>;
+}) {
+  // The store scopes the pick to one break day, so the harness does too.
+  const [pick, setPick] = useState<{ readonly day: number; readonly area: SupportArea } | null>(null);
+  const picked = pick !== null && pick.day === day ? pick.area : null;
+  return (
+    <DailySupport
+      view={build(picked)}
+      picked={picked}
+      onPick={(area) => setPick(area === null ? null : { day, area })}
+    />
+  );
+}
+
 describe('practical Today advice', () => {
-  it('lets a manual topic override today, return to the daily action, and reset on the next break day', () => {
-    const view = (day: number) => presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null });
-    const app = render(<DailySupport view={view(4)} />);
+  it('lets a hand-picked topic replace the day’s block and give the day back', () => {
+    const view = (day: number, pickedArea: SupportArea | null = null) =>
+      presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null, pickedArea });
+    const app = render(<Picker day={4} build={(picked) => view(4, picked)} />);
     const dailyAction = screen.getByTestId('advice-action').textContent;
     pick('nausea');
     expect(screen.getByTestId('advice-action').textContent).toBe(SUPPORT_GUIDES.nausea.steps[0]);
+    expect(screen.getByTestId('advice-source').textContent).toBe('Your pick today');
     pick('');
     expect(screen.getByTestId('advice-action').textContent).toBe(dailyAction);
+    expect(screen.getByTestId('advice-source').textContent).toBe('Today’s suggestion');
+    // A new break day starts on its own topic: the pick belongs to the day it
+    // was made, and the app does not carry it forward.
     pick('nausea');
-    app.rerender(<DailySupport view={view(5)} />);
+    app.rerender(<Picker day={5} build={(picked) => view(5, picked)} />);
     expect((screen.getByTestId('advice-picker') as HTMLSelectElement).value).toBe('');
     expect(block().getAttribute('data-area')).toBe('irritability');
   });
@@ -80,8 +106,9 @@ describe('practical Today advice', () => {
   });
 
   it('follows the chosen topic in the experiences beneath it', () => {
-    const view = (day: number) => presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null });
-    render(<DailySupport view={view(4)} />);
+    const view = (day: number, pickedArea: SupportArea | null = null) =>
+      presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null, pickedArea });
+    render(<Picker day={4} build={(picked) => view(4, picked)} />);
     const firstSlide = () => document.querySelector('.community-slide')?.textContent ?? '';
     expect(firstSlide()).not.toBe('');
     pick('headaches');
@@ -91,12 +118,14 @@ describe('practical Today advice', () => {
     expect(firstSlide()).toContain(shown[0]!.title);
   });
 
-  it('replaces the block in place when another topic is picked, and writes nothing', () => {
+  it('records the hand-picked topic for this break day and leaves the topic set alone', () => {
     const { storage } = setup();
     pick('anxiety');
     expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
     expect(block().getAttribute('data-area')).toBe('anxiety');
-    expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
+    const record = createCompanionPersonalisationStore(storage).loadOrMigrate();
+    expect(record.supportAreas).toEqual([]);
+    expect(record.pick).toEqual({ breakId: 'chosen', day: 4, area: 'anxiety' });
     expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
   });
 

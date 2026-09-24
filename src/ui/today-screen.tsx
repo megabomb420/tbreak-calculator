@@ -8,7 +8,7 @@ import type { TodayView } from '../application/shell/today-state.ts';
 import type { QuestionnaireProgressRecord } from '../application/progress/questionnaire-progress.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
-import type { SupportArea } from '../application/questionnaire/companion.ts';
+import type { BreakFocus, SupportArea } from '../application/questionnaire/companion.ts';
 import type { UrgeSession } from '../application/progress/urge-session-record.ts';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../application/presentation/plan-presentation.ts';
@@ -58,6 +58,23 @@ export interface TodayProfileData {
   readonly reductionPlan: { readonly maxUseDaysPerWeek: number; readonly maxSessionsPerUseDay: number } | null;
 }
 
+/** What Today needs to personalise the day: the topics this break was set up
+ * with, the topic picked by hand for today, and the two ways to change them. */
+export interface TodaySupportProps {
+  /** The topics confirmed for this break; `reusable` holds the ones left over
+   * from an earlier break, offered rather than applied. */
+  readonly focus: BreakFocus;
+  readonly pickedArea: SupportArea | null;
+  /** How many topics this break is being helped with, for the footer link. */
+  readonly count: number;
+  /** Keeps, or clears, the topic picked by hand for this break day. */
+  readonly onPickArea: (area: SupportArea | null) => void;
+  /** Confirms the topics kept from an earlier break for this one. */
+  readonly onUseLast: () => void;
+  /** Opens the support sheet to choose or change them. */
+  readonly onChange: () => void;
+}
+
 export interface TodayScreenProps {
   readonly view: TodayView;
   readonly draft: QuestionnaireProgressRecord | null;
@@ -67,10 +84,7 @@ export interface TodayScreenProps {
   readonly onGetStarted: () => void;
   /** Opens the goal picker for a new calculation (a flow, not a destination). */
   readonly onOpenNewPlan?: () => void;
-  /** The topics the app was asked to help with, in the person's order. */
-  readonly supportAreas: readonly SupportArea[];
-  /** Opens the support sheet to change those topics. */
-  readonly onChangeSupport: () => void;
+  readonly support: TodaySupportProps;
   /** The check-in reminder, when today's time has passed without a check-in. */
   readonly reminder?: { readonly due: boolean; readonly time: string | null };
   /** The delay timer: the one that is running, and the way in. */
@@ -144,9 +158,9 @@ export function TodayScreen(props: TodayScreenProps) {
           <button type="button" className="text-link" data-testid="today-new-plan" onClick={props.onOpenNewPlan}>
             {view.primary === 'first-launch' ? 'Pick my own break length' : 'Start a new calculation'}
           </button>
-          <button type="button" className="text-link today-support-link" data-testid="today-support" onClick={props.onChangeSupport}>
+          <button type="button" className="text-link today-support-link" data-testid="today-support" onClick={props.support.onChange}>
             {SUPPORT_SHEET.footerLink}
-            {props.supportAreas.length > 0 ? ` · ${props.supportAreas.length}` : ''}
+            {props.support.count > 0 ? ` · ${props.support.count}` : ''}
           </button>
         </div>
       ) : null}
@@ -309,7 +323,8 @@ function ActiveBreakCard(props: TodayScreenProps) {
     targetDays: view.targetDays,
     checkins: props.live.checkins,
     preparation: attempt.preparation,
-    supportAreas: props.supportAreas,
+    focus: props.support.focus,
+    pickedArea: props.support.pickedArea,
   });
   const journey = presentBreakJourney(
     presentBreakOutlook({
@@ -349,7 +364,14 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ) : null}
       </div>
       <StageBlock support={support} />
-      <DailySupport view={support} urge={props.urge} />
+      <DailySupport
+        view={support}
+        urge={props.urge}
+        picked={props.support.pickedArea}
+        onPick={props.support.onPickArea}
+        onUseLast={props.support.onUseLast}
+        onChangeTopics={props.support.onChange}
+      />
       <ExtraBlocks support={support} />
       <section className="today-block" data-testid="today-timeline">
         <h3 className="section-heading">Your break timeline</h3>
@@ -462,7 +484,8 @@ function TrackingCard(props: TodayScreenProps) {
     targetDays: null,
     checkins: props.live.checkins,
     preparation: tracking.track.preparation,
-    supportAreas: props.supportAreas,
+    focus: props.support.focus,
+    pickedArea: props.support.pickedArea,
   });
   return (
     <article className="today-plan-card tracking" data-testid="state-abstinence-tracking">
@@ -483,7 +506,14 @@ function TrackingCard(props: TodayScreenProps) {
       {support !== null ? (
         <>
           <StageBlock support={support} />
-          <DailySupport view={support} urge={props.urge} />
+          <DailySupport
+        view={support}
+        urge={props.urge}
+        picked={props.support.pickedArea}
+        onPick={props.support.onPickArea}
+        onUseLast={props.support.onUseLast}
+        onChangeTopics={props.support.onChange}
+      />
           <ExtraBlocks support={support} />
         </>
       ) : null}
