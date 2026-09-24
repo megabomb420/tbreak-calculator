@@ -53,6 +53,7 @@ export function BreakJourney({
             leg={leg}
             currentDay={view.currentDay}
             currentContent={leg.status === 'current' ? currentContent : undefined}
+            showContext={view.preview}
           />
         ))}
         {view.targetDays !== null ? (
@@ -95,10 +96,14 @@ function JourneyLeg({
   leg,
   currentDay,
   currentContent,
+  showContext,
 }: {
   readonly leg: JourneyLegView;
   readonly currentDay: number | null;
   readonly currentContent?: ComponentChildren;
+  /** The window's own sentence is part of the result preview; on Today it is
+   * already in **This stage** above, and no section says it twice. */
+  readonly showContext: boolean;
 }) {
   const showDays = leg.status === 'past' || leg.status === 'current';
   return (
@@ -150,7 +155,7 @@ function JourneyLeg({
             </ul>
           </div>
         ) : null}
-        <p className="meta">{leg.context}</p>
+        {showContext ? <p className="meta">{leg.context}</p> : null}
       </details>
     </li>
   );

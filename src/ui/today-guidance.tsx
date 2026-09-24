@@ -1,12 +1,12 @@
 import { CheckinComparisonBlock } from './checkin-comparison.tsx';
 import { compareCheckins } from '../application/presentation/checkin-comparison.ts';
 import type { DailySupportView } from '../application/presentation/daily-support.ts';
-import { GUIDANCE_CHROME } from './break-copy.ts';
 
 /**
- * The stage the day sits in: what the window is, what people commonly notice,
- * and the day's own practical activity. Always open — this is the context the
- * day's action comes from, not a detail to dig for.
+ * The stage the day sits in: what the window is and one sentence of what it
+ * means, and nothing more. The symptom list belongs to the leg the person is
+ * living through ("You are here" → What to expect), so no section repeats it;
+ * the day's action belongs to the advice card above.
  */
 export function StageBlock({ support }: { readonly support: DailySupportView }) {
   return (
@@ -15,14 +15,6 @@ export function StageBlock({ support }: { readonly support: DailySupportView }) 
       <p className="stage-label" data-testid="stage-window-label">{support.window.label}</p>
       <p className="stage-headline" data-testid="guidance-headline">{support.window.headline}</p>
       <p className="body" data-testid="guidance-context">{support.window.context}</p>
-      {support.window.mayNotice.length > 0 ? (
-        <details className="advice-details" data-testid="stage-may-notice">
-          <summary>{GUIDANCE_CHROME.mayNotice}</summary>
-          <ul className="guidance-list" data-testid="guidance-may-notice">
-            {support.window.mayNotice.map((line) => <li key={line}>{line}</li>)}
-          </ul>
-        </details>
-      ) : null}
     </section>
   );
 }

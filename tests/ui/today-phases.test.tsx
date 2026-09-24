@@ -123,16 +123,29 @@ describe('Today phase states (0.11)', () => {
       expect(screen.getByTestId('advice-action').textContent?.length ?? 0).toBeGreaterThan(0);
       expect(screen.getByTestId('advice-why')).toBeTruthy();
     }
-    // Behind one tap each, because they are long: the guide's remaining steps,
-    // the symptom list and break management. The timeline stays open — it is
-    // where the day sits in the plan.
-    for (const id of ['advice-more', 'stage-may-notice', 'today-manage']) {
+    // One job per section: the stage is the label, the headline and one
+    // sentence — the symptom list lives on the leg the person is on, so the
+    // same list is never printed twice.
+    const stage = screen.getByTestId('today-stage');
+    expect(within(stage).getByTestId('stage-window-label').textContent?.length ?? 0).toBeGreaterThan(0);
+    expect(within(stage).getByTestId('guidance-headline').textContent?.length ?? 0).toBeGreaterThan(0);
+    expect(within(stage).getByTestId('guidance-context').textContent?.length ?? 0).toBeGreaterThan(0);
+    expect(within(stage).queryByTestId('stage-may-notice')).toBeNull();
+    expect(within(stage).queryByTestId('guidance-may-notice')).toBeNull();
+    // Behind one tap each, because they are long: the guide's remaining steps
+    // and break management. The timeline stays open — it is where the day sits
+    // in the plan — with the current leg's own detail open inside it.
+    for (const id of ['advice-more', 'today-manage']) {
       const node = screen.getByTestId(id);
       expect(node.tagName).toBe('DETAILS');
       expect(node.hasAttribute('open')).toBe(false);
     }
     expect(screen.getByTestId('today-timeline').tagName).toBe('SECTION');
     expect(screen.getByTestId('today-timeline').querySelector('h3')?.textContent).toBe('Your break timeline');
+    const liveLeg = screen.getByTestId('today-timeline').querySelector('.journey-leg[data-status="current"]');
+    expect(liveLeg?.querySelector('.journey-leg-detail')?.hasAttribute('open')).toBe(true);
+    // The stage's sentence is not repeated inside the leg it belongs to.
+    expect(within(liveLeg as HTMLElement).queryByText(screen.getByTestId('guidance-context').textContent ?? '')).toBeNull();
   });
 
   it('marks the interrupted card as calm and recoverable with progress preserved', () => {
