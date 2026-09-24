@@ -8,11 +8,13 @@ import type { TodayView } from '../application/shell/today-state.ts';
 import type { QuestionnaireProgressRecord } from '../application/progress/questionnaire-progress.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
+import type { SupportArea } from '../application/questionnaire/companion.ts';
 import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../application/presentation/plan-presentation.ts';
 import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
+import { SUPPORT_SHEET } from './companion-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
 import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
@@ -62,6 +64,10 @@ export interface TodayScreenProps {
   readonly onGetStarted: () => void;
   /** Opens the goal picker for a new calculation (a flow, not a destination). */
   readonly onOpenNewPlan?: () => void;
+  /** The topics the app was asked to help with, in the person's order. */
+  readonly supportAreas: readonly SupportArea[];
+  /** Opens the support sheet to change those topics. */
+  readonly onChangeSupport: () => void;
   readonly onSelectGoal: (goal: Goal) => void;
   readonly onResume: () => void;
   readonly onViewResult?: () => void;
@@ -119,11 +125,16 @@ export function TodayScreen(props: TodayScreenProps) {
       {/* One quiet way to start a different calculation: a flow, never a tab,
           so a running plan is not something to navigate away from. On first
           launch it offers the one thing "Get started" does not — picking your
-          own break length. */}
+          own break length. The topics the app helps with sit opposite, so
+          changing them is always one tap from the bottom of Today. */}
       {props.onOpenNewPlan !== undefined ? (
         <div className="footer-links today-new-plan">
           <button type="button" className="text-link" data-testid="today-new-plan" onClick={props.onOpenNewPlan}>
             {view.primary === 'first-launch' ? 'Pick my own break length' : 'Start a new calculation'}
+          </button>
+          <button type="button" className="text-link today-support-link" data-testid="today-support" onClick={props.onChangeSupport}>
+            {SUPPORT_SHEET.footerLink}
+            {props.supportAreas.length > 0 ? ` · ${props.supportAreas.length}` : ''}
           </button>
         </div>
       ) : null}
@@ -286,6 +297,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
     targetDays: view.targetDays,
     checkins: props.live.checkins,
     preparation: attempt.preparation,
+    supportAreas: props.supportAreas,
   });
   const journey = presentBreakJourney(
     presentBreakOutlook({
@@ -438,6 +450,7 @@ function TrackingCard(props: TodayScreenProps) {
     targetDays: null,
     checkins: props.live.checkins,
     preparation: tracking.track.preparation,
+    supportAreas: props.supportAreas,
   });
   return (
     <article className="today-plan-card tracking" data-testid="state-abstinence-tracking">

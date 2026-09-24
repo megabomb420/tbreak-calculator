@@ -1,13 +1,15 @@
 // Versioned editorial guidance, separate from every scientific calculator.
 // Ranking cutoffs and the 48-hour freshness limit are UI rules, not clinical
-// thresholds. Only a reported rating can raise a topic as a current problem.
+// thresholds. Only a reported rating can raise a topic as a current problem;
+// the topics the person chose in the support sheet come next, and the day's
+// own practice holds the day only when nothing else does.
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
 import { triggerLabel } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v5';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v6';
 
 /** How many accounts the carousel holds. Enough that a picked topic has
  * company, few enough that the position dots stay tappable. */
@@ -330,6 +332,10 @@ export interface DailySupportInput {
   readonly checkins: readonly DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly targetDays?: number | null;
+  /** The topics the person asked the app to help with, in their own order.
+   * They lead the day only when no recent rating outranks them, and take
+   * turns as the break advances so every chosen topic gets days. */
+  readonly supportAreas?: readonly SupportArea[];
 }
 
 /** What Today shows for one topic: why it is here and the line to act on. */
@@ -442,9 +448,14 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
   const communityTips = orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS];
   const communityTip = communityTips[0]!;
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
+  // The person's own topics take turns by day so a list of them is not a list
+  // of one; a rating that crossed the threshold still leads, and a reached
+  // target still asks for the review that day.
+  const chosen = input.supportAreas ?? [];
+  const preferred = chosen.length === 0 ? null : chosen[(day - 1) % chosen.length]!;
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections,
-    defaultArea: selections[0]?.area ?? (atTarget ? 'routine' : practice.area),
+    defaultArea: selections[0]?.area ?? (atTarget ? 'routine' : preferred ?? practice.area),
     plan: {
       replacement,
       triggerLine: triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,

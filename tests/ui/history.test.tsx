@@ -235,6 +235,10 @@ describe('history tab and previous-break flow', () => {
   it('offers a passive install hint after the first saved calculation', () => {
     completeTolerance10Days(createMemoryStorage());
     fireEvent.click(screen.getByRole('button', { name: RESULT.saveWithoutStarting }));
+    // A finished break plan first asks what to help with; the passive hint
+    // waits for the screen to be free, exactly like every other notice.
+    expect(screen.getByTestId('support-areas-sheet')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByTestId('install-hint')).toBeTruthy();
   });
 

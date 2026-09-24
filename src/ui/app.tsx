@@ -105,6 +105,7 @@ import { systemClock, type Clock } from '../infrastructure/clock.ts';
 import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.ts';
 import { BreakStartSheet } from './break-start-sheet.tsx';
 import { NewPlanSheet } from './new-plan-sheet.tsx';
+import { SupportAreasSheet } from './support-areas-sheet.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -134,7 +135,7 @@ import {
   type StepAnswer,
 } from '../application/questionnaire/engine.ts';
 import { finishQuestionnaire } from '../application/questionnaire/snapshot.ts';
-import type { CompanionPersonalisationV1 } from '../application/questionnaire/companion.ts';
+import type { CompanionPersonalisationV1, SupportArea } from '../application/questionnaire/companion.ts';
 import { createCompanionPersonalisationStore } from '../application/progress/companion-personalisation.ts';
 
 export type Flow =
@@ -218,6 +219,8 @@ export function App({
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
   const [scienceOpen, setScienceOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportOverride, setSupportOverride] = useState<readonly SupportArea[] | null>(null);
   const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
   const [scienceFromSettings, setScienceFromSettings] = useState(false);
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
@@ -270,12 +273,13 @@ export function App({
   const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
   const durableSnap = useMemo(() => durable.load(), [durable, factsEpoch]);
-  // Nothing renders the stored support areas now; loading still migrates a
-  // legacy record forward and rewrites it, so a backup keeps a device's data.
-  useMemo(
+  // Loading still migrates a legacy record forward and rewrites it, so a
+  // backup keeps a device's data; the sheet is what writes new choices.
+  const storedCompanion = useMemo(
     () => companionPreferences.loadOrMigrate(findLegacyCompanion(durableSnap)),
     [companionPreferences, durableSnap],
   );
+  const supportAreas = supportOverride ?? storedCompanion.supportAreas;
   const attemptsRecord = durableSnap.attempts;
   const trackingRecord = durableSnap.tracking;
   const checkinsRecord = durableSnap.checkins;
@@ -439,6 +443,13 @@ export function App({
 
   function acknowledgeResult(): void {
     markResult('acknowledged');
+    refresh();
+  }
+
+  function saveSupportAreas(areas: readonly SupportArea[]): void {
+    const saved = companionPreferences.saveAreas(areas);
+    setSupportOverride(saved.supportAreas);
+    setSupportOpen(false);
     refresh();
   }
 
@@ -1056,6 +1067,9 @@ export function App({
         markResult('open');
         setSession(null);
         setLastUseWarning(false);
+        // A finished break plan is the moment the app can ask what to help
+        // with; a drug-test question has no daily advice to personalise.
+        if (finished.snapshot.kind === 'use_profile' && supportAreas.length === 0) setSupportOpen(true);
         refresh();
         return;
       }
@@ -1208,7 +1222,7 @@ export function App({
       : null;
 
   const overlayOpen =
-    session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null;
+    session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null || supportOpen;
   // One passive notice at a time: a storage problem outranks the install hint.
   const showInstallHint =
     !overlayOpen &&
@@ -1255,6 +1269,8 @@ export function App({
             view={view}
             draft={facts.draft}
             onOpenNewPlan={() => setFlow({ kind: 'new-plan' })}
+            supportAreas={supportAreas}
+            onChangeSupport={() => setSupportOpen(true)}
             live={liveData}
             profile={profileData}
             onStartOver={abandonDraft}
@@ -1343,6 +1359,16 @@ export function App({
             resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
           }
           onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
+        />
+      ) : null}
+      {/* Asked once after a calculation finishes, then editable from Today's
+          footer. Over the result rather than inside a flow, so the plan the
+          person just calculated stays visible behind it. */}
+      {supportOpen ? (
+        <SupportAreasSheet
+          initialAreas={supportAreas}
+          onSave={saveSupportAreas}
+          onClose={() => setSupportOpen(false)}
         />
       ) : null}
       {openFlow !== null && openFlow.kind === 'new-plan' ? (

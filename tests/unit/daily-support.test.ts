@@ -31,6 +31,28 @@ test('a day with no ratings keeps the day’s own practice and adds no default e
   assert.equal(view.defaultArea, 'cravings');
   assert.equal(shown(view).reason, 'For this stage of the break');
 });
+test('the topics the person chose lead an unrated day and take turns as the break advances', () => {
+  const areas = ['sleep', 'boredom'] as const;
+  const days = [1, 2, 3, 4, 5].map(day => presentDailySupport({ ...base, day, supportAreas: areas }).defaultArea);
+  // Alternating, so both chosen topics get days, in the person's own order.
+  assert.deepEqual(days, ['sleep', 'boredom', 'sleep', 'boredom', 'sleep']);
+  assert.equal(shown(presentDailySupport({ ...base, supportAreas: areas })).reason, 'For this stage of the break');
+});
+test('a hard rating outranks the chosen topics', () => {
+  const view = presentDailySupport({ ...base, supportAreas: ['boredom'], checkins: [row({ anxiety: 8 })] });
+  assert.equal(view.defaultArea, 'anxiety');
+});
+test('the target day keeps its own review ahead of the chosen topics', () => {
+  const view = presentDailySupport({ ...base, day: 28, targetDays: 28, supportAreas: ['boredom'] });
+  assert.equal(view.defaultArea, 'routine');
+  assert.equal(view.practice.title, 'Review your next step');
+});
+test('no chosen topics leaves the day’s own practice exactly as it was', () => {
+  const withEmpty = presentDailySupport({ ...base, supportAreas: [] });
+  const withoutField = presentDailySupport({ ...base });
+  assert.deepEqual(withEmpty, withoutField);
+  assert.equal(withEmpty.defaultArea, 'cravings');
+});
 test('a comfortable rating alone raises no topic and keeps the day’s practice', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0 })] });
   assert.deepEqual(view.selections, []);

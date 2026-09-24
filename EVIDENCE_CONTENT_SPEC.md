@@ -1,7 +1,7 @@
 # Evidence content specification
 
 App version: **0.38.0**
-Content models: `evidence-guidance-v1`, `break-outlook-v2`, `daily-support-v5` (numeric rules unchanged).
+Content models: `evidence-guidance-v1`, `break-outlook-v2`, `daily-support-v6` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
 Current communication contract: UI ranges are **planning ranges**, and the result screen carries a research section instead of a second, competing estimate. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
@@ -215,24 +215,24 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (version constants only); u
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `daily-support-v5` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `daily-support-v6` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support (daily-support-v5)
+## 15. Daily support (daily-support-v6)
 
 `src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking; it shows the stage summary headline, the day's practical action and the topic guides. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
 The practical layer contains eleven symptom/habit guides — each with an explanation, five to eight practical steps, what tends to make it worse, when to get advice and its reviewed sources — plus 28 original daily activity prompts and a maintenance rotation. Under **Help with**, the action line and **Why this helps** are always visible; the remaining steps, the avoid line, the advice line and the sources sit behind one closed row (**What else can help**), because a five-to-eight-step guide open by default would bury the day's action. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
 
-**Current input: the check-in records the day.** The one-tap check-in writes `usedThc`, `usedAt` and an optional note; its symptom fields are always null, so a fresh break has no rating-driven topic. **Help with** exposes all eleven topics as one native selection, and the user's choice is per view: it stores nothing, and no stored preference takes part in selection.
+**Current input: the check-in records the day.** The one-tap check-in writes `usedThc`, `usedAt` and an optional note; its symptom fields are always null, so a fresh break has no rating-driven topic. **Help with** exposes all eleven topics as one native selection and the user's per-view choice still stores nothing; the **support sheet** writes the topics the person asked the app to help with (`tbreak.companion-personalisation.v2`), and only that stored list takes part in selection.
 
-**Primary action precedence.** The day's own practice action is the default topic. A legacy stored rating (below) raises its own topic ahead of that default, and the user's saved urge plan leads wherever it covers a routine, an urge or an empty evening — its replacement action as the line, with the flagged trigger labels and the fallback plan beneath it. The guide beneath always shows **Why this helps**, **What else can help** (every step the action line does not already cover), **What to avoid** and **When to get advice**. Copy shape only: none of this reaches the tolerance, recovery or detection engines.
+**Primary action precedence.** A legacy stored rating (below) raises its own topic first. The person's saved support topics come next and take turns by break day, so a list of them is not a list of one; the day's own practice holds the day only when neither exists, and a reached target still asks for its review that day. Wherever a routine, an urge or an empty evening is on screen, the user's saved urge plan leads — its replacement action as the line, with the flagged trigger labels and the fallback plan beneath it. When a chosen topic or a rating leads, the day's own task stays available as **Today's own task** inside that topic's depth rather than disappearing with the topic it belongs to. The guide beneath always shows **Why this helps**, **What else can help** (every step the action line does not already cover), **What to avoid** and **When to get advice**. Copy shape only: none of this reaches the tolerance, recovery or detection engines.
 
 **Legacy input: stored ratings are still honoured.** For a device with check-ins written before 0.35.0, selection reads the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only, and the five rating fields bound the list at five. Missing values remain unknown, and a later unrated check-in does not erase an earlier rating. A rating only names the topic and its own reading ("Sleep quality 2/10 in your check-in"); a comfortable rating is never presented as a problem. Nothing in this app writes symptom ratings any more, so this path fires only for a stored legacy report.
 
 ### Community experiences
 
-The carousel is drawn from **44 curated paraphrase cards across 39 r/Petioles discussions**; the content version is `daily-support-v5`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
+The carousel is drawn from **44 curated paraphrase cards across 39 r/Petioles discussions**; the content version is `daily-support-v6`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
 
 | `windows[]` tag | Stage |
 |---|---|

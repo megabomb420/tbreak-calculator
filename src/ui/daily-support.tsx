@@ -29,8 +29,14 @@ function DailyAdvice({ view }: { readonly view: DailySupportView }) {
   const shown = picked ?? view.defaultArea;
   const section = adviceSectionFor(view, shown);
   const guide = SUPPORT_GUIDES[shown];
-  const usePractice = picked === null && section.recordedAt === null && !section.usesPersonalPlan;
+  // The day's own practice is the content of its own area: showing it under a
+  // different topic would pair one topic's reason with another's action.
+  const usePractice = picked === null && section.recordedAt === null && !section.usesPersonalPlan && shown === view.practice.area;
   const action = usePractice ? view.practice.action : section.action;
+  // The day still has its own task even when a chosen topic or a rating leads
+  // the card, so it moves into the depth instead of disappearing with the
+  // topic it belongs to.
+  const practiceAside = !usePractice && view.practice.action !== action ? view.practice : null;
   const tips = communityTipsFor(view, shown);
   return (
     <>
@@ -66,6 +72,12 @@ function DailyAdvice({ view }: { readonly view: DailySupportView }) {
           <details className="advice-details" data-testid="advice-more">
             <summary>{ADVICE_PICKER.more}</summary>
             <div className="advice-content">
+              {practiceAside !== null ? (
+                <>
+                  <h5 className="section-subheading">{ADVICE_PICKER.practice}</h5>
+                  <p className="body" data-testid="advice-practice">{practiceAside.action}</p>
+                </>
+              ) : null}
               <ul className="advice-steps" data-testid="advice-steps">{guide.steps.filter((step) => step !== action).map((step) => <li key={step}>{step}</li>)}</ul>
               <h5 className="section-subheading">{ADVICE_PICKER.avoid}</h5>
               <p className="meta advice-avoid" data-testid="advice-avoid">{guide.avoid}</p>

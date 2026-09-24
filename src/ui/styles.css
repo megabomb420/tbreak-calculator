@@ -1270,6 +1270,75 @@ details.card > summary::-webkit-details-marker {
   padding-top: var(--space-2);
 }
 
+/* The two footer actions sit at opposite ends: start a different calculation
+   on the left, change the topics the app helps with on the right. */
+.today-new-plan {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.today-new-plan .text-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.today-support-link {
+  text-align: right;
+}
+
+/* Support topics sheet: the eleven areas, grouped, two to a row so a phone
+   shows the whole choice without scrolling sideways. */
+.support-areas-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.support-area-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.support-area-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.support-area-card {
+  position: relative;
+  min-height: 60px;
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.support-area-card[aria-pressed="true"] {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--hairline));
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg-card));
+}
+
+.support-area-card .choice-check {
+  flex: 0 0 auto;
+  opacity: 0;
+  color: var(--accent);
+}
+
+.support-area-card[aria-pressed="true"] .choice-check {
+  opacity: 1;
+}
+
 .footer-links .text-back {
   text-align: left;
   padding: 0;

@@ -108,6 +108,8 @@ export const ADVICE_PICKER = {
   avoid: 'What to avoid',
   help: 'When to get advice',
   suggestion: 'Today’s suggestion',
+  /** The day's own task, shown in the depth when another topic leads. */
+  practice: 'Today’s own task',
 } as const;
 
 // --- Interruption (UX_SPEC 10.3) -------------------------------------------
