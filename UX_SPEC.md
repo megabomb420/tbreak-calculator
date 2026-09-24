@@ -87,6 +87,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 ```
 
 - **Tabs (2):** `Today`, `History`. Starting a plan is an action, not a destination: a quiet **Start a new calculation** link on Today (labelled **Pick my own break length** on first launch) opens the new-calculation sheet — the four goals, **Choose my break length**, an unfinished calculation and **View saved plan**. Opening it does not end a live break, and nothing about a running plan is something to navigate away from.
+- **Tab bar layout:** one equal column per destination (`grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr)`), never a fixed column count — the bar must stay even whatever the destination list is.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
 - **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, **This stage**, the day's advice with its reason, Experiences for that topic, the always-open break timeline, and break management behind one summary. Users think "how is my break going," which is a Today question.
@@ -791,7 +792,7 @@ The result screen's research section is static reviewed copy, not engine codes: 
 
 Domain prerequisites from §15.2 landed with the earlier slices (D1–D5 validation/schema edits). The slice sequence was:
 
-1. **Shell + state router** (§3): three tabs, gear-modal settings, transient-flow scaffolding, `Today` state machine with precedence and resume, local persistence of questionnaire progress.
+1. **Shell + state router** (§3): two tabs, gear-modal settings, transient-flow scaffolding, `Today` state machine with precedence and resume, local persistence of questionnaire progress.
 2. **Questionnaire engine** (§4–5): declarative steps from the §5.1 map; controls §4.2; date control §4.3; branch/re-branch; validation wiring.
 3. **Result screens** (§9) from real engine output + the §14 template layer.
 4. **Break loop** (§8, §10): break-start sheet, use-first check-in, interruption — wired to the break state machine.

@@ -208,7 +208,10 @@ summary:focus-visible {
   flex: none;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* One equal column per destination, however many there are: the bar used to
+     hard-code three, which left an empty third next to Today and History. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   min-height: var(--tab-bar-height);
   padding: 4px 12px calc(4px + var(--chrome-bleed));
   background: color-mix(in oklab, var(--bg-mist) 88%, transparent);

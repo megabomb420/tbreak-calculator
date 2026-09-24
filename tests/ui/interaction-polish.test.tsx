@@ -3,9 +3,9 @@
 // Static guards over src/ui/styles.css: app controls are not accidentally
 // selectable and suppress iOS long-press web callouts + tap flash, taps use
 // `touch-action: manipulation`, editable/copyable content stays selectable,
-// keyboard focus-visible states survive, and the iOS 26 viewport contract is
-// untouched. Deliberately newline-agnostic so the CRLF Windows checkout does
-// not break the guards.
+// keyboard focus-visible states survive, the iOS 26 viewport contract is
+// untouched and the tab bar stays even per destination. Deliberately
+// newline-agnostic so the CRLF Windows checkout does not break the guards.
 
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -73,6 +73,15 @@ describe('interaction-polish CSS contract', () => {
     expect(INDEX_HTML).toMatch(/name="viewport"[^>]*width=device-width,\s*initial-scale=1/);
     expect(INDEX_HTML).toMatch(/name="viewport"[^>]*viewport-fit=cover/);
     expect(CSS).not.toMatch(/\.tab-bar\s*\{[^}]*position:\s*fixed/);
+  });
+
+  it('lays the tab bar out as one equal column per destination', () => {
+    const bar = CSS.match(/\.tab-bar \{[^}]*\}/)?.[0] ?? '';
+    // Shipped 0.38.0 with a hard-coded three-column grid, which left an empty
+    // third of the bar beside the two real destinations.
+    expect(bar).not.toMatch(/grid-template-columns:\s*repeat\(/);
+    expect(bar).toMatch(/grid-auto-flow:\s*column/);
+    expect(bar).toMatch(/grid-auto-columns:\s*minmax\(0,\s*1fr\)/);
   });
 });
 
