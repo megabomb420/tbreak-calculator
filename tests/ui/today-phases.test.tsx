@@ -145,35 +145,6 @@ describe('Today phase states (0.11)', () => {
     expect(screen.getByTestId('checkin-cta')).toBeTruthy();
   });
 
-  it('keeps the optional ratings in their own sheet, in the documented order, independent of preferences', () => {
-    const storage = createMemoryStorage();
-    const snapshot: RawAnswerSnapshot = {
-      kind: 'use_profile',
-      profile: profile('2026-08-17T00:00:00Z'),
-    };
-    seedSnapshot(storage, snapshot);
-    seedAttempt(storage, activeAttempt());
-    renderApp(storage);
-    // The card itself carries no rating controls; they stay behind one tap.
-    expect(screen.queryByTestId('checkin-flow')).toBeNull();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    const flow = screen.getByTestId('checkin-flow');
-    expect(flow.getAttribute('data-screen')).toBe('symptoms');
-    expect(screen.queryByTestId('checkin-focus-line')).toBeNull();
-    const fields = [...flow.querySelectorAll('[data-testid^="symptom-"]')]
-      .map((el) => el.getAttribute('data-testid'))
-      .filter((id) => id !== null && /^symptom-(craving|sleep|irritability|anxiety|appetite)$/.test(id));
-    expect(fields[0]).toBe('symptom-craving');
-    const anxiety = within(flow).getByRole('slider', { name: 'Anxiety' });
-    fireEvent.pointerDown(anxiety);
-    fireEvent.input(anxiety, { target: { value: '7' } });
-    fireEvent.click(within(flow).getByTestId('symptoms-save'));
-    // The rating is written by the app's own check-in writer.
-    const saved = createCheckinsStore(storage).load()!.checkins.at(-1)!;
-    expect(saved.anxiety).toBe(7);
-    expect(saved.craving).toBeNull();
-    expect(saved.usedThc).toBe(false);
-  });
 });
 
 // Regression: the Recovery outlook stays reachable while a calculated break is
@@ -325,9 +296,10 @@ describe('Today shows one job, nothing hidden', () => {
   it('renders one support card with the stage, the experiences, the plan and the journey visible', () => {
     renderApp(seedLiveBreak());
     const card = screen.getByTestId('state-active-break');
-    // The day's topic renders as its own expanded section.
-    expect(screen.getByTestId('advice-cravings').getAttribute('data-area')).toBe('cravings');
-    expect(screen.queryByTestId('advice-routine')).toBeNull();
+    // One topic at a time, under the picker.
+    expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
+    expect(screen.getByTestId('advice-block').getAttribute('data-area')).toBe('cravings');
+    expect(screen.getByTestId('advice-picker')).toBeTruthy();
     expect(within(screen.getByTestId('daily-support')).queryByTestId('community-tip')).toBeNull();
     expect(document.querySelector('.result-lens-orbit')).toBeNull();
     // Everything is open: heading blocks, not disclosures.
@@ -339,44 +311,15 @@ describe('Today shows one job, nothing hidden', () => {
     const community = within(screen.getByTestId('today-experiences')).getByTestId('community-tip');
     expect(community.textContent).toContain('Personal experience');
     expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
-    // The ratings entry and the topics it raised sit together.
-    expect(screen.getByTestId('add-symptoms').textContent).toBe('How are you feeling?');
-    expect(screen.queryByTestId('rating-topics')).toBeNull();
-    // The stored urge plan and the whole journey are on the card too.
-    expect(within(card).getByTestId('preparation-card')).toBeTruthy();
-    expect(screen.getByTestId('today-preparation').tagName).toBe('SECTION');
+    // The rating sheet and the urge-plan block are gone from the card.
+    expect(screen.queryByTestId('add-symptoms')).toBeNull();
+    expect(screen.queryByTestId('today-preparation')).toBeNull();
+    // The whole journey is on the card.
     expect(screen.getByTestId('today-timeline').tagName).toBe('SECTION');
     expect(within(screen.getByTestId('today-timeline')).getByTestId('break-journey')).toBeTruthy();
     expect(within(card).getByTestId('today-research-fact')).toBeTruthy();
   });
 
-  it('writes the urge plan only when it is saved, and then leads the card with it', () => {
-    const storage = seedLiveBreak();
-    renderApp(storage);
-    const prep = screen.getByTestId('preparation-card');
-    expect(screen.getByTestId('plan-status').textContent).toContain('Nothing saved yet');
-    fireEvent.click(within(prep).getByTestId('trigger-weekend'));
-    fireEvent.input(within(prep).getByTestId('replacement-action'), { target: { value: 'make tea' } });
-    // Typing builds the plan as a draft: storage is untouched until Save.
-    expect(screen.getByTestId('intention-preview').textContent).toContain('make tea');
-    expect(screen.getByTestId('plan-status').textContent).toContain('Unsaved changes');
-    expect(screen.getByTestId('advice-cravings-action').textContent).not.toContain('make tea');
-    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
-    fireEvent.click(screen.getByTestId('save-plan'));
-    const stored = createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation;
-    expect(stored?.triggerIds).toContain('weekend');
-    expect(stored?.replacementAction).toBe('make tea');
-    expect(screen.getByTestId('plan-status').textContent).toContain('Saved');
-    // The card now leads with the person's own replacement instead of advice.
-    expect(screen.getByTestId('advice-cravings-action').textContent).toContain('Try your plan first');
-    expect(screen.getByTestId('advice-cravings-action').textContent).toContain('make tea');
-    expect(screen.getByTestId('advice-cravings-trigger').textContent).toContain('You flagged');
-    // Removing the plan clears it everywhere.
-    fireEvent.click(screen.getByTestId('remove-plan'));
-    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
-    expect(screen.getByTestId('plan-status').textContent).toContain('Nothing saved yet');
-    expect(screen.getByTestId('advice-cravings-action').textContent).not.toContain('make tea');
-  });
 
   it('leaves the interrupted card without the support stack', () => {
     const storage = createMemoryStorage();

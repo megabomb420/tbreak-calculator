@@ -10,158 +10,108 @@ import { toInstant } from '../../src/domain/schemas/time.ts';
 
 const NOW = toInstant(Date.parse('2026-09-20T12:00:00Z'));
 const START = toInstant(NOW - 3 * 86_400_000);
-function setup() {
-  const storage = createMemoryStorage();
-  createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [{
-    id: 'chosen', status: 'active', targetSource: 'chosen', calculationRecordId: null,
-    targetDurationDays: 14, postBreakMode: 'continue_abstinence', startedAt: START,
+
+function attempt(preparation: unknown = null) {
+  return {
+    id: 'chosen', status: 'active' as const, targetSource: 'chosen' as const, calculationRecordId: null,
+    targetDurationDays: 14, postBreakMode: 'continue_abstinence' as const, startedAt: START,
     segments: [{ startedFromLastUseAt: START, endedAt: null, endReason: null }],
-    postBreakPlan: { mode: 'continue_abstinence' }, preparation: null, completionAcknowledged: false,
-    createdAt: START, updatedAt: START,
-  }] });
-  const app = render(<App storage={storage} clock={fixedClock(NOW)} />);
-  return { storage, app };
+    postBreakPlan: { mode: 'continue_abstinence' as const }, preparation,
+    completionAcknowledged: false, createdAt: START, updatedAt: START,
+  };
 }
 
-function rate(name: string, value: number): void {
-  const slider = screen.getByRole('slider', { name });
-  fireEvent.pointerDown(slider);
-  fireEvent.input(slider, { target: { value: String(value) } });
+function setup(options: { preparation?: unknown } = {}) {
+  const storage = createMemoryStorage();
+  createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [attempt(options.preparation ?? null) as never] });
+  render(<App storage={storage} clock={fixedClock(NOW)} />);
+  return { storage };
 }
 
-const AREAS = ['sleep', 'cravings', 'appetite', 'anxiety', 'irritability', 'low_mood', 'dreams', 'nausea', 'headaches', 'routine', 'boredom'];
-
-/** The topics whose guides render, in order. */
-function adviceTopicIds(): string[] {
-  return [...screen.getByTestId('daily-support').querySelectorAll('[data-testid^="advice-"]')]
-    .map((el) => el.getAttribute('data-testid')!.replace('advice-', ''))
-    .filter((id) => AREAS.includes(id));
+function block() {
+  return screen.getByTestId('advice-block');
+}
+function pick(area: string) {
+  fireEvent.click(screen.getByTestId(`advice-topic-${area}`));
 }
 
 describe('practical Today advice', () => {
-  it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
-    const { storage, app } = setup();
-    expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    rate('Sleep quality', 2);
-    rate('Craving', 8);
-    fireEvent.click(screen.getByTestId('symptoms-save'));
-    // Both rated areas are 8 oriented: both guides render, hardest reading first.
-    expect(screen.getByTestId('advice-sleep-reason').textContent).toContain('Sleep quality 2/10');
-    expect(screen.getByTestId('advice-cravings-reason').textContent).toContain('Craving 8/10');
-    expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.appetite).toBeNull();
-    app.unmount();
+  it('shows one topic at a time, the day’s own practice until another is picked', () => {
+    setup();
+    expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
+    // Day 4's practice is about the usual session time.
+    expect(block().getAttribute('data-area')).toBe('cravings');
+    expect(screen.getByTestId('advice-picker-title').textContent).toBe('How to deal with?');
+    expect(screen.getByTestId('advice-topic-cravings').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('advice-reason').textContent).toBe('For this stage of the break');
+  });
+
+  it('replaces the block in place when another topic is picked, and writes nothing', () => {
+    const { storage } = setup();
+    pick('anxiety');
+    expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
+    expect(block().getAttribute('data-area')).toBe('anxiety');
+    expect(screen.getByTestId('advice-title').textContent).toBe('Anxiety or restlessness');
+    expect(screen.getByTestId('advice-topic-anxiety').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('advice-topic-cravings').getAttribute('aria-pressed')).toBe('false');
+    expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
+    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
+  });
+
+  it('renders the full guide with its sources, and the seek-help line, in place', () => {
+    setup();
+    pick('nausea');
+    const card = block();
+    expect(within(card).getByTestId('advice-action').textContent).toContain('small, regular sips');
+    expect(card.textContent).toContain('Repeated vomiting');
+    expect(within(card).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
+  });
+
+  it('leads with the person’s own plan on the topics their plan covers', () => {
+    setup({ preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: 'make tea', fallbackPlan: 'text a friend' } });
+    // Day 4 leads with the usual-session topic, which the plan covers.
+    expect(block().getAttribute('data-area')).toBe('cravings');
+    expect(screen.getByTestId('advice-action').textContent).toBe('Try your plan first: “make tea”.');
+    expect(screen.getByTestId('advice-trigger').textContent).toBe('You flagged: Evening after work.');
+    expect(screen.getByTestId('advice-fallback').textContent).toBe('If that is not possible: text a friend.');
+    // A symptom topic keeps its own first step and drops the plan lines.
+    pick('sleep');
+    expect(screen.getByTestId('advice-action').textContent).toBe('Choose a wake-up time you can keep tomorrow, even after a rough night.');
+    expect(screen.queryByTestId('advice-trigger')).toBeNull();
+    expect(screen.queryByTestId('advice-fallback')).toBeNull();
+  });
+
+  it('opens on a topic a saved rating named, with its dated reading', () => {
+    // A legacy report: Today no longer collects ratings, but stored ones still rank.
+    const storage = createMemoryStorage();
+    createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [attempt() as never] });
+    createCheckinsStore(storage).save({ schemaVersion: 'checkins-v1', checkins: [{
+      recordedAt: new Date(NOW).toISOString(), usedThc: false, usedAt: null,
+      craving: null, sleep: 1, anxiety: null, irritability: null, appetite: null, note: null,
+    }] });
     render(<App storage={storage} clock={fixedClock(NOW)} />);
-    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
+    expect(block().getAttribute('data-area')).toBe('sleep');
+    expect(screen.getByTestId('advice-reason').textContent).toContain('Sleep quality 1/10 in your check-in');
+    // Picking another topic still works from there.
+    pick('cravings');
+    expect(block().getAttribute('data-area')).toBe('cravings');
   });
 
-  it('renders a guide for every area rated 4 or harder, ordered by severity', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    rate('Sleep quality', 2);
-    rate('Appetite', 1);
-    rate('Craving', 8);
-    rate('Anxiety', 7);
-    fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
-    // Appetite 1/10 is the hardest oriented rating, then sleep, craving, anxiety.
-    expect(adviceTopicIds()).toEqual(['appetite', 'sleep', 'cravings', 'anxiety']);
-    expect(screen.queryByTestId('advice-routine')).toBeNull();
-    expect(screen.queryByTestId('advice-boredom')).toBeNull();
-  });
-
-  it('keeps one stage topic for a day with no ratings instead of two default essays', () => {
-    setup();
-    expect(adviceTopicIds()).toEqual(['cravings']);
-    expect(screen.getByTestId('advice-cravings-reason').textContent).toContain('For this stage of the break');
-    expect(screen.queryByTestId('advice-routine')).toBeNull();
-    expect(screen.queryByTestId('advice-boredom')).toBeNull();
-    expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
-    expect(screen.queryByTestId('rating-topics')).toBeNull();
-  });
-
-  it('does not present an area the user rated as comfortable as a problem', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
-    fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.getByTestId('advice-cravings-reason').textContent).toBe('For this stage of the break');
-    expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
-  });
-
-  it('undo survives reload, repeated taps do not duplicate, and earlier ratings remain', () => {
-    const { storage, app } = setup();
+  it('undo survives reload, repeated taps do not duplicate, and earlier entries remain', () => {
+    const storage = createMemoryStorage();
+    createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [attempt() as never] });
     const prior = { recordedAt: new Date(NOW - 86400000).toISOString(), usedThc: false, usedAt: null,
       craving: 7, sleep: 2, anxiety: null, irritability: null, appetite: null, note: 'yesterday' };
     createCheckinsStore(storage).save({ schemaVersion: 'checkins-v1', checkins: [prior] });
+    const app = render(<App storage={storage} clock={fixedClock(NOW)} />);
     fireEvent.click(screen.getByTestId('checkin-cta'));
     fireEvent.click(screen.getByTestId('checkin-cta'));
     expect(createCheckinsStore(storage).load()!.checkins).toHaveLength(2);
-    expect(screen.queryByTestId('checkin-flow')).toBeNull();
     app.unmount();
     render(<App storage={storage} clock={fixedClock(NOW)} />);
     expect(screen.getByTestId('checkin-cta').textContent).toBe('Checked in today');
     fireEvent.click(screen.getByTestId('undo-checkin'));
     expect(screen.getByTestId('checkin-cta').textContent).toBe('Check in');
     expect(createCheckinsStore(storage).load()!.checkins).toEqual([prior]);
-    expect(screen.getByTestId('advice-sleep-reason').textContent).toContain('Sleep quality 2/10');
-  });
-
-  it('keeps the break clock and plan unchanged when checking in', () => {
-    const { storage } = setup();
-    const before = createBreakAttemptsStore(storage).load()!.attempts[0]!.segments;
-    fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(screen.queryByTestId('report-use')).toBeNull();
-    expect(screen.queryByTestId('confirm-use')).toBeNull();
-    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.segments).toEqual(before);
-    expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(false);
-  });
-
-  it('opens another topic from the list without writing stored data and keeps its sources', () => {
-    const { storage } = setup();
-    fireEvent.click(screen.getByTestId('support-switch'));
-    const topics = screen.getByTestId('support-topics');
-    fireEvent.click(within(topics).getByRole('button', { name: 'Nausea' }));
-    // The opened topic is appended after the day's own topics, never replacing them.
-    expect(adviceTopicIds()).toEqual(['cravings', 'nausea']);
-    const nausea = screen.getByTestId('advice-nausea');
-    expect(within(nausea).getByTestId('advice-nausea-action').textContent).toContain('small, regular sips');
-    expect(nausea.textContent).toContain('Repeated vomiting');
-    expect(within(nausea).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
-    expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
-  });
-
-  it('discloses that a rating stops counting after 48 hours', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('support-switch'));
-    expect(screen.getByTestId('support-topics-note').textContent).toMatch(/A rating stops counting after 48 hours/);
-  });
-
-  it('opens on what the day already stored, and can take a rating back', () => {
-    const storage = createMemoryStorage();
-    createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [{
-      id: 'chosen', status: 'active', targetSource: 'chosen', calculationRecordId: null,
-      targetDurationDays: 14, postBreakMode: 'continue_abstinence', startedAt: START,
-      segments: [{ startedFromLastUseAt: START, endedAt: null, endReason: null }],
-      postBreakPlan: { mode: 'continue_abstinence' }, preparation: null, completionAcknowledged: false,
-      createdAt: START, updatedAt: START,
-    }] });
-    createCheckinsStore(storage).save({ schemaVersion: 'checkins-v1', checkins: [{
-      recordedAt: new Date(NOW).toISOString(), usedThc: false, usedAt: null,
-      craving: 6, sleep: null, anxiety: null, irritability: null, appetite: null, note: 'earlier',
-    }] });
-    render(<App storage={storage} clock={fixedClock(NOW)} />);
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    // The saved rating is shown, so it can be changed instead of being untouchable.
-    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
-    fireEvent.click(screen.getByRole('button', { name: 'Leave Craving unrecorded' }));
-    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    fireEvent.click(screen.getByTestId('symptoms-save'));
-    // The day's report is updated in place, not duplicated.
-    const rows = createCheckinsStore(storage).load()!.checkins;
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.craving).toBeNull();
   });
 });

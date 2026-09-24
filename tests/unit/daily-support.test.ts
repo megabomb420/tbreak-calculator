@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { presentDailySupport, type DailySupportInput } from '../../src/application/presentation/daily-support.ts';
+import { adviceSectionFor, presentDailySupport, type DailySupportInput, type DailySupportView } from '../../src/application/presentation/daily-support.ts';
 import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
 
 const NOW = Date.parse('2026-09-20T12:00:00Z');
 const DAY = 86_400_000;
+function shown(view: DailySupportView) {
+  return adviceSectionFor(view, view.defaultArea);
+}
+
 const base: DailySupportInput = { day: 4, now: NOW, anchor: NOW - 3 * DAY, checkins: [], preparation: null, targetDays: 28 };
 function row(patch: Partial<DailyCheckin> = {}): DailyCheckin {
   return { recordedAt: new Date(NOW).toISOString(), craving: null, sleep: null, irritability: null, anxiety: null, appetite: null, usedThc: false, usedAt: null, note: null, ...patch };
@@ -24,15 +28,13 @@ test('four hard ratings produce four advice topics instead of two, ordered by se
 test('a day with no ratings keeps the day’s own practice and adds no default essays', () => {
   const view = presentDailySupport({ ...base });
   assert.deepEqual(view.selections, []);
-  assert.equal(view.sections[0]!.area, 'cravings');
-  assert.equal(view.sections[0]!.reason, 'For this stage of the break');
-  assert.equal(view.status, 'Rate how you feel if this is not the problem.');
+  assert.equal(view.defaultArea, 'cravings');
+  assert.equal(shown(view).reason, 'For this stage of the break');
 });
 test('a comfortable rating alone raises no topic and keeps the day’s practice', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0 })] });
   assert.deepEqual(view.selections, []);
-  assert.equal(view.sections[0]!.area, 'cravings');
-  assert.equal(view.status, 'Picked from your recent check-ins.');
+  assert.equal(view.defaultArea, 'cravings');
 });
 test('missing fields and a subsequent no-use tap do not erase rated symptoms or create zero scores', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ recordedAt: new Date(NOW - 1000).toISOString(), anxiety: 8 }), row()] });
@@ -58,16 +60,16 @@ test('comfortable ratings are not presented as symptom problems and do not imply
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0, sleep: 10, irritability: 0, anxiety: 0, appetite: 10 })] });
   assert.equal(view.allComfortable, true);
   assert.deepEqual(view.selections, []);
-  assert.equal(view.sections[0]!.area, 'cravings');
+  assert.equal(view.defaultArea, 'cravings');
 });
 test('the person’s own replacement leads the card for routine, urge and empty-time topics', () => {
   const replacement = 'walk around the block';
   // Day 4's practice is an urge topic, so the saved plan outranks the guide.
   const view = presentDailySupport({ ...base, preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: replacement, fallbackPlan: 'call a friend' } });
-  assert.equal(view.sections[0]!.area, 'cravings');
-  assert.equal(view.sections[0]!.action, `Try your plan first: “${replacement}”.`);
-  assert.equal(view.sections[0]!.triggerLine, 'You flagged: Evening after work.');
-  assert.equal(view.sections[0]!.fallbackLine, 'If that is not possible: call a friend.');
+  assert.equal(view.defaultArea, 'cravings');
+  assert.equal(shown(view).action, `Try your plan first: “${replacement}”.`);
+  assert.equal(shown(view).triggerLine, 'You flagged: Evening after work.');
+  assert.equal(shown(view).fallbackLine, 'If that is not possible: call a friend.');
 });
 test('a symptom topic keeps its guide action and drops the plan lines even when a plan exists', () => {
   const view = presentDailySupport({
@@ -75,10 +77,10 @@ test('a symptom topic keeps its guide action and drops the plan lines even when 
     checkins: [row({ sleep: 1 })],
     preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: 'walk around the block', fallbackPlan: 'call a friend' },
   });
-  assert.equal(view.sections[0]!.area, 'sleep');
-  assert.equal(view.sections[0]!.action, 'Choose a wake-up time you can keep tomorrow, even after a rough night.');
-  assert.equal(view.sections[0]!.triggerLine, null);
-  assert.equal(view.sections[0]!.fallbackLine, null);
+  assert.equal(view.defaultArea, 'sleep');
+  assert.equal(shown(view).action, 'Choose a wake-up time you can keep tomorrow, even after a rough night.');
+  assert.equal(shown(view).triggerLine, null);
+  assert.equal(shown(view).fallbackLine, null);
 });
 test('different days have practical tasks without changing the evidence window', () => {
   const a = presentDailySupport({ ...base, day: 3 });

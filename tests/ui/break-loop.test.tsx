@@ -283,28 +283,6 @@ describe('daily check-in', () => {
     expect(checkin.craving).toBe(null);
   });
 
-  it('stores only the ratings that were chosen, with the note, and writes nothing until saved', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    // A fresh day opens on "Not set" and stores nothing until Save.
-    expect(checkinsOf(storage)).toHaveLength(0);
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    const craving = screen.getByRole('slider', { name: 'Craving' });
-    fireEvent.pointerDown(craving);
-    fireEvent.input(craving, { target: { value: '6' } });
-    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
-    fireEvent.input(screen.getByTestId('checkin-note'), { target: { value: 'steady so far' } });
-    fireEvent.click(screen.getByTestId('symptoms-save'));
-    const checkin = checkinsOf(storage)[0] as { craving: number; sleep: null; appetite: null; note: string; usedThc: boolean };
-    expect(checkin.craving).toBe(6);
-    expect(checkin.sleep).toBe(null);
-    expect(checkin.appetite).toBe(null);
-    expect(checkin.note).toBe('steady so far');
-    expect(checkin.usedThc).toBe(false);
-  });
 
   it('keeps THC-use logging out of an active T-break', () => {
     const storage = createMemoryStorage();
@@ -525,11 +503,11 @@ describe('evidence-guided companion', () => {
     const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
-    expect(screen.getByTestId('advice-cravings-action').textContent).toBeTruthy();
+    expect(screen.getByTestId('advice-action').textContent).toBeTruthy();
     expect(screen.getByTestId('guidance-context').textContent).toMatch(/population pattern, not a personal prediction/i);
   });
 
-  it('keeps the card to the person’s own plan instead of a second urge-plan block', () => {
+  it('leads the day’s topic with the person’s own plan instead of a second urge-plan block', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(
@@ -548,10 +526,10 @@ describe('evidence-guided companion', () => {
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     // The saved replacement is the card's one action line, with the trigger the
     // person flagged underneath...
-    const action = within(guidance).getByTestId('advice-cravings-action');
+    const action = within(guidance).getByTestId('advice-action');
     expect(action.textContent).toContain('Try your plan first');
     expect(action.textContent).toContain('go for a walk');
-    expect(within(guidance).getByTestId('advice-cravings-trigger').textContent).toBe('You flagged: Evening after work.');
+    expect(within(guidance).getByTestId('advice-trigger').textContent).toBe('You flagged: Evening after work.');
     // ...without a duplicated urge-plan list, a second heading, or an invented
     // "avoid" line.
     expect(within(guidance).queryByTestId('intention-preview')).toBeNull();
@@ -614,14 +592,8 @@ describe('evidence-guided companion', () => {
     expect(screen.getByTestId('break-roadmap')).toBeTruthy();
     expect(screen.queryByTestId('mark-complete')).toBeNull();
     expect(screen.queryByTestId('post-break-card')).toBeNull();
-    fireEvent.click(screen.getByTestId('trigger-weekend'));
-    fireEvent.input(screen.getByTestId('replacement-action'), { target: { value: 'make tea' } });
-    // The plan is written only when it is saved, not while it is typed.
-    expect(createTrackingRecordsStore(storage).load()?.records[0]?.preparation).toBeNull();
-    fireEvent.click(screen.getByTestId('save-plan'));
-    const tracking = createTrackingRecordsStore(storage).load()?.records[0];
-    expect(tracking?.preparation?.triggerIds).toContain('weekend');
-    expect(tracking?.preparation?.replacementAction).toBe('make tea');
+    // The picker is on the tracking card too, and the roadmap link still works.
+    expect(screen.getByTestId('advice-picker-title').textContent).toBe('How to deal with?');
   });
 
   it('does not complete open-ended tracking at day 28', () => {

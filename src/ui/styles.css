@@ -771,13 +771,6 @@ summary:focus-visible {
   background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
 }
 
-.checkin-symptoms-form {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .text-back {
   min-height: 44px;
   border: 0;
@@ -1567,85 +1560,6 @@ details.card > summary::-webkit-details-marker {
   padding: 0;
 }
 
-/* Check-in ------------------------------------------------------------------ */
-
-.symptom-field {
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--bg-card);
-  box-shadow: var(--shadow-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.symptom-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.symptom-output {
-  min-width: 52px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--fg);
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.symptom-field.unset .symptom-output {
-  background: var(--bg-raised);
-  color: var(--fg-faint);
-}
-
-.symptom-field.unset .slider::-webkit-slider-thumb {
-  background: var(--fg-faint);
-}
-
-.symptom-field.unset .slider::-moz-range-thumb {
-  background: var(--fg-faint);
-}
-
-.symptom-slider {
-  height: 40px;
-}
-
-.symptom-slider .slider {
-  height: 40px;
-}
-
-.symptom-anchors {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-size: 12px;
-  color: var(--fg-faint);
-}
-
-.note-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.note-field input {
-  min-height: 56px;
-  width: 100%;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  border: 0;
-  background: var(--bg-card);
-  color: var(--fg);
-  font: inherit;
-  font-size: 16px;
-  box-shadow: var(--shadow-border);
-  color-scheme: dark;
-}
 
 .modal-sheet .cta-primary,
 .modal-sheet .cta-secondary {
@@ -2407,9 +2321,6 @@ details.card > summary::-webkit-details-marker {
   margin-top: var(--space-2);
 }
 
-
-
-
 /* ---------------------------------------------------------------------------
    Native-feel interaction polish (0.8.1).
    App-like touch + selection contract. Controls and chrome text are not
@@ -3047,11 +2958,6 @@ select,
   margin-top: var(--space-1);
 }
 
-/* Check-in focus line (support focus · symptom sheet). */
-.checkin-focus-line {
-  color: var(--accent-strong);
-  font-weight: 600;
-}
 
 /* 0.11.1 — Today visual polish: clean editorial surface -------------------- */
 
@@ -3197,17 +3103,6 @@ details.card.guidance-why summary.card-title {
 
 .roadmap-stage.is-current .roadmap-headline {
   color: var(--fg);
-}
-
-/* Check-in symptoms: hairline-separated rows instead of five stacked filled
-   cards — the slider is the control, the row is only a divider. */
-.symptom-field {
-  padding: var(--space-4) 0;
-  background: transparent;
-  box-shadow: none;
-  border: 0;
-  border-top: 1px solid var(--hairline);
-  border-radius: 0;
 }
 
 /* History: one quiet list divided by hairlines, matching driver-list and
@@ -3707,11 +3602,6 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .support-card .card-title { margin: 0; }
 .support-card .advice-reason { margin: 0; line-height: 1.5; }
 .support-card .advice-first-step { margin: 0; }
-.support-card .advice-details { margin-top: 2px; }
-.support-also { display: flex; flex-direction: column; gap: 8px; }
-.support-also .micro-label { margin: 0; }
-.support-card > .text-back { align-self: flex-start; padding: 4px 0; }
-.advice-details summary { display: list-item; min-height: 44px; padding: 12px 0; font-size: 0.875rem; color: var(--accent); cursor: pointer; }
 .advice-content { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
 .advice-content p { margin: 0; }
 .advice-steps { margin: 0; padding-left: 20px; }
@@ -3725,34 +3615,20 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .daily-practice h4 { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
 .daily-practice .body { margin: 8px 0 0; }
 .daily-comfortable { margin: 0; color: var(--fg-muted); padding-left: 14px; border-left: 2px solid var(--ok); }
-.advice-topic-groups { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
-.advice-topic-groups .micro-label { margin: 0 0 6px; }
 .advice-topics { display: flex; flex-wrap: wrap; gap: 8px; }
 .advice-topic { border: 1px solid var(--hairline-strong); border-radius: 999px; background: transparent; padding: 9px 14px; min-height: 44px; font-size: 0.875rem; }
 .advice-topic.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
 .advice-topic:hover { background: var(--bg-hover); }
+/* Topic picker: the row chooses what the block beneath it explains. */
+.topic-picker { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; }
+.topic-group { display: flex; flex-direction: column; gap: 6px; }
+.topic-group .micro-label { margin: 0; }
+.daily-support > .card-title { margin: 0; }
 .today-plan-card > .result-disclosure { margin: 0; }
 /* Expanded Today blocks: a heading and its content, no disclosure. */
 .today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .today-block > .card-title { margin: 0; }
-/* Inline symptom report: 0–10 buttons that toggle, so a rating can be taken back. */
-.checkin-symptoms { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
-.checkin-symptoms > .card-title { margin: 0; }
-.checkin-symptoms .meta { margin: 0; }
-.symptom-field { display: flex; flex-direction: column; gap: 8px; padding-top: var(--space-3); border-top: 1px solid var(--hairline); }
-.symptom-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
-.symptom-output { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--accent-strong); }
-.symptom-scale { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 2px; }
-.symptom-value { min-height: 40px; padding: 0; border: 1px solid var(--hairline); border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); font-size: 0.8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-.symptom-value:hover { background: var(--bg-hover); }
-.symptom-value.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
-.symptom-clear { align-self: flex-start; min-height: 36px; padding: 0; font-size: 0.8125rem; }
-.plan-actions { display: flex; align-items: center; gap: var(--space-4); }
-.plan-actions .cta-secondary { min-height: 44px; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
-.symptom-description { margin: 6px 0 8px; line-height: 1.5; }
-.symptom-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
-.symptom-actions button { min-height: 44px; font-size: 0.8125rem; }
 @media (max-width: 360px) {
   .support-card { gap: 10px; }
 }

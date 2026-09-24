@@ -100,30 +100,12 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 
 // --- Check-in (UX_SPEC 10.2) -----------------------------------------------
 
-export const CHECKIN = {
-  title: 'Check-in',
-  question: 'Any THC since your last check-in?',
-  no: 'No',
-  noHelper: "I haven't used",
-  yes: 'Yes',
-  yesHelper: 'I used THC',
-  save: 'Save',
-  addSymptoms: "Add how you're feeling",
-  symptomsTitle: 'How are you feeling?',
-  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Skip any. Your ratings help choose today’s advice.',
-  noteLabel: 'Note (optional)',
-  noteHelper: 'Private, stored only on this device, never analysed.',
-  close: 'Close check-in',
-  backToQuestion: 'Back',
+export const ADVICE_PICKER = {
+  title: 'How to deal with?',
+  /** Shown by the recovery-outlook and check-in copy when a legacy rating
+   * selects a topic; Today itself no longer collects ratings. */
+  ratedReason: 'From a saved check-in rating',
 } as const;
-
-export const SYMPTOM_FIELDS = [
-  { id: 'craving', label: 'Craving', description: 'How strong was the urge to use THC, including urges at your usual session time?', zero: 'None', ten: 'Overwhelming' },
-  { id: 'sleep', label: 'Sleep quality', description: 'Think about falling asleep, waking during the night and feeling rested. A higher score means better sleep.', zero: 'Terrible', ten: 'Great' },
-  { id: 'irritability', label: 'Irritability', description: 'Short temper, frustration or feeling more easily annoyed than usual.', zero: 'Calm', ten: 'Very irritable' },
-  { id: 'anxiety', label: 'Anxiety', description: 'Worry, tension, racing thoughts or feeling unable to settle.', zero: 'None', ten: 'Severe' },
-  { id: 'appetite', label: 'Appetite', description: 'How much did you want to eat? A higher score means a stronger appetite, not more nausea.', zero: 'None', ten: 'Normal / strong' },
-] as const;
 
 // --- Interruption (UX_SPEC 10.3) -------------------------------------------
 
@@ -279,16 +261,6 @@ export const PROFILE_NO_BREAK = {
 
 export const MODE_ORDER: readonly PostBreakMode[] = POST_BREAK_MODES;
 
-export const PREPARATION_COPY = {
-  title: 'Your plan for urges',
-  helper:
-    'Name the moments that set an urge off and what you will do first. Today leads with your own move whenever an urge, a routine or an empty evening is the topic.',
-  save: 'Save plan',
-  remove: 'Remove plan',
-  unsaved: 'Unsaved changes — Today still uses the saved plan.',
-  saved: 'Saved. Today leads with it when an urge, a routine or an empty evening is the topic.',
-  empty: 'Nothing saved yet — pick the moments that matter most.',
-} as const;
 
 export const GUIDANCE_CHROME = {
   mayNotice: 'What you may notice',

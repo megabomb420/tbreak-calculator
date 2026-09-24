@@ -22,9 +22,6 @@ import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { DailySupport } from './daily-support.tsx';
 import { ExtraBlocks, StageBlock } from './today-guidance.tsx';
-import { SUPPORT_AREA_COPY } from './companion-copy.ts';
-import type { SupportArea } from '../application/questionnaire/companion.ts';
-import { UrgePlan } from './urge-plan.tsx';
 import { presentDailySupport } from '../application/presentation/daily-support.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import { ResultLensHero } from './result-lens.tsx';
@@ -81,7 +78,6 @@ export interface TodayScreenProps {
   readonly onSeeBreakRange: () => void;
   readonly onStartTracking: () => void;
   readonly onCheckIn: () => void;
-  readonly onAddSymptoms: () => void;
   readonly onUndoCheckin: () => void;
   readonly onConfirmWhen: () => void;
   readonly onDismissUnconfirmedUse: () => void;
@@ -251,26 +247,6 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
   </div>;
 }
 
-/** The optional ratings entry, with the topics those ratings raised listed
- * right beneath it: what the day's feelings produced, before their guides. */
-function RatingEntry({ props, topics }: { readonly props: TodayScreenProps; readonly topics: readonly SupportArea[] }) {
-  return (
-    <section className="rating-entry" data-testid="rating-entry">
-      <button type="button" className="text-back" data-testid="add-symptoms" onClick={props.onAddSymptoms}>
-        How are you feeling?
-      </button>
-      {topics.length > 0 ? (
-        <div className="rating-topics" data-testid="rating-topics">
-          <p className="micro-label">From your ratings</p>
-          <div className="advice-topics">
-            {topics.map((area) => <span className="advice-topic is-tag" key={area}>{SUPPORT_AREA_COPY[area].shortLabel}</span>)}
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
 // --- Live timing states -----------------------------------------------------
 
 function ActiveBreakCard(props: TodayScreenProps) {
@@ -367,14 +343,8 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ) : null}
       </div>
       <StageBlock support={support} />
-      <RatingEntry props={props} topics={support.selections.map((item) => item.area)} />
       <DailySupport view={support} />
       <ExtraBlocks support={support} />
-      <UrgePlan
-        key={attempt.updatedAt ?? attempt.id}
-        preparation={attempt.preparation}
-        onSave={(next) => props.onUpdatePreparation(attempt.id, next)}
-      />
       <section className="result-disclosure today-block" data-testid="today-timeline">
         <h3 className="card-title">Your break timeline</h3>
         <BreakJourney view={journey} />
@@ -504,16 +474,10 @@ function TrackingCard(props: TodayScreenProps) {
       {support !== null ? (
         <>
           <StageBlock support={support} />
-          <RatingEntry props={props} topics={support.selections.map((item) => item.area)} />
           <DailySupport view={support} />
           <ExtraBlocks support={support} />
         </>
       ) : null}
-      <UrgePlan
-        key={tracking.track.id}
-        preparation={tracking.track.preparation}
-        onSave={(next) => props.onUpdatePreparation(tracking.track.id, next)}
-      />
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (

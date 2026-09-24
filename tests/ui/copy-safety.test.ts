@@ -83,13 +83,6 @@ describe('UI copy invariants', () => {
     expect(safety).toMatch(/seek emergency help/);
   });
 
-  it('keeps the check-in symptom anchors on the documented scale', () => {
-    expect(breakCopy.SYMPTOM_FIELDS).toHaveLength(5);
-    for (const field of breakCopy.SYMPTOM_FIELDS) {
-      expect(field.zero.length).toBeGreaterThan(0);
-      expect(field.ten.length).toBeGreaterThan(0);
-    }
-  });
 });
 
 describe('advice, community, research and recovery copy', () => {
