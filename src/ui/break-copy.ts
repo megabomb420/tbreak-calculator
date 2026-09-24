@@ -189,6 +189,9 @@ export const PLAN_STATE_NOTES = {
 export const CHOSEN_BREAK = {
   optionTitle: 'Choose my break length',
   optionHelper: 'Pick any break from 3 to 28 days',
+  newPlanIntro: 'Answer a few questions to plan a break, cut down, or understand a test.',
+  newPlanNote: 'Your answers stay on this device. Starting a calculation does not end an active break.',
+  viewSavedPlan: 'View saved plan',
   flowTitle: 'Choose your break',
   lengthQuestion: 'How long should your break be?',
   rangeHelper: 'Pick any break from 3 to 28 days.',

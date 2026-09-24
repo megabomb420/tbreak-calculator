@@ -1,8 +1,12 @@
-// Shell controller: the Today / Calculator / History model and the gear/settings modal
+// Shell controller: the Today / History model and the gear/settings modal
 // (UX_SPEC 3.1). Pure state transitions a UI layer binds to; no rendering,
 // no storage access here.
+//
+// There is no Calculator destination: starting a plan is an action, not a
+// place to browse. Today carries one quiet entry point that opens the goal
+// picker, so a live plan is never abandoned just to look at a calculator.
 
-export type AppTab = 'today' | 'calculator' | 'history';
+export type AppTab = 'today' | 'history';
 
 export interface ShellState {
   readonly activeTab: AppTab;

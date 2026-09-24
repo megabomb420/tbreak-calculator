@@ -43,11 +43,11 @@ function seedProfile(storage: StorageAdapter): void {
   createResultViewStore(storage).save({ schemaVersion: RESULT_VIEW_SCHEMA_VERSION, status: 'acknowledged', updatedAt: AT });
 }
 
-/** Runs the Calculator → Choose my break length flow up to the point where the
+/** Runs Today → new calculation → Choose my break length up to the point where the
  * normal break-start sheet is open for the given days. */
 function openChooseFlow(storage: StorageAdapter, days: number) {
   const rendered = renderApp(storage);
-  fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+  fireEvent.click(screen.getByTestId('today-new-plan'));
   fireEvent.click(screen.getByTestId('choose-break-length'));
   const overlay = screen.getByTestId('choose-break-days');
   const from = Number(within(overlay).getByTestId('break-length-value').textContent);
@@ -115,7 +115,7 @@ describe('Choose my break length (custom duration)', () => {
   it('enforces the 3–28 day bounds and only whole days', () => {
     const storage = createMemoryStorage();
     renderApp(storage);
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByTestId('today-new-plan'));
     fireEvent.click(screen.getByTestId('choose-break-length'));
     const overlay = screen.getByTestId('choose-break-days');
     const minus = within(overlay).getByTestId('days-decrease') as HTMLButtonElement;
@@ -221,9 +221,9 @@ describe('Choose my break length (custom duration)', () => {
     expect(today.getAttribute('data-primary')).toBe('profile-no-break');
     expect(within(today).queryByTestId('state-active-break')).toBeNull();
     expect(within(today).getByTestId('view-result')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
-    // The Calculator offers the science goals and the chosen-duration option.
-    expect(within(screen.getByTestId('calculator-screen')).getByRole('button', { name: /Reset my tolerance/ })).toBeTruthy();
+    fireEvent.click(screen.getByTestId('today-new-plan'));
+    // The new-calculation sheet offers the science goals and the chosen-duration option.
+    expect(within(screen.getByTestId('new-plan')).getByRole('button', { name: /Reset my tolerance/ })).toBeTruthy();
     expect(screen.getByTestId('choose-break-length')).toBeTruthy();
   });
 });
@@ -307,7 +307,7 @@ describe('chosen-duration scheduling edge cases', () => {
       ],
     });
     renderApp(storage);
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByTestId('today-new-plan'));
     fireEvent.click(screen.getByTestId('choose-break-length'));
     fireEvent.click(screen.getByTestId('choose-days-continue'));
     expect(screen.getByTestId('choose-running-notice')).toBeTruthy();

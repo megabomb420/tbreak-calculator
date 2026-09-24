@@ -9,7 +9,7 @@ The same build is published on two origins: GitHub Pages under the repository su
 ## Product
 
 - **Today:** the break day, an explained one-tap check-in, the stage you are in, one practical action with its full guide open, others' experiences matched to that topic, and your break timeline. **Manage break** updates last use without discarding earlier days.
-- **Calculator:** all four goals remain reachable while a plan is running; unfinished answers can be resumed.
+- **New calculation:** opened from Today, so all four goals, a chosen break length and unfinished answers stay reachable while a plan is running, without leaving the day you are on.
 - **History:** dated immutable calculation results (a saved result keeps its stored numbers), check-ins, previous breaks and cut-down logs; elapsed time is distinct from day position. Explicit corrections and deletion never regenerate a deleted recommendation.
 - **Science:** a separate, source-linked explainer available from every main screen and Settings. The result screen shows one planning target plus a research section on what the four-week human reference does and does not mean; the app estimates no personal recovery window.
 

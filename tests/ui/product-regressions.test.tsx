@@ -67,11 +67,20 @@ describe('date and intake regressions', () => {
 });
 
 describe('main navigation and modal isolation', () => {
-  it('makes all goals reachable from Calculator and restores Settings after Science', () => {
+  it('makes all goals reachable from the new-calculation sheet and restores Settings after Science', () => {
     render(<App storage={createMemoryStorage()} clock={fixedClock(C0)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
-    expect(screen.getByTestId('app-shell').getAttribute('data-active-tab')).toBe('calculator');
-    expect(screen.getByTestId('app-shell').querySelectorAll('[data-goal]')).toHaveLength(4);
+    fireEvent.click(screen.getByTestId('today-new-plan'));
+    // Starting a plan is a flow over Today, not a destination of its own: the
+    // sheet carries the four goals and Today stays the active tab.
+    expect(screen.getByTestId('new-plan')).toBeTruthy();
+    expect(screen.getByTestId('app-shell').getAttribute('data-active-tab')).toBe('today');
+    const sheet = screen.getByTestId('new-plan');
+    expect(sheet.querySelectorAll('[data-goal]')).toHaveLength(4);
+    expect(within(sheet).getByTestId('choose-break-length')).toBeTruthy();
+    // The sheet is a flow, so it must close and hand the background back.
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close new calculation' }));
+    expect(screen.queryByTestId('new-plan')).toBeNull();
+    expect(screen.getByTestId('app-shell').hasAttribute('inert')).toBe(false);
     fireEvent.click(screen.getByTestId('open-settings'));
     fireEvent.click(screen.getByTestId('settings-science'));
     expect(screen.getByTestId('app-shell').hasAttribute('inert')).toBe(true);
@@ -103,10 +112,10 @@ describe('main navigation and modal isolation', () => {
 });
 
 
-describe('starting a plan from Calculator', () => {
+describe('starting a plan from the new-calculation sheet', () => {
   it('lands on Today after starting abstinence and exposes a working detail link', () => {
     render(<App storage={createMemoryStorage()} clock={fixedClock(C0)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByTestId('today-new-plan'));
     fireEvent.click(screen.getByRole('button', { name: /Stay off THC/ }));
     fireEvent.click(screen.getByRole('button', { name: /1–6 months/ }));
     fireEvent.click(screen.getByRole('button', { name: 'I still use — today is day 1' }));

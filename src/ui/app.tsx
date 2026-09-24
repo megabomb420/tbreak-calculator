@@ -1,6 +1,5 @@
 import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { presentSavedResult, savedUseProfile } from '../application/calculation/saved-result.ts';
-import { GoalCards } from './questionnaire-controls.tsx';
 import { useEffect, useMemo, useReducer, useState } from 'preact/hooks';
 import { answersFromSnapshot } from '../application/calculation/answers-from-snapshot.ts';
 import { runCalculation } from '../application/calculation/run-calculation.ts';
@@ -67,7 +66,6 @@ import type { StoredPreviousBreak } from '../application/persistence/previous-br
 import { findPreviousBreak, lastedDays } from '../application/history/history-model.ts';
 import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
 import { INSTALL_HINT_DISMISSED_KEY } from '../application/persistence/durable.ts';
-import { RESUME } from './copy.ts';
 import { StorageBanner } from './storage-banner.tsx';
 import { InstallHint, UpdateSnackbar, isStandaloneDisplay } from './pwa-ui.tsx';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
@@ -106,6 +104,7 @@ import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { systemClock, type Clock } from '../infrastructure/clock.ts';
 import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.ts';
 import { BreakStartSheet } from './break-start-sheet.tsx';
+import { NewPlanSheet } from './new-plan-sheet.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -115,7 +114,6 @@ import { ResultScreen } from './result-screen.tsx';
 import { RESULT } from './result-copy.ts';
 import { ChooseBreakDays } from './choose-break-days.tsx';
 import { CHOSEN_BREAK, CHOSEN_BREAK_MAX_DAYS, CHOSEN_BREAK_MIN_DAYS } from './break-copy.ts';
-import { CalendarIcon } from './icons.tsx';
 import { SettingsModal, type BackupStatus } from './settings-modal.tsx';
 import { ScienceBasicsPanel } from './science-basics.tsx';
 import { Shell } from './shell.tsx';
@@ -149,7 +147,8 @@ export type Flow =
   | { readonly kind: 'previous-break'; readonly editId: string | null }
   | { readonly kind: 'detox-evidence' }
   | { readonly kind: 'reduction-start' }
-  | { readonly kind: 'log-use' };
+  | { readonly kind: 'log-use' }
+  | { readonly kind: 'new-plan' };
 
 export interface AppProps {
   readonly storage: StorageAdapter;
@@ -1255,6 +1254,7 @@ export function App({
           <TodayScreen
             view={view}
             draft={facts.draft}
+            onOpenNewPlan={() => setFlow({ kind: 'new-plan' })}
             live={liveData}
             profile={profileData}
             onStartOver={abandonDraft}
@@ -1291,42 +1291,6 @@ export function App({
             onEndReduction={endLiveReduction}
             onRecommitReduction={openRecommitReduction}
           />
-        ) : shell.activeTab === 'calculator' ? (
-          <section className="stack calculator-screen" data-testid="calculator-screen">
-            <div className="hero">
-              <p className="eyebrow">A plan that fits your goal</p>
-              <h2 className="title">What would you like to do?</h2>
-              <p className="body">Answer a few questions to plan a break, cut down, or understand a test.</p>
-            </div>
-            {draft !== null ? <div className="card">
-              <h3 className="card-title">{RESUME.unfinishedTitle}</h3>
-              <p className="meta">{RESUME.unfinishedBody}</p>
-              <div className="cta-row">
-                <button type="button" className="cta-primary" data-testid="resume-draft" onClick={openResume}>{RESUME.resume}</button>
-                <button type="button" className="text-back" data-testid="discard-draft" onClick={abandonDraft}>{RESUME.startOver}</button>
-              </div>
-            </div> : null}
-            <GoalCards onSelect={openGoal} />
-            <button
-              type="button"
-              className="choice-card"
-              data-testid="choose-break-length"
-              onClick={openChooseBreakDays}
-            >
-              <span className="choice-icon">
-                <CalendarIcon size={20} />
-              </span>
-              <span className="choice-copy">
-                <span className="choice-title">{CHOSEN_BREAK.optionTitle}</span>
-                <span className="meta">{CHOSEN_BREAK.optionHelper}</span>
-              </span>
-            </button>
-            {profileSnapshot !== null ? <button type="button" className="cta-secondary" onClick={() => {
-              if (!tryWrite(() => durable.saveSnapshot(profileSnapshot))) return;
-              progress.clear(); markResult('open'); refresh();
-            }}>View saved plan</button> : null}
-            <p className="meta">Your answers stay on this device. Starting a calculation does not end an active break.</p>
-          </section>
         ) : (
           <HistoryScreen
             snapshot={durableSnap}
@@ -1381,7 +1345,31 @@ export function App({
           onRecalculateWithHistory={canRecalculateWithHistory ? recalculateWithHistory : undefined}
         />
       ) : null}
-      {openFlow !== null && openFlow.kind !== 'previous-break' ? (
+      {openFlow !== null && openFlow.kind === 'new-plan' ? (
+        <NewPlanSheet
+          draft={draft}
+          hasSavedPlan={profileSnapshot !== null}
+          onSelectGoal={(goal) => {
+            setFlow(null);
+            openGoal(goal);
+          }}
+          onChooseLength={() => setFlow({ kind: 'choose-break-days' })}
+          onResume={() => {
+            setFlow(null);
+            openResume();
+          }}
+          onDiscardDraft={abandonDraft}
+          onViewSavedPlan={() => {
+            if (profileSnapshot === null || !tryWrite(() => durable.saveSnapshot(profileSnapshot))) return;
+            progress.clear();
+            markResult('open');
+            setFlow(null);
+            refresh();
+          }}
+          onClose={() => setFlow(null)}
+        />
+      ) : null}
+      {openFlow !== null && openFlow.kind !== 'previous-break' && openFlow.kind !== 'new-plan' ? (
         <FlowRenderer
           flow={openFlow}
           targetDays={breakSheetTargetDays}

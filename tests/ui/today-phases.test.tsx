@@ -124,12 +124,15 @@ describe('Today phase states (0.11)', () => {
       expect(screen.getByTestId('advice-why')).toBeTruthy();
     }
     // Behind one tap each, because they are long: the guide's remaining steps,
-    // the symptom list, the journey and break management.
-    for (const id of ['advice-more', 'stage-may-notice', 'today-timeline', 'today-manage']) {
+    // the symptom list and break management. The timeline stays open — it is
+    // where the day sits in the plan.
+    for (const id of ['advice-more', 'stage-may-notice', 'today-manage']) {
       const node = screen.getByTestId(id);
       expect(node.tagName).toBe('DETAILS');
       expect(node.hasAttribute('open')).toBe(false);
     }
+    expect(screen.getByTestId('today-timeline').tagName).toBe('SECTION');
+    expect(screen.getByTestId('today-timeline').querySelector('h3')?.textContent).toBe('Your break timeline');
   });
 
   it('marks the interrupted card as calm and recoverable with progress preserved', () => {

@@ -3629,6 +3629,16 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .advice-details > summary::after { content: '+'; font-family: var(--font-body); color: var(--fg-muted); font-size: 1.15rem; }
 .advice-details[open] > summary::after { content: '−'; }
 .advice-why { margin: 0; }
+/* Break management is a pair of quiet actions, not a page: the update button
+   stays a comfortable touch target without the full-width CTA weight. */
+.manage-action {
+  align-self: flex-start;
+  width: auto;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  margin: var(--space-2) 0;
+  text-align: center;
+}
 .advice-steps { margin: 0; padding-left: 20px; }
 .advice-steps li + li { margin-top: 10px; }
 .advice-help { padding: 12px 14px; border-left: 2px solid var(--warn); background: color-mix(in oklab, var(--warn) 5%, transparent); font-size: 0.875rem; line-height: 1.55; }

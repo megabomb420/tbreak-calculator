@@ -167,7 +167,7 @@ describe('break start sheet', () => {
     expect(screen.getByTestId('scheduled-start')).toBeTruthy();
     // A separate drug-test query must not replace the scheduled break's
     // last-use anchor or make its original use profile unreachable.
-    fireEvent.click(screen.getByRole('button', { name: 'Calculator', exact: true }));
+    fireEvent.click(screen.getByTestId('today-new-plan'));
     fireEvent.click(screen.getByRole('button', { name: /Drug test info/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Urine', exact: true }));
     fireEvent.click(screen.getByRole('button', { name: /Just curious/ }));

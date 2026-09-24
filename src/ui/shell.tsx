@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import type { AppTab, ShellState } from '../application/shell/shell-controller.ts';
 import { OPEN_SETTINGS } from './copy.ts';
-import { CalculatorIcon, GearIcon, HistoryIcon, TodayIcon } from './icons.tsx';
+import { GearIcon, HistoryIcon, TodayIcon } from './icons.tsx';
 
 export interface ShellProps {
   readonly shell: ShellState;
@@ -16,7 +16,6 @@ export interface ShellProps {
 
 const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }> = [
   { id: 'today', label: 'Today', icon: TodayIcon },
-  { id: 'calculator', label: 'Calculator', icon: CalculatorIcon },
   { id: 'history', label: 'History', icon: HistoryIcon },
 ];
 

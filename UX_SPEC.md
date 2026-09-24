@@ -2,7 +2,7 @@
 
 Version: **0.38.0**
 
-Current revision (0.38.0): the recovery outlook is retired as a user-facing concept and mode. The result screen is one body, in this order: plan target with planning range and uncertainty → the break journey ("what to expect") → **Why this plan** → an always-visible research section, **What the research can and cannot say** (the four-week human CB1 PET reference, the "what this does not mean" list, and links to Hirvonen, D'Souza and Budney) → history → answers. The app no longer estimates a personal recovery window or date; a saved result that still carries an outlook version is explained by one line in that research section and never recomputed. Today keeps the day itself on the page — **This stage**, the topic action with **Why this helps**, and Experiences — while the long material sits behind one row each: **What you may notice** in the stage, **What else can help** in the guide (the remaining steps, **What to avoid**, **When to get advice** and sources), **Your break timeline**, and **Manage break**. Every one of the eleven guides carries an explanation, practical steps, **What to avoid** and its sources, plus **When to get advice** where one applies, and Experiences follow the selected topic, capped at eight. **Help with** is a native select containing today's suggestion and all eleven guides; switching topics replaces the block in place and writes nothing. **Manage break → Update last use** confirms a new anchor while preserving earlier segments; cancel changes nothing. History rows carry local dates and distinguish elapsed complete days from day position. Deleted recommendations are not regenerated from leftover snapshots. Browser zoom is supported. Numeric policies and historical calculation meanings are unchanged. Release history lives in HANDOFF.md and Git history.
+Current revision (0.38.0): the recovery outlook is retired as a user-facing concept and mode. The result screen is one body, in this order: plan target with planning range and uncertainty → the break journey ("what to expect") → **Why this plan** → an always-visible research section, **What the research can and cannot say** (the four-week human CB1 PET reference, the "what this does not mean" list, and links to Hirvonen, D'Souza and Budney) → history → answers. The app no longer estimates a personal recovery window or date; a saved result that still carries an outlook version is explained by one line in that research section and never recomputed. Navigation is Today and History; starting a plan is a sheet opened from Today. Today keeps the day itself on the page — **This stage**, the topic action with **Why this helps**, and Experiences — while the long material sits behind one row each: **What you may notice** in the stage, **What else can help** in the guide (the remaining steps, **What to avoid**, **When to get advice** and sources), **Your break timeline**, and **Manage break**. Every one of the eleven guides carries an explanation, practical steps, **What to avoid** and its sources, plus **When to get advice** where one applies, and Experiences follow the selected topic, capped at eight. **Help with** is a native select containing today's suggestion and all eleven guides; switching topics replaces the block in place and writes nothing. **Manage break → Update last use** confirms a new anchor while preserving earlier segments; cancel changes nothing. History rows carry local dates and distinguish elapsed complete days from day position. Deleted recommendations are not regenerated from leftover snapshots. Browser zoom is supported. Numeric policies and historical calculation meanings are unchanged. Release history lives in HANDOFF.md and Git history.
 
 ## 1. Product framing and design principles
 
@@ -70,7 +70,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 
 ## 3. App structure and navigation
 
-### 3.1 Shell model — three permanent destinations
+### 3.1 Shell model — two permanent destinations
 
 ```text
 ┌─────────────────────────────┐
@@ -82,16 +82,17 @@ Timezone changes reformat displays only; stored instants are UTC.
 │  │ Primary action        │  │  <- thumb zone
 │  └───────────────────────┘  │
 ├─────────────────────────────┤
-│ Today │ Calculator │ History│  <- permanent destinations
+│   Today      │   History   │  <- permanent destinations
 └─────────────────────────────┘
 ```
 
-- **Tabs (3):** `Today`, `Calculator`, `History`. Calculator exposes all four goals, draft resume and the latest saved use-profile result. Opening a new calculation does not end a live break.
+- **Tabs (2):** `Today`, `History`. Starting a plan is an action, not a destination: a quiet **Start a new calculation** link on Today (labelled **Pick my own break length** on first launch) opens the new-calculation sheet — the four goals, **Choose my break length**, an unfinished calculation and **View saved plan**. Opening it does not end a live break, and nothing about a running plan is something to navigate away from.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
-- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, a live journey behind one summary, and a quiet end-early action. Users think "how is my break going," which is a Today question.
+- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, **This stage**, the day's advice with its reason, Experiences for that topic, the always-open break timeline, and break management behind one summary. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
+  - the new-calculation sheet (four goals, a chosen break length, an unfinished draft, the saved plan);
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
   - interruption confirmation ("confirm when you used");
@@ -543,7 +544,7 @@ Prohibited: X–Y windows, pass/fail, "clean date", cutoff numbers, jurisdiction
 
 ### 9.7 Break outlook (BreakOutlookV1)
 
-Shared by the Calculator result and the Today active-break card. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation. The name is the derivation's, not a user-facing mode: the result renders it as the break journey ("what to expect") and Today as **Your break timeline**.
+Shared by the result screen and the Today active-break card. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation. The name is the derivation's, not a user-facing mode: the result renders it as the break journey ("what to expect") and Today as **Your break timeline**.
 
 - Finite planning target: exactly Days 1–`preferredTargetDays` — usually one of the anchor targets 2 / 7 / 14 / 21 / 28, or an interior observed in-range history anchor under the tolerance-v3 override. No duplicates, no gaps, no extra days.
 - Open-ended tracking: Days 1–28 inspectable plus the After-28 window. No finish percentage at day 28.

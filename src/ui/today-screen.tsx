@@ -60,6 +60,8 @@ export interface TodayScreenProps {
   readonly profile: TodayProfileData;
   readonly onStartOver: () => void;
   readonly onGetStarted: () => void;
+  /** Opens the goal picker for a new calculation (a flow, not a destination). */
+  readonly onOpenNewPlan?: () => void;
   readonly onSelectGoal: (goal: Goal) => void;
   readonly onResume: () => void;
   readonly onViewResult?: () => void;
@@ -114,6 +116,17 @@ export function TodayScreen(props: TodayScreenProps) {
           {view.resume === 'secondary' ? resume : null}
         </>
       )}
+      {/* One quiet way to start a different calculation: a flow, never a tab,
+          so a running plan is not something to navigate away from. On first
+          launch it offers the one thing "Get started" does not — picking your
+          own break length. */}
+      {props.onOpenNewPlan !== undefined ? (
+        <div className="footer-links today-new-plan">
+          <button type="button" className="text-link" data-testid="today-new-plan" onClick={props.onOpenNewPlan}>
+            {view.primary === 'first-launch' ? 'Pick my own break length' : 'Start a new calculation'}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -314,15 +327,15 @@ function ActiveBreakCard(props: TodayScreenProps) {
       <StageBlock support={support} />
       <DailySupport view={support} />
       <ExtraBlocks support={support} />
-      <details className="result-disclosure today-block" data-testid="today-timeline">
-        <summary>Your break timeline</summary>
+      <section className="today-block" data-testid="today-timeline">
+        <h3 className="section-heading">Your break timeline</h3>
         <BreakJourney view={journey} />
         <BreakResearchNote day={view.day} />
-      </details>
+      </section>
       <details className="result-disclosure today-block" data-testid="today-manage">
         <summary>Manage break</summary>
         <p className="meta">Used THC since you started? Update the clock without losing your earlier days.</p>
-        <button type="button" className="cta-secondary" data-testid="update-last-use" onClick={props.onConfirmWhen}>Update last use</button>
+        <button type="button" className="cta-secondary manage-action" data-testid="update-last-use" onClick={props.onConfirmWhen}>Update last use</button>
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}
         </button>
