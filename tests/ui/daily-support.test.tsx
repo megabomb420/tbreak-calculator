@@ -23,10 +23,12 @@ function setup() {
   return { storage, app };
 }
 
-function rate(name: string, value: number): void {
-  const slider = screen.getByRole('slider', { name });
-  fireEvent.pointerDown(slider);
-  fireEvent.input(slider, { target: { value: String(value) } });
+/** Tap a rating on the card and save it, the way the screen works. */
+function rate(field: string, value: number): void {
+  fireEvent.click(screen.getByTestId(`symptom-${field}-${value}`));
+}
+function saveReport(): void {
+  fireEvent.click(screen.getByTestId('symptoms-save'));
 }
 
 /** The one card Today shows, plus its two open-on-demand lists. */
@@ -38,10 +40,9 @@ describe('practical Today advice', () => {
   it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
     const { storage, app } = setup();
     expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    rate('Sleep quality', 2);
-    rate('Craving', 8);
-    fireEvent.click(screen.getByTestId('symptoms-save'));
+    rate('sleep', 2);
+    rate('craving', 8);
+    saveReport();
     // Both ratings are severity 8; FIELD_AREAS lists sleep first, so sleep leads
     // and the craving becomes a one-tap alternative instead of a second essay.
     expect(card().getAttribute('data-area')).toBe('sleep');
@@ -58,12 +59,11 @@ describe('practical Today advice', () => {
 
   it('orders every area rated 4 or harder behind one card instead of one article each', () => {
     setup();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    rate('Sleep quality', 2);
-    rate('Appetite', 1);
-    rate('Craving', 8);
-    rate('Anxiety', 7);
-    fireEvent.click(screen.getByTestId('symptoms-save'));
+    rate('sleep', 2);
+    rate('appetite', 1);
+    rate('craving', 8);
+    rate('anxiety', 7);
+    saveReport();
     expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
     // Appetite 1/10 is the hardest oriented rating, so it leads.
     expect(card().getAttribute('data-area')).toBe('appetite');
@@ -88,9 +88,8 @@ describe('practical Today advice', () => {
 
   it('does not present an area the user rated as comfortable as a problem', () => {
     setup();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
-    fireEvent.click(screen.getByTestId('symptoms-save'));
+    rate('craving', 0);
+    saveReport();
     // The card falls back to the day's practice and names no rating.
     expect(screen.getByTestId('support-reason').textContent).toBe('For this stage of the break');
     expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
@@ -147,15 +146,14 @@ describe('practical Today advice', () => {
     expect(screen.getByTestId('support-topics-note').textContent).toMatch(/A rating stops counting after 48 hours/);
   });
 
-  it('allows explicit zero or skip and cancels without saving', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
+  it('allows an explicit zero and takes a rating back', () => {
+    const { storage } = setup();
+    rate('craving', 0);
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('0');
-    fireEvent.click(screen.getByRole('button', { name: 'Leave Craving unrecorded' }));
+    // Tapping the selected number again clears the field: nothing to un-select.
+    fireEvent.click(screen.getByTestId('symptom-craving-0'));
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.queryByTestId('checkin-flow')).toBeNull();
-    expect(screen.getByTestId('checkin-cta').textContent).toBe('Check in');
+    expect(screen.getByTestId('symptom-craving').getAttribute('data-value')).toBe('unset');
+    expect(createCheckinsStore(storage).load()?.checkins ?? []).toHaveLength(0);
   });
 });

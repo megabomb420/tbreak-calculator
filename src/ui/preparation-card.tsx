@@ -1,60 +1,37 @@
-import { useState } from 'preact/hooks';
 import {
-  emptyPreparation,
-  isPreparationEmpty,
   implementationIntentions,
+  MAX_CUSTOM_TRIGGER_CHARS,
+  MAX_FALLBACK_CHARS,
+  MAX_REPLACEMENT_CHARS,
+  MAX_SELECTED_TRIGGERS,
   type BreakPreparation,
   type TriggerId,
 } from '../application/break/preparation.ts';
 import { TRIGGER_CATALOG_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
 import { GUIDANCE_CHROME } from './break-copy.ts';
 
-export function PreparationCard({
-  value,
-  onSave,
-  allowSkip = false,
-  showUrgePlan = true,
-}: {
-  readonly value: BreakPreparation | null;
-  readonly onSave: (next: BreakPreparation | null) => void;
-  readonly allowSkip?: boolean;
-  /** Hide the live "Your urge plan" preview (e.g. when the page already
-   * renders the plan higher up in its guidance). */
-  readonly showUrgePlan?: boolean;
+/**
+ * The urge plan editor: which moments set an urge off, what to do first, and
+ * what to do when that first move is not possible. Controlled — the caller
+ * owns the draft and decides when it is written, so typing never writes storage.
+ */
+export function PreparationCard({ value, onChange }: {
+  readonly value: BreakPreparation;
+  readonly onChange: (next: BreakPreparation) => void;
 }) {
-  const [draft, setDraft] = useState<BreakPreparation>(value ?? emptyPreparation());
-  const [custom, setCustom] = useState(value?.customTrigger ?? '');
-  const [replacement, setReplacement] = useState(value?.replacementAction ?? '');
-  const [fallback, setFallback] = useState(value?.fallbackPlan ?? '');
-
-  function commit(nextIds: readonly TriggerId[] = draft.triggerIds, nextCustom = custom, nextReplacement = replacement, nextFallback = fallback): void {
-    const next: BreakPreparation = {
-      triggerIds: nextIds,
-      customTrigger: trimOrNull(nextCustom, 80),
-      replacementAction: trimOrNull(nextReplacement, 120),
-      fallbackPlan: trimOrNull(nextFallback, 120),
-    };
-    setDraft(next);
-    onSave(isPreparationEmpty(next) ? null : next);
-  }
+  const atCap = value.triggerIds.length >= MAX_SELECTED_TRIGGERS;
 
   function toggle(id: TriggerId): void {
-    const has = draft.triggerIds.includes(id);
-    const triggerIds = has ? draft.triggerIds.filter((row) => row !== id) : [...draft.triggerIds, id];
-    commit(triggerIds);
+    const has = value.triggerIds.includes(id);
+    if (!has && atCap) return;
+    const triggerIds = has ? value.triggerIds.filter((row) => row !== id) : [...value.triggerIds, id];
+    onChange({ ...value, triggerIds });
   }
 
-  const intentions = implementationIntentions({
-    triggerIds: draft.triggerIds,
-    customTrigger: trimOrNull(custom, 80),
-    replacementAction: trimOrNull(replacement, 120),
-    fallbackPlan: trimOrNull(fallback, 120),
-  });
+  const intentions = implementationIntentions(value);
 
   return (
-    <section className="card preparation-card" data-testid="preparation-card">
-      <h3 className="card-title">{GUIDANCE_CHROME.triggers}</h3>
-      <p className="meta">{GUIDANCE_CHROME.triggersHelper}</p>
+    <section className="preparation-card" data-testid="preparation-card">
       <div className="prep-step">
         <p className="micro-label">{GUIDANCE_CHROME.triggerStepLabel}</p>
         <div className="chip-row wrap" data-testid="trigger-chips">
@@ -62,82 +39,69 @@ export function PreparationCard({
             <button
               key={entry.id}
               type="button"
-              className={draft.triggerIds.includes(entry.id) ? 'chip selected' : 'chip'}
+              className={value.triggerIds.includes(entry.id) ? 'chip selected' : 'chip'}
               data-testid={`trigger-${entry.id}`}
-              aria-pressed={draft.triggerIds.includes(entry.id)}
+              aria-pressed={value.triggerIds.includes(entry.id)}
+              disabled={!value.triggerIds.includes(entry.id) && atCap}
               onClick={() => toggle(entry.id)}
             >
               {entry.label}
             </button>
           ))}
         </div>
+        <p className="meta" data-testid="trigger-cap">
+          {value.triggerIds.length} of {MAX_SELECTED_TRIGGERS} moments chosen.
+        </p>
       </div>
       <label className="prep-field">
         <span className="meta">{GUIDANCE_CHROME.customTriggerLabel}</span>
         <input
           type="text"
-          maxLength={80}
-          value={custom}
+          maxLength={MAX_CUSTOM_TRIGGER_CHARS}
+          value={value.customTrigger ?? ''}
           placeholder={GUIDANCE_CHROME.customTriggerPlaceholder}
           data-testid="custom-trigger"
-          onInput={(event) => {
-            const value = (event.target as HTMLInputElement).value;
-            setCustom(value);
-            commit(draft.triggerIds, value, replacement, fallback);
-          }}
+          onInput={(event) => onChange({ ...value, customTrigger: textOrNull((event.target as HTMLInputElement).value, MAX_CUSTOM_TRIGGER_CHARS) })}
         />
       </label>
       <label className="prep-field">
         <span className="meta">{GUIDANCE_CHROME.replacementLabel}</span>
         <input
           type="text"
-          maxLength={120}
-          value={replacement}
+          maxLength={MAX_REPLACEMENT_CHARS}
+          value={value.replacementAction ?? ''}
           placeholder={GUIDANCE_CHROME.replacementPlaceholder}
           data-testid="replacement-action"
-          onInput={(event) => {
-            const value = (event.target as HTMLInputElement).value;
-            setReplacement(value);
-            commit(draft.triggerIds, custom, value, fallback);
-          }}
+          onInput={(event) => onChange({ ...value, replacementAction: textOrNull((event.target as HTMLInputElement).value, MAX_REPLACEMENT_CHARS) })}
         />
       </label>
       <label className="prep-field">
         <span className="meta">{GUIDANCE_CHROME.fallbackLabel}</span>
         <input
           type="text"
-          maxLength={120}
-          value={fallback}
+          maxLength={MAX_FALLBACK_CHARS}
+          value={value.fallbackPlan ?? ''}
           placeholder={GUIDANCE_CHROME.fallbackPlaceholder}
           data-testid="fallback-plan"
-          onInput={(event) => {
-            const value = (event.target as HTMLInputElement).value;
-            setFallback(value);
-            commit(draft.triggerIds, custom, replacement, value);
-          }}
+          onInput={(event) => onChange({ ...value, fallbackPlan: textOrNull((event.target as HTMLInputElement).value, MAX_FALLBACK_CHARS) })}
         />
       </label>
-      {showUrgePlan && intentions.length > 0 ? (
+      {intentions.length > 0 ? (
         <div className="urge-plan">
           <p className="micro-label">{GUIDANCE_CHROME.urgePlanLabel}</p>
-          <p className="meta">{GUIDANCE_CHROME.urgePlanHint}</p>
           <ul className="guidance-list intention-list" data-testid="intention-preview">
             {intentions.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
+          <p className="meta">{GUIDANCE_CHROME.urgePlanHint}</p>
         </div>
-      ) : null}
-      {allowSkip ? (
-        <button type="button" className="text-back" data-testid="skip-prep" onClick={() => onSave(null)}>
-          {GUIDANCE_CHROME.skipPrep}
-        </button>
       ) : null}
     </section>
   );
 }
 
-function trimOrNull(value: string, max: number): string | null {
+function textOrNull(value: string, max: number): string | null {
   const trimmed = value.trim().slice(0, max);
   return trimmed === '' ? null : trimmed;
 }

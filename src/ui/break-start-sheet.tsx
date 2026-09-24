@@ -7,7 +7,7 @@ import { planForTarget } from './result-copy.ts';
 import { CheckIcon, CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { PreparationCard } from './preparation-card.tsx';
-import type { BreakPreparation } from '../application/break/preparation.ts';
+import { emptyPreparation, isPreparationEmpty, type BreakPreparation } from '../application/break/preparation.ts';
 
 export interface BreakStartSheetProps {
   /** Planning target from the deterministic result (preferredTargetDays). */
@@ -28,7 +28,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
   const [picked, setPicked] = useState('');
   const [mode, setMode] = useState<PostBreakMode | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [preparation, setPreparation] = useState<BreakPreparation | null>(null);
+  const [preparation, setPreparation] = useState<BreakPreparation>(emptyPreparation);
 
   const { min: todayIso, max: maxIso } = planStartBounds(now);
   const start = choice === 'now' ? now : resolvePlanStartDate(picked, now);
@@ -139,7 +139,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
           </section>
           <details className="prep-disclosure" data-testid="prep-disclosure">
             <summary className="card-title">{GUIDANCE_CHROME.triggers}</summary>
-            <PreparationCard value={preparation} onSave={setPreparation} allowSkip />
+            <PreparationCard value={preparation} onChange={setPreparation} />
           </details>
         </div>
       </div>
@@ -152,7 +152,7 @@ export function BreakStartSheet({ targetDays, breakDayAtStart, now, onStart, onC
           onClick={() => {
             if (mode !== null && start !== null && !submitted) {
               setSubmitted(true);
-              onStart(mode, start, preparation);
+              onStart(mode, start, isPreparationEmpty(preparation) ? null : preparation);
             }
           }}
         >

@@ -101,20 +101,15 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 // --- Check-in (UX_SPEC 10.2) -----------------------------------------------
 
 export const CHECKIN = {
-  title: 'Check-in',
-  question: 'Any THC since your last check-in?',
-  no: 'No',
-  noHelper: "I haven't used",
-  yes: 'Yes',
-  yesHelper: 'I used THC',
-  save: 'Save',
-  addSymptoms: "Add how you're feeling",
+  save: "Save today's check-in",
+  update: "Update today's check-in",
   symptomsTitle: 'How are you feeling?',
-  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Skip any. Your ratings help choose today’s advice.',
+  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Tap a number to record it, tap it again to clear it.',
+  symptomsSaveNote: "Saving also records today without THC; an unrecorded field stays unknown. Your ratings help choose today's advice.",
+  notSet: 'Not set',
+  clearRating: 'Clear this rating',
   noteLabel: 'Note (optional)',
   noteHelper: 'Private, stored only on this device, never analysed.',
-  close: 'Close check-in',
-  backToQuestion: 'Back',
 } as const;
 
 export const SYMPTOM_FIELDS = [
@@ -278,6 +273,17 @@ export const PROFILE_NO_BREAK = {
 } as const;
 
 export const MODE_ORDER: readonly PostBreakMode[] = POST_BREAK_MODES;
+
+export const PREPARATION_COPY = {
+  title: 'Your plan for urges',
+  helper:
+    'Name the moments that set an urge off and what you will do first. Today leads with your own move whenever an urge, a routine or an empty evening is the topic.',
+  save: 'Save plan',
+  remove: 'Remove plan',
+  unsaved: 'Unsaved changes — Today still uses the saved plan.',
+  saved: 'Saved. Today leads with it when an urge, a routine or an empty evening is the topic.',
+  empty: 'Nothing saved yet — pick the moments that matter most.',
+} as const;
 
 export const GUIDANCE_CHROME = {
   mayNotice: 'What you may notice',

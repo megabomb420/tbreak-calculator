@@ -108,7 +108,6 @@ import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { systemClock, type Clock } from '../infrastructure/clock.ts';
 import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.ts';
 import { BreakStartSheet } from './break-start-sheet.tsx';
-import { CheckInFlow } from './checkin-flow.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -148,7 +147,6 @@ export type Flow =
     readonly customDays: number | null }
   | { readonly kind: 'choose-break-days' }
   | { readonly kind: 'tracking-detail' }
-  | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
   | { readonly kind: 'previous-break'; readonly editId: string | null }
   | { readonly kind: 'detox-evidence' }
@@ -552,10 +550,6 @@ export function App({
     refresh();
   }
 
-  function openCheckIn(): void {
-    setFlow({ kind: 'checkin' });
-  }
-
   function confirmWhen(): void {
     if (liveData.interruptedAttempt !== null) {
       const start = currentSegmentAnchor(liveData.interruptedAttempt.segments);
@@ -934,8 +928,20 @@ export function App({
   }
 
   function saveSymptoms(symptoms: CheckinSymptoms, note: string | null): void {
-    persistBreakSession(recordSymptomCheckin(readSessionState(), { now: clock.now(), symptoms, note }));
-    setFlow(null);
+    const { state, index } = currentCheckinContext();
+    // Today's report is edited where it is read: a second visit to the same day
+    // updates the stored values instead of appending a second row for the day.
+    if (index >= 0) {
+      const current = state.checkins[index]!;
+      const next = { ...current, ...symptoms, note };
+      try {
+        durable.saveCheckins(state.checkins.map((row, i) => (i === index ? next : row)));
+      } catch {
+        /* Storage status is shown by the shell. */
+      }
+    } else {
+      persistBreakSession(recordSymptomCheckin(state, { now: clock.now(), symptoms, note }));
+    }
     refresh();
   }
 
@@ -1221,13 +1227,6 @@ export function App({
     flow?.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0);
   const flowTrack = liveTracking?.status === 'tracking' ? liveTracking : null;
 
-  const checkInDay =
-    liveData.active !== null
-      ? liveData.active.view.day
-      : liveData.tracking !== null && liveData.tracking.view !== null
-        ? liveData.tracking.view.day
-        : null;
-
   // The open flow, but only while it can actually render its dialog. An
   // unrenderable flow would leave the background inert with no dialog, no
   // Escape handler and no close action; the app would freeze with no way out.
@@ -1236,7 +1235,6 @@ export function App({
     flowRendersDialog(flow, {
       targetDays: breakSheetTargetDays,
       track: flowTrack,
-      checkInDay,
       segmentStart: flow.kind === 'confirm-use' ? flow.segmentStart : null,
       reductionPlan: liveReductionPlan,
     })
@@ -1298,7 +1296,7 @@ export function App({
             onSeeBreakRange={seeBreakRange}
             onStartTracking={startTracking}
             onCheckIn={saveNoUse}
-            onAddSymptoms={openCheckIn}
+            onSaveSymptoms={saveSymptoms}
             onUndoCheckin={undoCheckin}
             onConfirmWhen={confirmWhen}
             onDismissUnconfirmedUse={dismissUnconfirmedUse}
@@ -1411,12 +1409,10 @@ export function App({
           track={flowTrack}
           anchor={anchor}
           segmentStart={openFlow.kind === 'confirm-use' ? openFlow.segmentStart : null}
-          checkInDay={checkInDay}
-          onClose={() => setFlow(null)}
+                  onClose={() => setFlow(null)}
           onStartBreak={startPlan}
           onChooseBreakDays={confirmChosenDays}
           canStartPlan={canStartPlan}
-          onCheckInSymptoms={saveSymptoms}
           onConfirmUse={confirmUse}
           onRecalculate={openRecalculate}
           onUpdatePreparation={updatePreparation}
@@ -1520,7 +1516,6 @@ export function flowRendersDialog(
   inputs: {
     readonly targetDays: number;
     readonly track: StoredTrack | null;
-    readonly checkInDay: number | null;
     readonly segmentStart: Instant | null;
     readonly reductionPlan: ReductionPlan | null;
   },
@@ -1530,8 +1525,6 @@ export function flowRendersDialog(
       return inputs.targetDays >= 1;
     case 'tracking-detail':
       return inputs.track !== null;
-    case 'checkin':
-      return inputs.checkInDay !== null;
     case 'confirm-use':
       return inputs.segmentStart !== null;
     case 'log-use':
@@ -1549,12 +1542,10 @@ function FlowRenderer({
   track,
   anchor,
   segmentStart,
-  checkInDay,
   onClose,
   onStartBreak,
   onChooseBreakDays,
   canStartPlan,
-  onCheckInSymptoms,
   onConfirmUse,
   onRecalculate,
   onUpdatePreparation,
@@ -1574,12 +1565,10 @@ function FlowRenderer({
   readonly track: StoredTrack | null;
   readonly anchor: Instant | null;
   readonly segmentStart: Instant | null;
-  readonly checkInDay: number | null;
   readonly onClose: () => void;
   readonly onStartBreak: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
   readonly onChooseBreakDays: (days: number) => void;
   readonly canStartPlan: boolean;
-  readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
   readonly onRecalculate: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
@@ -1619,14 +1608,6 @@ function FlowRenderer({
           checkins={checkins}
           onBack={onClose}
           profile={profile}
-        />
-      ) : null;
-    case 'checkin':
-      return checkInDay !== null ? (
-        <CheckInFlow
-          day={checkInDay}
-          onSymptomsSave={onCheckInSymptoms}
-          onClose={onClose}
         />
       ) : null;
     case 'confirm-use': {

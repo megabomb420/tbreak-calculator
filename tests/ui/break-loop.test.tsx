@@ -283,23 +283,21 @@ describe('daily check-in', () => {
     expect(checkin.craving).toBe(null);
   });
 
-  it('optional symptoms stay null until touched, and a note is stored', () => {
+  it('stores only the ratings that were chosen, with the note, and writes nothing until saved', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    expect(screen.getByTestId('checkin-flow').getAttribute('data-screen')).toBe('symptoms');
+    // The ratings live on the card, and nothing is recorded until Save.
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    // Set one slider deliberately; the others must stay untouched.
-    const craving = screen.getByRole('slider', { name: 'Craving' });
-    fireEvent.pointerDown(craving);
-    fireEvent.input(craving, { target: { value: '6' } });
+    expect(checkinsOf(storage)).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('symptom-craving-6'));
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
+    expect(screen.getByTestId('symptom-craving').getAttribute('data-value')).toBe('6');
+    expect(checkinsOf(storage)).toHaveLength(0);
     fireEvent.input(screen.getByTestId('checkin-note'), { target: { value: 'steady so far' } });
     fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.queryByTestId('checkin-flow')).toBeNull();
-    const checkin = checkinsOf(storage)[0] as { craving: number; sleep: null; note: string; usedThc: boolean };
+    const checkin = checkinsOf(storage)[0] as { craving: number; sleep: null; appetite: null; note: string; usedThc: boolean };
     expect(checkin.craving).toBe(6);
     expect(checkin.sleep).toBe(null);
     expect(checkin.appetite).toBe(null);
@@ -617,6 +615,9 @@ describe('evidence-guided companion', () => {
     expect(screen.queryByTestId('post-break-card')).toBeNull();
     fireEvent.click(screen.getByTestId('trigger-weekend'));
     fireEvent.input(screen.getByTestId('replacement-action'), { target: { value: 'make tea' } });
+    // The plan is written only when it is saved, not while it is typed.
+    expect(createTrackingRecordsStore(storage).load()?.records[0]?.preparation).toBeNull();
+    fireEvent.click(screen.getByTestId('save-plan'));
     const tracking = createTrackingRecordsStore(storage).load()?.records[0];
     expect(tracking?.preparation?.triggerIds).toContain('weekend');
     expect(tracking?.preparation?.replacementAction).toBe('make tea');

@@ -21,8 +21,10 @@ import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
 import { DailyGuidance } from './today-guidance.tsx';
-import { PreparationCard } from './preparation-card.tsx';
+import { CheckinSymptoms } from './checkin-symptoms.tsx';
+import { UrgePlan } from './urge-plan.tsx';
 import { presentDailySupport } from '../application/presentation/daily-support.ts';
+import type { CheckinSymptoms as SymptomValues } from '../application/break/break-session.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
 import { ResultLensHero } from './result-lens.tsx';
 import { ResultModeControl } from './result-mode-control.tsx';
@@ -78,7 +80,8 @@ export interface TodayScreenProps {
   readonly onSeeBreakRange: () => void;
   readonly onStartTracking: () => void;
   readonly onCheckIn: () => void;
-  readonly onAddSymptoms: () => void;
+  /** Writes today's symptom report in place (or appends it) and keeps the day. */
+  readonly onSaveSymptoms: (symptoms: SymptomValues, note: string | null) => void;
   readonly onUndoCheckin: () => void;
   readonly onConfirmWhen: () => void;
   readonly onDismissUnconfirmedUse: () => void;
@@ -233,7 +236,12 @@ function NoProfile({ onSelectGoal }: { readonly onSelectGoal: (goal: Goal) => vo
   );
 }
 
-function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenProps; readonly checked: boolean }) {
+function QuickCheckinActions({ props, checked, recorded }: {
+  readonly props: TodayScreenProps;
+  readonly checked: boolean;
+  /** Today's saved report, so the ratings show what is stored. */
+  readonly recorded: DailyCheckin | null;
+}) {
   return <div className="quick-checkin" data-testid="quick-checkin">
     <button type="button" className={checked ? 'cta-primary is-checked' : 'cta-primary'}
       data-testid="checkin-cta" aria-pressed={checked} disabled={checked} onClick={props.onCheckIn}>
@@ -245,7 +253,7 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
         <button type="button" className="text-back" data-testid="undo-checkin" aria-label="Undo latest check-in" onClick={props.onUndoCheckin}>Undo</button>
       </div>
     ) : null}
-    <button type="button" className="text-back" data-testid="add-symptoms" onClick={props.onAddSymptoms}>How are you feeling?</button>
+    <CheckinSymptoms key={recorded?.recordedAt ?? 'none'} recorded={recorded} onSave={props.onSaveSymptoms} />
   </div>;
 }
 
@@ -271,7 +279,9 @@ function ActiveBreakCard(props: TodayScreenProps) {
   // Days with a recorded no-use check-in up to and including today, used for
   // the quiet progress line and the "Checked in today" CTA state.
   const recordedDays = new Set<number>();
-  const checkedToday = latestTodayCheckin(props.live.checkins, anchor, props.live.now) >= 0;
+  const todayIndex = latestTodayCheckin(props.live.checkins, anchor, props.live.now);
+  const checkedToday = todayIndex >= 0;
+  const todayReport = todayIndex >= 0 ? props.live.checkins[todayIndex]! : null;
   if (anchor !== null) {
     for (const row of props.live.checkins) {
       if (row.usedThc) continue;
@@ -330,7 +340,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         </p>
       ) : null}
       <div className="today-actions">
-        <QuickCheckinActions props={props} checked={checkedToday} />
+        <QuickCheckinActions props={props} checked={checkedToday} recorded={todayReport} />
         {view.atOrPastTargetDate ? (
           <button type="button" className="cta-secondary" data-testid="mark-complete-cta" onClick={() => props.onMarkComplete(attempt.id)}>
             {ACTIVE_BREAK_CARD.markComplete}
@@ -343,14 +353,11 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ) : null}
       </div>
       <DailyGuidance support={support} />
-      <section className="result-disclosure today-block" data-testid="today-preparation">
-        <h3 className="card-title">Your plan for urges</h3>
-        <PreparationCard
-          value={attempt.preparation}
-          onSave={(next) => props.onUpdatePreparation(attempt.id, next)}
-          showUrgePlan={false}
-        />
-      </section>
+      <UrgePlan
+        key={attempt.updatedAt ?? attempt.id}
+        preparation={attempt.preparation}
+        onSave={(next) => props.onUpdatePreparation(attempt.id, next)}
+      />
       <section className="result-disclosure today-block" data-testid="today-timeline">
         <h3 className="card-title">Your break timeline</h3>
         <BreakJourney view={journey} />
@@ -452,6 +459,8 @@ function TrackingCard(props: TodayScreenProps) {
   if (tracking === null) return null;
   const day = tracking.view?.day ?? null;
   const anchor = currentSegmentAnchor(tracking.track.segments);
+  const todayIndex = latestTodayCheckin(props.live.checkins, anchor, props.live.now);
+  const todayReport = todayIndex >= 0 ? props.live.checkins[todayIndex]! : null;
   const support = tracking.view === null ? null : presentDailySupport({
     day: tracking.view.day, now: props.live.now,
     anchor,
@@ -473,17 +482,14 @@ function TrackingCard(props: TodayScreenProps) {
         </h2>
       </button>
       <div className="today-actions">
-        <QuickCheckinActions props={props} checked={latestTodayCheckin(props.live.checkins, anchor, props.live.now) >= 0} />
+        <QuickCheckinActions props={props} checked={todayIndex >= 0} recorded={todayReport} />
       </div>
       {support !== null ? <DailyGuidance support={support} /> : null}
-      <section className="result-disclosure today-block" data-testid="today-preparation">
-        <h3 className="card-title">Your plan for urges</h3>
-        <PreparationCard
-          value={tracking.track.preparation}
-          onSave={(next) => props.onUpdatePreparation(tracking.track.id, next)}
-          showUrgePlan={false}
-        />
-      </section>
+      <UrgePlan
+        key={tracking.track.id}
+        preparation={tracking.track.preparation}
+        onSave={(next) => props.onUpdatePreparation(tracking.track.id, next)}
+      />
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (

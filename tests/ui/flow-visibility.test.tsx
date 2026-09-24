@@ -23,7 +23,6 @@ const PLAN = { id: 'plan-1' } as unknown as ReductionPlan;
 const NOTHING: Parameters<typeof flowRendersDialog>[1] = {
   targetDays: 0,
   track: null,
-  checkInDay: null,
   segmentStart: null,
   reductionPlan: null,
 };
@@ -33,7 +32,6 @@ describe('an open flow renders its dialog', () => {
     const flows: readonly Flow[] = [
       { kind: 'break-start', customDays: null },
       { kind: 'tracking-detail' },
-      { kind: 'checkin' },
       { kind: 'confirm-use', scope: 'attempt', segmentStart: NOW },
       { kind: 'log-use' },
     ];
@@ -45,8 +43,6 @@ describe('an open flow renders its dialog', () => {
   it('accepts the same flows once their input is there', () => {
     expect(flowRendersDialog({ kind: 'break-start', customDays: null }, { ...NOTHING, targetDays: 1 })).toBe(true);
     expect(flowRendersDialog({ kind: 'tracking-detail' }, { ...NOTHING, track: TRACK })).toBe(true);
-    // Day 0 is a real check-in day: only null means "nothing to check in for".
-    expect(flowRendersDialog({ kind: 'checkin' }, { ...NOTHING, checkInDay: 0 })).toBe(true);
     expect(
       flowRendersDialog({ kind: 'confirm-use', scope: 'attempt', segmentStart: NOW }, { ...NOTHING, segmentStart: NOW }),
     ).toBe(true);

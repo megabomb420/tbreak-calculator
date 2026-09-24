@@ -24,6 +24,7 @@ import {
   type StoredAttempt,
 } from '../../src/application/progress/break-attempt-record.ts';
 import { createTrackingRecordsStore, type StoredTrack } from '../../src/application/progress/tracking-record.ts';
+import { createCheckinsStore } from '../../src/application/progress/checkin-store.ts';
 import { createCalculationRecordsStore, freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 
 const AT: Instant = toInstant(1787184000000); // 2026-08-20T00:00:00Z
@@ -144,7 +145,7 @@ describe('Today phase states (0.11)', () => {
     expect(screen.getByTestId('checkin-cta')).toBeTruthy();
   });
 
-  it('keeps the check-in symptom flow independent from companion preferences', () => {
+  it('keeps the check-in ratings on the card, in the documented order, independent of companion preferences', () => {
     const storage = createMemoryStorage();
     const snapshot: RawAnswerSnapshot = {
       kind: 'use_profile',
@@ -153,14 +154,20 @@ describe('Today phase states (0.11)', () => {
     seedSnapshot(storage, snapshot);
     seedAttempt(storage, activeAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('add-symptoms'));
-    const flow = screen.getByTestId('checkin-flow');
-    expect(flow.getAttribute('data-screen')).toBe('symptoms');
+    const block = screen.getByTestId('checkin-symptoms');
+    expect(screen.queryByTestId('checkin-flow')).toBeNull();
     expect(screen.queryByTestId('checkin-focus-line')).toBeNull();
-    const fields = [...flow.querySelectorAll('[data-testid^="symptom-"]')]
+    const fields = [...block.querySelectorAll('[data-testid^="symptom-"]')]
       .map((el) => el.getAttribute('data-testid'))
       .filter((id) => id !== null && /^symptom-(craving|sleep|irritability|anxiety|appetite)$/.test(id));
-    expect(fields[0]).toBe('symptom-craving');
+    expect(fields).toEqual(['symptom-craving', 'symptom-sleep', 'symptom-irritability', 'symptom-anxiety', 'symptom-appetite']);
+    // A chosen rating is written by the app's own check-in writer, once saved.
+    fireEvent.click(within(block).getByTestId('symptom-anxiety-7'));
+    fireEvent.click(within(block).getByTestId('symptoms-save'));
+    const saved = createCheckinsStore(storage).load()!.checkins.at(-1)!;
+    expect(saved.anxiety).toBe(7);
+    expect(saved.craving).toBeNull();
+    expect(saved.usedThc).toBe(false);
   });
 });
 
@@ -337,19 +344,32 @@ describe('Today shows one job, nothing hidden', () => {
     expect(within(card).getByTestId('today-research-fact')).toBeTruthy();
   });
 
-  it('writes the urge plan through the app’s own preparation writer and uses it on the card', () => {
+  it('writes the urge plan only when it is saved, and then leads the card with it', () => {
     const storage = seedLiveBreak();
     renderApp(storage);
     const prep = screen.getByTestId('preparation-card');
+    expect(screen.getByTestId('plan-status').textContent).toContain('Nothing saved yet');
     fireEvent.click(within(prep).getByTestId('trigger-weekend'));
     fireEvent.input(within(prep).getByTestId('replacement-action'), { target: { value: 'make tea' } });
+    // Typing builds the plan as a draft: storage is untouched until Save.
+    expect(screen.getByTestId('intention-preview').textContent).toContain('make tea');
+    expect(screen.getByTestId('plan-status').textContent).toContain('Unsaved changes');
+    expect(screen.getByTestId('support-action').textContent).not.toContain('make tea');
+    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
+    fireEvent.click(screen.getByTestId('save-plan'));
     const stored = createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation;
     expect(stored?.triggerIds).toContain('weekend');
     expect(stored?.replacementAction).toBe('make tea');
+    expect(screen.getByTestId('plan-status').textContent).toContain('Saved');
     // The card now leads with the person's own replacement instead of advice.
     expect(screen.getByTestId('support-action').textContent).toContain('Try your plan first');
     expect(screen.getByTestId('support-action').textContent).toContain('make tea');
     expect(screen.getByTestId('support-trigger').textContent).toContain('You flagged');
+    // Removing the plan clears it everywhere.
+    fireEvent.click(screen.getByTestId('remove-plan'));
+    expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
+    expect(screen.getByTestId('plan-status').textContent).toContain('Nothing saved yet');
+    expect(screen.getByTestId('support-action').textContent).not.toContain('make tea');
   });
 
   it('leaves the interrupted card without the support stack', () => {
