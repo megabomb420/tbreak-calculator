@@ -90,6 +90,15 @@ describe('interaction-polish CSS contract', () => {
     expect(lock).not.toMatch(/pinch-zoom/);
   });
 
+  it('shows a selected support topic with a real tick', () => {
+    const selected = CSS.match(/\.support-area-card\[aria-pressed="true"\] \.choice-check \{[^}]*\}/)?.[0] ?? '';
+    // The shared `.choice-check` starts at scale(.25) with blur(4px); the
+    // support card has to undo both, or the tick renders a few pixels wide.
+    expect(selected).toMatch(/opacity:\s*1/);
+    expect(selected).toMatch(/transform:\s*scale\(1\)/);
+    expect(selected).toMatch(/filter:\s*blur\(0\)/);
+  });
+
   it('lays the tab bar out as one equal column per destination', () => {
     const bar = CSS.match(/\.tab-bar \{[^}]*\}/)?.[0] ?? '';
     // Shipped 0.38.0 with a hard-coded three-column grid, which left an empty

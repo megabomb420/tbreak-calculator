@@ -38,7 +38,7 @@ New calculation records no longer write `recoveryOutlookVersion`. Records that a
 
 ### Validation (0.38.0)
 
-- `npm test`, `npm run test:tz`, `npm run typecheck` and `npm run build` are green on the final tree (counts recorded in the release output below).
+- `npm test` (605 unit/domain/golden), `npm run test:tz`, `npm run typecheck` and `npm run build` are green on the final tree; the UI suite is 193 passing with 3 TZ-gated skipped.
 - Browser pass at 390×844 on the dev server: result screen (plan hero, journey, why-this-plan, research section with the three study links, no mode switch, no estimate), Today (all sections open, topic selector, topic-matched experiences, timeline), History (dated rows, saved result with its day), `Manage break` flows.
 - Not covered: physical iOS/Safari and assistive-technology review.
 

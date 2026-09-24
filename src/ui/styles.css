@@ -1332,11 +1332,15 @@ details.card > summary::-webkit-details-marker {
 .support-area-card .choice-check {
   flex: 0 0 auto;
   opacity: 0;
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
+/* The shared `.choice-check` starts scaled down and blurred; a selected topic
+   must clear both, or the tick renders a few pixels wide. */
 .support-area-card[aria-pressed="true"] .choice-check {
   opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
 }
 
 .footer-links .text-back {
