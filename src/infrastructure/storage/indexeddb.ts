@@ -292,7 +292,7 @@ async function loadStore<T>(
         : isRecord(payload) && typeof payload.id === 'string' && payload.id !== ''
           ? payload.id
           : `${store}-corrupt-${index}`;
-    corrupt.push({ id, kind: corruptKind, reason: 'invalid-record' });
+    corrupt.push({ id, kind: corruptKind, reason: 'invalid-record', origin: store });
     try {
       await backend.put('corruptRecords', { id, kind: corruptKind, payload: row });
     } catch {
@@ -325,6 +325,36 @@ function storeForKind(kind: HistoryRecordKind): StoreName | null {
   }
 }
 
+function isStoreName(value: string): value is StoreName {
+  return (STORES as readonly string[]).includes(value);
+}
+
+/** Drop `id` from the one live family the deleted corrupt row came from. Other
+ * families are left alone: a corrupt post-break mirror carries the id of the
+ * attempt it was derived from, and that attempt is valid data. */
+function withoutOwnerRecord(snapshot: DurableSnapshot, store: StoreName | null, id: string): DurableSnapshot {
+  switch (store) {
+    case 'calculations':
+      return { ...snapshot, calculations: snapshot.calculations.filter((item) => item.id !== id) };
+    case 'breakAttempts':
+      return { ...snapshot, attempts: snapshot.attempts.filter((item) => item.id !== id) };
+    case 'trackingRecords':
+      return { ...snapshot, tracking: snapshot.tracking.filter((item) => item.id !== id) };
+    case 'checkins':
+      return { ...snapshot, checkins: snapshot.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id) };
+    case 'previousBreaks':
+      return { ...snapshot, previousBreaks: snapshot.previousBreaks.filter((item) => item.id !== id) };
+    case 'reductionRecords':
+      return { ...snapshot, reductionRecords: snapshot.reductionRecords.filter((item) => item.id !== id) };
+    case 'postBreakPlans':
+      return { ...snapshot, postBreakPlans: snapshot.postBreakPlans.filter((item) => item.id !== id) };
+    case 'breakOutcomes':
+      return { ...snapshot, outcomeMarks: snapshot.outcomeMarks.filter((item) => item.attemptId !== id) };
+    default:
+      return snapshot;
+  }
+}
+
 export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promise<DurableSnapshot> {
   const attempts = await loadStore(backend, 'breakAttempts', isValidStoredAttempt, 'attempt');
   const tracking = await loadStore(backend, 'trackingRecords', isValidStoredTrack, 'tracking');
@@ -351,7 +381,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
       continue;
     }
     const id = isRecord(row) && typeof row.id === 'string' && row.id !== '' ? row.id : `breakOutcomes-corrupt-${index}`;
-    corrupt.push({ id, kind: 'corrupt', reason: 'invalid-record' });
+    corrupt.push({ id, kind: 'corrupt', reason: 'invalid-record', origin: 'breakOutcomes' });
     try {
       await backend.put('corruptRecords', { id, kind: 'corrupt', payload: row });
     } catch {
@@ -366,7 +396,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
       continue;
     }
     const id = isRecord(row) && typeof row.id === 'string' ? row.id : `checkin-corrupt-${index}`;
-    corrupt.push({ id, kind: 'checkin', reason: 'invalid-record' });
+    corrupt.push({ id, kind: 'checkin', reason: 'invalid-record', origin: 'checkins' });
     try {
       await backend.put('corruptRecords', { id, kind: 'checkin', payload: row });
     } catch {
@@ -569,22 +599,22 @@ export function createIndexedDbDurable(backend: IndexedDbBackend, initial: Durab
       api.saveCheckins(cache.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id));
     },
     deleteCorrupt(id) {
-      const row = cache.corrupt.find((item) => item.id === id);
-      cache = {
-        ...cache,
-        corrupt: cache.corrupt.filter((item) => item.id !== id),
-        calculations: cache.calculations.filter((item) => item.id !== id),
-        attempts: cache.attempts.filter((item) => item.id !== id),
-        tracking: cache.tracking.filter((item) => item.id !== id),
-        previousBreaks: cache.previousBreaks.filter((item) => item.id !== id),
-        reductionRecords: cache.reductionRecords.filter((item) => item.id !== id),
-        checkins: cache.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id),
-      };
+      const corruptRow = cache.corrupt.find((item) => item.id === id);
+      const origin = corruptRow?.origin;
+      const owner =
+        origin !== undefined && isStoreName(origin) ? origin : storeForKind(corruptRow?.kind ?? 'corrupt');
+      cache = withoutOwnerRecord(
+        { ...cache, corrupt: cache.corrupt.filter((item) => item.id !== id) },
+        owner,
+        id,
+      );
       enqueue(async () => {
         await backend.delete('corruptRecords', id);
-        const store = storeForKind(row?.kind ?? 'corrupt');
-        if (store !== null && store !== 'corruptRecords') {
-          await backend.delete(store, id);
+        // Delete the rejected row where it actually lives. Deriving the store
+        // from the display kind used to remove a valid attempt (a post-break
+        // mirror shares its id) or leave a corrupt outcome mark to reappear.
+        if (owner !== null && owner !== 'corruptRecords') {
+          await backend.delete(owner, id);
         }
       });
     },

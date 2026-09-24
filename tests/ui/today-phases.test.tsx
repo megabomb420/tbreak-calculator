@@ -1,14 +1,9 @@
-// 0.11.0 regression tests: completed Today state system.
-//
-// Covers the target-reached vs beyond-plan distinction, the interrupted
-// preserved-progress note, and companion/check-in separation
-// symptoms step. Presentation-only; no engine/domain behaviour is asserted.
+// Target boundaries, legacy recovery outlooks and interrupted states.
 
-import { fireEvent, render, screen, within } from '@testing-library/preact';
+import { render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
 import { App } from '../../src/ui/app.tsx';
 import { INTERRUPTED_CARD } from '../../src/ui/break-copy.ts';
-import { RESET_EVIDENCE } from '../../src/ui/recovery-copy.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant, type Instant } from '../../src/domain/schemas/time.ts';
@@ -24,7 +19,6 @@ import {
   type StoredAttempt,
 } from '../../src/application/progress/break-attempt-record.ts';
 import { createTrackingRecordsStore, type StoredTrack } from '../../src/application/progress/tracking-record.ts';
-import { createCheckinsStore } from '../../src/application/progress/checkin-store.ts';
 import { createCalculationRecordsStore, freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 
 const AT: Instant = toInstant(1787184000000); // 2026-08-20T00:00:00Z
@@ -129,21 +123,6 @@ describe('Today phase states (0.11)', () => {
     expect(screen.getByTestId('confirm-when-cta')).toBeTruthy();
   });
 
-  it('renders Today without the page-level decorative interval background (0.11.1)', () => {
-    const storage = createMemoryStorage();
-    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
-    seedAttempt(storage, activeAttempt());
-    renderApp(storage);
-    // No page-level orbit wallpaper behind the Today content; the phase state
-    // attribute that drives card copy is still present.
-    expect(screen.getByTestId('today-view').getAttribute('data-phase')).toBe('approaching');
-    expect(screen.queryByTestId('mark-complete-cta')).toBeNull();
-    expect(document.querySelector('.interval-field')).toBeNull();
-    expect(document.querySelector('.interval-field-orbit')).toBeNull();
-    // The active card and its primary action still render.
-    expect(screen.getByTestId('state-active-break')).toBeTruthy();
-    expect(screen.getByTestId('checkin-cta')).toBeTruthy();
-  });
 
 });
 
@@ -195,47 +174,8 @@ describe('Recovery outlook on the active-break card', () => {
     createTrackingRecordsStore(storage).save({ schemaVersion: 'tracking-records-v1', records: [track] });
   }
 
-  it('swaps the day block for the frozen outlook from the control at the top of the card', () => {
-    const storage = createMemoryStorage();
-    seedCalculatedBreak(storage);
-    seedAttempt(storage, activeAttempt({
-      segments: [{ startedFromLastUseAt: toInstant(AT - 2 * 86400000), endedAt: null, endReason: null }],
-    }));
-    renderApp(storage);
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
-    const card = screen.getByTestId('state-active-break');
-    // The switch is the card's first element, above the block it changes.
-    const mode = within(card).getByTestId('today-mode');
-    expect(mode.getAttribute('role')).toBe('tablist');
-    // The switch and its one legend share the card's first block.
-    expect(card.firstElementChild!.contains(mode)).toBe(true);
-    // The legend says what each mode's number means, once.
-    const legend = within(card).getByTestId('mode-legend').textContent;
-    expect(legend).toContain('Plan = your target');
-    expect(legend).toContain('Outlook = research estimate');
-    expect(screen.getByTestId('today-mode-plan').getAttribute('aria-selected')).toBe('true');
-    // Plan mode: the day/target head owns the slot and the outlook is not there.
-    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 3 of 4');
-    expect(screen.queryByTestId('today-outlook')).toBeNull();
-    fireEvent.click(screen.getByTestId('today-mode-reset'));
-    expect(screen.getByTestId('today-mode-reset').getAttribute('aria-selected')).toBe('true');
-    expect(screen.queryByTestId('break-day-label')).toBeNull();
-    const outlook = screen.getByTestId('today-outlook');
-    expect(within(outlook).getByTestId('reset-window-value').textContent).toBe('About 1–2 weeks');
-    expect(within(outlook).getByTestId('reset-target-day').textContent).toBe('7 days');
-    const evidence = within(outlook).getByTestId('reset-evidence');
-    expect(evidence.hasAttribute('open')).toBe(false);
-    fireEvent.click(within(evidence).getByText(RESET_EVIDENCE.summary));
-    expect(evidence.hasAttribute('open')).toBe(true);
-    expect(evidence.textContent).toMatch(/D'Souza/i);
-    // The daily action stays reachable in both modes.
-    expect(screen.getByTestId('checkin-cta')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('today-mode-plan'));
-    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 3 of 4');
-    expect(screen.queryByTestId('today-outlook')).toBeNull();
-  });
 
-  it('shows no switch for a chosen-duration break, which owns no record', () => {
+  it('does not invent an outlook for a chosen-duration break with no calculation', () => {
     const storage = createMemoryStorage();
     seedCalculatedBreak(storage);
     seedAttempt(storage, activeAttempt({ calculationRecordId: null, targetSource: 'chosen' }));
@@ -243,10 +183,9 @@ describe('Recovery outlook on the active-break card', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 4');
     expect(screen.queryByTestId('today-outlook')).toBeNull();
-    expect(screen.queryByTestId('today-mode')).toBeNull();
   });
 
-  it('shows no switch on an open-ended tracking plan', () => {
+  it('does not borrow a finite outlook for open-ended tracking', () => {
     const storage = createMemoryStorage();
     seedCalculatedBreak(storage);
     seedTrack(storage, {
@@ -263,7 +202,6 @@ describe('Recovery outlook on the active-break card', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
     expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
     expect(screen.queryByTestId('today-outlook')).toBeNull();
-    expect(screen.queryByTestId('today-mode')).toBeNull();
     expect(screen.queryByTestId('today-timeline')).toBeNull();
   });
 
@@ -279,7 +217,6 @@ describe('Recovery outlook on the active-break card', () => {
     });
     seedAttempt(storage, activeAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByTestId('today-mode-reset'));
     const outlook = screen.getByTestId('today-outlook');
     expect(within(outlook).getByTestId('reset-v1-historical')).toBeTruthy();
     expect(within(outlook).getByTestId('reset-target-day').textContent).toBe('Day 7');
@@ -288,59 +225,3 @@ describe('Recovery outlook on the active-break card', () => {
   });
 });
 
-// 0.32.0: Today is a daily helper with nothing hidden. One card acts, and the
-// stage, the experiences, the urge plan and the full timeline are all on it.
-describe('Today shows one job, nothing hidden', () => {
-  function seedLiveBreak(overrides: Partial<StoredAttempt> = {}): StorageAdapter {
-    const storage = createMemoryStorage();
-    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
-    seedAttempt(storage, activeAttempt(overrides));
-    return storage;
-  }
-
-  it('keeps the day’s action visible and the long blocks behind their summaries', () => {
-    renderApp(seedLiveBreak());
-    const card = screen.getByTestId('state-active-break');
-    // One topic at a time, under the picker.
-    expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
-    expect(screen.getByTestId('advice-block').getAttribute('data-area')).toBe('cravings');
-    expect(screen.getByTestId('advice-picker')).toBeTruthy();
-    expect(within(screen.getByTestId('daily-support')).queryByTestId('community-tip')).toBeNull();
-    expect(document.querySelector('.result-lens-orbit')).toBeNull();
-    // The long blocks sit behind their own summaries; the day's advice does not.
-    const stage = screen.getByTestId('today-stage');
-    expect(stage.tagName).toBe('DETAILS');
-    expect(stage.hasAttribute('open')).toBe(false);
-    expect(within(stage).getByTestId('guidance-headline')).toBeTruthy();
-    expect(within(stage).getByTestId('guidance-may-notice')).toBeTruthy();
-    expect(within(stage).getByTestId('daily-practice')).toBeTruthy();
-    expect(screen.getByTestId('today-experiences').tagName).toBe('DETAILS');
-    const community = within(screen.getByTestId('today-experiences')).getByTestId('community-tip');
-    expect(community.textContent).toContain('Personal experience');
-    expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
-    // The rating sheet and the urge-plan block are gone from the card.
-    expect(screen.queryByTestId('add-symptoms')).toBeNull();
-    expect(screen.queryByTestId('today-preparation')).toBeNull();
-    // The action itself is on the card, not behind the guide's summary.
-    expect(screen.getByTestId('advice-action')).toBeTruthy();
-    expect(screen.getByTestId('advice-guide').hasAttribute('open')).toBe(false);
-    // The journey is on the card, behind its own summary.
-    const timeline = screen.getByTestId('today-timeline');
-    expect(timeline.tagName).toBe('DETAILS');
-    expect(timeline.hasAttribute('open')).toBe(false);
-    expect(within(timeline).getByTestId('break-journey')).toBeTruthy();
-    expect(within(card).getByTestId('today-research-fact')).toBeTruthy();
-  });
-
-
-  it('leaves the interrupted card without the support stack', () => {
-    const storage = createMemoryStorage();
-    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
-    seedAttempt(storage, activeAttempt({ status: 'interrupted_time_needed' }));
-    renderApp(storage);
-    expect(screen.getByTestId('state-interrupted')).toBeTruthy();
-    expect(screen.queryByTestId('support-card')).toBeNull();
-    expect(screen.queryByTestId('today-stage')).toBeNull();
-    expect(document.querySelector('.result-lens-orbit')).toBeNull();
-  });
-});

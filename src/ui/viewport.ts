@@ -27,6 +27,8 @@ export function readViewportBox(win: Window): ViewportBox {
     innerHeight: win.innerHeight,
     outerHeight: win.outerHeight,
     screenHeight: win.screen.height,
+    outerWidth: win.outerWidth,
+    screenWidth: win.screen.width,
     clientHeight: win.document.documentElement.clientHeight,
     narrow: win.matchMedia('(max-width: 719px)').matches,
     standalone: win.matchMedia('(display-mode: standalone)').matches || nav.standalone === true,

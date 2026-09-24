@@ -274,7 +274,6 @@ export const BACKUP_EXCLUDED_KEYS = [
   POST_BREAK_PLANS_KEY,
   INSTALL_HINT_DISMISSED_KEY,
   MIGRATION_MARKER_KEY,
-  INSTALL_HINT_DISMISSED_KEY,
 ] as const;
 
 /** `DurableSnapshot` fields no backup carries, for the same reasons. */

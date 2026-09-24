@@ -20,13 +20,10 @@ import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
-import { ADVICE_PICKER } from './break-copy.ts';
 import { DailySupport } from './daily-support.tsx';
 import { ExtraBlocks, StageBlock } from './today-guidance.tsx';
 import { presentDailySupport } from '../application/presentation/daily-support.ts';
-import type { BreakPreparation } from '../application/break/preparation.ts';
 import { ResultLensHero } from './result-lens.tsx';
-import { ResultModeControl } from './result-mode-control.tsx';
 import { BreakJourney } from './break-journey.tsx';
 import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
@@ -94,8 +91,6 @@ export interface TodayScreenProps {
   readonly onResumeReduction: () => void;
   readonly onEndReduction: () => void;
   readonly onRecommitReduction: () => void;
-  /** Persists the optional trigger/replacement plan on the card's own record. */
-  readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
 }
 
 export function TodayScreen(props: TodayScreenProps) {
@@ -241,10 +236,10 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
     </button>
     {checked ? (
       <div className="checkin-receipt">
-        <p className="meta" role="status">Saved · A day off THC</p>
+        <p className="meta" role="status">Saved · No THC reported</p>
         <button type="button" className="text-back" data-testid="undo-checkin" aria-label="Undo latest check-in" onClick={props.onUndoCheckin}>Undo</button>
       </div>
-    ) : null}
+    ) : <p className="meta checkin-meaning">Records no THC for this break day. You can undo it.</p>}
   </div>;
 }
 
@@ -253,7 +248,6 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
 function ActiveBreakCard(props: TodayScreenProps) {
   const active = props.live.active;
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [outlookMode, setOutlookMode] = useState(false);
   if (active === null) return null;
   const { attempt, view } = active;
   const outlook = props.live.outlook;
@@ -272,7 +266,6 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const recordedDays = new Set<number>();
   const todayIndex = latestTodayCheckin(props.live.checkins, anchor, props.live.now);
   const checkedToday = todayIndex >= 0;
-  const todayReport = todayIndex >= 0 ? props.live.checkins[todayIndex]! : null;
   if (anchor !== null) {
     for (const row of props.live.checkins) {
       if (row.usedThc) continue;
@@ -302,25 +295,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
   );
   return (
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      {/* The switch sits above the block it swaps: the day/target head and the
-          running break's own recovery outlook hold the same slot. */}
-      {outlook !== null ? (
-        <div className="mode-with-legend">
-          <ResultModeControl scope="today" ariaLabel="Today view" resetMode={outlookMode} onChange={setOutlookMode} />
-          <p className="meta" data-testid="mode-legend">{ADVICE_PICKER.switchLegend}</p>
-        </div>
-      ) : null}
-      {outlookMode && outlook !== null ? (
-        <section className="today-block" id="today-panel-reset" role="tabpanel" aria-labelledby="today-tab-reset" data-testid="today-outlook">
-          <PredictedResetPanel
-            outlook={outlook}
-            historical={false}
-            contextLabel={null}
-            checkinFacts={props.live.checkinFacts}
-          />
-        </section>
-      ) : (
-        <header className="today-live-head" id="today-panel-plan" role="tabpanel" aria-labelledby="today-tab-plan">
+      <header className="today-live-head">
           <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
           <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
           <p className="meta" data-testid="target-date-line">
@@ -331,9 +306,8 @@ function ActiveBreakCard(props: TodayScreenProps) {
               {checkinProgressLine(recordedDays.size, view.targetDays, view.day <= view.targetDays)}
             </p>
           ) : null}
-        </header>
-      )}
-      {!outlookMode && stateNote !== null ? (
+      </header>
+      {stateNote !== null ? (
         <p className={phase === 'reached' ? 'today-state-note is-reached' : 'today-state-note is-extended'} data-testid="plan-target-note" data-state={phase}>
           {stateNote}
         </p>
@@ -354,11 +328,21 @@ function ActiveBreakCard(props: TodayScreenProps) {
         <BreakJourney view={journey} />
         <BreakResearchNote day={view.day} />
       </details>
-      <div className="footer-links">
+      {outlook !== null ? (
+        <details className="result-disclosure today-block" data-testid="today-outlook">
+          <summary>Recovery outlook</summary>
+          <p className="meta">Research context, not a measure of your recovery.</p>
+          <PredictedResetPanel outlook={outlook} historical={false} contextLabel={null} checkinFacts={props.live.checkinFacts} />
+        </details>
+      ) : null}
+      <details className="result-disclosure today-block">
+        <summary>Manage break</summary>
+        <p className="meta">Used THC since you started? Update the clock without losing your earlier days.</p>
+        <button type="button" className="cta-secondary" data-testid="update-last-use" onClick={props.onConfirmWhen}>Update last use</button>
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}
         </button>
-      </div>
+      </details>
       {confirmEnd ? (
         <ConfirmDialog
           title={ACTIVE_BREAK_CARD.endEarlyConfirmTitle}
@@ -451,7 +435,6 @@ function TrackingCard(props: TodayScreenProps) {
   const day = tracking.view?.day ?? null;
   const anchor = currentSegmentAnchor(tracking.track.segments);
   const todayIndex = latestTodayCheckin(props.live.checkins, anchor, props.live.now);
-  const todayReport = todayIndex >= 0 ? props.live.checkins[todayIndex]! : null;
   const support = tracking.view === null ? null : presentDailySupport({
     day: tracking.view.day, now: props.live.now,
     anchor,
@@ -483,6 +466,7 @@ function TrackingCard(props: TodayScreenProps) {
         </>
       ) : null}
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
+      <button type="button" className="text-back today-plan-link" data-testid="update-last-use" onClick={props.onConfirmWhen}>Update last use</button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (
         <ConfirmDialog

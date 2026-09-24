@@ -284,18 +284,6 @@ describe('daily check-in', () => {
   });
 
 
-  it('keeps THC-use logging out of an active T-break', () => {
-    const storage = createMemoryStorage();
-    seedAcknowledgedProfile(storage, toleranceProfile());
-    seedAttempt(storage, storedAttempt());
-    renderApp(storage);
-    expect(screen.queryByTestId('checkin-flow')).toBeNull();
-    expect(screen.queryByTestId('report-use')).toBeNull();
-    expect(screen.queryByRole('button', { name: /Log THC use/i })).toBeNull();
-    expect(screen.queryByTestId('confirm-use')).toBeNull();
-    expect(attemptsOf(storage)[0]?.status).toBe('active');
-    expect(checkinsOf(storage)).toHaveLength(0);
-  });
 
   it('an accidental check-in can be undone while the T-break remains active', () => {
     const storage = createMemoryStorage();
@@ -312,6 +300,37 @@ describe('daily check-in', () => {
 });
 
 describe('interruption confirmation', () => {
+  it.each(['attempt', 'tracking'] as const)('updates last use for live %s only after confirmation and preserves earlier records', (scope) => {
+    const storage = createMemoryStorage();
+    seedAcknowledgedProfile(storage, toleranceProfile());
+    if (scope === 'attempt') seedAttempt(storage, storedAttempt());
+    else seedTrack(storage, storedTrack());
+    const previous: DailyCheckin = {
+      recordedAt: new Date(AT - DAY_MS).toISOString(), usedThc: false, usedAt: null,
+      craving: null, sleep: null, anxiety: null, irritability: null, appetite: null, note: null,
+    };
+    createCheckinsStore(storage).save({ schemaVersion: 'checkins-v1', checkins: [previous] });
+    const app = renderApp(storage);
+    const rows = () => scope === 'attempt' ? attemptsOf(storage) : createTrackingRecordsStore(storage).load()!.records;
+    const before = rows();
+    fireEvent.click(screen.getByTestId('update-last-use'));
+    fireEvent.click(within(screen.getByTestId('confirm-use')).getByRole('button', { name: 'Cancel' }));
+    expect(rows()).toEqual(before);
+    expect(checkinsOf(storage)).toEqual([previous]);
+    fireEvent.click(screen.getByTestId('update-last-use'));
+    fireEvent.click(within(screen.getByTestId('confirm-use')).getByRole('button', { name: 'Today' }));
+    fireEvent.click(screen.getByTestId('confirm-use-submit'));
+    const after = rows()[0]!;
+    expect(after.segments).toHaveLength(2);
+    expect(after.segments[0]!.startedFromLastUseAt).toBe(ANCHOR);
+    expect(after.segments[1]!.startedFromLastUseAt).toBeGreaterThanOrEqual(AT - 60_000);
+    expect(checkinsOf(storage)[0]).toEqual(previous);
+    expect(checkinsOf(storage)[1]!.usedThc).toBe(true);
+    app.unmount();
+    renderApp(storage);
+    expect(rows()[0]!.segments).toEqual(after.segments);
+    expect(screen.getByTestId(scope === 'attempt' ? 'break-day-label' : 'tracking-day-label').textContent).toContain('Day 1');
+  });
   it('can undo a mistaken pending report left by an older release', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
@@ -592,8 +611,6 @@ describe('evidence-guided companion', () => {
     expect(screen.getByTestId('break-roadmap')).toBeTruthy();
     expect(screen.queryByTestId('mark-complete')).toBeNull();
     expect(screen.queryByTestId('post-break-card')).toBeNull();
-    // The picker is on the tracking card too, and the roadmap link still works.
-    expect(screen.getByTestId('advice-picker-title').textContent).toBe('How to deal with?');
   });
 
   it('does not complete open-ended tracking at day 28', () => {

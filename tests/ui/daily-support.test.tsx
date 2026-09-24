@@ -7,6 +7,8 @@ import { createCheckinsStore } from '../../src/application/progress/checkin-stor
 import { createCompanionPersonalisationStore } from '../../src/application/progress/companion-personalisation.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
+import { DailySupport } from '../../src/ui/daily-support.tsx';
+import { presentDailySupport, SUPPORT_GUIDES } from '../../src/application/presentation/daily-support.ts';
 
 const NOW = toInstant(Date.parse('2026-09-20T12:00:00Z'));
 const START = toInstant(NOW - 3 * 86_400_000);
@@ -32,18 +34,30 @@ function block() {
   return screen.getByTestId('advice-block');
 }
 function pick(area: string) {
-  fireEvent.click(screen.getByTestId(`advice-topic-${area}`));
+  const select = screen.getByTestId('advice-picker') as HTMLSelectElement;
+  select.value = area;
+  fireEvent.input(select);
 }
 
 describe('practical Today advice', () => {
-  it('shows one topic at a time, the day’s own practice until another is picked', () => {
-    setup();
-    expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
-    // Day 4's practice is about the usual session time.
-    expect(block().getAttribute('data-area')).toBe('cravings');
-    expect(screen.getByTestId('advice-picker-title').textContent).toBe('How to deal with?');
-    expect(screen.getByTestId('advice-topic-cravings').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('advice-reason').textContent).toBe('For this stage of the break');
+  it('lets a manual topic override today, return to the daily action, and reset on the next break day', () => {
+    const view = (day: number) => presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null });
+    const app = render(<DailySupport view={view(4)} />);
+    const dailyAction = screen.getByTestId('advice-action').textContent;
+    pick('nausea');
+    expect(screen.getByTestId('advice-action').textContent).toBe(SUPPORT_GUIDES.nausea.steps[0]);
+    pick('');
+    expect(screen.getByTestId('advice-action').textContent).toBe(dailyAction);
+    pick('nausea');
+    app.rerender(<DailySupport view={view(5)} />);
+    expect((screen.getByTestId('advice-picker') as HTMLSelectElement).value).toBe('');
+    expect(block().getAttribute('data-area')).toBe('irritability');
+  });
+
+  it('does not drop a guide step when a personal action replaces it', () => {
+    setup({ preparation: { triggerIds: [], customTrigger: null, replacementAction: 'make tea', fallbackPlan: null } });
+    const steps = within(screen.getByTestId('advice-guide')).getAllByRole('listitem').map(item => item.textContent);
+    expect(steps).toEqual(SUPPORT_GUIDES.cravings.steps);
   });
 
   it('replaces the block in place when another topic is picked, and writes nothing', () => {
@@ -51,9 +65,6 @@ describe('practical Today advice', () => {
     pick('anxiety');
     expect(screen.getAllByTestId('advice-block')).toHaveLength(1);
     expect(block().getAttribute('data-area')).toBe('anxiety');
-    expect(screen.getByTestId('advice-title').textContent).toBe('Anxiety or restlessness');
-    expect(screen.getByTestId('advice-topic-anxiety').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('advice-topic-cravings').getAttribute('aria-pressed')).toBe('false');
     expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
     expect(createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation).toBeNull();
   });
@@ -72,11 +83,8 @@ describe('practical Today advice', () => {
     // Day 4 leads with the usual-session topic, which the plan covers.
     expect(block().getAttribute('data-area')).toBe('cravings');
     expect(screen.getByTestId('advice-action').textContent).toBe('Try your plan first: “make tea”.');
-    expect(screen.getByTestId('advice-trigger').textContent).toBe('You flagged: Evening after work.');
-    expect(screen.getByTestId('advice-fallback').textContent).toBe('If that is not possible: text a friend.');
     // A symptom topic keeps its own first step and drops the plan lines.
     pick('sleep');
-    expect(screen.getByTestId('advice-action').textContent).toBe('Choose a wake-up time you can keep tomorrow, even after a rough night.');
     expect(screen.queryByTestId('advice-trigger')).toBeNull();
     expect(screen.queryByTestId('advice-fallback')).toBeNull();
   });

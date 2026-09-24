@@ -11,6 +11,7 @@ import type { StoredPreviousBreak } from '../persistence/previous-break-store.ts
 import type { CorruptHistoryRow, DurableSnapshot } from '../persistence/durable.ts';
 import { checkinRecordId } from '../persistence/ids.ts';
 import { presentCalculationRecord } from './present-calculation.ts';
+import { formatLocalDay } from '../presentation/format.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 
 export type HistoryEntryKind =
@@ -25,7 +26,14 @@ export type HistoryEntryKind =
 export interface HistoryEntry {
   readonly kind: HistoryEntryKind;
   readonly id: string;
+  /** Ordering instant: the record's own moment (started / calculated / recorded). */
   readonly at: Instant;
+  /** Row date line: the local day of `at`, e.g. "17 Sep 2026", so entries in
+   * one section stay distinguishable after grouping. Labelled when the day is
+   * not the record's own event (a past break reads "Saved 17 Sep 2026",
+   * because it is ordered by when it was recorded). Null when the record has
+   * no usable timestamp (the 0 sentinel of unreadable and malformed rows). */
+  readonly dateLabel: string | null;
   readonly title: string;
   readonly subtitle: string;
   readonly interrupted: boolean;
@@ -43,6 +51,9 @@ export interface HistoryModel {
 }
 
 export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): HistoryModel {
+  // Past breaks are listed exactly once, in their own top section: they are
+  // deliberately kept out of the grouped feed so a past break can never appear
+  // twice (the "Breaks" section holds attempts and tracking runs only).
   const previousBreaks = snapshot.previousBreaks
     .map(previousBreakEntry)
     .slice()
@@ -68,11 +79,19 @@ export function reductionStatusLabel(plan: ReductionPlan): string {
   return plan.status === 'ended' ? 'Ended' : plan.status === 'paused' ? 'Paused' : 'In progress';
 }
 
+/** Local calendar day for a row, or null when the record carries no readable
+ * timestamp (ordering falls back to the 0 sentinel for those rows). */
+function localDay(at: Instant): string | null {
+  return at > 0 ? formatLocalDay(at) : null;
+}
+
 function reductionEntry(plan: ReductionPlan): HistoryEntry {
   const count = plan.events.length;
+  const at = plan.status === 'ended' ? plan.updatedAt : plan.startedAt;
   return {
     kind: 'reduction', id: plan.id,
-    at: plan.status === 'ended' ? plan.updatedAt : plan.startedAt,
+    at,
+    dateLabel: localDay(at),
     title: 'Cut-down plan',
     subtitle: `${reductionStatusLabel(plan)} · ${count} ${count === 1 ? 'session' : 'sessions'} logged`,
     interrupted: false,
@@ -109,21 +128,23 @@ function calculationEntry(record: CalculationRecord): HistoryEntry {
       subtitle = 'Unavailable';
       break;
   }
-  return { kind: 'calculation', id: record.id, at: record.calculatedAt, title, subtitle, interrupted: false };
+  return { kind: 'calculation', id: record.id, at: record.calculatedAt, dateLabel: localDay(record.calculatedAt), title, subtitle, interrupted: false };
 }
 
 function attemptEntry(attempt: StoredAttempt, now: Instant): HistoryEntry {
   const interrupted = attempt.segments.some((segment) => segment.endReason === 'used_thc');
-  const lasted = lastedDays(attempt.segments, now);
   const status = attemptStatusLabel(attempt.status);
   // Two honest numbers, each labelled: the plan's length and the elapsed run.
   const subtitleParts = [status];
-  if (lasted !== null) subtitleParts.push(`${durationLabel(lasted)} so far`);
+  const lived = elapsedPhrase(attempt.segments, now, attempt.status === 'active' || attempt.status === 'interrupted_time_needed');
+  if (lived !== null) subtitleParts.push(lived);
   if (interrupted) subtitleParts.push('interrupted');
+  const at = attemptAnchor(attempt);
   return {
     kind: 'attempt',
     id: attempt.id,
-    at: attemptAnchor(attempt),
+    at,
+    dateLabel: localDay(at),
     title: `${durationLabel(attempt.targetDurationDays)} planned`,
     subtitle: subtitleParts.join(' · '),
     interrupted,
@@ -132,14 +153,15 @@ function attemptEntry(attempt: StoredAttempt, now: Instant): HistoryEntry {
 
 function trackingEntry(track: StoredTrack, now: Instant): HistoryEntry {
   const interrupted = track.segments.some((segment) => segment.endReason === 'used_thc');
-  const lasted = lastedDays(track.segments, now);
   const status = track.status === 'ended' ? 'Ended' : track.status === 'interrupted_time_needed' ? 'Paused' : 'Tracking';
   const subtitleParts = [status];
-  if (lasted !== null) subtitleParts.push(`${durationLabel(lasted)} so far`);
+  const lived = elapsedPhrase(track.segments, now, track.status !== 'ended');
+  if (lived !== null) subtitleParts.push(lived);
   return {
     kind: 'tracking',
     id: track.id,
     at: track.startedAt,
+    dateLabel: localDay(track.startedAt),
     title: 'Abstinence tracking',
     subtitle: subtitleParts.join(' · '),
     interrupted,
@@ -147,7 +169,10 @@ function trackingEntry(track: StoredTrack, now: Instant): HistoryEntry {
 }
 
 function checkinEntry(checkin: DailyCheckin): HistoryEntry {
-  const at = parseSubmittedTimestamp(checkin.recordedAt) ?? (0 as Instant);
+  // A malformed stamp keeps the 0 ordering sentinel and shows no date; other
+  // rows sort and read by the moment the check-in was recorded.
+  const recorded = parseSubmittedTimestamp(checkin.recordedAt);
+  const at = recorded ?? (0 as Instant);
   const symptoms = [checkin.craving, checkin.sleep, checkin.irritability, checkin.anxiety, checkin.appetite].some(
     (value) => value !== null,
   );
@@ -155,6 +180,7 @@ function checkinEntry(checkin: DailyCheckin): HistoryEntry {
     kind: 'checkin',
     id: checkinRecordId(checkin.recordedAt),
     at,
+    dateLabel: localDay(at),
     title: 'Check-in',
     subtitle: checkin.usedThc ? 'Used THC' : symptoms ? 'No THC · symptoms logged' : 'No THC',
     interrupted: checkin.usedThc,
@@ -162,13 +188,18 @@ function checkinEntry(checkin: DailyCheckin): HistoryEntry {
 }
 
 function previousBreakEntry(record: StoredPreviousBreak): HistoryEntry {
+  // Ordered and dated by when the observation was saved — the break's own end
+  // date is optional and lives in the edit sheet — so the row says which day
+  // its date is instead of letting it read as the day of the break.
   const at = parseSubmittedTimestamp(record.createdAt) ?? record.updatedAt;
+  const day = at > 0 ? formatLocalDay(at) : null;
   const score =
     record.toleranceReductionScore === null ? 'Not sure how much it helped' : `Reduction ${record.toleranceReductionScore}/10`;
   return {
     kind: 'previous-break',
     id: record.id,
     at,
+    dateLabel: day === null ? null : `Saved ${day}`,
     title: `Past break · ${durationLabel(record.durationDays)}`,
     subtitle: score,
     interrupted: false,
@@ -180,6 +211,7 @@ function corruptEntry(row: CorruptHistoryRow): HistoryEntry {
     kind: 'corrupt',
     id: row.id,
     at: 0 as Instant,
+    dateLabel: null,
     title: 'Unavailable',
     subtitle: 'This record could not be read',
     interrupted: false,
@@ -206,24 +238,73 @@ function attemptAnchor(attempt: StoredAttempt): Instant {
   return attempt.startedAt;
 }
 
-export function lastedDays(
+/** Milliseconds lived across a record's segments: every closed segment plus the
+ * open one measured up to `now`. */
+function livedMilliseconds(
   segments: readonly { readonly startedFromLastUseAt: Instant; readonly endedAt: Instant | null }[],
   now: Instant,
-): number | null {
-  if (segments.length === 0) return null;
+): number {
   let ms = 0;
   for (const segment of segments) {
     const end = segment.endedAt ?? now;
     if (end > segment.startedFromLastUseAt) ms += end - segment.startedFromLastUseAt;
   }
-  if (ms <= 0) return 0;
-  return Math.max(1, Math.floor(ms / MILLIS_PER_DAY));
+  return ms;
+}
+
+/**
+ * Complete 24-hour periods lived, for the row labels: 0 while the first day is
+ * still running, so a row never claims a day it has not lived. Day *position*
+ * ("Day 1") is a different number, rendered by the day labels, not by this
+ * count. Null when there is no segment to measure.
+ */
+export function completeDaysLived(
+  segments: readonly { readonly startedFromLastUseAt: Instant; readonly endedAt: Instant | null }[],
+  now: Instant,
+): number | null {
+  if (segments.length === 0) return null;
+  return Math.floor(livedMilliseconds(segments, now) / MILLIS_PER_DAY);
+}
+
+/**
+ * Whole days to record for a run that was lived: once any time has elapsed the
+ * count floors at one day, because a stored previous-break observation is a
+ * whole-day number (`durationDays >= 1`) — never "0 days". Null when there is
+ * no segment at all, which lets the caller keep the plan's target instead.
+ */
+export function lastedDays(
+  segments: readonly { readonly startedFromLastUseAt: Instant; readonly endedAt: Instant | null }[],
+  now: Instant,
+): number | null {
+  if (segments.length === 0) return null;
+  const ms = livedMilliseconds(segments, now);
+  return ms <= 0 ? 0 : Math.max(1, Math.floor(ms / MILLIS_PER_DAY));
+}
+
+/**
+ * The elapsed part of a row's subtitle: complete days only, and "so far" only
+ * while the run is still open — a finished run states what it lasted instead
+ * of implying the clock is still counting. Null before anything has started.
+ */
+function elapsedPhrase(
+  segments: readonly { readonly startedFromLastUseAt: Instant; readonly endedAt: Instant | null }[],
+  now: Instant,
+  running: boolean,
+): string | null {
+  const days = completeDaysLived(segments, now);
+  if (days === null) return null;
+  const lived = days === 0 ? 'Less than a day' : durationLabel(days);
+  return running ? `${lived} so far` : lived;
 }
 
 /**
  * Sections by record family, newest first inside each: what you logged, what
  * the app recommended, the breaks you ran, and your cut-down plans. Records
  * that cannot be read still appear so nothing is hidden by silence.
+ *
+ * The "Breaks" label is shared by attempts, tracking runs and past breaks, but
+ * only attempts and tracking runs reach the feed: past breaks render once, in
+ * their own list above the sections (`buildHistoryModel` keeps them out).
  */
 const SECTION_ORDER: readonly { readonly kind: HistoryEntryKind; readonly label: string }[] = [
   { kind: 'checkin', label: 'Check-ins' },

@@ -21,8 +21,6 @@ import {
   stopTracking,
   suspendBreak,
   suspendTracking,
-  updateBreakPreparation,
-  updateTrackingPreparation,
   type BreakSessionState,
   type CheckinSymptoms,
 } from '../application/break/break-session.ts';
@@ -250,6 +248,16 @@ export function App({
     setNow(clock.now());
     setFactsEpoch((value) => value + 1);
   }
+  /** A rejected synchronous save leaves the form open with its data. The
+   * durable facade already reports the failure through the storage banner. */
+  function tryWrite(work: () => void): boolean {
+    try {
+      work();
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   const snapshotRecord = useMemo(() => {
     const loaded = durable.load();
@@ -259,7 +267,8 @@ export function App({
       ensureCalculationFromSnapshot(durable, loaded.snapshot);
       return durable.load().snapshot;
     }
-    return loaded.snapshot;
+    return loaded.snapshot?.runId !== undefined && !loaded.calculations.some(record => record.id === loaded.snapshot!.runId)
+      ? null : loaded.snapshot;
   }, [durable, factsEpoch]);
   const resultRecord = useMemo(() => resultViews.load(), [resultViews, factsEpoch]);
   const draft = useMemo(() => progress.load(), [progress, factsEpoch]);
@@ -555,11 +564,13 @@ export function App({
   }
 
   function confirmWhen(): void {
-    if (liveData.interruptedAttempt !== null) {
-      const start = currentSegmentAnchor(liveData.interruptedAttempt.segments);
+    const attempt = liveData.interruptedAttempt ?? liveData.active?.attempt;
+    const tracking = liveData.interruptedTracking ?? liveData.tracking?.track;
+    if (attempt != null) {
+      const start = currentSegmentAnchor(attempt.segments);
       if (start !== null) setFlow({ kind: 'confirm-use', scope: 'attempt', segmentStart: start });
-    } else if (liveData.interruptedTracking !== null) {
-      const start = currentSegmentAnchor(liveData.interruptedTracking.segments);
+    } else if (tracking != null) {
+      const start = currentSegmentAnchor(tracking.segments);
       if (start !== null) setFlow({ kind: 'confirm-use', scope: 'tracking', segmentStart: start });
     }
   }
@@ -845,11 +856,13 @@ export function App({
       updatedAt: nowAt,
       sourceAttemptId: attempt.id,
     };
-    durable.putPreviousBreak(record);
-    durable.saveOutcomeMarks([
-      ...current.outcomeMarks,
-      { attemptId: attempt.id, status: 'captured', updatedAt: nowAt },
-    ]);
+    if (!tryWrite(() => {
+      durable.putPreviousBreak(record);
+      durable.saveOutcomeMarks([
+        ...current.outcomeMarks,
+        { attemptId: attempt.id, status: 'captured', updatedAt: nowAt },
+      ]);
+    })) return;
     setOutcomeAttempt(null);
     refresh();
   }
@@ -862,10 +875,10 @@ export function App({
       setOutcomeAttempt(null);
       return;
     }
-    durable.saveOutcomeMarks([
+    if (!tryWrite(() => durable.saveOutcomeMarks([
       ...current.outcomeMarks,
       { attemptId: attempt.id, status: 'skipped', updatedAt: nowAt },
-    ]);
+    ]))) return;
     setOutcomeAttempt(null);
     refresh();
   }
@@ -894,18 +907,6 @@ export function App({
     refresh();
   }
 
-  function updatePreparation(id: string, preparation: BreakPreparation | null): void {
-    const nowAt = clock.now();
-    const latest = readSessionState();
-    if (latest.attempts.some((row) => row.id === id)) {
-      const outcome = updateBreakPreparation(latest, id, { preparation, now: nowAt });
-      if (outcome.ok) persistBreakSession(outcome.state);
-    } else {
-      const outcome = updateTrackingPreparation(latest, id, { preparation, now: nowAt });
-      if (outcome.ok) persistBreakSession(outcome.state);
-    }
-    refresh();
-  }
 
   function currentCheckinContext() {
     const state = readSessionState();
@@ -988,7 +989,7 @@ export function App({
   /** Recovery for a snapshot that cannot produce a result. Keeps any live plan. */
   function resetFailedCalculation() {
     progress.clear();
-    durable.saveSnapshot(null);
+    if (!tryWrite(() => durable.saveSnapshot(null))) return;
     resultViews.clear();
     setSession(null);
     setLastUseWarning(false);
@@ -1066,16 +1067,18 @@ export function App({
     if (dest === 'TERMINAL') {
       const finished = finishQuestionnaire(answers, nowAt);
       if (finished.status === 'complete') {
-        progress.clear();
         const runId = newRecordId('calc', nowAt);
         const frozen = freezeCalculation(runId, finished.snapshot, nowAt);
-        durable.putCalculation(frozen);
-        durable.saveSnapshot({
-          schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
-          snapshot: finished.snapshot,
-          updatedAt: nowAt,
-          runId: frozen.id,
-        });
+        if (!tryWrite(() => {
+          durable.putCalculation(frozen);
+          durable.saveSnapshot({
+            schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
+            snapshot: finished.snapshot,
+            updatedAt: nowAt,
+            runId: frozen.id,
+          });
+        })) return;
+        progress.clear();
         markResult('open');
         setSession(null);
         setLastUseWarning(false);
@@ -1113,13 +1116,15 @@ export function App({
     const previous = durable.load().previousBreaks;
     const merged = withPreviousBreaks(snapshotRecord.snapshot, previous.map(toPreviousBreakInput));
     const frozen = freezeCalculation(newRecordId('calc', nowAt), merged, nowAt);
-    durable.putCalculation(frozen);
-    durable.saveSnapshot({
-      ...snapshotRecord,
-      snapshot: merged,
-      runId: frozen.id,
-      updatedAt: nowAt,
-    });
+    if (!tryWrite(() => {
+      durable.putCalculation(frozen);
+      durable.saveSnapshot({
+        ...snapshotRecord,
+        snapshot: merged,
+        runId: frozen.id,
+        updatedAt: nowAt,
+      });
+    })) return;
     markResult('open');
     setFlow(null);
     refresh();
@@ -1130,7 +1135,7 @@ export function App({
     const editing = flow?.kind === 'previous-break' ? flow.editId : null;
     const existing = editing === null ? null : findPreviousBreak(durable.load(), editing);
     const id = existing?.id ?? newRecordId('pb', nowAt);
-    durable.putPreviousBreak({
+    if (!tryWrite(() => durable.putPreviousBreak({
       ...existing,
       id,
       durationDays: draft.durationDays,
@@ -1138,7 +1143,7 @@ export function App({
       endedAt: draft.endedAt,
       createdAt: existing?.createdAt ?? createdAtIso(nowAt),
       updatedAt: nowAt,
-    });
+    }))) return;
     if (addAnother) {
       setPreviousBreakRevision((value) => value + 1);
       setFlow({ kind: 'previous-break', editId: null });
@@ -1284,7 +1289,7 @@ export function App({
             onViewResult={
               snapshotRecord !== null
                 ? () => {
-                    if (profileSnapshot !== null) durable.saveSnapshot(profileSnapshot);
+                    if (profileSnapshot !== null && !tryWrite(() => durable.saveSnapshot(profileSnapshot))) return;
                     markResult('open');
                     refresh();
                   }
@@ -1310,7 +1315,6 @@ export function App({
             onResumeReduction={resumeLiveReduction}
             onEndReduction={endLiveReduction}
             onRecommitReduction={openRecommitReduction}
-            onUpdatePreparation={updatePreparation}
           />
         ) : shell.activeTab === 'calculator' ? (
           <section className="stack calculator-screen" data-testid="calculator-screen">
@@ -1343,7 +1347,8 @@ export function App({
               </span>
             </button>
             {profileSnapshot !== null ? <button type="button" className="cta-secondary" onClick={() => {
-              durable.saveSnapshot(profileSnapshot); progress.clear(); markResult('open'); refresh();
+              if (!tryWrite(() => durable.saveSnapshot(profileSnapshot))) return;
+              progress.clear(); markResult('open'); refresh();
             }}>View saved plan</button> : null}
             <p className="meta">Your answers stay on this device. Starting a calculation does not end an active break.</p>
           </section>
@@ -1351,6 +1356,7 @@ export function App({
           <HistoryScreen
             snapshot={durableSnap}
             now={now}
+            onSelectGoal={openGoal}
             onAddPastBreak={() => setFlow({ kind: 'previous-break', editId: null })}
             onEditPastBreak={(id) => setFlow({ kind: 'previous-break', editId: id })}
             onDelete={(kind, id) => {
@@ -1416,7 +1422,6 @@ export function App({
           canStartPlan={canStartPlan}
           onConfirmUse={confirmUse}
           onRecalculate={openRecalculate}
-          onUpdatePreparation={updatePreparation}
           checkins={sessionState.checkins}
           preparation={liveAttempt?.preparation ?? liveTracking?.preparation ?? null}
           profile={
@@ -1549,7 +1554,6 @@ function FlowRenderer({
   canStartPlan,
   onConfirmUse,
   onRecalculate,
-  onUpdatePreparation,
   checkins,
   preparation,
   profile,
@@ -1572,7 +1576,6 @@ function FlowRenderer({
   readonly canStartPlan: boolean;
   readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
   readonly onRecalculate: () => void;
-  readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly checkins: readonly import('../domain/schemas/profile.ts').DailyCheckin[];
   readonly preparation: BreakPreparation | null;
   readonly profile: import('../domain/schemas/profile.ts').UseProfileInput | null;

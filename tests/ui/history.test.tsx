@@ -12,6 +12,16 @@ import {
   QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
 } from '../../src/application/progress/questionnaire-snapshot.ts';
 import { createResultViewStore, RESULT_VIEW_SCHEMA_VERSION } from '../../src/application/progress/result-view.ts';
+import { createCheckinsStore, CHECKINS_SCHEMA_VERSION } from '../../src/application/progress/checkin-store.ts';
+import {
+  createBreakAttemptsStore,
+  BREAK_ATTEMPTS_SCHEMA_VERSION,
+} from '../../src/application/progress/break-attempt-record.ts';
+import {
+  createPreviousBreaksStore,
+  PREVIOUS_BREAKS_SCHEMA_VERSION,
+} from '../../src/application/persistence/previous-break-store.ts';
+import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
 import { sampleProfile } from '../helpers.ts';
 
 const AT = toInstant(1787184000000);
@@ -41,6 +51,79 @@ function completeTolerance10Days(storage: StorageAdapter) {
   fireEvent.click(within(q5).getByRole('button', { name: QUESTIONNAIRE.continue }));
 }
 
+const DAY = 24 * 3_600_000;
+
+function checkin(recordedAt: string): DailyCheckin {
+  return {
+    recordedAt,
+    craving: null,
+    sleep: null,
+    irritability: null,
+    anxiety: null,
+    appetite: null,
+    usedThc: false,
+    usedAt: null,
+    note: null,
+  };
+}
+
+/** One record per family a dated History row comes from: a saved
+ * recommendation, two check-ins a day apart, a finished break and a past
+ * break added by hand. */
+function seedHistoryRecords(storage: StorageAdapter): { readonly todayCheckin: string; readonly earlierCheckin: string } {
+  const todayCheckin = new Date(AT).toISOString();
+  const earlierCheckin = new Date(AT - DAY).toISOString();
+  createQuestionnaireSnapshotStore(storage).save({
+    schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
+    snapshot: { kind: 'use_profile', profile: sampleProfile() },
+    updatedAt: AT,
+  });
+  createResultViewStore(storage).save({
+    schemaVersion: RESULT_VIEW_SCHEMA_VERSION,
+    status: 'acknowledged',
+    updatedAt: AT,
+  });
+  createCheckinsStore(storage).save({
+    schemaVersion: CHECKINS_SCHEMA_VERSION,
+    checkins: [checkin(earlierCheckin), checkin(todayCheckin)],
+  });
+  const breakStart = AT - 5 * DAY;
+  createBreakAttemptsStore(storage).save({
+    schemaVersion: BREAK_ATTEMPTS_SCHEMA_VERSION,
+    attempts: [
+      {
+        id: 'attempt-seeded',
+        status: 'completed',
+        calculationRecordId: null,
+        targetDurationDays: 3,
+        postBreakMode: null,
+        startedAt: toInstant(breakStart),
+        segments: [{ startedFromLastUseAt: toInstant(breakStart), endedAt: toInstant(AT - 3 * DAY), endReason: 'completed' }],
+        postBreakPlan: null,
+        preparation: null,
+        completionAcknowledged: true,
+        createdAt: toInstant(breakStart),
+        updatedAt: toInstant(AT - 3 * DAY),
+      },
+    ],
+  });
+  createPreviousBreaksStore(storage).save({
+    schemaVersion: PREVIOUS_BREAKS_SCHEMA_VERSION,
+    records: [
+      {
+        id: 'pb-seeded',
+        durationDays: 7,
+        toleranceReductionScore: 4,
+        endedAt: null,
+        createdAt: '2026-08-02T10:00:00Z',
+        updatedAt: toInstant(AT - 18 * DAY),
+      },
+    ],
+    corrupt: [],
+  });
+  return { todayCheckin, earlierCheckin };
+}
+
 describe('history tab and previous-break flow', () => {
   it('lists a frozen calculation after the questionnaire completes', () => {
     completeTolerance10Days(createMemoryStorage());
@@ -53,6 +136,9 @@ describe('history tab and previous-break flow', () => {
     fireEvent.click(row);
     expect(screen.getByTestId('result-screen').getAttribute('data-historical')).toBe('true');
     expect(screen.getByText(RESULT.historicalNote)).toBeTruthy();
+    // The saved day travels with the result, so two saved recommendations stay
+    // tellable apart once the list is scrolled past.
+    expect(screen.getByText(new RegExp(`^${RESULT.savedResultTitle} · `))).toBeTruthy();
   });
 
   it('adds a past break from the result and recalculates with history', () => {
@@ -103,6 +189,15 @@ describe('history tab and previous-break flow', () => {
     const remaining = screen.getAllByTestId('history-row');
     expect(remaining.every((row) => row.getAttribute('data-kind') !== 'calculation')).toBe(true);
     expect(remaining.some((row) => row.getAttribute('data-kind') === 'previous-break')).toBe(true);
+
+    // Deleting the saved recommendation must not leave Today re-deriving a
+    // plan from the stored answers: the past break and every other row stay,
+    // but Today shows no plan card at all.
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+    expect(screen.getByTestId('today-view').getAttribute('data-primary')).not.toBe('profile-no-break');
+    expect(screen.queryByTestId('state-profile-no-break')).toBeNull();
+    expect(screen.queryByTestId('state-active-break')).toBeNull();
+    expect(screen.queryByTestId('result-screen')).toBeNull();
   });
 
   it('deletes a past break from the edit sheet', () => {
@@ -148,5 +243,35 @@ describe('history tab and previous-break flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByText(HISTORY.emptyTitle)).toBeTruthy();
     expect(screen.getByText(PREVIOUS_BREAK.title, { exact: false })).toBeTruthy();
+  });
+
+  it('dates every row so days stay distinguishable, and lists a past break once', () => {
+    const storage = createMemoryStorage();
+    const { todayCheckin, earlierCheckin } = seedHistoryRecords(storage);
+    renderApp(storage);
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+
+    const rows = screen.getAllByTestId('history-row');
+    const dateOf = (row: HTMLElement) => within(row).getByTestId('history-row-date').textContent;
+    const byKind = (kind: string) => rows.filter((row) => row.getAttribute('data-kind') === kind);
+
+    // Every stored row carries a timestamp, so every row is dated.
+    expect(rows).toHaveLength(5);
+    for (const row of rows) expect(dateOf(row)).toBeTruthy();
+
+    // Two check-ins a day apart read as two days; the recommendation saved at
+    // the same moment as the second check-in reads as that same day.
+    const todayRow = rows.find((row) => row.getAttribute('data-id') === `checkin:${todayCheckin}`)!;
+    const earlierRow = rows.find((row) => row.getAttribute('data-id') === `checkin:${earlierCheckin}`)!;
+    expect(dateOf(todayRow)).not.toBe(dateOf(earlierRow));
+    expect(dateOf(byKind('calculation')[0]!)).toBe(dateOf(todayRow));
+    expect(dateOf(byKind('attempt')[0]!)).not.toBe(dateOf(todayRow));
+
+    // The past break is rendered once, dated differently from today's rows,
+    // and never repeated inside the grouped feed. Its date is labelled because
+    // the row is ordered by when the observation was saved.
+    expect(byKind('previous-break')).toHaveLength(1);
+    expect(dateOf(byKind('previous-break')[0]!)).toMatch(/^Saved /);
+    expect(dateOf(byKind('previous-break')[0]!)).not.toBe(dateOf(todayRow));
   });
 });

@@ -12,6 +12,7 @@ import {
   QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
   type QuestionnaireProgressRecord,
 } from '../../src/application/progress/questionnaire-progress.ts';
+import { CHECKINS_KEY } from '../../src/application/progress/checkin-store.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 
 const AT = toInstant(1787184000000);
@@ -146,5 +147,53 @@ describe('browser storage adapter', () => {
     };
     const adapter = createWebStorageAdapter(web);
     assert.equal(adapter.getItem('k'), null);
+  });
+
+  it('passes a refused write to a durable key on as a rejected save', () => {
+    const web = createFakeWebStorage();
+    let refuse = false;
+    const flaky: WebStorageLike = {
+      getItem: web.getItem,
+      setItem: (key, value) => {
+        if (refuse) throw new Error('QuotaExceededError');
+        web.setItem(key, value);
+      },
+      removeItem: web.removeItem,
+      clear: web.clear,
+    };
+    const { adapter, persistent } = createBrowserStorage(() => flaky);
+    assert.equal(persistent, true);
+    adapter.setItem(CHECKINS_KEY, '{}');
+    assert.equal(web.store.get(CHECKINS_KEY), '{}');
+
+    refuse = true;
+    assert.throws(() => adapter.setItem(CHECKINS_KEY, '{}'), /QuotaExceededError/);
+  });
+
+  it('keeps the questionnaire draft best-effort when a later write is refused', () => {
+    const web = createFakeWebStorage();
+    let refused = false;
+    const flaky: WebStorageLike = {
+      getItem: web.getItem,
+      setItem: (key, value) => {
+        if (refused) throw new Error('QuotaExceededError');
+        web.setItem(key, value);
+      },
+      removeItem: web.removeItem,
+      clear: web.clear,
+    };
+    const adapter = createWebStorageAdapter(flaky);
+    refused = true;
+    const draft: QuestionnaireProgressRecord = {
+      schemaVersion: QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION,
+      answeredSteps: 3,
+      updatedAt: AT,
+      currentStep: 'Q3',
+      answers: { goal: 'tolerance_reset', thcUseDaysLast30: 10, lastUseAt: '2026-08-18T12:00:00Z' },
+    };
+
+    createQuestionnaireProgressStore(adapter).save(draft);
+
+    assert.equal(createQuestionnaireProgressStore(adapter).load(), null);
   });
 });

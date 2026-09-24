@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.30.0**
+Version: **0.37.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -11,6 +11,11 @@ Current implementation additions:
 - Shell destinations are Today, Calculator and History. Science and questionnaire/result/detail screens use the shared overlay contract.
 - `companion-personalisation-v2` remains independent of use-profile calculations. Nothing selects or renders its `supportAreas[]`; the record stays migratable on load and part of the backup format.
 - Numeric versions remain tolerance-v3 and tolerance-recovery-outlook-v2; legacy outlook v1 semantics are retained for old records.
+- `daily-support-v4` renders the existing editorial practice by default, with legacy-rated topic and personal-plan precedence. Manual topics are local UI state, reset by break day; no ratings are collected.
+- Today keeps research outlook below the daily action in a disclosure. `Manage break` reuses atomic suspend/confirm orchestration; opening/canceling never persists a paused intermediate state.
+- History dates use shared local formatting; complete elapsed days are separate from abstinence-day position. Deleting a calculation invalidates its display snapshot rather than re-running an engine.
+- Corrupt IndexedDB rows carry their source store in the hydrated model; deletion must not infer that store from a display category or delete a valid same-ID row in another family.
+- Web Storage fallback propagates refused durable writes to the existing failure channel; transient drafts remain best-effort. Synchronous form-save failures keep forms open. Browser zoom is enabled, and viewport sizing checks both screen dimensions.
 
 ## 1. Architecture objective
 

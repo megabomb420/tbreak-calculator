@@ -101,12 +101,8 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 // --- Check-in (UX_SPEC 10.2) -----------------------------------------------
 
 export const ADVICE_PICKER = {
-  title: 'How to deal with?',
-  more: 'Why this helps',
-  switchLegend: 'Plan = your target · Outlook = research estimate.',
-  /** Shown by the recovery-outlook and check-in copy when a legacy rating
-   * selects a topic; Today itself no longer collects ratings. */
-  ratedReason: 'From a saved check-in rating',
+  title: 'Help with',
+  more: 'More ideas & sources',
 } as const;
 
 // --- Interruption (UX_SPEC 10.3) -------------------------------------------
@@ -118,7 +114,7 @@ export const INTERRUPTION = {
   confirm: 'Confirm',
   close: 'Close',
   back: 'Back',
-  dateHelper: 'Pick a time after your last confirmed check-in. It cannot be in the future.',
+  dateHelper: 'Choose your most recent use since this break segment began. It cannot be in the future.',
 } as const;
 
 /** Mandated restart phrasing (UX_SPEC 10.3.2), finite break. */

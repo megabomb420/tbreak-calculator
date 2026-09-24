@@ -53,6 +53,8 @@ export interface ResultScreenProps {
   /** False hides baseline Keep tracking (no last-use anchor stored). */
   readonly trackingAvailable?: boolean;
   readonly historical?: boolean;
+  /** Local day the saved result was calculated (History detail only). */
+  readonly savedDateLabel?: string | null;
   readonly runningPlanNotice?: boolean;
   /** The frozen calculation this result came from, when one exists. Drives the
    * Predicted-reset panel from frozen data only (never re-runs an engine). */
@@ -79,6 +81,7 @@ export function ResultScreen({
   onStartReduction,
   trackingAvailable = true,
   historical = false,
+  savedDateLabel = null,
   runningPlanNotice = false,
   outlookRecord = null,
   checkinFacts = null,
@@ -118,9 +121,16 @@ export function ResultScreen({
           <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
             <CloseIcon />
           </button>
-          <span className="flow-title">{historical ? "Saved result" : "Your result"}</span>
+          <span className="flow-title">
+            {historical
+              ? savedDateLabel === null || savedDateLabel === undefined
+                ? RESULT.savedResultTitle
+                : `${RESULT.savedResultTitle} · ${savedDateLabel}`
+              : 'Your result'}
+          </span>
         </div>
         {showModeControl ? <ResultModeControl scope="result" ariaLabel="Result view" resetMode={resetMode} onChange={setResetMode} /> : null}
+        {showModeControl ? <p className="meta result-mode-legend" data-testid="result-mode-legend">{RESULT.modeLegend}</p> : null}
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}

@@ -13,7 +13,8 @@ export function savedUseProfile(
   records: readonly CalculationRecord[], snapshot: QuestionnaireSnapshotRecord | null, ownerId?: string | null,
 ): QuestionnaireSnapshotRecord | null {
   const owner = ownerId == null ? undefined : records.find((record) => record.id === ownerId && record.snapshot.kind === 'use_profile');
-  if (owner === undefined && snapshot?.snapshot.kind === 'use_profile') return snapshot;
+  if (owner === undefined && snapshot?.snapshot.kind === 'use_profile'
+    && (snapshot.runId === undefined || records.some(record => record.id === snapshot.runId))) return snapshot;
   const record = owner ?? records.find((record) => record.snapshot.kind === 'use_profile');
   return record === undefined ? null : {
     schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION, snapshot: record.snapshot,

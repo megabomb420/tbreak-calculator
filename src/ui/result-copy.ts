@@ -24,6 +24,10 @@ export const RESULT = {
   addPastBreak: 'Add a past break',
   recalculateWithHistory: 'Recalculate with history',
   historicalNote: 'This is the result that was calculated at the time. It is not recalculated.',
+  savedResultTitle: 'Saved result',
+  /** One line naming what each mode's number is. Today has no mode control;
+   * this explains the result screen's own switch. */
+  modeLegend: 'Plan = your target · Outlook = research estimate.',
   detectionBasics: 'Separate topic: drug-test detection basics →',
   breakRecommendation: 'Tolerance is a separate topic → get a break recommendation',
   nominalThc: 'Estimate nominal THC in flower →',

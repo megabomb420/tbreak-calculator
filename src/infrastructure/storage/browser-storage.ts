@@ -1,12 +1,14 @@
 // Browser Web Storage adapter (UX_SPEC 13, ARCHITECTURE local-first).
 //
 // Wraps a Web Storage object (typically `localStorage`) as a StorageAdapter.
-// IndexedDB is not used for this slice: the only persisted record is the
-// transient questionnaire draft, which is a single versioned JSON string.
+// When IndexedDB is unavailable it also backs the durable records, so a
+// refused write to a durable key is passed on as a rejected save; the
+// transient questionnaire draft and result-view keys stay best-effort.
 // If Web Storage is missing or throws (private mode, disabled storage), the
 // caller receives the in-memory adapter and `persistent: false`.
 
 import { createMemoryStorage, type StorageAdapter } from './storage-adapter.ts';
+import { MIGRATED_WEB_STORAGE_KEYS } from '../../application/persistence/durable.ts';
 
 /** Structural Web Storage shape. Avoids a DOM lib dependency in domain tsc. */
 export interface WebStorageLike {
@@ -15,6 +17,15 @@ export interface WebStorageLike {
   readonly removeItem: (key: string) => void;
   readonly clear: () => void;
 }
+
+/** Keys the durable facade writes when Web Storage backs durable records.
+ * A refused write to one of these is a save the app must not claim: the throw
+ * travels to the facade, which flags `writeFailed` and tells the shell. The
+ * remaining owned keys (draft, result view, companion, install hint, migration
+ * marker) are transient, so they stay best-effort. */
+const DURABLE_OWNED_KEYS: Record<string, true> = Object.fromEntries(
+  MIGRATED_WEB_STORAGE_KEYS.map((key): [string, true] => [key, true]),
+);
 
 export function createWebStorageAdapter(storage: WebStorageLike): StorageAdapter {
   return {
@@ -26,11 +37,15 @@ export function createWebStorageAdapter(storage: WebStorageLike): StorageAdapter
       }
     },
     setItem: (key, value) => {
+      if (DURABLE_OWNED_KEYS[key] === true) {
+        storage.setItem(key, value);
+        return;
+      }
       try {
         storage.setItem(key, value);
       } catch {
         // Quota / disabled storage after a successful probe must not crash
-        // the shell. Persistence is best-effort; the banner is step 5.
+        // the shell while it holds transient state only.
       }
     },
     removeItem: (key) => {

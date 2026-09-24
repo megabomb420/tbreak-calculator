@@ -124,6 +124,12 @@ export interface CorruptHistoryRow {
   readonly id: string;
   readonly kind: HistoryRecordKind;
   readonly reason: string;
+  /** IndexedDB store the rejected row was read from. A store is not derivable
+   * from the kind: a post-break plan is displayed as its attempt family and a
+   * corrupt outcome mark has no family of its own, so the origin store — not
+   * the kind — decides which row a delete removes. Absent on the Web Storage
+   * envelopes, which delete by id inside the family that owns the row. */
+  readonly origin?: string;
 }
 
 export interface DurableSnapshot {
@@ -357,25 +363,31 @@ export function createWebBackedDurable(
       api.saveCheckins(current.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id));
     },
     deleteCorrupt(id) {
-      const current = calculationsStore.load();
+      // An id is unique inside its family, never across families: only the
+      // family that reported the corrupt row may lose a record under that id.
+      const owner = load().corrupt.find((item) => item.id === id)?.kind;
+      const calculations = calculationsStore.load();
       write(() => {
         calculationsStore.save({
           ...emptyCalculationRecords(),
-          records: current.records.filter((item) => item.id !== id),
-          corrupt: current.corrupt.filter((item) => item.id !== id),
+          records:
+            owner === 'calculation'
+              ? calculations.records.filter((item) => item.id !== id)
+              : calculations.records,
+          corrupt: calculations.corrupt.filter((item) => item.id !== id),
         });
       });
       const previous = previousBreaksStore.load();
       write(() => {
         previousBreaksStore.save({
           schemaVersion: previous.schemaVersion,
-          records: previous.records.filter((item) => item.id !== id),
+          records:
+            owner === 'previous-break'
+              ? previous.records.filter((item) => item.id !== id)
+              : previous.records,
           corrupt: previous.corrupt.filter((item) => item.id !== id),
         });
       });
-      api.deleteAttempt(id);
-      api.deleteTracking(id);
-      api.deleteCheckin(id);
     },
     deleteAll() {
       write(() => {

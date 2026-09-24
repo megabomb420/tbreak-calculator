@@ -8,6 +8,8 @@ function box(overrides: Partial<ViewportBox>): ViewportBox {
     innerHeight: 800,
     outerHeight: 800,
     screenHeight: 874,
+    outerWidth: 390,
+    screenWidth: 390,
     clientHeight: 800,
     narrow: true,
     standalone: false,
@@ -90,6 +92,27 @@ describe('viewport metrics (iOS 26 Liquid Glass overlay)', () => {
         innerHeight: 844,
         outerHeight: 900,
         screenHeight: 1080,
+        clientHeight: 844,
+        narrow: true,
+      }),
+    );
+    assert.equal(css.appHeightPx, 844);
+    assert.equal(css.chromeBleedPx, 0);
+  });
+
+  it('does not size the page taller than its viewport in a desktop window', () => {
+    // A 390x844 page inside a 932-tall desktop window on a 932-tall screen:
+    // outerHeight matches the screen height, but the window is not the screen,
+    // so its extra height is not behind-chrome space and must not enlarge the
+    // root column (that made the document scroll and pushed the header off).
+    const css = resolveViewportCss(
+      box({
+        visualHeight: 844,
+        innerHeight: 844,
+        outerHeight: 932,
+        screenHeight: 932,
+        outerWidth: 522,
+        screenWidth: 800,
         clientHeight: 844,
         narrow: true,
       }),

@@ -13,6 +13,10 @@ import {
 } from '../../src/application/persistence/durable.ts';
 import { freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 import {
+  CALCULATION_RECORDS_KEY,
+  CALCULATION_RECORDS_SCHEMA_VERSION,
+} from '../../src/application/persistence/calculation-record.ts';
+import {
   createIndexedDbDurable,
   createMemoryIndexedDbBackend,
   hydrateIndexedDbDurable,
@@ -23,10 +27,26 @@ import {
 } from '../../src/infrastructure/storage/indexeddb.ts';
 import { createQuestionnaireSnapshotStore } from '../../src/application/progress/questionnaire-snapshot.ts';
 import { QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION } from '../../src/application/progress/questionnaire-snapshot.ts';
+import type { StoredAttempt } from '../../src/application/progress/break-attempt-record.ts';
 import { sampleProfile } from '../helpers.ts';
 import { QUESTIONNAIRE_PROGRESS_KEY } from '../../src/application/progress/questionnaire-progress.ts';
 
 const AT = toInstant(1787184000000);
+
+const ATTEMPT: StoredAttempt = {
+  id: 'attempt-1',
+  status: 'ended',
+  calculationRecordId: 'calc-1',
+  targetDurationDays: 21,
+  postBreakMode: 'occasional',
+  startedAt: AT,
+  segments: [{ startedFromLastUseAt: AT, endedAt: AT, endReason: 'user_ended' }],
+  postBreakPlan: { mode: 'occasional', maxUseDaysPerWeek: 2 },
+  preparation: null,
+  completionAcknowledged: false,
+  createdAt: AT,
+  updatedAt: AT,
+};
 
 interface FakeIdbRequest {
   onsuccess: (() => void) | null;
@@ -159,6 +179,31 @@ describe('durable persistence', () => {
     deleteHistoryRecord(durable, 'corrupt', 'calc-bad');
     assert.equal(durable.load().corrupt.length, 0);
     assert.equal(durable.load().calculations.length, 1);
+  });
+
+  it('deletes a corrupt calculation without dropping a valid record that shares its id', () => {
+    const adapter = createMemoryStorage();
+    const durable = createWebBackedDurable(adapter);
+    durable.saveAttempts([ATTEMPT]);
+    adapter.setItem(
+      CALCULATION_RECORDS_KEY,
+      JSON.stringify({
+        schemaVersion: CALCULATION_RECORDS_SCHEMA_VERSION,
+        records: [
+          freezeCalculation('calc-ok', { kind: 'detection', request: { matrix: 'urine', context: 'general' } }, AT),
+          { id: 'attempt-1', schemaVersion: 'nope' },
+        ],
+      }),
+    );
+    const loaded = durable.load();
+    assert.deepEqual(loaded.corrupt.map((row) => row.id), ['attempt-1']);
+
+    deleteHistoryRecord(durable, 'corrupt', 'attempt-1');
+
+    const after = durable.load();
+    assert.equal(after.corrupt.length, 0);
+    assert.deepEqual(after.attempts.map((item) => item.id), ['attempt-1']);
+    assert.deepEqual(after.calculations.map((item) => item.id), ['calc-ok']);
   });
 
   it('materializes a v0.3 snapshot into a frozen calculation once', () => {
@@ -318,5 +363,87 @@ describe('durable persistence', () => {
     const backend = await openIndexedDb(fake.factory);
     assert.notEqual(backend, null);
     assert.equal(fake.state.closeCalls, 0);
+  });
+
+  it('deletes a corrupt post-break mirror only from the store that owns it', async () => {
+    const backend = createMemoryIndexedDbBackend();
+    const seeded = createIndexedDbDurable(backend, await hydrateIndexedDbDurable(backend));
+    seeded.saveAttempts([ATTEMPT]);
+    await seeded.flush();
+    // A rejected mirror carries the id of the attempt it was derived from.
+    await backend.put('postBreakPlans', {
+      id: 'attempt-1',
+      payload: { id: 'attempt-1', attemptId: 'attempt-1', plan: { mode: 'weekly' }, updatedAt: AT },
+    });
+
+    const before = await hydrateIndexedDbDurable(backend);
+    assert.equal(before.attempts.length, 1);
+    assert.deepEqual(before.corrupt.map((row) => row.id), ['attempt-1']);
+
+    const durable = createIndexedDbDurable(backend, before);
+    deleteHistoryRecord(durable, 'corrupt', 'attempt-1');
+    await durable.flush();
+
+    const after = await hydrateIndexedDbDurable(backend);
+    assert.equal(after.corrupt.length, 0);
+    assert.deepEqual(after.attempts.map((item) => item.id), ['attempt-1']);
+    assert.equal(after.attempts[0]?.targetDurationDays, 21);
+    assert.deepEqual(after.postBreakPlans, []);
+    assert.equal(durable.load().attempts.length, 1);
+    assert.equal(durable.load().corrupt.length, 0);
+    assert.deepEqual(await backend.getAll('corruptRecords'), []);
+  });
+
+  it('deletes a corrupt break-outcome mark from its own store so it cannot come back', async () => {
+    const backend = createMemoryIndexedDbBackend();
+    await backend.put('breakOutcomes', {
+      id: 'attempt-9',
+      payload: { attemptId: 'attempt-9', status: 'nope', updatedAt: AT },
+    });
+
+    const before = await hydrateIndexedDbDurable(backend);
+    assert.deepEqual(before.corrupt.map((row) => row.id), ['attempt-9']);
+
+    const durable = createIndexedDbDurable(backend, before);
+    deleteHistoryRecord(durable, 'corrupt', 'attempt-9');
+    await durable.flush();
+
+    const after = await hydrateIndexedDbDurable(backend);
+    assert.equal(after.corrupt.length, 0);
+    assert.deepEqual(await backend.getAll('corruptRecords'), []);
+  });
+
+  it('deletes a corrupt check-in row from the check-ins store only', async () => {
+    const backend = createMemoryIndexedDbBackend();
+    const checkin = {
+      recordedAt: '2026-08-20T12:00:00.000Z',
+      craving: 4,
+      sleep: 7,
+      irritability: null,
+      anxiety: null,
+      appetite: null,
+      usedThc: false,
+      usedAt: null,
+      note: null,
+    };
+    const seeded = createIndexedDbDurable(backend, await hydrateIndexedDbDurable(backend));
+    seeded.saveCheckins([checkin]);
+    await seeded.flush();
+    await backend.put('checkins', {
+      id: 'checkin-2026-08-21',
+      payload: { recordedAt: '2026-08-21T12:00:00.000Z', craving: 'high' },
+    });
+
+    const before = await hydrateIndexedDbDurable(backend);
+    assert.equal(before.checkins.length, 1);
+    assert.deepEqual(before.corrupt.map((row) => row.id), ['checkin-2026-08-21']);
+
+    const durable = createIndexedDbDurable(backend, before);
+    deleteHistoryRecord(durable, 'corrupt', 'checkin-2026-08-21');
+    await durable.flush();
+
+    const after = await hydrateIndexedDbDurable(backend);
+    assert.equal(after.corrupt.length, 0);
+    assert.deepEqual(after.checkins.map((item) => item.recordedAt), ['2026-08-20T12:00:00.000Z']);
   });
 });

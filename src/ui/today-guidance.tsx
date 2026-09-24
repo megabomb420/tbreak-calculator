@@ -3,31 +3,20 @@ import { CheckinComparisonBlock } from './checkin-comparison.tsx';
 import { compareCheckins } from '../application/presentation/checkin-comparison.ts';
 import type { DailySupportView } from '../application/presentation/daily-support.ts';
 
-/**
- * The stage the day sits in: what the window is, what people commonly notice,
- * and one practical thing to try. Rendered directly under the check-in.
- */
+/** A glanceable stage headline; longer context stays one tap away. */
 export function StageBlock({ support }: { readonly support: DailySupportView }) {
   return (
     <details className="result-disclosure today-block" data-testid="today-stage">
-      <summary>This stage</summary>
-      <p className="micro-label">{support.window.label} · What to expect</p>
-      <p className="body" data-testid="guidance-headline">{support.window.headline}</p>
+      <summary><span><span className="micro-label">{support.window.label} · What to expect</span><span className="stage-headline" data-testid="guidance-headline">{support.window.headline}</span></span></summary>
       <p className="body" data-testid="guidance-context">{support.window.context}</p>
       <ul className="guidance-list" data-testid="guidance-may-notice">
         {support.window.mayNotice.map((line) => <li key={line}>{line}</li>)}
       </ul>
-      <section className="daily-practice" data-testid="daily-practice">
-        <p className="micro-label">One thing to try today</p>
-        <h4>{support.practice.title}</h4>
-        <p className="body">{support.practice.action}</p>
-      </section>
     </details>
   );
 }
 
-/** What other people in the same window described, and what the person's own
- * recorded check-ins changed. Both are always open. */
+/** Optional experiences and preserved legacy check-in comparisons. */
 export function ExtraBlocks({ support }: { readonly support: DailySupportView }) {
   const comparison = compareCheckins(support.currentCheckins, { breakDay: support.day });
   return (

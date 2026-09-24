@@ -13,6 +13,8 @@ export interface ViewportBox {
   readonly innerHeight: number;
   readonly outerHeight: number;
   readonly screenHeight: number;
+  readonly outerWidth: number;
+  readonly screenWidth: number;
   readonly clientHeight: number;
   readonly narrow: boolean;
   readonly standalone: boolean;
@@ -38,18 +40,33 @@ function pickVisible(box: ViewportBox): number {
   return visual || inner || client;
 }
 
+/**
+ * True only when the window *is* the device screen: mobile browsers, standalone
+ * PWAs, fullscreen. A desktop window can be as tall as the screen while its own
+ * page viewport is far shorter (390x844 page inside a 932-tall window on a
+ * 932-tall screen) and desktop chrome is never painted over the page, so
+ * treating such a window as "behind chrome" fill strands the header and the
+ * in-flow tab bar outside the viewport with a scrollable blank strip.
+ */
 function pickFill(box: ViewportBox, visible: number): number {
   const inner = positive(box.innerHeight);
   const client = positive(box.clientHeight);
-  const outer = positive(box.outerHeight);
-  const screen = positive(box.screenHeight);
+  const outerWidth = positive(box.outerWidth);
+  const outerHeight = positive(box.outerHeight);
+  const screenWidth = positive(box.screenWidth);
+  const screenHeight = positive(box.screenHeight);
+  const windowSpansScreen =
+    screenWidth > 0 &&
+    screenHeight > 0 &&
+    outerWidth >= screenWidth - 2 &&
+    outerWidth <= screenWidth + 2 &&
+    outerHeight >= screenHeight * 0.9 &&
+    outerHeight <= screenHeight + 2;
   const candidates = [visible, inner, client];
   // outerHeight is the iOS 26 "behind chrome" size. Trust it only when the
-  // window is nearly the device screen (Safari / standalone), not when it is
-  // a smaller embedded viewport or a desktop window frame.
-  const nearlyFullscreen = screen > 0 && outer >= screen * 0.9 && outer <= screen + 2;
-  if (nearlyFullscreen) {
-    candidates.push(outer);
+  // window spans the device screen, not when it is a desktop window frame.
+  if (windowSpansScreen) {
+    candidates.push(outerHeight);
   }
   return Math.max(...candidates);
 }

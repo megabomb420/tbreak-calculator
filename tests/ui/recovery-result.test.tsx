@@ -61,6 +61,8 @@ describe('result view mode segment (tolerance_result)', () => {
     expect(mode.getAttribute('role')).toBe('tablist');
     expect(screen.getByTestId('result-mode-plan').getAttribute('aria-selected')).toBe('true');
     expect(screen.getByTestId('result-mode-reset').getAttribute('aria-selected')).toBe('false');
+    // One line names what each mode's number is, exactly once.
+    expect(screen.getByTestId('result-mode-legend').textContent).toBe(RESULT.modeLegend);
     // Default "Your plan": the hero still leads, unchanged, with the planning
     // target as its accessible label (§9.1).
     expect(screen.getByRole('heading', { name: 'Plan for 7 days' })).toBeTruthy();

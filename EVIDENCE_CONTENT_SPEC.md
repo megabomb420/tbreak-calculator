@@ -1,7 +1,7 @@
 # Evidence content specification
 
-App version: **0.30.0**
-Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v2` (numeric rules unchanged).
+App version: **0.37.0**
+Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v4` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
 Current communication contract: UI ranges are **planning ranges** and the secondary result mode is **Recovery outlook**. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
@@ -133,6 +133,8 @@ From week two (`breakDay ≥ 7`), if two different check-ins have a non-null rat
 - no global recovery score
 - no causal claim that the break caused the change
 
+Ratings exist only in check-ins stored before 0.35.0: the current check-in records the day and writes no symptom values, so a fresh break produces no comparison. A day without ratings is not a zero and never fills one in.
+
 ## 9. Post-break principles
 
 Previous exposure ≠ restart exposure. Return modes show conservative lower-exposure principles. Continued abstinence shows none of that guidance. No personalised safe restart dose, milligram prescription, or inhalation count.
@@ -205,20 +207,24 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outloo
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v3` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v4` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support v3 (0.27.0)
+## 15. Daily support (daily-support-v4)
 
-`src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
+`src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking; it shows the stage summary headline, the day's practical action and the topic guides. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
 The practical layer contains eleven symptom/habit guides, 28 original daily activity prompts and a maintenance rotation. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
 
-Selection uses the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only. Missing values remain unknown. Subsequent unrated check-ins do not erase ratings; tied timestamps favour later entries. Every rated area at that oriented score or above is offered, ordered by severity; the hardest leads the single card, each other area stays one tap away inside it, and each one names its own reading. The five rating fields bound the list at five. A day whose ratings select nothing raises no topic: the card falls back to that day's practice area with the line “Rate how you feel if this is not the problem.”, and a comfortable rating is never presented as a problem. When the stored trigger/replacement plan covers a routine, an urge or an empty evening, its replacement action is the card's action line, with the flagged trigger labels and the fallback plan beneath it; a symptom topic keeps the guide's own first step. Every topic remains manually accessible under **Not this?**, which writes nothing, and no stored preference takes part in selection.
+**Current input: the check-in records the day.** The one-tap check-in writes `usedThc`, `usedAt` and an optional note; its symptom fields are always null, so a fresh break has no rating-driven topic. **Help with** exposes all eleven topics as one native selection, and the user's choice is per view: it stores nothing, and no stored preference takes part in selection.
+
+**Primary action precedence.** The day's own practice action is the default topic. A legacy stored rating (below) raises its own topic ahead of that default, and the user's saved urge plan leads wherever it covers a routine, an urge or an empty evening — its replacement action as the line, with the flagged trigger labels and the fallback plan beneath it. The **More ideas & sources** disclosure carries that topic's guide, including the guide's own first step when the primary line came from a different practice or from the user's plan. Copy shape only: none of this reaches the tolerance, recovery or detection engines.
+
+**Legacy input: stored ratings are still honoured.** For a device with check-ins written before 0.35.0, selection reads the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only, and the five rating fields bound the list at five. Missing values remain unknown, and a later unrated check-in does not erase an earlier rating. A rating only names the topic and its own reading ("Sleep quality 2/10 in your check-in"); a comfortable rating is never presented as a problem. Nothing in this app writes symptom ratings any more, so this path fires only for a stored legacy report.
 
 ### Community experiences
 
-The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles discussions**; the content version is `daily-support-v2`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
+The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles discussions**; the content version is `daily-support-v4`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
 
 | `windows[]` tag | Stage |
 |---|---|
@@ -229,7 +235,7 @@ The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles di
 | `days_21_28` | week 4 |
 | `beyond_28` | beyond day 28 |
 
-Today displays **at most five** cards from the active window, ranking cards that match the currently selected advice areas first and rotating the rest day to day. The window tag only decides when a card is contextually useful; it does not turn the reported day into a prediction.
+Today displays **at most five** cards from the active window, ranking cards that match the topic a stored legacy rating raised first and rotating the rest day to day. The window tag only decides when a card is contextually useful; it does not turn the reported day into a prediction.
 
 Source roles (checked 2026-09-20):
 

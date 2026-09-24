@@ -29,6 +29,13 @@ describe('saved plans remain stable', () => {
     assert.equal(savedUseProfile([newer, owner], snapshot, 'owner')?.runId, 'owner');
     assert.equal(savedUseProfile([], null), null);
   });
+  it('does not derive a new recommendation from the snapshot of a deleted calculation', () => {
+    const deleted = freezeCalculation('deleted', { kind: 'use_profile', profile: sampleProfile() }, C0);
+    const snapshot = savedUseProfile([deleted], null)!;
+    assert.equal(savedUseProfile([], snapshot), null);
+    const remaining = freezeCalculation('remaining', { kind: 'use_profile', profile: sampleProfile({ goal: 'abstinence' }) }, C0);
+    assert.equal(savedUseProfile([remaining], snapshot)?.runId, 'remaining');
+  });
 });
 
 describe('calendar dates', () => {

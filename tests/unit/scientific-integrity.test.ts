@@ -21,7 +21,7 @@ const DAY_MS = 24 * 3_600_000;
 /** Advice and reset copy lives inline in the components, so the guard reads
  * those files whole rather than only their exported constants. */
 function inlineSources(): string {
-  return ['../../src/ui/daily-support.tsx', '../../src/ui/community-carousel.tsx', '../../src/ui/predicted-reset.tsx']
+  return ['../../src/ui/daily-support.tsx', '../../src/ui/community-carousel.tsx', '../../src/ui/predicted-reset.tsx', '../../src/ui/science-basics.tsx']
     .map((relative) => readFileSync(new URL(relative, import.meta.url), 'utf8'))
     .join('\n');
 }

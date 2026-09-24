@@ -2,6 +2,7 @@ import { useRef } from 'preact/hooks';
 import { CloseIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
 import { COMMUNITY_TIPS, SUPPORT_SOURCES } from '../application/presentation/daily-support.ts';
+import { ADVICE_PICKER, GUIDANCE_CHROME } from './break-copy.ts';
 
 const SECTIONS = [
   {
@@ -50,7 +51,7 @@ export function ScienceBasicsPanel({ onClose }: { readonly onClose: () => void }
     <div className="questionnaire-overlay" data-testid="science-basics" role="dialog"
       aria-modal="true" aria-labelledby="science-basics-title" ref={rootRef}>
       <header className="questionnaire-header">
-        <button type="button" className="icon-button" aria-label="Close reference" onClick={onClose}><CloseIcon /></button>
+        <button type="button" className="icon-button" aria-label={GUIDANCE_CHROME.closeReference} onClick={onClose}><CloseIcon /></button>
         <h2 id="science-basics-title" className="flow-title">The science behind your plan</h2>
       </header>
       <div className="questionnaire-body flow-body science-body">
@@ -64,7 +65,7 @@ export function ScienceBasicsPanel({ onClose }: { readonly onClose: () => void }
         </section>)}
         <section className="reading-section">
           <h3 className="card-title">Practical advice during a break</h3>
-          <p className="body">Today combines withdrawal guidance, general self-care and practical activities. Recent check-in ratings select relevant topics; they never change the tolerance calculation. The daily activity schedule and advice order are editorial choices, not clinically validated predictions.</p>
+          <p className="body">Today combines recorded withdrawal guidance for the stage you are in with general self-care and practical activities. It suggests one practical action for the day — the day’s own activity, or your saved urge plan where it covers the topic — and all eleven topic guides are available under “{ADVICE_PICKER.title}”; choosing a topic stores nothing and no rating is collected. A rating saved by a check-in in an earlier release still names the topic it raised and stays listed in your history, while the check-in here records the day only. Advice never changes the tolerance calculation, and the daily activity schedule and advice order are editorial choices, not clinically validated predictions.</p>
           <p className="meta">University of Vermont is used for practical habit ideas, not to establish a reset duration or explain THC clearance.</p>
           {Object.values(SUPPORT_SOURCES).map(source => <a className="text-link source-link" key={source.href} href={source.href} target="_blank" rel="noopener noreferrer">{source.kind} · {source.label} ↗</a>)}
         </section>

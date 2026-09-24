@@ -7,7 +7,7 @@ import type { BreakPreparation } from '../break/preparation.ts';
 import { triggerLabel } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v3';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v4';
 export const SUPPORT_SOURCES = {
   withdrawal: { label: 'NSW Health · cannabis withdrawal', href: 'https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34', kind: 'Clinical guidance' },
   sleep: { label: 'NHS · sleep advice', href: 'https://www.nhs.uk/conditions/insomnia/', kind: 'General self-care' },
@@ -210,6 +210,7 @@ export interface AdviceSection {
   readonly recordedAt: string | null;
   /** The person's own plan first wherever their plan covers this topic. */
   readonly action: string;
+  readonly usesPersonalPlan: boolean;
   readonly triggerLine: string | null;
   readonly fallbackLine: string | null;
 }
@@ -253,6 +254,7 @@ export function adviceSectionFor(view: DailySupportView, area: SupportArea): Adv
     action: planFirst && view.plan.replacement !== ''
       ? `Try your plan first: “${view.plan.replacement}”.`
       : SUPPORT_GUIDES[area].steps[0],
+    usesPersonalPlan: planFirst && view.plan.replacement !== '',
     triggerLine: planFirst ? view.plan.triggerLine : null,
     fallbackLine: planFirst ? view.plan.fallbackLine : null,
   };
@@ -286,7 +288,6 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
     ...(input.preparation?.triggerIds ?? []).map(triggerLabel),
     ...(customTrigger === '' ? [] : [customTrigger]),
   ];
-  const hasSymptoms = ratings.length > 0;
   const stageCommunity = COMMUNITY_TIPS.filter(tip => tip.windows.includes(window.id));
   const matchingCommunity = stageCommunity.filter(tip => tip.areas.some(area => selections.some(item => item.area === area)));
   const restCommunity = stageCommunity.filter(tip => !matchingCommunity.includes(tip));
@@ -304,7 +305,7 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
     version: DAILY_SUPPORT_VERSION, day, window, selections,
-    defaultArea: selections[0]?.area ?? practice.area,
+    defaultArea: selections[0]?.area ?? (atTarget ? 'routine' : practice.area),
     plan: {
       replacement,
       triggerLine: triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,

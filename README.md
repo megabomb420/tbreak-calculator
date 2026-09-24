@@ -2,15 +2,15 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.36.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
+**Version 0.37.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
 
 The same build is published on two origins: GitHub Pages under the repository subpath and Cloudflare Pages at the domain root. They do not share device data — records, drafts and the service worker belong to the origin you open, so install and check in on one of them.
 
 ## Product
 
-- **Today:** one current break or tracking state, the day's check-in, one advice topic at a time from the **How to deal with?** picker, and the stage, timeline and experiences one tap away.
+- **Today:** the break day, an explained one-tap check-in, a visible stage summary and one practical action. **Help with** opens any of eleven guides; research depth stays optional. **Manage break** updates last use without discarding earlier days.
 - **Calculator:** all four goals remain reachable while a plan is running; unfinished answers can be resumed.
-- **History:** immutable calculation results, check-ins, previous breaks and cut-down use logs, with explicit corrections and deletion.
+- **History:** dated immutable calculation results, check-ins, previous breaks and cut-down logs; elapsed time is distinct from day position. Explicit corrections and deletion never regenerate a deleted recommendation.
 - **Science:** a separate, source-linked explainer available from every main screen and Settings.
 
 Calculations are deterministic and work on the device. There is no account, runtime AI, analytics, or cloud sync. Durable records use IndexedDB with a local-storage fallback; drafts use local storage. Browser data clearing removes saved records; Settings → **Your data** saves everything stored on the device to a backup file and restores from one. The installed PWA works offline after its first successful load.
@@ -51,4 +51,4 @@ Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/
 
 Cloudflare Pages serves the same build at the domain root with `BASE_PATH=/ npm run build`, then `npx wrangler pages deploy dist --project-name tbreak-calculator --branch main`. There is no push-triggered Cloudflare workflow: the deploy is a local, deliberate step, so a failed test run cannot publish.
 
-Verify the deployment you care about, then open the live app and check Settings → About for **0.36.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.
+After a deliberate deployment, verify Settings → About matches the release being deployed. This working-tree release is **0.37.0**; a version bump alone does not publish it. Existing PWA users receive an update prompt once a replacement service worker is ready.

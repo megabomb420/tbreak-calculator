@@ -12,7 +12,8 @@ import {
   type IndexedDbBackend,
 } from '../../src/infrastructure/storage/indexeddb.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
-import type { DurablePersistence } from '../../src/application/persistence/durable.ts';
+import { createWebBackedDurable, type DurablePersistence } from '../../src/application/persistence/durable.ts';
+import { createWebStorageAdapter } from '../../src/infrastructure/storage/browser-storage.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 import {
@@ -146,6 +147,33 @@ async function renderWithFaults(): Promise<{
 }
 
 describe('storage failure banner', () => {
+  it('keeps an unsaved form open when the browser Web Storage fallback refuses a durable save', () => {
+    const backing = createMemoryStorage();
+    let failing = false;
+    const storage = createWebStorageAdapter({
+      getItem: backing.getItem,
+      setItem: (key, value) => {
+        if (failing) throw new Error('QuotaExceededError');
+        backing.setItem(key, value);
+      },
+      removeItem: backing.removeItem,
+      clear: backing.clear,
+    });
+    const durable = createWebBackedDurable(storage);
+    render(<App storage={storage} durable={durable} clock={fixedClock(AT)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    fireEvent.click(screen.getByTestId('history-add-past-break'));
+    fireEvent.click(screen.getByRole('button', { name: '2 weeks' }));
+    failing = true;
+    fireEvent.click(screen.getByTestId('previous-break-save'));
+    expect(screen.getByTestId('storage-banner').getAttribute('data-variant')).toBe('write-failed');
+    expect(screen.getByTestId('previous-break-sheet')).toBeTruthy();
+    expect(durable.load().previousBreaks).toEqual([]);
+    failing = false;
+    fireEvent.click(screen.getByTestId('previous-break-save'));
+    expect(screen.queryByTestId('previous-break-sheet')).toBeNull();
+    expect(durable.load().previousBreaks.map(row => row.durationDays)).toEqual([14]);
+  });
   it('shows the banner when a durable write is rejected, then clears it', async () => {
     const { durable, inner, recover } = await renderWithFaults();
     expect(screen.queryByTestId('storage-banner')).toBeNull();

@@ -12,11 +12,8 @@ import { openDurablePersistence, type OpenDurableResult } from '../infrastructur
 import { App } from './app.tsx';
 import { startViewportSync } from './viewport.ts';
 import './styles.css';
-import { lockTouchZoom } from './touch-gestures.ts';
 
 startViewportSync();
-const unlockTouchZoom = lockTouchZoom();
-if (import.meta.hot) import.meta.hot.dispose(unlockTouchZoom);
 
 const root = document.getElementById('app');
 if (root === null) {

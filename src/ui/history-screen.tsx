@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { DailyCheckin } from '../domain/schemas/profile.ts';
+import type { Goal } from '../domain/schemas/enums.ts';
 import type { DurableSnapshot } from '../application/persistence/durable.ts';
 import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
@@ -36,6 +37,7 @@ export interface HistoryScreenProps {
   readonly onEditPastBreak: (id: string) => void;
   readonly onDelete: (kind: HistoryEntry['kind'], id: string) => void;
   readonly onRecalculate: (record: CalculationRecord, step?: QuestionnaireStepId) => void;
+  readonly onSelectGoal: (goal: Goal) => void;
   readonly onRemoveReductionEvent: (planId: string, eventId: string) => void;
 }
 
@@ -46,6 +48,7 @@ export function HistoryScreen({
   onEditPastBreak,
   onDelete,
   onRecalculate,
+  onSelectGoal,
   onRemoveReductionEvent,
 }: HistoryScreenProps) {
   const model = buildHistoryModel(snapshot, now);
@@ -98,6 +101,7 @@ export function HistoryScreen({
           onBack={() => setSelected(null)}
           onDelete={() => setPendingDelete(selected)}
           onRecalculate={onRecalculate}
+          onSelectGoal={onSelectGoal}
           onRemoveReductionEvent={onRemoveReductionEvent}
         />
         {confirm}
@@ -171,6 +175,11 @@ function HistoryRow({ entry, onOpen }: { readonly entry: HistoryEntry; readonly 
       >
         <span className="history-row-copy">
           <span className="history-row-title">{entry.title}</span>
+          {entry.dateLabel !== null ? (
+            <span className="meta" data-testid="history-row-date">
+              {entry.dateLabel}
+            </span>
+          ) : null}
           <span className="meta">{entry.subtitle}</span>
         </span>
         <ChevronIcon size={18} />
@@ -186,6 +195,7 @@ function HistoryDetail({
   onBack,
   onDelete,
   onRecalculate,
+  onSelectGoal,
   onRemoveReductionEvent,
 }: {
   readonly entry: HistoryEntry;
@@ -194,6 +204,7 @@ function HistoryDetail({
   readonly onBack: () => void;
   readonly onDelete: () => void;
   readonly onRecalculate: (record: CalculationRecord, step?: QuestionnaireStepId) => void;
+  readonly onSelectGoal: (goal: Goal) => void;
   readonly onRemoveReductionEvent: (planId: string, eventId: string) => void;
 }) {
   switch (entry.kind) {
@@ -205,13 +216,14 @@ function HistoryDetail({
         <ResultScreen
           view={view}
           historical
+          savedDateLabel={entry.dateLabel}
           outlookRecord={record}
           onAcknowledge={onBack}
           onEditStep={(step) => onRecalculate(record, step)}
-          onSeeBreakRange={() => onRecalculate(record)}
-          onCheckAnotherTest={() => onRecalculate(record)}
-          onBreakRecommendation={() => onRecalculate(record)}
-          onDetectionBasics={() => onRecalculate(record)}
+          onSeeBreakRange={() => onSelectGoal('tolerance_reset')}
+          onCheckAnotherTest={() => onRecalculate(record, 'Q2D')}
+          onBreakRecommendation={() => onSelectGoal('tolerance_reset')}
+          onDetectionBasics={() => onSelectGoal('detection_information')}
           onStartOver={onBack}
           onRecalculate={() => onRecalculate(record)}
           onDelete={onDelete}

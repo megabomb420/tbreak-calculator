@@ -23,14 +23,13 @@ import {
 import { createCheckinsStore } from '../../src/application/progress/checkin-store.ts';
 import { createMemoryStorage, type StorageAdapter } from '../../src/infrastructure/storage/storage-adapter.ts';
 import { fixedClock } from '../../src/infrastructure/clock.ts';
+import { APP_VERSION } from '../../src/application/settings/settings.ts';
 import { toInstant, type Instant } from '../../src/domain/schemas/time.ts';
 import { sampleProfile } from '../helpers.ts';
 
 const AT: Instant = toInstant(1787184000000);
 const ANCHOR_MS = Date.parse('2026-08-17T00:00:00Z');
 const clock = fixedClock(AT);
-const APP_VERSION = '0.26.0';
-
 interface FakeDevice {
   pick?: PickedTextFile | null;
   saved?: { readonly name: string; readonly text: string };
@@ -161,6 +160,9 @@ describe('settings: export', () => {
     expect(counts.get('checkins')).toBe(1);
     expect(counts.get('snapshot')).toBe(1);
     expect(counts.get('companionPersonalisation')).toBe(0);
+    // The file names the build that wrote it, taken from the app's own version
+    // constant rather than a fixture, so release metadata cannot drift unnoticed.
+    expect(parsed.backup.appVersion).toBe(APP_VERSION);
     expect(screen.getByTestId('backup-status').getAttribute('data-backup-status')).toBe('exported');
     expect(screen.getByTestId('backup-status').textContent).toBe(
       SETTINGS.backupExportDone('tbreak-backup-2026-08-20.json'),

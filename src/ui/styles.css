@@ -2693,8 +2693,11 @@ select,
   min-height: 44px;
 }
 
-.mode-with-legend { display: flex; flex-direction: column; gap: 8px; }
-.mode-with-legend > .meta { margin: 0; font-size: var(--text-sm); line-height: 1.45; }
+.result-mode-legend {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
 
 .result-mode {
   position: relative;
@@ -3600,8 +3603,8 @@ input[aria-invalid='true'] { border-color: var(--error); }
 }
 
 /* 0.22 — practical daily guidance: one card, depth on demand (0.31.0). */
-.daily-support { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-.support-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; border-top: 1px solid var(--hairline); padding-top: 18px; }
+.daily-support { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.support-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .support-card .card-title { margin: 0; }
 .support-card .advice-reason { margin: 0; line-height: 1.5; }
 .support-card .advice-first-step { margin: 0; }
@@ -3613,19 +3616,7 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .advice-help strong { display: block; margin-bottom: 4px; }
 .advice-sources { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .daily-support a { overflow-wrap: anywhere; }
-.daily-practice { border-left: 2px solid var(--accent-strong); padding: 2px 0 2px 16px; }
-.daily-practice .micro-label { margin: 0 0 8px; }
-.daily-practice h4 { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
-.daily-practice .body { margin: 8px 0 0; }
 .daily-comfortable { margin: 0; color: var(--fg-muted); padding-left: 14px; border-left: 2px solid var(--ok); }
-.advice-topics { display: flex; flex-wrap: wrap; gap: 8px; }
-.advice-topic { border: 1px solid var(--hairline-strong); border-radius: 999px; background: transparent; padding: 9px 14px; min-height: 44px; font-size: 0.875rem; }
-.advice-topic.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
-.advice-topic:hover { background: var(--bg-hover); }
-/* Topic picker: the row chooses what the block beneath it explains. */
-.topic-picker { display: flex; gap: 8px; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 2px; scrollbar-width: none; }
-.topic-picker::-webkit-scrollbar { display: none; }
-.topic-picker .advice-topic { flex: none; }
 .daily-support > .card-title,
 .daily-support > .micro-label { margin: 0; }
 .today-plan-card > .result-disclosure { margin: 0; }
@@ -3636,6 +3627,12 @@ input[aria-invalid='true'] { border-color: var(--error); }
 /* Expanded Today blocks: a heading and its content, no disclosure. */
 .today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .today-block > .card-title { margin: 0; }
+.stage-headline { display: block; margin-top: 4px; font-family: var(--font-body); font-weight: 500; line-height: 1.4; }
+.today-block > summary .micro-label { display: block; font-family: var(--font-body); font-size: .625rem; color: var(--fg-muted); }
+.advice-picker-label { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.advice-picker-label > .micro-label { flex: none; }
+.advice-picker-label select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); padding: 8px; background: var(--bg-card); color: var(--fg); font: inherit; }
+.checkin-meaning { margin: 8px 0 0; line-height: 1.4; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
 @media (max-width: 360px) {
   .support-card { gap: 10px; }
@@ -3670,8 +3667,8 @@ input[aria-invalid='true'] { border-color: var(--error); }
 @media (prefers-reduced-motion: no-preference) {
   .quick-checkin .cta-primary { transition: background 180ms ease, box-shadow 180ms ease, transform 120ms ease; }
   .quick-checkin .is-checked svg { animation: checkin-arrive 280ms cubic-bezier(.2,.8,.2,1); }
-  .checkin-secondary, .carousel-arrow, .advice-topic { transition: transform 120ms ease, background 160ms ease; }
-  .checkin-secondary:active, .carousel-arrow:not(:disabled):active, .advice-topic:active { transform: scale(.96); }
+  .checkin-secondary, .carousel-arrow { transition: transform 120ms ease, background 160ms ease; }
+  .checkin-secondary:active, .carousel-arrow:not(:disabled):active { transform: scale(.96); }
   .quick-checkin .cta-primary:not(:disabled):active { transform: scale(.985); }
   .questionnaire-overlay { animation: sheet-arrive 180ms cubic-bezier(.2,.8,.2,1); }
 }
@@ -3681,10 +3678,7 @@ input[aria-invalid='true'] { border-color: var(--error); }
   .community-track { scroll-behavior: auto; }
   .carousel-dots span { transition: none; }
 }
-/* 0.25 — discreet ink-and-sand identity with stable touch scale. */
-html, body, #app, .app-shell, .app-main, .questionnaire-overlay,
-.questionnaire-body, .modal-root, .modal-sheet, .modal-body, .result-body,
-.community-track, .outlook-strip { touch-action: pan-x pan-y; }
+/* Keep text-entry controls readable without focus zoom; browser pinch remains available. */
 input:not([type="range"]), textarea, select { font-size: max(16px, 1rem); }
 .checkin-secondary-wide { width: 100%; }
 .daily-advice { padding: 16px; border: 1px solid var(--hairline); border-radius: 18px; background: color-mix(in oklab, var(--fg) 2%, transparent); }

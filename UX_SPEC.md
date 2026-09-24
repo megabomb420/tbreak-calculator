@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.36.0**
+Version: **0.37.0**
 
-Current revision (0.36.0): the day card respects one screen — above the fold: the plan/outlook switch with one legend line (`Plan = your target · Outlook = research estimate.`), the day/target hero with the recorded-days line, the one-tap check-in, and the day's single action; below or behind a summary: **This stage**, **Your break timeline**, **Experiences**, the guide's reasoning and **Your recorded changes**. The picker is one scrollable row of all eleven topics. One passive notice shows at a time and the install hint stays dismissed once dismissed. History is grouped as **Check-ins**, **Recommendations**, **Breaks** and **Cutting down**, each row stating its numbers with a label from one shared duration wording. An unfinished calculation appears only after an answer beyond the goal, with an explicit **Discard**. Earlier (0.35.0): the day card is one topic wide. The picker **How to deal with?** sits in the place the optional ratings entry used to occupy and the chosen topic's guide renders directly beneath it — choosing another topic replaces the block in place instead of stacking guides, and it writes nothing. The optional 0–10 symptom ratings are no longer collected in the app (an existing report still names its topic, and History still lists it), and the **Your plan for urges** block is gone from Today: a plan set at break start still leads the advice lines. Earlier (0.33.0): the check-in is edited where it is read and **Your plan for urges** keeps a draft until **Save plan**. Earlier (0.32.0): nothing on Today hides behind a disclosure — the day card shows the advice topic with its full guide, the stage, the experiences, the recorded differences, the stored urge plan and the whole break timeline inline, and the `Your plan` | `Recovery outlook` switch sits at the top of the card and swaps the day/target block for the running break's own outlook. Earlier (0.31.0): Today shows one support card and nothing else it does not need — the card leads with the person's own replacement action when their saved plan covers a routine, an urge or an empty evening, a day with no hard rating raises no topic instead of two default essays, the stage, the experiences, the timeline and the recovery outlook each open on demand as a sheet, the decorative orbit artwork is gone, the result view switch no longer floats over the journey, and the first-launch safety lines after "For adults." sit in a closed **Before you start** disclosure. Earlier (0.30.0): the first-launch screen carries its safety slot — age eligibility, the disclaimer, the detection scope and two escalation lines, all but the first taken from wording the app already publishes, with the health warnings and a named urgent-help route still owed by a clinical reviewer. Earlier (0.29.0): a logged THC session keeps the local calendar day it was logged on — each use event stores its own UTC offset, so a daylight-saving change can no longer move a past session, a use day or a breach day onto another day, and stored rows without an offset behave exactly as before; and a flow that cannot render its dialog can no longer leave the app inert with no way to close it. Earlier (0.28.0): storage now reports its own failures — a rejected durable write raises the storage banner and stops Settings claiming the change was saved, and a blocked or failed IndexedDB open no longer presents the emptied store as the user's data; the cut-down review banner follows the derived state; "Earlier today" can no longer record yesterday. Earlier (0.27.1): a disclosure's marker and typography apply only to its own summary, so a closed phase leg inside the open timeline reads as closed rather than expanded. Earlier (0.27.0): advice is chosen only from the latest check-in ratings — one topic per area rated hard, no topic picker and no two-topic cap — and the phase context is always visible on the Today card. Earlier (0.26.0): local backup save/restore in Settings → **Your data**; the recovery outlook reachable during an active break; carousel position tracked by card identity; a captured outcome recording the days actually abstained. Earlier (0.25.0): discreet ink/slate/sand identity with no cannabis iconography; fixed-scale PWA gestures; direct reversible no-use check-in; THC-session logging only inside cut down; a short two-input cut-down questionnaire, one setup sheet and a glanceable rolling-week tracker; practical daily advice plus stage-matched, manually controlled Reddit experiences. Today / Calculator / History navigation, shared date entry and modal navigation, immutable saved results, elapsed-time completion and research limits remain. Numeric calculator policies are unchanged. Historical release notes are in Git history.
+Current revision (0.37.0): Today leads with the break day, an explained one-tap check-in, a visible stage headline and one existing practical activity. **Help with** is a native select containing today's suggestion and all eleven guides; switching topics replaces the action and writes nothing. Long context, experiences, timeline and the break's own recovery outlook are optional disclosures, not competing primary modes. **Manage break → Update last use** confirms a new anchor while preserving earlier segments; cancel changes nothing. History rows carry local dates and distinguish elapsed complete days from day position. Deleted recommendations are not regenerated from leftover snapshots. Browser zoom is supported. Numeric policies and historical calculation meanings are unchanged. Release history lives in HANDOFF.md and Git history.
 
 ## 1. Product framing and design principles
 
@@ -92,7 +92,6 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, an expandable live journey, and a quiet end-early action. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
-  - optional symptom ratings;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
   - the nominal THC calculator sheet;
   - interruption confirmation ("confirm when you used");
@@ -109,7 +108,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | One screen first: the `Your plan` \| `Recovery outlook` switch with its single legend line (`Plan = your target · Outlook = research estimate.`), the day/target hero with the recorded-days line, the one-tap check-in with Undo once the day is recorded, and the day's single action. The switch swaps the day/target block for the running break's own outlook panel and changes nothing else. The action comes from **How to deal with?** — one scrollable row of all eleven topics, the chosen one marked — with that topic's block directly beneath it: title, the reading that named it (or "For this stage of the break"), one action line (the person's own replacement first when their plan covers the topic), the flagged triggers and fallback when a plan exists, and **Why this helps** holding the reasoning, the remaining steps, what to avoid, the seek-help line and the sources. Choosing a topic replaces the block in place and writes nothing. Behind their own summaries on the same card: **This stage** (label, headline, what is commonly noticed, the day's practical activity), **Your break timeline** (the shared journey plus the research note), **Experiences** (the Reddit carousel) and **Your recorded changes** when stored check-ins allow it. Footer: **End break early**; **Mark complete** appears in the action zone from the target instant. No THC-use log appears here. |
+| `active-break` | attempt `active` | Day/target hero, recorded-check-in count, direct check-in with Undo, stage headline and one practical action. **Help with** switches between today's suggestion and eleven guides. Guide depth, experiences, timeline and recovery outlook open on demand. **Manage break** offers last-use correction and ending early; **Mark complete** appears from the target instant. No session logger or rating sheet. |
 | `interrupted` | legacy attempt `interrupted_time_needed` | Upgrade-safe recovery surface for an older pending use report. Timing is suspended; **Confirm when** or dismiss the unconfirmed report. New releases do not create this state from active-break Today. |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -118,7 +117,7 @@ Exactly one primary state at a time:
 
 **Precedence:** `interrupted` > `active-break` > `completed-break` (until acknowledged) > `abstinence-tracking` > `reduction-active` > `profile-no-break` > `no-profile` > `first-launch`. The `detection-only` state applies only when no profile or tracking exists at all; once any calculation or tracking exists, those states win and detection history lives in `History`.
 
-**Questionnaire resume:** an unfinished questionnaire persists after every answered step. If no active or interrupted break exists — and no active reduction plan owns Today — the resume card ("Finish your calculation — 3 answers saved", **Resume** / **Start over**) *replaces* the primary state card. If a break is active or interrupted, or a live reduction plan owns Today, the state card stays primary and the resume card renders as a secondary card beneath it. Relaunching mid-flow never loses answers.
+**Questionnaire resume:** drafts persist after substantive answers, not goal selection alone. The resume card offers **Resume** and **Discard**. A live break or cut-down plan stays primary; the draft is secondary. Resuming retains the saved answers; discarding never removes a saved calculation or live plan.
 
 ### 3.3 First launch
 
@@ -176,8 +175,8 @@ No install gate, no notification prompt, no sign-in. Install is offered from Set
 | Slider with live readout | use-days (0–30), previous-break score (0–10) | min 44 pt thumb, value label above thumb |
 | Stepper (− value +) | sessions, previous-break duration, flower grams, user plan limits | tap-hold repeats; tapping the value opens a numeric pad escape hatch |
 | Date wheel + day-part chips | last use, previous-break end, interruption `usedAt` | §4.3 |
-| Direct action | one-tap no-use check-in; optional symptom ratings; the THC-session log exists only inside an active cut-down plan (§10.2) | |
-| Single-line text | check-in note (optional) | the only keyboard in v1 |
+| Direct action | one-tap no-use check-in; THC-session logging only inside an active cut-down plan (§10.2) | explicit Undo for check-in |
+| Text fields | optional trigger, replacement and fallback at break start | private, stored on this device |
 
 ### 4.3 Date/time entry (maps to `SourcedValue<timestamp>`)
 
@@ -578,49 +577,30 @@ Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` w
 The active-break card *is* the running plan; there is no pushed plan-detail screen.
 
 - Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
-- Practical daily advice is **one support card** and renders before the timeline, with its full guide open beneath the day's action. See §17 for the current advice selection and content contract.
-- The live journey (§9.7) renders inline on the card under **Your break timeline**: Start → evidence phases → Target, with past-day check-in markers, the current leg marked "You are here", and future legs kept as expectations. Each leg's "may notice" / "can help" expectations sit behind its own disclosure, because ten legs of expectations would otherwise bury the day.
-- The break's own frozen **Recovery outlook** (§9.1) stays reachable while it runs: the `Your plan` \| `Recovery outlook` switch at the top of the card swaps the day/target block for the same panel the result screen renders — same content, no new science. A chosen-duration plan or an open-ended tracker owns no calculation record, shows no switch and renders no panel.
+- Practical daily advice is one support card before the timeline. Its action is visible; **More ideas & sources** opens the explanation, remaining guide steps and sources. See §17.
+- **Your break timeline** is a closed disclosure: Start → evidence phases → Target, past-day check-in markers and the current leg marked "You are here". Each leg's expectations have their own disclosure.
+- The calculated break's own frozen **Recovery outlook** (§9.1) is a lower disclosure. Opening it never removes the day/target header or daily action. Chosen-duration breaks and open-ended trackers have no such panel; unrelated saved results are never borrowed.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
-- Quiet footer action: **End break early** (confirm dialog; neutral resulting state).
+- **Manage break** contains **Update last use** and **End break early**. The latter requires confirmation and has a neutral resulting state.
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
 
 ### 10.2 Daily check-in — one direct action
 
-**Check in** on Today records a no-use entry immediately; before the tap the card carries no separate helper line. The saved state reads **Checked in today**, with **Saved · A day off THC**, and the receipt line and **Undo** appear only once the day is recorded. Repeat taps cannot create duplicates in the current abstinence day.
+**Check in** records a no-use entry immediately. Before saving, the helper says "Records no THC for this break day. You can undo it." The receipt reads **Checked in today** and **Saved · No THC reported**, with **Undo**. This is a report, not proof that a complete 24 hours has elapsed. Repeat taps cannot duplicate the current abstinence day's entry.
 
 **Undo** remains next to the receipt, including after reload. It removes exactly the latest no-use entry in the current abstinence day and segment. Earlier entries, symptom ratings on other entries, and prior days remain. If multiple legacy entries exist, each Undo removes one; the checked state stays until no entry remains for that day.
 
-The optional 0–10 symptom ratings were removed from the app in 0.35.0: `How are you feeling?` no longer exists, and Today never opens a rating sheet. Reports written before that release are still stored, still listed in `History`, and still name the topic they raised, but nothing new collects them. **Undo** remains next to the receipt, including after reload. It removes exactly the latest no-use entry in the current abstinence day and segment. Earlier entries, symptom ratings on other entries, and prior days remain. If multiple legacy entries exist, each Undo removes one; the checked state stays until no entry remains for that day.
+The optional ratings and note-entry sheet were removed in 0.35.0. Existing reports remain readable in History and can still inform advice under the preserved freshness rules. Nothing in the current UI writes symptom ratings.
 
-**How are you feeling?** is a block on the card, directly under its own label: five 0–10 rows (craving, sleep quality, irritability, anxiety, appetite) of number buttons, each anchored by its documented end labels, plus one optional private note. The buttons are toggles — tapping the selected number again clears that field — and a **Clear this rating** action appears while a field is set. The rows load what today already stores, so a saved rating stays visible and changeable. Nothing is written until **Save today's check-in**; saving also records the day without THC and rewrites today's report in place, so revisiting the same day updates the stored values instead of adding a second entry for that day. Unrecorded fields stay unknown; an untouched card is not a zero-symptom report. There is no THC-use log on an active T-break or open-ended abstinence tracker; that log belongs only to cut down. A user can correct an accidental direct check-in with **Undo**, which removes the day's entry entirely.
+Legacy storage semantics remain: craving, sleep quality, irritability, anxiety and appetite accept `integer 0..10 or null`; 10 means more of the named thing (including better sleep and stronger appetite). Missing remains unknown, never zero. Private notes are not analysed.
 
-Older releases could persist `interrupted_time_needed` before use timing was confirmed. That legacy state remains dismissible or confirmable so an upgrade never strands a plan; it is not reachable from the current active-break controls.
+Older `interrupted_time_needed` records remain dismissible or confirmable. Current **Update last use** does not persist an intermediate paused state; canceling leaves timing and data unchanged.
 
-**Optional symptom screen:**
-
-
-> **How are you feeling?** *(optional — skip any)*
->
-> Five sliders (0–10), parked-thumb pattern (each starts unset; an accidental swipe must not record zeros):
->
-> | Field | 0 anchor | 10 anchor |
-> |---|---|---|
-> | Craving | None | Overwhelming |
-> | Sleep quality | Terrible | Great |
-> | Irritability | Calm | Very irritable |
-> | Anxiety | None | Severe |
-> | Appetite | None | Normal/strong |
->
-> - **Note (optional)** — one line, 500 chars. Helper: "Private, stored only on this device, never analysed."
->
-> [ Save ]
-
-- 10 always means "more of the named thing" (stronger craving, better sleep quality, stronger appetite). This pins the direction the domain schema leaves undefined; §15.2 D5 records the matching field semantics.
-- Untouched sliders are stored as `null`; each of the five `DailyCheckin` symptom fields accepts `integer 0..10 or null`.
 - Skipping days is normal; no punitive states, no streak pressure.
 
-### 10.3 Interruption ("I used") flow
+### 10.3 Updating last use
+
+Entry: **Today → Manage break → Update last use** for a finite break; **Update last use** below guidance for open-ended tracking. This is a clock correction after THC use, not a session-counting feature.
 
 1. Sheet: **"When did you use?"** — date control §4.3, constrained to after the current segment start (and not in the future). Required. Opening or canceling this form does not change persisted state. On confirmation, the application performs the existing suspend/confirm lifecycle transitions together and persists only the confirmed result. Older saved `interrupted_time_needed` states remain supported and offer **I didn’t use THC — undo report**, which restores the original open segment without fabricating use.
 2. On confirm — mandated phrasing (spec §7.9.7):
@@ -634,7 +614,7 @@ Older releases could persist `interrupted_time_needed` before use timing was con
 ### 10.4 Completing and ending
 
 - On/after the target date, `Today` shows **Mark complete** (never silent auto-complete). Completion → restrained completion card → post-break plan (§8).
-- **End break early**: quiet footer action + confirm. Neutral state, no failure language.
+- **End break early**: inside **Manage break**, with confirmation. Neutral state, no failure language.
 
 ---
 
@@ -645,7 +625,7 @@ Older releases could persist `interrupted_time_needed` before use timing was con
 - **Keyboard:** only the check-in note raises it; `inputmode="decimal"` on numeric escape hatches; CTA bar lifts above the keyboard.
 - **Haptics:** light tick on slider snap and chip select; warning haptic on validation error; respects OS settings.
 - **Validation:** inline, on-step, never toast-only; errors announced via `aria-live="polite"`.
-- **Progressive disclosure:** nominal THC link, previous-break add, symptom screen, "Your answers" rows. Nothing mandatory hides behind an expander.
+- **Progressive disclosure:** nominal THC link, previous-break add, evidence and guide depth, "Your answers" rows. Nothing mandatory hides behind an expander.
 - **No long forms:** max one logical group per step (Q5's two chip groups is the ceiling); anything taller than ~1.5 viewport heights is split.
 - **Accessibility:** WCAG 2.2 AA contrast on the §12 palette; full screen-reader pass on questionnaire, check-in, interruption; status never by colour alone; dynamic type to 130 % without breakage; focus order = visual order; every icon button labelled.
 - **Standalone/PWA:** manifest `display: standalone`; theme-color matches `bg/base` for seamless launch; iOS apple-touch-icon; no reliance on `beforeinstallprompt` (Settings shows per-platform manual install steps); service-worker updates apply on next launch via passive "Update ready" snackbar, never mid-flow.
@@ -821,13 +801,13 @@ Acceptance: every path in §5.1 reachable with the stated step counts; every ter
 
 ## 17. Practical daily support (0.22.0)
 
-Today prioritises what the person can do now: direct check-in with correction, optional ratings, one advice topic with its full guide and one activity for the day. Phase context, the day's activity, the urge plan and the whole timeline render inline on the card; the only mode control is the `Your plan` \| `Recovery outlook` switch above the day/target block, which changes that block and nothing else. Phase windows remain population patterns. A practical day-specific activity is explicitly an editorial schedule, not a symptom prediction. Clinical/self-care source links live in each guide and in Science.
+Today prioritises a brief daily visit: where you are, what this stage can bring, and one useful next action. The stage headline is visible in its disclosure summary. The day's activity is an editorial schedule, not an exact-day biological prediction.
 
-Advice is chosen, not inferred: the **How to deal with?** picker names all eleven topics and the chosen one renders in place. A stored rating (from a release that collected them) still leads the picker, ordered by severity, and its topic carries the dated reading; the same six evidence windows decide which Reddit experiences are eligible. The order of the picker's groups is an app choice, not a diagnosis or a recovery score, and picking a topic writes nothing. When the stored plan covers the chosen topic, the person's own replacement action is the block's action line, with the flagged triggers and the fallback plan beneath it. The same component serves chosen/calculated breaks and open-ended tracking.
+The native **Help with** select exposes today's suggestion and all eleven topic guides without horizontal scrolling. A manual choice replaces the action in place and writes nothing; selecting today's suggestion restores it. The choice resets on a new break day. A fresh break defaults to its existing day-specific practical activity. Preserved recent ratings can raise their own topic, with a dated reason. A saved replacement plan takes precedence on routine, cravings and boredom topics. **More ideas & sources** contains the guide's explanation and all steps not already shown, including the first step when a different practice or personal action leads.
 
-Check-in follows the direct-action contract in §10.2. Optional symptoms remain five 0–10 scales. Descriptions specify the last 24 hours and last main sleep. Users can explicitly record zero or leave a field unrated. Back/Close cancels unsaved ratings. A no-use-only save does not erase recent symptom information. Ratings do not change scientific calculations; private notes are never analysed.
+No new symptom ratings are collected. Existing ratings and notes retain their stored meaning, freshness rules and History access. No-use-only saves do not erase earlier ratings; ratings never change scientific calculations.
 
-A manually controlled carousel draws from 17 reviewed paraphrase cards across 12 r/Petioles discussions. Every card is tagged to one or more current break windows (`days_1_3`, `days_2_6`, `days_7_14`, `days_14_21`, `days_21_28`, `beyond_28`); Today displays at most five cards from the active window inline under **Experiences** and ranks cards matching the currently selected sleep/craving/appetite/etc. areas first. Each card shows the reported period, uses the label **From Reddit · Personal experiences**, states that it is not a prediction and links to the original discussion. No medical treatment claim is sourced to Reddit. Curated text remains available offline; links require a connection.
+A manually controlled carousel draws from 17 reviewed paraphrases across 12 r/Petioles discussions, inside **Experiences**. Stage tags determine eligibility; preserved recent ratings influence ranking. Up to five cards are shown. Each identifies an individual experience, not a prediction, and links its source. No medical claim is sourced to Reddit. Curated text works offline; external links require a connection.
 
 
 ## 18. PWA interaction polish (0.23.0)
@@ -839,7 +819,7 @@ Touch feedback is brief and never delays persistence or navigation: pressed stat
 
 ## 19. Touch scale and visual tone (0.25.0)
 
-The user requested a fixed-scale app feel: disable pinch/double-tap zoom through viewport limits, scrolling-surface touch-action and Safari gesture guards. Preserve one-finger scrolling, horizontal carousels, input editing and keyboard zoom. Inputs use at least 16px. Physical iOS testing remains outstanding; system accessibility settings can override browser limits.
+Browser pinch zoom and accessibility magnification remain available. No viewport maximum scale, user-scalable restriction or JavaScript gesture blocker is installed. Inputs use at least 16px. One-finger scrolling, carousel swiping, keyboard handling and safe areas remain. Viewport fill accepts outer-screen height only when both dimensions match the device screen, avoiding desktop-window oversizing. Physical iOS testing remains outstanding.
 
 The visual system is deliberately discreet: ink navy, slate blue and warm sand; no weed green, cannabis leaf, smoke or dispensary signalling. The installed icon stays a neutral pause/interval mark. Soft gradients, hairlines, small press states, sheet entrance and carousel movement provide app-like depth without becoming flashy. `prefers-reduced-motion` removes decorative movement. Clinical/source material remains behind relevant disclosures; the daily surface speaks in direct everyday language.
 

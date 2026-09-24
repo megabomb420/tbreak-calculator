@@ -90,7 +90,7 @@ describe('advice, community, research and recovery copy', () => {
   const DAY_MS = 24 * 3_600_000;
   // The advice and reset surfaces hold copy inline in their components, so the
   // guard reads those files whole instead of only their exported constants.
-  const inlineSources = ['src/ui/daily-support.tsx', 'src/ui/community-carousel.tsx', 'src/ui/predicted-reset.tsx']
+  const inlineSources = ['src/ui/daily-support.tsx', 'src/ui/community-carousel.tsx', 'src/ui/predicted-reset.tsx', 'src/ui/science-basics.tsx']
     .map((source) => readFileSync(resolve(ROOT, source), 'utf8'))
     .join('\n');
   const dumped = JSON.stringify({

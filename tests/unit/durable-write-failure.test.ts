@@ -8,6 +8,10 @@ import { toInstant } from '../../src/domain/schemas/time.ts';
 import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
 import { createWebBackedDurable } from '../../src/application/persistence/durable.ts';
 import { createMemoryStorage } from '../../src/infrastructure/storage/storage-adapter.ts';
+import {
+  createWebStorageAdapter,
+  type WebStorageLike,
+} from '../../src/infrastructure/storage/browser-storage.ts';
 import { checkinRecordId } from '../../src/application/persistence/ids.ts';
 import { freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 import { sampleProfile } from '../helpers.ts';
@@ -132,5 +136,45 @@ describe('durable write-failure reporting', () => {
     assert.equal(durable.writeFailed, false);
     assert.equal(durable.load().checkins.length, 1);
     assert.equal(durable.load().calculations.length, 1);
+  });
+
+  it('reports a rejected write through the browser Web Storage adapter', () => {
+    // The no-IndexedDB boot path builds this exact pair: the durable facade
+    // over the browser adapter. Its refusal must reach the same channel as a
+    // rejected IndexedDB transaction instead of vanishing into the adapter.
+    const store = new Map<string, string>();
+    let refuse = false;
+    const web: WebStorageLike = {
+      getItem: (key) => store.get(key) ?? null,
+      setItem: (key, value) => {
+        if (refuse) throw new Error('QuotaExceededError');
+        store.set(key, value);
+      },
+      removeItem: (key) => {
+        store.delete(key);
+      },
+      clear: () => {
+        store.clear();
+      },
+    };
+    const durable = createWebBackedDurable(createWebStorageAdapter(web), {
+      persistent: true,
+      backend: 'web-storage',
+    });
+    const reported: boolean[] = [];
+    durable.onWriteFailure((failed) => reported.push(failed));
+
+    durable.saveCheckins([]);
+    refuse = true;
+    assert.throws(() => durable.saveCheckins([CHECKIN]));
+
+    assert.deepEqual(reported, [true]);
+    assert.equal(durable.writeFailed, true);
+    assert.equal(durable.load().checkins.length, 0);
+
+    refuse = false;
+    durable.saveCheckins([CHECKIN]);
+    assert.deepEqual(reported, [true, false]);
+    assert.equal(durable.load().checkins.length, 1);
   });
 });

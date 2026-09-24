@@ -422,6 +422,10 @@ describe('local backup: store coverage', () => {
     assert.equal(claimed.size + excluded.size, LOCAL_DATA_KEYS.length);
   });
 
+  it('names each excluded key once, so the accounting above cannot hide a duplicate', () => {
+    assert.equal(new Set(BACKUP_EXCLUDED_KEYS).size, BACKUP_EXCLUDED_KEYS.length);
+  });
+
   it('covers every durable snapshot field or names it as excluded', () => {
     const covered = new Set<string>(BACKUP_STORE_KEYS);
     const excluded = new Set<string>(BACKUP_EXCLUDED_SNAPSHOT_FIELDS);

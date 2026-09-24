@@ -8,7 +8,20 @@ import {
   milestonesForDay,
   windowById,
 } from '../../src/domain/guidance/evidence-guidance-v1.ts';
-import { presentBreakGuidance, presentDetoxEvidence, presentPostBreakGuidance } from '../../src/application/presentation/break-guidance.ts';
+import type { ExposureContext } from '../../src/domain/guidance/break-outlook.ts';
+import { presentBreakOutlook } from '../../src/application/presentation/break-outlook.ts';
+import { presentDetoxEvidence, presentPostBreakGuidance } from '../../src/application/presentation/break-guidance.ts';
+
+function exposure(overrides: Partial<ExposureContext> = {}): ExposureContext {
+  return {
+    useDaysLast30: 10,
+    sessionsPerUseDay: null,
+    products: [],
+    routes: [],
+    currentPatternDuration: null,
+    ...overrides,
+  };
+}
 
 describe('withdrawal window selection', () => {
   it('uses exclusive primary windows with overlapping containing windows', () => {
@@ -43,49 +56,45 @@ describe('withdrawal window selection', () => {
     assert.equal(windowById('preparation').id, 'preparation');
   });
 
-  it('keeps overlapping windows visible on the roadmap', () => {
-    const day3 = presentBreakGuidance({
-      breakDay: 3,
+  it('keeps overlapping windows visible on the outlook roadmap', () => {
+    const view = presentBreakOutlook({
       targetDays: 21,
       openEnded: false,
-      planned: false,
-      preparation: null,
-      checkins: [],
+      currentDay: 3,
+      exposure: exposure(),
     });
-    assert.equal(day3.today.windowId, 'days_2_6');
-    const statuses = Object.fromEntries(day3.roadmap.map((stage) => [stage.id, stage.status]));
+    assert.equal(view.days[2]?.primaryWindowId, 'days_2_6');
+    const statuses = Object.fromEntries(view.windows.map((stage) => [stage.id, stage.status]));
     assert.equal(statuses.days_1_3, 'current-overlap');
     assert.equal(statuses.days_2_6, 'current');
     assert.equal(statuses.days_7_14, 'future');
   });
 
-  it('marks scientific windows past a short plan target without inventing extra recovery', () => {
-    const view = presentBreakGuidance({
-      breakDay: 5,
+  it('does not invent an evidence window beyond a short plan target', () => {
+    const view = presentBreakOutlook({
       targetDays: 7,
       openEnded: false,
-      planned: false,
-      preparation: null,
-      checkins: [],
+      currentDay: 5,
+      exposure: exposure(),
     });
-    const later = view.roadmap.find((stage) => stage.id === 'days_21_28');
-    assert.equal(later?.beyondPlanTarget, true);
-    assert.equal(later?.status, 'future');
+    assert.deepEqual(view.windows.map((stage) => stage.id), ['days_1_3', 'days_2_6', 'days_7_14']);
+    assert.equal(view.days.length, 7);
+    assert.equal(view.days[4]?.primaryWindowId, 'days_2_6');
   });
 
   it('does not complete open-ended tracking at day 28', () => {
-    const view = presentBreakGuidance({
-      breakDay: 30,
+    const view = presentBreakOutlook({
       targetDays: null,
       openEnded: true,
-      planned: false,
-      preparation: null,
-      checkins: [],
+      currentDay: 30,
+      exposure: exposure(),
     });
-    assert.equal(view.today.windowId, 'beyond_28');
-    assert.equal(view.today.openEnded, true);
-    assert.match(view.today.headline, /Maintenance/);
+    assert.equal(view.openEnded, true);
+    assert.equal(view.days.length, 28);
+    assert.ok(view.windows.some((stage) => stage.id === 'beyond_28'));
+    assert.match(windowById('beyond_28').headline, /Maintenance/);
     assert.equal(milestonesForDay(28).length, 1);
+    assert.doesNotMatch(JSON.stringify(view), /\d+\s*%/);
   });
 });
 
