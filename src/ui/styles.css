@@ -3699,6 +3699,111 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .support-card .card-title { margin: 0; }
 .support-card .advice-reason { margin: 0; line-height: 1.5; }
 .support-card .advice-first-step { margin: 0; }
+/* The check-in reminder: one quiet line on Today once the chosen time has
+   passed, and its own entry in Settings. */
+.reminder-note {
+  margin: 0 0 var(--space-3);
+  padding: 10px 14px;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--hairline));
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg-card));
+  color: var(--fg);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.reminder-note strong {
+  color: var(--accent-strong);
+}
+
+.settings-toggle,
+.settings-time {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+
+.settings-toggle input {
+  width: 22px;
+  height: 22px;
+}
+
+.settings-time {
+  justify-content: space-between;
+}
+
+.settings-time input {
+  font: inherit;
+}
+
+/* Delay timer: the one tool for the moment an urge arrives. The entry sits in
+   the day's advice card, and the view itself is a calm full-screen sheet. */
+.urge-open {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ride-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.ride-choice {
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ride-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-4) 0;
+}
+
+.ride-countdown {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--fg);
+  /* Tabular figures keep the countdown from shifting as the seconds turn. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.ride-plan {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg-card));
+}
+
+.ride-ideas {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.ride-report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ride-done {
+  align-items: flex-start;
+}
+
 .advice-content { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
 .advice-content p { margin: 0; }
 /* The guide's depth sits behind one row, so the action and its reason keep

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Instant } from '../domain/schemas/time.ts';
 import type { DailyCheckin } from '../domain/schemas/profile.ts';
+import type { UrgeSession } from '../application/progress/urge-session-record.ts';
 import type { Goal } from '../domain/schemas/enums.ts';
 import type { DurableSnapshot } from '../application/persistence/durable.ts';
 import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
@@ -282,6 +283,11 @@ function HistoryDetail({
         </section>
       );
     }
+    case 'urge': {
+      const session = snapshot.urgeSessions.find((row) => row.id === entry.id) ?? null;
+      if (session === null || session.endedAt === null) return <MissingDetail onBack={onBack} onDelete={onDelete} />;
+      return <UrgeDetail session={session} onBack={onBack} onDelete={onDelete} />;
+    }
     case 'previous-break':
       return null;
   }
@@ -389,6 +395,37 @@ function TrackingDetail({
         </ul>
       </section>
       <CheckinList checkins={checkins} />
+      <button type="button" className="cta-danger" data-testid="history-delete" onClick={onDelete}>
+        {HISTORY.delete}
+      </button>
+    </section>
+  );
+}
+
+function UrgeDetail({
+  session,
+  onBack,
+  onDelete,
+}: {
+  readonly session: UrgeSession;
+  readonly onBack: () => void;
+  readonly onDelete: () => void;
+}) {
+  const at = session.endedAt!;
+  return (
+    <section className="history-detail stack" data-testid="history-detail" data-kind="urge">
+      <button type="button" className="text-back" onClick={onBack}>
+        {HISTORY.closeDetail}
+      </button>
+      <header>
+        <p className="eyebrow">Ride it out</p>
+        <h2 className="title">{session.plannedMinutes} minutes</h2>
+        <p className="meta">{formatLocalDay(at)}</p>
+      </header>
+      <p className="body">
+        {session.outcome === 'easier' ? 'Reported easier at the end.' : 'Reported still there at the end.'}
+      </p>
+      <p className="meta">This row records that the timer ran and how it ended. It says nothing about tolerance.</p>
       <button type="button" className="cta-danger" data-testid="history-delete" onClick={onDelete}>
         {HISTORY.delete}
       </button>

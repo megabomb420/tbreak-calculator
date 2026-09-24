@@ -9,10 +9,13 @@ import type { QuestionnaireProgressRecord } from '../application/progress/questi
 import type { StoredAttempt } from '../application/progress/break-attempt-record.ts';
 import type { StoredTrack } from '../application/progress/tracking-record.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
+import type { UrgeSession } from '../application/progress/urge-session-record.ts';
+import type { Instant } from '../domain/schemas/time.ts';
 import type { ActiveBreakView, PlannedBreakView, TrackingDayView } from '../application/presentation/plan-presentation.ts';
 import { currentSegmentAnchor } from '../application/presentation/plan-presentation.ts';
 import type { ResultView } from '../application/presentation/result-presentation.ts';
-import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
+import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, SETTINGS, resumeTitle } from './copy.ts';
+import { reminderLine } from '../domain/reminders/checkin-reminder.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { SUPPORT_SHEET } from './companion-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
@@ -68,6 +71,10 @@ export interface TodayScreenProps {
   readonly supportAreas: readonly SupportArea[];
   /** Opens the support sheet to change those topics. */
   readonly onChangeSupport: () => void;
+  /** The check-in reminder, when today's time has passed without a check-in. */
+  readonly reminder?: { readonly due: boolean; readonly time: string | null };
+  /** The delay timer: the one that is running, and the way in. */
+  readonly urge: { readonly running: UrgeSession | null; readonly now: Instant; readonly onOpen: () => void };
   readonly onSelectGoal: (goal: Goal) => void;
   readonly onResume: () => void;
   readonly onViewResult?: () => void;
@@ -114,6 +121,11 @@ export function TodayScreen(props: TodayScreenProps) {
       data-resume={view.resume}
       data-phase={phase}
     >
+      {props.reminder?.due === true && props.reminder.time !== null ? (
+        <p className="reminder-note" data-testid="checkin-reminder" role="status">
+          <strong>{SETTINGS.reminderToday}</strong> {reminderLine(props.reminder.time)}
+        </p>
+      ) : null}
       {view.resume === 'replaces-primary' ? (
         resume
       ) : (
@@ -337,7 +349,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ) : null}
       </div>
       <StageBlock support={support} />
-      <DailySupport view={support} />
+      <DailySupport view={support} urge={props.urge} />
       <ExtraBlocks support={support} />
       <section className="today-block" data-testid="today-timeline">
         <h3 className="section-heading">Your break timeline</h3>
@@ -471,7 +483,7 @@ function TrackingCard(props: TodayScreenProps) {
       {support !== null ? (
         <>
           <StageBlock support={support} />
-          <DailySupport view={support} />
+          <DailySupport view={support} urge={props.urge} />
           <ExtraBlocks support={support} />
         </>
       ) : null}

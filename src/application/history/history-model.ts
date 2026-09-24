@@ -13,6 +13,7 @@ import { checkinRecordId } from '../persistence/ids.ts';
 import { presentCalculationRecord } from './present-calculation.ts';
 import { formatLocalDay } from '../presentation/format.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
+import type { UrgeSession } from '../progress/urge-session-record.ts';
 
 export type HistoryEntryKind =
   | 'calculation'
@@ -20,6 +21,7 @@ export type HistoryEntryKind =
   | 'tracking'
   | 'reduction'
   | 'checkin'
+  | 'urge'
   | 'previous-break'
   | 'corrupt';
 
@@ -64,6 +66,7 @@ export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): Hist
     ...snapshot.tracking.map((track) => trackingEntry(track, now)),
     ...snapshot.reductionRecords.map(reductionEntry),
     ...snapshot.checkins.map(checkinEntry),
+    ...snapshot.urgeSessions.filter((session) => session.endedAt !== null).map(urgeEntry),
     ...snapshot.corrupt.map(corruptEntry),
   ];
   feed.sort((a, b) => b.at - a.at);
@@ -184,6 +187,21 @@ function checkinEntry(checkin: DailyCheckin): HistoryEntry {
     title: 'Check-in',
     subtitle: checkin.usedThc ? 'Used THC' : symptoms ? 'No THC · symptoms logged' : 'No THC',
     interrupted: checkin.usedThc,
+  };
+}
+
+/** Only finished sittings reach History: a timer that is still running, or one
+ * that was stopped, has nothing to report and stays out of the record. */
+function urgeEntry(session: UrgeSession): HistoryEntry {
+  const at = session.endedAt!;
+  return {
+    kind: 'urge',
+    id: session.id,
+    at,
+    dateLabel: localDay(at),
+    title: `Ride it out · ${session.plannedMinutes} min`,
+    subtitle: session.outcome === 'easier' ? 'Easier at the end' : 'Still there at the end',
+    interrupted: false,
   };
 }
 
@@ -308,6 +326,7 @@ function elapsedPhrase(
  */
 const SECTION_ORDER: readonly { readonly kind: HistoryEntryKind; readonly label: string }[] = [
   { kind: 'checkin', label: 'Check-ins' },
+  { kind: 'urge', label: 'Urges you sat with' },
   { kind: 'calculation', label: 'Recommendations' },
   { kind: 'attempt', label: 'Breaks' },
   { kind: 'tracking', label: 'Breaks' },

@@ -2,13 +2,16 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.38.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
+**Version 1.0.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
 
 The same build is published on two origins: GitHub Pages under the repository subpath and Cloudflare Pages at the domain root. They do not share device data — records, drafts and the service worker belong to the origin you open, so install and check in on one of them.
 
 ## Product
 
 - **Today:** the break day, an explained one-tap check-in, the stage you are in, one practical action with its full guide open, others' experiences matched to that topic, and your break timeline. **Manage break** updates last use without discarding earlier days.
+- **Ride it out:** a delay timer for the moment an urge arrives — pick 5, 10 or 15 minutes, let it run (closing the sheet keeps it running), then record only how those minutes went. Finished sittings are listed in History under **Urges you sat with**. Stopping records nothing.
+- **Check-in reminder:** one local time, off until you set it, shown on Today once the time has passed with no check-in yet. It can also raise a local notification while the app is open or running in the background; there is no server, so a closed app cannot be woken.
+- **Support topics:** what you want help with, asked once after a break calculation and changeable from Today's footer. Recent check-in ratings take priority, your topics take turns between days, and the day's own task stays inside the topic's depth.
 - **New calculation:** opened from Today, so all four goals, a chosen break length and unfinished answers stay reachable while a plan is running, without leaving the day you are on.
 - **History:** dated immutable calculation results (a saved result keeps its stored numbers), check-ins, previous breaks and cut-down logs; elapsed time is distinct from day position. Explicit corrections and deletion never regenerate a deleted recommendation.
 - **Science:** a separate, source-linked explainer available from every main screen and Settings. The result screen shows one planning target plus a research section on what the four-week human reference does and does not mean; the app estimates no personal recovery window.
@@ -51,4 +54,4 @@ Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/
 
 Cloudflare Pages serves the same build at the domain root with `BASE_PATH=/ npm run build`, then `npx wrangler pages deploy dist --project-name tbreak-calculator --branch main`. There is no push-triggered Cloudflare workflow: the deploy is a local, deliberate step, so a failed test run cannot publish.
 
-After a deliberate deployment, verify Settings → About matches the release being deployed. This working-tree release is **0.38.0**; a version bump alone does not publish it. Existing PWA users receive an update prompt once a replacement service worker is ready.
+After a deliberate deployment, verify Settings → About matches the release being deployed. This working-tree release is **1.0.0**; a version bump alone does not publish it. Existing PWA users receive an update prompt once a replacement service worker is ready.

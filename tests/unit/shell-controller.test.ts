@@ -38,6 +38,7 @@ describe('shell controller (UX_SPEC 3.1)', () => {
     assert.deepEqual(SETTINGS_MENU, [
       'install-help',
       'offline-note',
+      'checkin-reminder',
       'app-info',
       'your-data',
       'delete-everything',

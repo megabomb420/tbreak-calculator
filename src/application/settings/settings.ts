@@ -11,7 +11,7 @@ import {
   type DurablePersistence,
 } from '../persistence/durable.ts';
 
-export const APP_VERSION = '0.38.0';
+export const APP_VERSION = '1.0.0';
 
 /**
  * PWA update freshness for Settings. `current` is only ever produced by a
@@ -23,6 +23,7 @@ export type PwaUpdateStatus = 'checking' | 'current' | 'available' | 'offline' |
 export const SETTINGS_MENU = [
   'install-help',
   'offline-note',
+  'checkin-reminder',
   'app-info',
   'your-data',
   'delete-everything',

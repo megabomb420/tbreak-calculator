@@ -1,7 +1,7 @@
 # Evidence content specification
 
-App version: **0.38.0**
-Content models: `evidence-guidance-v1`, `break-outlook-v2`, `daily-support-v6` (numeric rules unchanged).
+App version: **1.0.0**
+Content models: `evidence-guidance-v1`, `break-outlook-v2`, `daily-support-v7` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
 Current communication contract: UI ranges are **planning ranges**, and the result screen carries a research section instead of a second, competing estimate. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
@@ -215,14 +215,14 @@ Reference: `src/domain/recovery/recovery-outlook.ts` (version constants only); u
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `daily-support-v6` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `daily-support-v7` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support (daily-support-v6)
+## 15. Daily support (daily-support-v7)
 
 `src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking; it shows the stage summary headline, the day's practical action and the topic guides. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
-The practical layer contains eleven symptom/habit guides — each with an explanation, five to eight practical steps, what tends to make it worse, when to get advice and its reviewed sources — plus 28 original daily activity prompts and a maintenance rotation. Under **Help with**, the action line and **Why this helps** are always visible; the remaining steps, the avoid line, the advice line and the sources sit behind one closed row (**What else can help**), because a five-to-eight-step guide open by default would bury the day's action. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
+The practical layer contains eleven symptom/habit guides — each with an explanation, five to eight practical steps, what tends to make it worse, when to get advice and its reviewed sources — plus 28 original daily activity prompts for the opening month, eight prompts for the settling weeks (days 29–56) and eight for a longer abstinence (day 57 onward), so a 90-day break is not week one on repeat. The later prompts stay inside the same reviewed sources: keeping sleep and wake times (NHS sleep advice, NHS Every Mind Matters), keeping meals regular (NHS nausea), re-checking risk moments and planning for unavoidable situations (NSW Health do-it-yourself guide, Turning Point), naming the plan to another person, planning something to look forward to, activity and connection for their own sake and a short daily review (NHS 5 steps to mental wellbeing, CAMH, University of Vermont break guide). No later prompt adds a timeline, a percentage, a product or a dose, and none of them says that anything changes on a particular day. Under **Help with**, the action line and **Why this helps** are always visible; the remaining steps, the avoid line, the advice line and the sources sit behind one closed row (**What else can help**), because a five-to-eight-step guide open by default would bury the day's action. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
 
 **Current input: the check-in records the day.** The one-tap check-in writes `usedThc`, `usedAt` and an optional note; its symptom fields are always null, so a fresh break has no rating-driven topic. **Help with** exposes all eleven topics as one native selection and the user's per-view choice still stores nothing; the **support sheet** writes the topics the person asked the app to help with (`tbreak.companion-personalisation.v2`), and only that stored list takes part in selection.
 
@@ -232,7 +232,7 @@ The practical layer contains eleven symptom/habit guides — each with an explan
 
 ### Community experiences
 
-The carousel is drawn from **44 curated paraphrase cards across 39 r/Petioles discussions**; the content version is `daily-support-v6`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
+The carousel is drawn from **44 curated paraphrase cards across 39 r/Petioles discussions**; the content version is `daily-support-v7`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
 
 | `windows[]` tag | Stage |
 |---|---|

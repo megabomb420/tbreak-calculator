@@ -23,6 +23,16 @@ import {
 } from '../progress/break-attempt-record.ts';
 import { isValidStoredTrack, TRACKING_RECORDS_KEY, type StoredTrack } from '../progress/tracking-record.ts';
 import { CHECKINS_KEY } from '../progress/checkin-store.ts';
+import {
+  isValidUrgeSession,
+  URGE_SESSIONS_KEY,
+  type UrgeSession,
+} from '../progress/urge-session-record.ts';
+import {
+  CHECKIN_REMINDER_KEY,
+  isValidCheckinReminder,
+  type CheckinReminderRecord,
+} from '../progress/reminder-store.ts';
 import { isValidOutcomeMark, BREAK_OUTCOME_KEY, type OutcomeMark } from '../progress/break-outcome.ts';
 import {
   isValidReductionPlanRecord,
@@ -178,6 +188,26 @@ const STORES = {
       input.durable.saveTracking(records);
     },
     count: (records) => records.length,
+  }),
+  reminder: defineBackupStore<CheckinReminderRecord | null>({
+    keys: [CHECKIN_REMINDER_KEY],
+    read: (input) => input.durable.load().reminder,
+    empty: () => null,
+    parse: (value) => (value === null || isValidCheckinReminder(value) ? value : INVALID),
+    write: (input, record) => {
+      input.durable.saveReminder(record);
+    },
+    count: (record) => (record === null ? 0 : 1),
+  }),
+  urgeSessions: defineBackupStore<readonly UrgeSession[]>({
+    keys: [URGE_SESSIONS_KEY],
+    read: (input) => input.durable.load().urgeSessions,
+    empty: () => [],
+    parse: (value) => (Array.isArray(value) && value.every(isValidUrgeSession) ? value : INVALID),
+    write: (input, sessions) => {
+      input.durable.saveUrgeSessions(sessions);
+    },
+    count: (sessions) => sessions.length,
   }),
   checkins: defineBackupStore<readonly DailyCheckin[]>({
     keys: [CHECKINS_KEY],

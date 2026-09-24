@@ -10,6 +10,10 @@ import type { SupportArea } from '../application/questionnaire/companion.ts';
 import { SUPPORT_AREA_COPY, SUPPORT_AREA_GROUPS } from './companion-copy.ts';
 import { CommunityCarousel } from './community-carousel.tsx';
 import { ADVICE_PICKER } from './break-copy.ts';
+import { RIDE_IT_OUT } from './urge-copy.ts';
+import type { Instant } from '../domain/schemas/time.ts';
+import type { UrgeSession } from '../application/progress/urge-session-record.ts';
+import { formatUrgeRemaining, urgeRemainingMs } from '../domain/urges/urge-session.ts';
 
 const TOPIC_ORDER: readonly SupportArea[] = SUPPORT_AREA_GROUPS.flatMap((group) => group.areas);
 
@@ -19,11 +23,18 @@ const TOPIC_ORDER: readonly SupportArea[] = SUPPORT_AREA_GROUPS.flatMap((group) 
  * another topic replaces the block in place and re-ranks the experiences
  * beneath it to match. A new break day resets the choice.
  */
-export function DailySupport({ view }: { readonly view: DailySupportView }) {
-  return <DailyAdvice key={view.day} view={view} />;
+export interface DailySupportUrge {
+  /** The timer that is still running, if any. */
+  readonly running: UrgeSession | null;
+  readonly now: Instant;
+  readonly onOpen: () => void;
 }
 
-function DailyAdvice({ view }: { readonly view: DailySupportView }) {
+export function DailySupport({ view, urge }: { readonly view: DailySupportView; readonly urge?: DailySupportUrge }) {
+  return <DailyAdvice key={view.day} view={view} urge={urge} />;
+}
+
+function DailyAdvice({ view, urge }: { readonly view: DailySupportView; readonly urge?: DailySupportUrge }) {
   const headingId = useId();
   const [picked, setPicked] = useState<SupportArea | null>(null);
   const shown = picked ?? view.defaultArea;
@@ -63,6 +74,15 @@ function DailyAdvice({ view }: { readonly view: DailySupportView }) {
           ) : null}
           <p className="body advice-first-step" data-testid="advice-action">{action}</p>
           {section.triggerLine !== null ? <p className="meta" data-testid="advice-trigger">{section.triggerLine}</p> : null}
+          {/* The moment tool: a delay timer that belongs to the day, not to one
+              topic, so it stays reachable whatever guide is on screen. */}
+          {urge !== undefined ? (
+            <button type="button" className="cta-secondary urge-open" data-testid="open-ride-it-out" onClick={urge.onOpen}>
+              {urge.running === null
+                ? RIDE_IT_OUT.open
+                : RIDE_IT_OUT.runningCta(formatUrgeRemaining(urgeRemainingMs(urge.running, urge.now)))}
+            </button>
+          ) : null}
           {section.fallbackLine !== null ? <p className="meta" data-testid="advice-fallback">{section.fallbackLine}</p> : null}
           <h5 className="section-subheading" data-testid="advice-why-title">{ADVICE_PICKER.why}</h5>
           <p className="body advice-why" data-testid="advice-why">{guide.explanation}</p>

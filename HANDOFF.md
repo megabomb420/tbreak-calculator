@@ -1,4 +1,4 @@
-# Handoff — T-Break Calculator 0.38.0
+# Handoff — T-Break Calculator 1.0.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
 Live app: https://megabomb420.github.io/tbreak-calculator/ · mirror: https://tbreak-calculator.pages.dev/ (Cloudflare Pages; the two origins do not share device data)
@@ -15,9 +15,22 @@ Today and History are the two destinations. Starting a plan is a flow opened fro
 
 **The advice is deeper and source-grounded.** Eleven topics, each with 5–8 practical steps drawn from reviewed sources: the NSW Health quitting guide and Turning Point for urge management (delay, distract, breathe, drink water) and sleep timing, CAMH for removing paraphernalia, structure and the realistic mood timeline, NHS Every Mind Matters for sleep hygiene, healthdirect for breathing and relaxation, NHS 5 steps for activity and connection, NIDA for the symptom list. Medication, dosing, supplement and detox-product content in those sources is deliberately not reproduced. No source read offers a technique specific to vivid dreams, so the app describes them and points back to sleep care rather than inventing one.
 
+**The day has a tool, not only advice.** **Ride it out** sits in the day's advice card: a delay timer (5/10/15 minutes) that runs from a stored start instant, keeps running when the sheet is closed, and records only how the minutes went. It is the app's one real-time surface, and it exists because advice about a craving is not the same as something to do with one.
+
+**One reminder, and it says what it can do.** A local time in Settings; Today shows one line when the time has passed without a check-in, and the app may raise one local notification per day while it is alive. No server, no push: the copy says a closed app cannot be woken.
+
 **Experiences follow the topic on screen.** The cards tagged with the selected topic lead, then the rest of the stage's cards, capped at eight so the position dots stay tappable; the rotation is day to day and a stored legacy rating still lifts its own topic first.
 
 One-tap check-ins with persistent Undo, **Manage break → Update last use**, the cut-down tracker and its session log, History's dated groups, the backup/restore contract and the viewport sizing rule are unchanged from 0.37.0; browser zoom is no longer one of them (it is locked, see below), and the stored support topics are part of the product again (see the support sheet below).
+
+## Release 1.0.0 — the tools a bad evening needs
+
+0.38.0 made the app honest and coherent. 1.0.0 adds the three things it was still missing as a companion rather than a planner: something to do in the moment, a nudge at the right time, and content that survives past the first month.
+
+- **Ride it out: the delay timer.** A new tool in the day's advice card — always visible there, labelled with the time left while a timer runs. It asks how long the person will wait (5 / 10 / 15 minutes), counts down from the stored start instant, and afterwards records only how those minutes went (**Easier** / **Still there**). Closing the sheet keeps the timer running and reopening resumes it; **Stop the timer** deletes the row, so a stopped timer leaves no trace anywhere; a timer nobody finished is pruned two hours after its own end. The running view shows the person's own replacement action and three of the craving guide's existing delay/distract/breathe steps, in the guide's own words — no new claims were written for this screen, and `domain/urges/urge-session.ts` is pure and never interprets a session. Backed by `urge-sessions-v1` (new backup family, new IndexedDB store, schema 2); finished sittings appear in History under **Urges you sat with** and can be deleted.
+- **The check-in reminder.** Settings gains **Check-in reminder**: a switch and one local time, off until set, written immediately. Once the time has passed with no check-in in the current break day, Today shows one quiet line naming it, right above the state card; it clears itself when the check-in is recorded and never needs dismissing. The rule reuses the same "today" the check-in card uses (the current abstinence day, not the calendar day), so the two can never disagree. The app can also raise **one local notification per local day** while it is open or running in the background — and the setting says so, including that a closed app cannot be woken, because there is no server and no push subscription. Stored as `checkin-reminder-v1`, backed up with everything else.
+- **The later weeks.** The 28-day sequence used to be followed by a seven-entry rotation, which meant week one repeated every week after day 28. Days 29–56 and day 57 onward now have their own eight prompts each, written for a longer abstinence and staying inside the sources already reviewed for the guides; a 90-day break has a practice and an evidence window on every day of it. `daily-support-v6` → `v7`.
+- **Version 1.0.0** across the package, the lockfile, About, the README, ARCHITECTURE, EVIDENCE_CONTENT_SPEC and CALCULATOR_SPEC. The earlier release notes keep their original version strings.
 
 ## Release 0.38.0 — the honest result, and advice worth reading
 

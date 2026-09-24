@@ -9,7 +9,7 @@ import type { BreakPreparation } from '../break/preparation.ts';
 import { triggerLabel } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v6';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v7';
 
 /** How many accounts the carousel holds. Enough that a picked topic has
  * company, few enough that the position dots stay tappable. */
@@ -255,7 +255,40 @@ const DAILY_PRACTICES: readonly { area: SupportArea; title: string; action: stri
   { area: 'routine', title: 'Review what the break gave you', action: 'Look at your own records and decide your next step. A day count alone cannot tell you how THC will feel.' },
 ];
 
-const MAINTENANCE_PRACTICES = [DAILY_PRACTICES[8]!, DAILY_PRACTICES[10]!, DAILY_PRACTICES[11]!, DAILY_PRACTICES[17]!, DAILY_PRACTICES[21]!, DAILY_PRACTICES[24]!, DAILY_PRACTICES[26]!];
+// The 28-day sequence ends; a longer abstinence still needs something to do
+// on day 40 and day 90. These are written for the later stretch rather than
+// repeating week one, and they are still scheduled prompts — not a claim that
+// anything changes on a particular day.
+const SETTLED_PRACTICES: readonly { area: SupportArea; title: string; action: string }[] = [
+  { area: 'routine', title: 'Keep the changes that are working', action: 'Name two changes worth keeping — a sleep time, an evening routine, a way of handling stress — and keep them on purpose.' },
+  { area: 'cravings', title: 'Re-check the risk moments', action: 'Notice which situations still pull hardest, and decide now what you will do in the next one.' },
+  { area: 'low_mood', title: 'Put something in the week to look forward to', action: 'Choose one thing that has nothing to do with using or not using, and put it in the calendar.' },
+  { area: 'boredom', title: 'Start something that takes practice', action: 'Pick an activity that needs a few sessions before it is any good: a skill, a route, a recipe.' },
+  { area: 'sleep', title: 'Protect the sleep you have gained', action: 'Keep the same wake-up time, including at the weekend.' },
+  { area: 'routine', title: 'Tell one person the plan', action: 'Say what you are doing to someone who will notice if you go quiet.' },
+  { area: 'anxiety', title: 'Keep a short note of the hard days', action: 'Write down what was happening on the difficult days, so a pattern is visible instead of guessed at.' },
+  { area: 'appetite', title: 'Keep meals roughly regular', action: 'Eat at about the same times as in the weeks before.' },
+];
+
+const LONGER_PRACTICES: readonly { area: SupportArea; title: string; action: string }[] = [
+  { area: 'routine', title: 'Decide what this break is for now', action: 'If the original goal is behind you, choose what the next step is. If it is not, choose how long to continue.' },
+  { area: 'cravings', title: 'Keep the plan for the situations you cannot avoid', action: 'Keep your if-then response ready: who will be there, what you will say, when you will leave.' },
+  { area: 'boredom', title: 'Keep one thing that is not a substitute', action: 'Keep something you do for its own sake, with people or in a place you like.' },
+  { area: 'low_mood', title: 'Expect flat days to still happen', action: 'A flat day is a day, not a verdict on the break. Keep the routine and the plans you already have.' },
+  { area: 'cravings', title: 'Know that a late urge is still just an urge', action: 'An urge after several quiet weeks does not undo the break. The same plan works: delay, distract, change the setting.' },
+  { area: 'routine', title: 'Write down your limits before any return', action: 'If you plan to use again, decide the amount, the frequency and the situation beforehand rather than in the moment.' },
+  { area: 'sleep', title: 'Keep the wake time going', action: 'A steady wake-up time is the most portable habit from a break.' },
+  { area: 'anxiety', title: 'Keep the short daily review', action: 'Keep checking in with yourself for a few minutes a day, break or no break.' },
+];
+
+/** The day's own practice for a break longer than the 28-day sequence. */
+function practiceForDay(day: number): { readonly area: SupportArea; readonly title: string; readonly action: string } {
+  if (day <= DAILY_PRACTICES.length) return DAILY_PRACTICES[day - 1]!;
+  const settled = day <= 56;
+  const rows = settled ? SETTLED_PRACTICES : LONGER_PRACTICES;
+  const offset = settled ? day - DAILY_PRACTICES.length - 1 : day - 57;
+  return rows[offset % rows.length]!;
+}
 
 export interface CommunityTip {
   readonly id: string;
@@ -408,7 +441,7 @@ export function adviceSectionFor(view: DailySupportView, area: SupportArea): Adv
 export function presentDailySupport(input: DailySupportInput): DailySupportView {
   const day = Math.max(1, Math.floor(input.day));
   const window = primaryWindowForDay(day);
-  const practice = day <= 28 ? DAILY_PRACTICES[day - 1]! : MAINTENANCE_PRACTICES[(day - 29) % MAINTENANCE_PRACTICES.length]!;
+  const practice = practiceForDay(day);
   const currentCheckins = input.anchor === null ? [] : input.checkins.filter(row => {
     const time = Date.parse(row.recordedAt);
     return Number.isFinite(time) && time >= input.anchor! && time <= input.now && !row.usedThc;

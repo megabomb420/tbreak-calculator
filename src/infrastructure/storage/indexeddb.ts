@@ -57,6 +57,14 @@ import { createCheckinsStore } from '../../application/progress/checkin-store.ts
 import { createCalculationRecordsStore } from '../../application/persistence/calculation-record.ts';
 import { createPreviousBreaksStore } from '../../application/persistence/previous-break-store.ts';
 import { isRecord } from '../../application/progress/record-codec.ts';
+import {
+  isValidUrgeSession,
+  type UrgeSession,
+} from '../../application/progress/urge-session-record.ts';
+import {
+  isValidCheckinReminder,
+  type CheckinReminderRecord,
+} from '../../application/progress/reminder-store.ts';
 
 export const STORES = [
   'meta',
@@ -69,6 +77,7 @@ export const STORES = [
   'reductionPlans',
   'reductionRecords',
   'breakOutcomes',
+  'urgeSessions',
   'profiles',
   'settings',
   'corruptRecords',
@@ -320,6 +329,8 @@ function storeForKind(kind: HistoryRecordKind): StoreName | null {
       return 'previousBreaks';
     case 'reduction':
       return 'reductionRecords';
+    case 'urge':
+      return 'urgeSessions';
     case 'corrupt':
       return 'corruptRecords';
   }
@@ -350,6 +361,8 @@ function withoutOwnerRecord(snapshot: DurableSnapshot, store: StoreName | null, 
       return { ...snapshot, postBreakPlans: snapshot.postBreakPlans.filter((item) => item.id !== id) };
     case 'breakOutcomes':
       return { ...snapshot, outcomeMarks: snapshot.outcomeMarks.filter((item) => item.attemptId !== id) };
+    case 'urgeSessions':
+      return { ...snapshot, urgeSessions: snapshot.urgeSessions.filter((item) => item.id !== id) };
     default:
       return snapshot;
   }
@@ -362,6 +375,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
   const calculations = await loadStore(backend, 'calculations', isValidCalculationRecord, 'calculation');
   const postBreakPlans = await loadStore(backend, 'postBreakPlans', isValidStoredPostBreakPlan, 'attempt');
   const reductionRecords = await loadStore(backend, 'reductionRecords', isValidReductionPlan, 'reduction');
+  const urgeSessions = await loadStore(backend, 'urgeSessions', isValidUrgeSession, 'urge');
   const checkinRows = await backend.getAll('checkins');
   const checkins: DailyCheckin[] = [];
   const corrupt: CorruptHistoryRow[] = [
@@ -371,6 +385,7 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     ...calculations.corrupt,
     ...postBreakPlans.corrupt,
     ...reductionRecords.corrupt,
+    ...urgeSessions.corrupt,
   ];
   const outcomeRows = await backend.getAll('breakOutcomes');
   const outcomeMarks: OutcomeMark[] = [];
@@ -410,6 +425,10 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     snapshotPayload !== undefined && isRecord(snapshotPayload) && snapshotPayload.schemaVersion === 'questionnaire-snapshot-v1'
       ? (snapshotPayload as unknown as QuestionnaireSnapshotRecord)
       : null;
+  const settingsRows = await backend.getAll('settings');
+  const reminderRow = settingsRows.find((row) => isRecord(row) && row.id === 'checkin-reminder');
+  const reminderPayload = isRecord(reminderRow) && 'payload' in reminderRow ? reminderRow.payload : reminderRow;
+  const reminder: CheckinReminderRecord | null = isValidCheckinReminder(reminderPayload) ? reminderPayload : null;
   const reductionRows = await backend.getAll('reductionPlans');
   const reductionPayload = reductionRows[0];
   const inner = isRecord(reductionPayload) && 'payload' in reductionPayload ? reductionPayload.payload : reductionPayload;
@@ -424,6 +443,8 @@ export async function hydrateIndexedDbDurable(backend: IndexedDbBackend): Promis
     reductionPlan,
     reductionRecords: reductionRecords.records as ReductionPlan[],
     outcomeMarks,
+    urgeSessions: urgeSessions.records as UrgeSession[],
+    reminder,
     snapshot,
     calculations: calculations.records,
     previousBreaks: previousBreaks.records,
@@ -542,6 +563,33 @@ export function createIndexedDbDurable(backend: IndexedDbBackend, initial: Durab
             ops.put('breakOutcomes', wrap(mark.attemptId, mark));
           }
         });
+      });
+    },
+    saveReminder(record) {
+      cache = { ...cache, reminder: record };
+      enqueue(async () => {
+        await backend.write(['settings'], (ops) => {
+          ops.clear('settings');
+          if (record !== null) ops.put('settings', wrap('checkin-reminder', record));
+        });
+      });
+    },
+    saveUrgeSessions(sessions) {
+      cache = { ...cache, urgeSessions: [...sessions] };
+      const snapshot = cache;
+      enqueue(async () => {
+        await backend.write(['urgeSessions'], (ops) => {
+          ops.clear('urgeSessions');
+          for (const session of snapshot.urgeSessions) {
+            ops.put('urgeSessions', wrap(session.id, session));
+          }
+        });
+      });
+    },
+    deleteUrgeSession(id) {
+      cache = { ...cache, urgeSessions: cache.urgeSessions.filter((item) => item.id !== id) };
+      enqueue(async () => {
+        await backend.delete('urgeSessions', id);
       });
     },
     deleteReductionPlan(id) {

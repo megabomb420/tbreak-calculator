@@ -53,6 +53,30 @@ test('no chosen topics leaves the day’s own practice exactly as it was', () =>
   assert.deepEqual(withEmpty, withoutField);
   assert.equal(withEmpty.defaultArea, 'cravings');
 });
+test('days beyond the 28-day sequence get their own practices, not the first month again', () => {
+  const practice = (day: number) => presentDailySupport({ ...base, day }).practice;
+  const week = (from: number) => Array.from({ length: 7 }, (_, i) => practice(from + i).title);
+  const opening = new Set(Array.from({ length: 7 }, (_, i) => practice(i + 1).title));
+  const settled = week(29);
+  const longer = week(57);
+  // A week of each later stretch never repeats itself…
+  assert.equal(new Set(settled).size, 7);
+  assert.equal(new Set(longer).size, 7);
+  // …and none of it is the opening week's material recycled.
+  assert.equal(settled.some((title) => opening.has(title)), false);
+  assert.equal(longer.some((title) => opening.has(title)), false);
+  assert.deepEqual(longer.filter((title) => settled.includes(title)), []);
+});
+
+test('a break of any length still has a practice and a stage', () => {
+  for (const day of [1, 28, 29, 45, 56, 57, 90, 365]) {
+    const view = presentDailySupport({ ...base, day, targetDays: null });
+    assert.ok(view.practice.title.length > 0, `day ${day} has a practice title`);
+    assert.ok(view.practice.action.length > 20, `day ${day} has a practice action`);
+    assert.ok(view.window.id.length > 0, `day ${day} has an evidence window`);
+  }
+});
+
 test('a comfortable rating alone raises no topic and keeps the day’s practice', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0 })] });
   assert.deepEqual(view.selections, []);

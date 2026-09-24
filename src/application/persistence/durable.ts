@@ -37,6 +37,17 @@ import {
 } from '../progress/reduction-record.ts';
 import type { ReductionPlan } from '../../domain/reduction/reduction-engine.ts';
 import {
+  createCheckinReminderStore,
+  CHECKIN_REMINDER_KEY,
+  type CheckinReminderRecord,
+} from '../progress/reminder-store.ts';
+import {
+  createUrgeSessionsStore,
+  emptyUrgeSessionsRecord,
+  URGE_SESSIONS_KEY,
+  type UrgeSession,
+} from '../progress/urge-session-record.ts';
+import {
   createBreakOutcomeStore,
   emptyBreakOutcomeEnvelope,
   BREAK_OUTCOME_KEY,
@@ -72,7 +83,9 @@ import {
 import { checkinRecordId } from './ids.ts';
 
 export const DURABLE_IDB_NAME = 'tbreak-calculator';
-export const DURABLE_IDB_VERSION = 1;
+// 2 adds the urgeSessions store; a missing store is created on upgrade and
+// every existing family keeps its rows.
+export const DURABLE_IDB_VERSION = 2;
 export const MIGRATION_MARKER_KEY = 'tbreak.durable-migration.v1';
 
 /** Web Storage keys owned by this app. Delete-everything removes only these. */
@@ -94,6 +107,8 @@ export const LOCAL_DATA_KEYS = [
   PREVIOUS_BREAKS_KEY,
   POST_BREAK_PLANS_KEY,
   BREAK_OUTCOME_KEY,
+  URGE_SESSIONS_KEY,
+  CHECKIN_REMINDER_KEY,
   MIGRATION_MARKER_KEY,
 ] as const;
 
@@ -118,6 +133,7 @@ export type HistoryRecordKind =
   | 'checkin'
   | 'previous-break'
   | 'reduction'
+  | 'urge'
   | 'corrupt';
 
 export interface CorruptHistoryRow {
@@ -139,6 +155,8 @@ export interface DurableSnapshot {
   readonly reductionPlan: ReductionPlanRecord | null;
   readonly reductionRecords: readonly ReductionPlan[];
   readonly outcomeMarks: readonly OutcomeMark[];
+  readonly urgeSessions: readonly UrgeSession[];
+  readonly reminder: CheckinReminderRecord | null;
   readonly snapshot: QuestionnaireSnapshotRecord | null;
   readonly calculations: readonly CalculationRecord[];
   readonly previousBreaks: readonly StoredPreviousBreak[];
@@ -161,6 +179,8 @@ export interface DurablePersistence {
   saveReductionPlan(plan: ReductionPlanRecord | null): void;
   saveReductionRecords(records: readonly ReductionPlan[]): void;
   saveOutcomeMarks(marks: readonly OutcomeMark[]): void;
+  saveUrgeSessions(sessions: readonly UrgeSession[]): void;
+  saveReminder(record: CheckinReminderRecord | null): void;
   saveSnapshot(record: QuestionnaireSnapshotRecord | null): void;
   putCalculation(record: CalculationRecord): void;
   deleteCalculation(id: string): void;
@@ -169,6 +189,7 @@ export interface DurablePersistence {
   deleteAttempt(id: string): void;
   deleteTracking(id: string): void;
   deleteCheckin(id: string): void;
+  deleteUrgeSession(id: string): void;
   deleteReductionPlan(id: string): void;
   deleteCorrupt(id: string): void;
   deleteAll(): void;
@@ -183,6 +204,8 @@ export function emptyDurableSnapshot(): DurableSnapshot {
     reductionPlan: null,
     reductionRecords: [],
     outcomeMarks: [],
+    urgeSessions: [],
+    reminder: null,
     snapshot: null,
     calculations: [],
     previousBreaks: [],
@@ -221,6 +244,8 @@ export function createWebBackedDurable(
   const reductionStore = createReductionPlanStore(adapter);
   const reductionRecordsStore = createReductionRecordsStore(adapter);
   const outcomeStore = createBreakOutcomeStore(adapter);
+  const urgeStore = createUrgeSessionsStore(adapter);
+  const reminderStore = createCheckinReminderStore(adapter);
   const snapshots = createQuestionnaireSnapshotStore(adapter);
   const calculationsStore = createCalculationRecordsStore(adapter);
   const previousBreaksStore = createPreviousBreaksStore(adapter);
@@ -232,6 +257,8 @@ export function createWebBackedDurable(
     const attempts = attemptsStore.load();
     const tracking = trackingStore.load();
     const checkins = checkinsStore.load();
+    const urgeSessions = urgeStore.load();
+    const reminder = reminderStore.load();
     const calculations = calculationsStore.load();
     const previousBreaks = previousBreaksStore.load();
     const postBreakPlans = postBreakPlansStore.load();
@@ -247,6 +274,8 @@ export function createWebBackedDurable(
       reductionPlan: reductionStore.load(),
       reductionRecords: reductionRecordsStore.load().plans,
       outcomeMarks: outcomeStore.load().marks,
+      urgeSessions: urgeSessions.sessions,
+      reminder,
       snapshot,
       calculations: calculations.records,
       previousBreaks: previousBreaks.records,
@@ -306,6 +335,18 @@ export function createWebBackedDurable(
         outcomeStore.save(next);
       });
     },
+    saveUrgeSessions(sessions) {
+      const next = { ...emptyUrgeSessionsRecord(), sessions: [...sessions] };
+      write(() => {
+        urgeStore.save(next);
+      });
+    },
+    saveReminder(record) {
+      write(() => {
+        if (record === null) reminderStore.clear();
+        else reminderStore.save(record);
+      });
+    },
     saveSnapshot(record) {
       write(() => {
         if (record === null) snapshots.clear();
@@ -361,6 +402,10 @@ export function createWebBackedDurable(
     deleteCheckin(id) {
       const current = load();
       api.saveCheckins(current.checkins.filter((item) => checkinRecordId(item.recordedAt) !== id));
+    },
+    deleteUrgeSession(id) {
+      const current = load();
+      api.saveUrgeSessions(current.urgeSessions.filter((item) => item.id !== id));
     },
     deleteCorrupt(id) {
       // An id is unique inside its family, never across families: only the
@@ -457,6 +502,9 @@ export function deleteHistoryRecord(durable: DurablePersistence, kind: HistoryRe
       return;
     case 'previous-break':
       durable.deletePreviousBreak(id);
+      return;
+    case 'urge':
+      durable.deleteUrgeSession(id);
       return;
     case 'corrupt':
       durable.deleteCorrupt(id);

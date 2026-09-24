@@ -59,6 +59,15 @@ export const SETTINGS = {
   storageOk: 'Saving on this device.',
   storageWriteFailed: 'The latest change may not have been saved on this device.',
   storageUnavailable: "This session can't be saved — results will vanish when you close the app.",
+  reminderTitle: 'Check-in reminder',
+  reminderOn: 'Remind me to check in',
+  reminderTimeLabel: 'Around',
+  reminderNote:
+    'T-Break reminds you inside the app once the time has passed and today has no check-in yet. While it is open or running in the background it can also send one notification, if you allow notifications; a closed app cannot.',
+  reminderBlocked: 'Notifications are blocked in this browser, so the reminder shows inside the app only.',
+  reminderGrant: 'Allow notifications',
+  reminderGranted: 'Notifications are allowed on this device.',
+  reminderToday: 'Check-in reminder',
   appInfoTitle: 'About',
   appInfoVersion: 'T-Break Calculator',
   scienceAction: "What's the science behind this calculator?",
@@ -101,6 +110,8 @@ export const BACKUP_STORE_LABELS = {
   reductionRecords: 'Cutting-down plans',
   reductionPlan: 'Saved limits',
   outcomeMarks: 'Break ratings',
+  urgeSessions: 'Urges you sat with',
+  reminder: 'Check-in reminder',
   companionPersonalisation: 'Support areas',
 } satisfies Record<BackupStoreKey, string>;
 

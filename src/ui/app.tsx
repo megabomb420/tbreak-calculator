@@ -1,6 +1,6 @@
 import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { presentSavedResult, savedUseProfile } from '../application/calculation/saved-result.ts';
-import { useEffect, useMemo, useReducer, useState } from 'preact/hooks';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { answersFromSnapshot } from '../application/calculation/answers-from-snapshot.ts';
 import { runCalculation } from '../application/calculation/run-calculation.ts';
 import {
@@ -106,6 +106,24 @@ import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.t
 import { BreakStartSheet } from './break-start-sheet.tsx';
 import { NewPlanSheet } from './new-plan-sheet.tsx';
 import { SupportAreasSheet } from './support-areas-sheet.tsx';
+import { RideItOut } from './ride-it-out.tsx';
+import {
+  CHECKIN_REMINDER_SCHEMA_VERSION,
+  type CheckinReminderRecord,
+} from '../application/progress/reminder-store.ts';
+import { isCheckinReminderDue } from '../domain/reminders/checkin-reminder.ts';
+import { requestNotificationPermission, showLocalNotification } from './notifications.ts';
+import {
+  pruneUrgeSessions,
+  type UrgeOutcome,
+  type UrgeSession,
+} from '../application/progress/urge-session-record.ts';
+import {
+  finishUrgeSession,
+  openUrgeSession,
+  startUrgeSession,
+  summariseUrgeSessions,
+} from '../domain/urges/urge-session.ts';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -220,6 +238,9 @@ export function App({
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
   const [scienceOpen, setScienceOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [urgeOpen, setUrgeOpen] = useState(false);
+  /** The session the open timer is about; null means "whichever is running". */
+  const [urgeFocusId, setUrgeFocusId] = useState<string | null>(null);
   const [supportOverride, setSupportOverride] = useState<readonly SupportArea[] | null>(null);
   const [previousBreakRevision, setPreviousBreakRevision] = useState(0);
   const [scienceFromSettings, setScienceFromSettings] = useState(false);
@@ -367,8 +388,45 @@ export function App({
       ? (profileCalculation !== null ? presentSavedResult(profileCalculation, now) : runCalculation(profileSnapshot.snapshot, profileSnapshot.updatedAt))
       : null;
 
+  const urgeSessions = durableSnap.urgeSessions;
+  const runningUrge = openUrgeSession(urgeSessions, now);
+  const reminder = durableSnap.reminder;
+  const urgeFocus = urgeSessions.find((session) => session.id === urgeFocusId) ?? null;
+  // A countdown needs a second-by-second clock, unlike the day counter.
+  const urgeTickKey = runningUrge?.id ?? null;
+  useEffect(() => {
+    if (clock !== systemClock) return;
+    if (urgeTickKey === null && !urgeOpen) return;
+    const id = window.setInterval(() => setNow(clock.now()), 1_000);
+    return () => window.clearInterval(id);
+  }, [clock, urgeTickKey, urgeOpen]);
+
   const liveAttempt = currentLiveAttempt(sessionState.attempts);
   const liveTracking = currentLiveTracking(sessionState.tracking);
+  // The reminder asks the same question the check-in card answers: is today
+  // recorded in the segment that is running now?
+  const liveAnchor = liveAttempt !== null
+    ? currentSegmentAnchor(liveAttempt.segments)
+    : liveTracking !== null
+      ? currentSegmentAnchor(liveTracking.segments)
+      : null;
+  const reminderDue =
+    (view.primary === 'active-break' || view.primary === 'abstinence-tracking')
+    && isCheckinReminderDue({
+      enabled: reminder?.enabled ?? false,
+      time: reminder?.time ?? null,
+      now,
+      checkedInToday: latestTodayCheckin(sessionState.checkins, liveAnchor, now) >= 0,
+    });
+  // One notification per local day, and only when the person allowed them.
+  const notifiedDay = useRef<string | null>(null);
+  useEffect(() => {
+    if (!reminderDue) return;
+    const day = new Date(now).toDateString();
+    if (notifiedDay.current === day) return;
+    notifiedDay.current = day;
+    showLocalNotification('T-Break', 'Time to check in for today.', 'tbreak-checkin');
+  }, [reminderDue, now]);
   const scheduled = liveAttempt?.status === 'planned' ? liveAttempt : null;
   const anchor = profileAnchor(companionSnapshot);
   const activeView = liveAttempt !== null && liveAttempt.status === 'active' ? activeBreakView(liveAttempt, now) : null;
@@ -451,6 +509,53 @@ export function App({
     setSupportOverride(saved.supportAreas);
     setSupportOpen(false);
     refresh();
+  }
+
+  function saveReminder(next: CheckinReminderRecord): void {
+    if (!tryWrite(() => durable.saveReminder(next))) return;
+    // A reminder is only useful with notifications allowed; asking here is the
+    // gesture the platform requires, and a refusal changes nothing else.
+    if (next.enabled) void requestNotificationPermission();
+    refresh();
+  }
+
+  function writeUrgeSessions(next: readonly UrgeSession[]): boolean {
+    return tryWrite(() => durable.saveUrgeSessions(pruneUrgeSessions(next, clock.now())));
+  }
+
+  function startUrge(minutes: number): void {
+    const nowAt = clock.now();
+    const started = startUrgeSession(newRecordId('urge', nowAt), minutes, nowAt);
+    // One timer at a time: a running one is replaced, not stacked.
+    const rest = urgeSessions.filter((session) => session.endedAt !== null);
+    if (!writeUrgeSessions([started, ...rest])) return;
+    setUrgeFocusId(started.id);
+    refresh();
+  }
+
+  function finishUrge(outcome: UrgeOutcome): void {
+    const target = urgeFocus ?? runningUrge;
+    if (target === null) return;
+    const nowAt = clock.now();
+    const finished = finishUrgeSession(target, outcome, nowAt);
+    if (!writeUrgeSessions(urgeSessions.map((session) => (session.id === finished.id ? finished : session)))) return;
+    setUrgeFocusId(finished.id);
+    refresh();
+  }
+
+  /** Stopping is not an outcome: the row leaves no trace at all. */
+  function stopUrge(): void {
+    const target = urgeFocus ?? runningUrge;
+    setUrgeOpen(false);
+    setUrgeFocusId(null);
+    if (target === null) return;
+    if (!writeUrgeSessions(urgeSessions.filter((session) => session.id !== target.id))) return;
+    refresh();
+  }
+
+  function closeUrge(): void {
+    setUrgeOpen(false);
+    setUrgeFocusId(null);
   }
 
   function snapshotRunId(): string | null {
@@ -1222,7 +1327,7 @@ export function App({
       : null;
 
   const overlayOpen =
-    session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null || supportOpen;
+    session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null || supportOpen || urgeOpen;
   // One passive notice at a time: a storage problem outranks the install hint.
   const showInstallHint =
     !overlayOpen &&
@@ -1271,6 +1376,8 @@ export function App({
             onOpenNewPlan={() => setFlow({ kind: 'new-plan' })}
             supportAreas={supportAreas}
             onChangeSupport={() => setSupportOpen(true)}
+            urge={{ running: runningUrge, now, onOpen: () => { setUrgeFocusId(null); setUrgeOpen(true); } }}
+            reminder={{ due: reminderDue, time: reminder?.time ?? null }}
             live={liveData}
             profile={profileData}
             onStartOver={abandonDraft}
@@ -1371,6 +1478,22 @@ export function App({
           onClose={() => setSupportOpen(false)}
         />
       ) : null}
+      {urgeOpen ? (
+        <RideItOut
+          session={urgeFocus ?? runningUrge}
+          now={now}
+          replacement={
+            liveAttempt?.preparation?.replacementAction?.trim()
+            ?? liveTracking?.preparation?.replacementAction?.trim()
+            ?? ''
+          }
+          summary={summariseUrgeSessions(urgeSessions, now)}
+          onStart={startUrge}
+          onFinish={finishUrge}
+          onStop={stopUrge}
+          onClose={closeUrge}
+        />
+      ) : null}
       {openFlow !== null && openFlow.kind === 'new-plan' ? (
         <NewPlanSheet
           draft={draft}
@@ -1459,6 +1582,8 @@ export function App({
         open={shell.settingsOpen}
         persistent={persistent}
         storageWriteFailed={storageWriteFailed}
+        reminder={reminder}
+        onSaveReminder={saveReminder}
         updateStatus={updateStatus}
         onUpdateNow={() => onUpdateNow?.()}
         onOpenScience={() => {

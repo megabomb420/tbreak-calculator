@@ -7,6 +7,12 @@ import {
 } from '../application/settings/settings.ts';
 import type { BackupCount, BackupError } from '../application/backup/backup.ts';
 import { backupCountLines, backupErrorMessage, SETTINGS } from './copy.ts';
+import {
+  CHECKIN_REMINDER_SCHEMA_VERSION,
+  type CheckinReminderRecord,
+} from '../application/progress/reminder-store.ts';
+import { DEFAULT_REMINDER_TIME } from '../domain/reminders/checkin-reminder.ts';
+import { notificationSupport, requestNotificationPermission } from './notifications.ts';
 import { CloseIcon } from './icons.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { useFocusTrap } from './focus-trap.ts';
@@ -42,6 +48,9 @@ export interface SettingsModalProps {
   readonly onExportData: () => void;
   /** Opens the file picker and validates the chosen backup. */
   readonly onRestoreData: () => void;
+  /** The stored check-in reminder, and how it is changed. */
+  readonly reminder?: CheckinReminderRecord | null;
+  readonly onSaveReminder?: (record: CheckinReminderRecord) => void;
   readonly backupStatus?: BackupStatus | null;
   readonly pendingRestore?: PendingRestore | null;
   readonly onConfirmRestore: () => void;
@@ -59,6 +68,8 @@ export function SettingsModal({
   onDeleteEverything,
   onExportData,
   onRestoreData,
+  reminder,
+  onSaveReminder,
   backupStatus,
   pendingRestore,
   onConfirmRestore,
@@ -114,6 +125,8 @@ export function SettingsModal({
               onDeleteEverything={onDeleteEverything}
               onExportData={onExportData}
               onRestoreData={onRestoreData}
+              reminder={reminder}
+              onSaveReminder={onSaveReminder}
               backupStatus={backupStatus}
               pendingRestore={pendingRestore}
               onConfirmRestore={onConfirmRestore}
@@ -136,6 +149,8 @@ function SettingsEntry({
   onDeleteEverything,
   onExportData,
   onRestoreData,
+  reminder,
+  onSaveReminder,
   backupStatus,
   pendingRestore,
   onConfirmRestore,
@@ -150,6 +165,9 @@ function SettingsEntry({
   readonly onDeleteEverything: () => void;
   readonly onExportData: () => void;
   readonly onRestoreData: () => void;
+  /** The stored check-in reminder, and how it is changed. */
+  readonly reminder?: CheckinReminderRecord | null;
+  readonly onSaveReminder?: (record: CheckinReminderRecord) => void;
   readonly backupStatus?: BackupStatus | null;
   readonly pendingRestore?: PendingRestore | null;
   readonly onConfirmRestore: () => void;
@@ -176,6 +194,52 @@ function SettingsEntry({
           </p>
         </section>
       );
+    case 'checkin-reminder': {
+      const enabled = reminder?.enabled ?? false;
+      const time = reminder?.time ?? DEFAULT_REMINDER_TIME;
+      const save = (next: { readonly enabled: boolean; readonly time: string | null }): void => {
+        onSaveReminder?.({ schemaVersion: CHECKIN_REMINDER_SCHEMA_VERSION, ...next });
+      };
+      const notifications = notificationSupport();
+      return (
+        <section className="settings-entry" data-settings-entry="checkin-reminder">
+          <h3 className="settings-entry-title">{SETTINGS.reminderTitle}</h3>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              data-testid="reminder-enabled"
+              checked={enabled}
+              onChange={(event) => save({ enabled: event.currentTarget.checked, time })}
+            />
+            <span>{SETTINGS.reminderOn}</span>
+          </label>
+          <label className="settings-time">
+            <span className="meta">{SETTINGS.reminderTimeLabel}</span>
+            <input
+              type="time"
+              data-testid="reminder-time"
+              value={time}
+              onChange={(event) => save({ enabled, time: event.currentTarget.value })}
+            />
+          </label>
+          <p className="meta" data-testid="reminder-note">{SETTINGS.reminderNote}</p>
+          {notifications === 'unsupported' || notifications === 'denied' ? (
+            <p className="meta" data-testid="reminder-blocked">{SETTINGS.reminderBlocked}</p>
+          ) : notifications === 'prompt' ? (
+            <button
+              type="button"
+              className="cta-secondary"
+              data-testid="reminder-grant"
+              onClick={() => { void requestNotificationPermission(); }}
+            >
+              {SETTINGS.reminderGrant}
+            </button>
+          ) : (
+            <p className="meta" data-testid="reminder-granted">{SETTINGS.reminderGranted}</p>
+          )}
+        </section>
+      );
+    }
     case 'app-info':
       return (
         <section className="settings-entry" data-settings-entry="app-info">
