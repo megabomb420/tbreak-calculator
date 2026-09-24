@@ -134,8 +134,8 @@ describe('practical Today advice', () => {
     expect(card().getAttribute('data-area')).toBe('nausea');
     expect(screen.getByTestId('support-action').textContent).toContain('small, regular sips');
     const more = within(card()).getByText('More').closest('details')!;
-    fireEvent.click(within(more).getByText('More'));
-    // The full guide, its sources and the seek-help line live inside More only.
+    // The full guide, its sources and the seek-help line are visible by default.
+    expect(more.hasAttribute('open')).toBe(true);
     expect(more.textContent).toContain('Repeated vomiting');
     expect(within(more).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
     expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);

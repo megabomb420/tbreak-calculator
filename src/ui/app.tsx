@@ -1618,7 +1618,6 @@ function FlowRenderer({
           now={now}
           checkins={checkins}
           onBack={onClose}
-          onUpdatePreparation={onUpdatePreparation}
           profile={profile}
         />
       ) : null;

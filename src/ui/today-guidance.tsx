@@ -7,18 +7,17 @@ import type { DailySupportView } from '../application/presentation/daily-support
 /**
  * The daily guidance block every Today state shows: one support card, then the
  * stage it belongs to, the experiences for that stage and the recorded
- * differences — each behind a closed disclosure, so the first screen stays one
- * job and the depth is one tap away.
+ * differences — all visible, so nothing on Today hides behind a disclosure.
  */
 export function DailyGuidance({ support }: { readonly support: DailySupportView }) {
   const comparison = compareCheckins(support.currentCheckins, { breakDay: support.day });
   return (
     <>
       <DailySupport view={support} />
-      <details className="result-disclosure" data-testid="today-stage">
-        <summary>This stage</summary>
+      <section className="result-disclosure today-block" data-testid="today-stage">
+        <h3 className="card-title">This stage</h3>
         <p className="micro-label">{support.window.label} · What to expect</p>
-        <h3 className="card-title" data-testid="guidance-headline">{support.window.headline}</h3>
+        <p className="body" data-testid="guidance-headline">{support.window.headline}</p>
         <p className="body" data-testid="guidance-context">{support.window.context}</p>
         <ul className="guidance-list" data-testid="guidance-may-notice">
           {support.window.mayNotice.map((line) => <li key={line}>{line}</li>)}
@@ -28,16 +27,16 @@ export function DailyGuidance({ support }: { readonly support: DailySupportView 
           <h4>{support.practice.title}</h4>
           <p className="body">{support.practice.action}</p>
         </section>
-      </details>
-      <details className="result-disclosure" data-testid="today-experiences">
-        <summary>Experiences</summary>
+      </section>
+      <section className="result-disclosure today-block" data-testid="today-experiences">
+        <h3 className="card-title">Experiences</h3>
         <CommunityCarousel key={support.day} tips={support.communityTips} initialId={support.communityTip.id} />
-      </details>
+      </section>
       {comparison.available ? (
-        <details className="result-disclosure" data-testid="today-comparison">
-          <summary>Your recorded changes</summary>
+        <section className="result-disclosure today-block" data-testid="today-comparison">
+          <h3 className="card-title">Your recorded changes</h3>
           <CheckinComparisonBlock view={comparison} />
-        </details>
+        </section>
       ) : null}
     </>
   );

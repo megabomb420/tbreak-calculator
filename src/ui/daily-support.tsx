@@ -42,7 +42,7 @@ export function DailySupport({ view }: { readonly view: DailySupportView }) {
         {primary && view.fallbackLine !== null ? (
           <p className="meta" data-testid="support-fallback">{view.fallbackLine}</p>
         ) : null}
-        <details className="advice-details">
+        <details className="advice-details" open>
           <summary>More</summary>
           <GuideContent area={area} skipFirst />
         </details>

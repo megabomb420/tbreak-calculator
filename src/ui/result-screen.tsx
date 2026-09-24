@@ -32,6 +32,7 @@ import { presentCb1Education } from '../application/presentation/break-guidance.
 import { PredictedResetPanel } from './predicted-reset.tsx';
 import { RESET_MODE } from './recovery-copy.ts';
 import { ResultLensHero } from './result-lens.tsx';
+import { ResultModeControl } from './result-mode-control.tsx';
 import { YourPlanGuide } from './your-plan-guide.tsx';
 
 export interface ResultScreenProps {
@@ -119,7 +120,7 @@ export function ResultScreen({
           </button>
           <span className="flow-title">{historical ? "Saved result" : "Your result"}</span>
         </div>
-        {showModeControl ? <ResultModeControl resetMode={resetMode} onChange={setResetMode} /> : null}
+        {showModeControl ? <ResultModeControl scope="result" ariaLabel="Result view" resetMode={resetMode} onChange={setResetMode} /> : null}
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
@@ -217,10 +218,7 @@ function ResultBody({
             <p className="meta">{view.uncertainty}</p>
           </ResultLensHero>
           {view.outlook !== null ? (
-            <details className="result-disclosure" data-testid="plan-stages">
-              <summary>What the days usually feel like</summary>
-              <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
-            </details>
+            <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
           ) : null}
           <YourPlanGuide
             drivers={view.drivers}
@@ -353,84 +351,6 @@ function ResultBody({
         </header>
       );
   }
-}
-
-function ResultModeControl({
-  resetMode,
-  onChange,
-}: {
-  readonly resetMode: boolean;
-  readonly onChange: (reset: boolean) => void;
-}) {
-  const planRef = useRef<HTMLButtonElement>(null);
-  const resetRef = useRef<HTMLButtonElement>(null);
-
-  function select(id: 'plan' | 'reset'): void {
-    onChange(id === 'reset');
-    const button = id === 'plan' ? planRef.current : resetRef.current;
-    button?.focus();
-  }
-
-  function keyActivate(
-    event: JSX.TargetedKeyboardEvent<HTMLButtonElement>,
-    id: 'plan' | 'reset',
-  ): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      select(id);
-    }
-  }
-
-  return (
-    <div
-      className="result-mode"
-      role="tablist"
-      aria-label="Result view"
-      data-testid="result-mode"
-      onKeyDown={(event) => {
-        let next: 'plan' | 'reset' | null = null;
-        if (event.key === 'ArrowRight') next = 'reset';
-        else if (event.key === 'ArrowLeft') next = 'plan';
-        else if (event.key === 'Home') next = 'plan';
-        else if (event.key === 'End') next = 'reset';
-        if (next !== null) {
-          event.preventDefault();
-          select(next);
-        }
-      }}
-    >
-      <button
-        id="result-tab-plan"
-        type="button"
-        role="tab"
-        aria-selected={!resetMode}
-        aria-controls="result-panel-plan"
-        tabIndex={resetMode ? -1 : 0}
-        className={resetMode ? 'result-mode-option' : 'result-mode-option selected'}
-        data-testid="result-mode-plan"
-        ref={planRef}
-        onClick={() => onChange(false)}
-        onKeyDown={(event) => keyActivate(event, 'plan')}
-      >
-        {RESET_MODE.plan}
-      </button>
-      <button
-        id="result-tab-reset"
-        type="button"
-        role="tab"
-        aria-selected={resetMode}
-        aria-controls="result-panel-reset"
-        tabIndex={resetMode ? 0 : -1}
-        className={resetMode ? 'result-mode-option selected' : 'result-mode-option'}
-        data-testid="result-mode-reset"
-        ref={resetRef}
-        onClick={() => onChange(true)}
-        onKeyDown={(event) => keyActivate(event, 'reset')}
-      >
-        {RESET_MODE.reset}
-      </button>
-    </div>
-  );
 }
 
 function Cb1ContextNote() {

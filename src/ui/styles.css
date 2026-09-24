@@ -3732,6 +3732,9 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .advice-topic.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
 .advice-topic:hover { background: var(--bg-hover); }
 .today-plan-card > .result-disclosure { margin: 0; }
+/* Expanded Today blocks: a heading and its content, no disclosure. */
+.today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.today-block > .card-title { margin: 0; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
 .symptom-description { margin: 6px 0 8px; line-height: 1.5; }
 .symptom-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }

@@ -92,19 +92,14 @@ describe('Choose my break length (custom duration)', () => {
     const card = screen.getByTestId('state-active-break');
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 1 of 10');
     expect(within(card).getByTestId('checkin-cta').textContent).toBe('Check in');
-    // The journey and the research line open from Full timeline, not inline.
-    expect(within(card).queryByTestId('break-journey')).toBeNull();
-    fireEvent.click(within(card).getByTestId('open-timeline'));
-    const timeline = screen.getByTestId('timeline-sheet');
-    expect(within(timeline).getByTestId('break-journey')).toBeTruthy();
-    expect(within(timeline).getByText('Day 10')).toBeTruthy();
+    // The journey and the research line are on the card, not behind a tap.
+    expect(within(card).getByTestId('break-journey')).toBeTruthy();
+    expect(within(card).getByText('Day 10')).toBeTruthy();
     // Research context: day-1 fact, quiet label, tappable source.
-    const fact = within(timeline).getByTestId('today-research-fact');
+    const fact = within(card).getByTestId('today-research-fact');
     expect(fact.getAttribute('data-fact')).toBe('withdrawal_onset');
     expect(within(fact).getByRole('heading', { name: 'Worth knowing' })).toBeTruthy();
     expect(within(fact).getByRole('link')).toBeTruthy();
-    fireEvent.click(within(timeline).getByRole('button', { name: 'Close Your break timeline' }));
-    expect(screen.queryByTestId('timeline-sheet')).toBeNull();
 
     // Nothing in the journey or the card calls the chosen length recommended.
     expect(within(card).queryByText(/recommended/i)).toBeNull();
@@ -201,7 +196,7 @@ describe('Choose my break length (custom duration)', () => {
     // decides when it actually ends.
     expect(within(card).getByTestId('checkin-cta')).toBeTruthy();
     expect(within(card).getByTestId('mark-complete-cta')).toBeTruthy();
-    expect(within(card).getByTestId('open-timeline')).toBeTruthy();
+    expect(within(card).getByTestId('break-journey')).toBeTruthy();
 
     rendered.unmount();
     renderApp(storage, toInstant(AT + 3 * DAY_MS));
@@ -214,8 +209,7 @@ describe('Choose my break length (custom duration)', () => {
     );
     expect(within(later).getByTestId('checkin-cta')).toBeTruthy();
     // Research context keeps updating by abstinence day after the target.
-    fireEvent.click(within(later).getByTestId('open-timeline'));
-    expect(within(screen.getByTestId('timeline-sheet')).getByTestId('today-research-fact').getAttribute('data-fact')).toBe('acute_ease');
+    expect(within(later).getByTestId('today-research-fact').getAttribute('data-fact')).toBe('acute_ease');
   });
 
   it('keeps calculated plans working and labelled as plans (regression guard)', () => {
@@ -382,13 +376,10 @@ describe('active-break check-in reflection', () => {
     // …progress is shown…
     expect(screen.getByTestId('checkin-progress').textContent).toBe('1 of 10 days recorded');
 
-    // …and the journey day marker is checked inside the timeline sheet.
-    fireEvent.click(screen.getByTestId('open-timeline'));
-    const timeline = screen.getByTestId('timeline-sheet');
-    const day2 = within(timeline).getByTestId('journey-day-2');
+    // …and the journey day marker is checked on the card itself.
+    const day2 = screen.getByTestId('journey-day-2');
     expect(day2.getAttribute('data-checkin')).toBe('true');
     expect(day2.className).toContain('has-checkin');
-    fireEvent.click(within(timeline).getByRole('button', { name: 'Close Your break timeline' }));
 
     // Repeated taps cannot duplicate the saved entry; correction stays visible.
     expect((after as HTMLButtonElement).disabled).toBe(true);

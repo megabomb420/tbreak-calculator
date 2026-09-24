@@ -257,7 +257,7 @@ export const TRACKING_CARD = {
   stopConfirmTitle: 'Stop tracking?',
   stopConfirmBody: 'Stopping ends this timeline. Your history stays on this device.',
   companionTitle: 'Your tracking',
-  viewGuidance: 'Roadmap & triggers',
+  viewGuidance: 'Roadmap & science',
 } as const;
 
 export function trackingDayTitle(day: number): string {

@@ -114,7 +114,7 @@ describe('starting a plan from Calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start tracking' }));
     expect(screen.getByTestId('app-shell').getAttribute('data-active-tab')).toBe('today');
     expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Roadmap & triggers' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Roadmap & science' }));
     expect(screen.getByTestId('tracking-detail')).toBeTruthy();
   });
 });

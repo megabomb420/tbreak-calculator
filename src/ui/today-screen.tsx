@@ -1,7 +1,6 @@
-import type { ComponentChildren } from 'preact';
 import { latestTodayCheckin } from '../application/presentation/today-checkin.ts';
 import { ConfirmDialog as SharedConfirmDialog } from './confirm-dialog.tsx';
-import { useRef, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { Goal } from '../domain/schemas/enums.ts';
 import type { DailyCheckin } from '../domain/schemas/profile.ts';
@@ -15,9 +14,7 @@ import type { ResultView } from '../application/presentation/result-presentation
 import { FIRST_LAUNCH, GOAL_CHIPS, NO_PROFILE, RESUME, resumeTitle } from './copy.ts';
 import { ACTIVE_BREAK_CARD, COMPLETED_CARD, GUIDANCE_CHROME, INTERRUPTED_CARD, PLAN_STATE_NOTES, PLANNED_CARD, PROFILE_NO_BREAK, TRACKING_CARD, checkinProgressLine, completedBreakTitle } from './break-copy.ts';
 import { PLAN_LENS, RESULT, evidenceRangeLine, reductionDaysLine, reductionSessionsLine } from './result-copy.ts';
-import { RESET_MODE } from './recovery-copy.ts';
-import { ResultLensHero } from './result-lens.tsx';
-import { CheckIcon, CloseIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
+import { CheckIcon, DeviceIcon, IntervalMark, NoAccountIcon, OfflineIcon, PauseIcon, goalIcon } from './icons.tsx';
 import { RangeBand } from './range-band.tsx';
 import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
@@ -27,7 +24,8 @@ import { DailyGuidance } from './today-guidance.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { presentDailySupport } from '../application/presentation/daily-support.ts';
 import type { BreakPreparation } from '../application/break/preparation.ts';
-import { useFocusTrap } from './focus-trap.ts';
+import { ResultLensHero } from './result-lens.tsx';
+import { ResultModeControl } from './result-mode-control.tsx';
 import { BreakJourney } from './break-journey.tsx';
 import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
@@ -256,10 +254,10 @@ function QuickCheckinActions({ props, checked }: { readonly props: TodayScreenPr
 function ActiveBreakCard(props: TodayScreenProps) {
   const active = props.live.active;
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [prepOpen, setPrepOpen] = useState(false);
-  const [sheet, setSheet] = useState<'timeline' | 'outlook' | null>(null);
+  const [outlookMode, setOutlookMode] = useState(false);
   if (active === null) return null;
   const { attempt, view } = active;
+  const outlook = props.live.outlook;
   const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
   const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
   const chosen = attempt.targetSource === 'chosen';
@@ -302,16 +300,31 @@ function ActiveBreakCard(props: TodayScreenProps) {
     }),
   );
   return (
-    <>
     <article className="today-plan-card today-live-card" data-testid="state-active-break">
-      <header className="today-live-head">
-        <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
-        <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
-        <p className="meta" data-testid="target-date-line">
-          {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
-        </p>
-      </header>
-      {stateNote !== null ? (
+      {/* The switch sits above the block it swaps: the day/target head and the
+          running break's own recovery outlook hold the same slot. */}
+      {outlook !== null ? (
+        <ResultModeControl scope="today" ariaLabel="Today view" resetMode={outlookMode} onChange={setOutlookMode} />
+      ) : null}
+      {outlookMode && outlook !== null ? (
+        <section className="today-block" id="today-panel-reset" role="tabpanel" aria-labelledby="today-tab-reset" data-testid="today-outlook">
+          <PredictedResetPanel
+            outlook={outlook}
+            historical={false}
+            contextLabel={null}
+            checkinFacts={props.live.checkinFacts}
+          />
+        </section>
+      ) : (
+        <header className="today-live-head" id="today-panel-plan" role="tabpanel" aria-labelledby="today-tab-plan">
+          <p className="eyebrow" data-testid="break-phase-eyebrow">{ACTIVE_BREAK_CARD.phaseEyebrow[phase]}</p>
+          <h2 className="plan-day-title" data-testid="break-day-label">{view.dayOfLabel}</h2>
+          <p className="meta" data-testid="target-date-line">
+            {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
+          </p>
+        </header>
+      )}
+      {!outlookMode && stateNote !== null ? (
         <p className={phase === 'reached' ? 'today-state-note is-reached' : 'today-state-note is-extended'} data-testid="plan-target-note" data-state={phase}>
           {stateNote}
         </p>
@@ -330,18 +343,20 @@ function ActiveBreakCard(props: TodayScreenProps) {
         ) : null}
       </div>
       <DailyGuidance support={support} />
-      <button type="button" className="text-back today-plan-link" data-testid="edit-preparation" onClick={() => setPrepOpen(true)}>
-        {attempt.preparation !== null ? 'Edit your plan' : 'Set a plan for urges'}
-      </button>
+      <section className="result-disclosure today-block" data-testid="today-preparation">
+        <h3 className="card-title">Your plan for urges</h3>
+        <PreparationCard
+          value={attempt.preparation}
+          onSave={(next) => props.onUpdatePreparation(attempt.id, next)}
+          showUrgePlan={false}
+        />
+      </section>
+      <section className="result-disclosure today-block" data-testid="today-timeline">
+        <h3 className="card-title">Your break timeline</h3>
+        <BreakJourney view={journey} />
+        <BreakResearchNote day={view.day} />
+      </section>
       <div className="footer-links">
-        <button type="button" className="text-back" data-testid="open-timeline" onClick={() => setSheet('timeline')}>
-          Full timeline
-        </button>
-        {props.live.outlook !== null ? (
-          <button type="button" className="text-back" data-testid="open-outlook" onClick={() => setSheet('outlook')}>
-            {RESET_MODE.reset}
-          </button>
-        ) : null}
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}
         </button>
@@ -359,91 +374,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         />
       ) : null}
     </article>
-    {prepOpen ? (
-      <PreparationSheet
-        id={attempt.id}
-        preparation={attempt.preparation}
-        onUpdate={props.onUpdatePreparation}
-        onClose={() => setPrepOpen(false)}
-      />
-    ) : null}
-    {sheet === 'timeline' ? (
-      <TodaySheet testId="timeline-sheet" title="Your break timeline" onClose={() => setSheet(null)}>
-        <BreakJourney view={journey} />
-        <BreakResearchNote day={view.day} />
-      </TodaySheet>
-    ) : null}
-    {sheet === 'outlook' && props.live.outlook !== null ? (
-      <TodaySheet testId="today-outlook" title={RESET_MODE.reset} onClose={() => setSheet(null)}>
-        <PredictedResetPanel
-          outlook={props.live.outlook}
-          historical={false}
-          contextLabel={null}
-          checkinFacts={props.live.checkinFacts}
-        />
-      </TodaySheet>
-    ) : null}
-    </>
   );
-}
-
-/** The sheet shell Today's on-demand depth uses: the same overlay, focus trap
- * and headline the science panel uses, portalled to `#app` so a scrolled card
- * cannot clip it. */
-function TodaySheet({ testId, title, onClose, children }: {
-  readonly testId: string;
-  readonly title: string;
-  readonly onClose: () => void;
-  readonly children: ComponentChildren;
-}) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(true, rootRef, onClose);
-  const node = (
-    <div className="questionnaire-overlay" data-testid={testId} role="dialog" aria-modal="true"
-      aria-labelledby={`${testId}-title`} ref={rootRef}>
-      <header className="questionnaire-header">
-        <button type="button" className="icon-button" aria-label={`Close ${title}`} data-autofocus onClick={onClose}><CloseIcon /></button>
-        <h2 id={`${testId}-title`} className="flow-title">{title}</h2>
-      </header>
-      <div className="questionnaire-body flow-body">{children}</div>
-    </div>
-  );
-  const host = document.getElementById('app');
-  return host !== null ? createPortal(node, host) : node;
-}
-
-/** Edits the same trigger/replacement plan the break (or track) already stores,
- * through the app's single preparation writer. */
-function PreparationSheet({ id, preparation, onUpdate, onClose }: {
-  readonly id: string;
-  readonly preparation: BreakPreparation | null;
-  readonly onUpdate: (id: string, preparation: BreakPreparation | null) => void;
-  readonly onClose: () => void;
-}) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(true, rootRef, onClose);
-  const node = (
-    <div className="questionnaire-overlay" data-testid="preparation-sheet" role="dialog" aria-modal="true"
-      aria-labelledby="preparation-sheet-title" ref={rootRef}>
-      <header className="questionnaire-header">
-        <button type="button" className="icon-button" aria-label="Close your plan" data-autofocus onClick={onClose}><CloseIcon /></button>
-        <h2 id="preparation-sheet-title" className="flow-title">Your plan for urges</h2>
-      </header>
-      <div className="questionnaire-body flow-body">
-        <p className="body">Name what sets off an urge and what you will do instead. Today uses your own replacement first.</p>
-        <PreparationCard
-          value={preparation}
-          onSave={(next) => onUpdate(id, next)}
-          showUrgePlan={false}
-        />
-      </div>
-      <footer className="questionnaire-footer">
-        <button type="button" className="cta-primary" data-testid="preparation-done" onClick={onClose}>Done</button>
-      </footer>
-    </div>
-  );
-  const host = document.getElementById('app');
-  return host !== null ? createPortal(node, host) : node;
 }
 
 /** One quiet, curated research-context line for the active-break card,
@@ -518,7 +449,6 @@ function CompletedBreakCard(props: TodayScreenProps) {
 function TrackingCard(props: TodayScreenProps) {
   const { tracking } = props.live;
   const [confirmStop, setConfirmStop] = useState(false);
-  const [prepOpen, setPrepOpen] = useState(false);
   if (tracking === null) return null;
   const day = tracking.view?.day ?? null;
   const anchor = currentSegmentAnchor(tracking.track.segments);
@@ -530,7 +460,6 @@ function TrackingCard(props: TodayScreenProps) {
     preparation: tracking.track.preparation,
   });
   return (
-    <>
     <article className="today-plan-card tracking" data-testid="state-abstinence-tracking">
       <button
         type="button"
@@ -547,9 +476,14 @@ function TrackingCard(props: TodayScreenProps) {
         <QuickCheckinActions props={props} checked={latestTodayCheckin(props.live.checkins, anchor, props.live.now) >= 0} />
       </div>
       {support !== null ? <DailyGuidance support={support} /> : null}
-      <button type="button" className="text-back today-plan-link" data-testid="edit-preparation" onClick={() => setPrepOpen(true)}>
-        {tracking.track.preparation !== null ? 'Edit your plan' : 'Set a plan for urges'}
-      </button>
+      <section className="result-disclosure today-block" data-testid="today-preparation">
+        <h3 className="card-title">Your plan for urges</h3>
+        <PreparationCard
+          value={tracking.track.preparation}
+          onSave={(next) => props.onUpdatePreparation(tracking.track.id, next)}
+          showUrgePlan={false}
+        />
+      </section>
       <button type="button" className="text-link today-plan-link" onClick={props.onOpenTrackingDetail}>{TRACKING_CARD.viewGuidance}</button>
       <button type="button" className="text-back today-plan-link" data-testid="stop-tracking" onClick={() => setConfirmStop(true)}>{TRACKING_CARD.stop}</button>
       {confirmStop ? (
@@ -565,15 +499,6 @@ function TrackingCard(props: TodayScreenProps) {
         />
       ) : null}
     </article>
-    {prepOpen ? (
-      <PreparationSheet
-        id={tracking.track.id}
-        preparation={tracking.track.preparation}
-        onUpdate={props.onUpdatePreparation}
-        onClose={() => setPrepOpen(false)}
-      />
-    ) : null}
-    </>
   );
 }
 

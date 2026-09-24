@@ -5,14 +5,10 @@ import type { StoredTrack } from '../application/progress/tracking-record.ts';
 import { currentSegmentAnchor, trackingDayView } from '../application/presentation/plan-presentation.ts';
 import { presentCb1Education } from '../application/presentation/break-guidance.ts';
 import { presentOutlookForProfile } from '../application/presentation/break-outlook.ts';
-import type { BreakPreparation } from '../application/break/preparation.ts';
 import { GUIDANCE_CHROME, TRACKING_CARD } from './break-copy.ts';
 import { BackIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
-import { DailyGuidance } from './today-guidance.tsx';
-import { presentDailySupport } from '../application/presentation/daily-support.ts';
 import { BreakOutlook } from './break-outlook.tsx';
-import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 
 export interface TrackingDetailProps {
@@ -20,7 +16,6 @@ export interface TrackingDetailProps {
   readonly now: Instant;
   readonly checkins: readonly DailyCheckin[];
   readonly onBack: () => void;
-  readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
   readonly profile: UseProfileInput | null;
 }
 
@@ -77,15 +72,13 @@ export function TrackingDetail(props: TrackingDetailProps) {
           <p className="meta" data-testid="open-ended-note">
             {GUIDANCE_CHROME.openEndedNote}
           </p>
-          {dayView !== null ? <DailyGuidance support={presentDailySupport({
-            day: dayView.day, now: props.now, anchor: currentSegmentAnchor(track.segments),
-            checkins: props.checkins, preparation: track.preparation,
-          })} /> : null}
-          <details className="result-disclosure timeline-disclosure">
+          {/* Daily guidance and the urge plan stay on Today, where they are
+              always visible; this screen holds what Today does not: the
+              roadmap, the CB1 note and the detox evidence. */}
+          <details className="result-disclosure timeline-disclosure" open>
             <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
           </details>
         </section>
-        <PreparationCard value={track.preparation} onSave={(next) => props.onUpdatePreparation(track.id, next)} showUrgePlan={false} />
         <details className="card guidance-why" data-testid="cb1-note">
           <summary className="card-title">{cb1.title}</summary>
           {cb1.paragraphs.map((paragraph) => (
