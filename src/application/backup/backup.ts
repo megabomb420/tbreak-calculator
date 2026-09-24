@@ -52,7 +52,7 @@ import {
   type StoredPreviousBreak,
 } from '../persistence/previous-break-store.ts';
 import { POST_BREAK_PLANS_KEY } from '../persistence/post-break-plan-store.ts';
-import { deleteAllLocalData, MIGRATION_MARKER_KEY, type DurablePersistence } from '../persistence/durable.ts';
+import { deleteAllLocalData, INSTALL_HINT_DISMISSED_KEY, MIGRATION_MARKER_KEY, type DurablePersistence } from '../persistence/durable.ts';
 import { isRecord } from '../progress/record-codec.ts';
 
 export const BACKUP_FORMAT = 'tbreak-backup';
@@ -265,13 +265,16 @@ export const BACKUP_OWNED_KEYS = BACKUP_STORE_KEYS.flatMap((key) => STORES[key].
 
 /** Owned keys no backup carries: the unfinished questionnaire draft and the
  * transient result-overlay flag are session state, the post-break mirror is
- * rebuilt from the attempt rows on every write, and the migration marker is
- * written once and never read. */
+ * rebuilt from the attempt rows on every write, the migration marker is
+ * written once and never read, and the install-hint flag is a UI preference
+ * rather than anything the person wrote. */
 export const BACKUP_EXCLUDED_KEYS = [
   QUESTIONNAIRE_PROGRESS_KEY,
   RESULT_VIEW_KEY,
   POST_BREAK_PLANS_KEY,
+  INSTALL_HINT_DISMISSED_KEY,
   MIGRATION_MARKER_KEY,
+  INSTALL_HINT_DISMISSED_KEY,
 ] as const;
 
 /** `DurableSnapshot` fields no backup carries, for the same reasons. */

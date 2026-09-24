@@ -9,7 +9,7 @@ import { sampleProfile } from '../helpers.ts';
 const AT = toInstant(1787184000000);
 
 describe('history model', () => {
-  it('groups activity by month and keeps past breaks in their own list', () => {
+  it('groups activity into sections by record family, with past breaks in their own list', () => {
     const frozen = freezeCalculation('calc-1', { kind: 'use_profile', profile: sampleProfile() }, AT);
     const model = buildHistoryModel(
       {
@@ -48,11 +48,16 @@ describe('history model', () => {
     assert.equal(model.empty, false);
     assert.equal(model.previousBreaks.length, 1);
     assert.equal(model.previousBreaks[0]?.kind, 'previous-break');
+    // One section per record family, in reading order, and a break's own row
+    // states its plan length and the run so far as separate labelled numbers.
+    assert.deepEqual(model.groups.map((group) => group.label), ['Recommendations', 'Breaks', 'Unavailable records']);
     const kinds = model.groups.flatMap((group) => group.entries.map((entry) => entry.kind));
     assert.ok(kinds.includes('calculation'));
     assert.ok(kinds.includes('attempt'));
     assert.ok(kinds.includes('corrupt'));
     assert.ok(!kinds.includes('previous-break'));
-    assert.equal(model.groups.some((group) => group.label === 'Unavailable'), true);
+    const breakEntry = model.groups.find((group) => group.label === 'Breaks')!.entries[0]!;
+    assert.equal(breakEntry.title, '21 days planned');
+    assert.match(breakEntry.subtitle, /^Completed · 0 days so far$/);
   });
 });

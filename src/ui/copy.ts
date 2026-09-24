@@ -192,6 +192,8 @@ export function resumeTitle(answeredSteps: number): string {
 
 export const RESUME = {
   resume: 'Resume',
-  startOver: 'Start over',
-  draftOnly: 'This only discards the unfinished calculation — your current break stays.',
+  startOver: 'Discard',
+  draftOnly: 'Discard removes the unfinished calculation only — your current break stays.',
+  unfinishedTitle: 'You have an unfinished calculation',
+  unfinishedBody: 'Resuming keeps your answers so far. Discarding removes them.',
 } as const;

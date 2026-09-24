@@ -76,8 +76,12 @@ export const DURABLE_IDB_VERSION = 1;
 export const MIGRATION_MARKER_KEY = 'tbreak.durable-migration.v1';
 
 /** Web Storage keys owned by this app. Delete-everything removes only these. */
+export const INSTALL_HINT_DISMISSED_KEY = 'tbreak.install-hint.v1';
+
+/** Keys owned by this app; delete-everything removes exactly these. */
 export const LOCAL_DATA_KEYS = [
   QUESTIONNAIRE_PROGRESS_KEY,
+  INSTALL_HINT_DISMISSED_KEY,
   QUESTIONNAIRE_SNAPSHOT_KEY,
   COMPANION_PERSONALISATION_KEY,
   RESULT_VIEW_KEY,

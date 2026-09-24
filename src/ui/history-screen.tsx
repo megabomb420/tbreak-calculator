@@ -121,7 +121,7 @@ export function HistoryScreen({
               {HISTORY.addPastBreak}
             </button>
           </header>
-          {model.previousBreaks.length === 0 ? (
+          {model.previousBreaks.length === 0 && model.empty ? (
             <p className="meta">None added yet. They never change the recommended range.</p>
           ) : (
             <ul className="history-list">
@@ -404,13 +404,15 @@ function CheckinDetail({
         <h2 className="title">{checkin.usedThc ? 'Used THC' : 'No THC'}</h2>
         {Number.isFinite(at) ? <p className="meta">{formatLocalDay(at as Instant)}</p> : null}
       </header>
-      <ul className="meta">
-        <li>Craving: {fmtScore(checkin.craving)}</li>
-        <li>Sleep: {fmtScore(checkin.sleep)}</li>
-        <li>Irritability: {fmtScore(checkin.irritability)}</li>
-        <li>Anxiety: {fmtScore(checkin.anxiety)}</li>
-        <li>Appetite: {fmtScore(checkin.appetite)}</li>
-      </ul>
+      {[checkin.craving, checkin.sleep, checkin.irritability, checkin.anxiety, checkin.appetite].some((value) => value !== null) ? (
+        <ul className="meta">
+          <li>Craving: {fmtScore(checkin.craving)}</li>
+          <li>Sleep: {fmtScore(checkin.sleep)}</li>
+          <li>Irritability: {fmtScore(checkin.irritability)}</li>
+          <li>Anxiety: {fmtScore(checkin.anxiety)}</li>
+          <li>Appetite: {fmtScore(checkin.appetite)}</li>
+        </ul>
+      ) : null}
       {checkin.note !== null && checkin.note !== '' ? <p className="body">{checkin.note}</p> : null}
       <button type="button" className="cta-danger" data-testid="history-delete" onClick={onDelete}>
         {HISTORY.delete}

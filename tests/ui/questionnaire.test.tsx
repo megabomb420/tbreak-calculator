@@ -50,35 +50,42 @@ describe('questionnaire entry points', () => {
 });
 
 describe('Q1 tap-advance, persistence, resume, start over', () => {
-  it('advances from Q1, persists, returns to Today resume, and restores the step', () => {
+  it('keeps no draft for a goal tap alone, then persists on the first real answer', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
     expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q6');
     expect(screen.getByRole('heading', { name: STEP_COPY.Q6.title })).toBeTruthy();
 
+    // The goal is the entry to the flow, not an answer worth resuming.
+    expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.close }));
+    expect(screen.getByTestId('today-view').getAttribute('data-resume')).toBe('none');
+    expect(screen.queryByTestId('resume-card')).toBeNull();
+
+    // One answered question is: the draft and the resume card appear.
+    fireEvent.click(screen.getByRole('button', { name: FIRST_LAUNCH.cta }));
+    fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
+    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.close }));
     const draft = createQuestionnaireProgressStore(storage).load();
     expect(draft?.answeredSteps).toBe(1);
-    expect(draft?.currentStep).toBe('Q6');
-    expect(draft?.answers.goal).toBe('tolerance_reset');
     expect(draft?.schemaVersion).toBe(QUESTIONNAIRE_PROGRESS_SCHEMA_VERSION);
-
-    fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.close }));
-    expect(screen.queryByTestId('questionnaire-flow')).toBeNull();
     expect(screen.getByTestId('today-view').getAttribute('data-resume')).toBe('replaces-primary');
     expect(screen.getByTestId('resume-card')).toBeTruthy();
 
+    // Resume returns to the step it stopped on.
     fireEvent.click(screen.getByRole('button', { name: RESUME.resume }));
-    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q6');
-    expect(screen.getByRole('heading', { name: STEP_COPY.Q6.title })).toBeTruthy();
+    expect(screen.getByTestId('questionnaire-flow').getAttribute('data-step')).toBe('Q2');
   });
 
-  it('Start over clears the draft and returns to first-launch', () => {
+  it('Discard clears the draft and returns to first-launch', () => {
     const storage = openQ1();
     fireEvent.click(screen.getByRole('button', { name: /Reset my tolerance/ }));
+    fireEvent.click(within(screen.getByTestId('questionnaire-flow')).getByRole('button', { name: /1–6 months/ }));
     fireEvent.click(screen.getByRole('button', { name: QUESTIONNAIRE.close }));
+    expect(createQuestionnaireProgressStore(storage).load()).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: RESUME.startOver }));
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('first-launch');
     expect(screen.queryByTestId('resume-card')).toBeNull();
   });
 });

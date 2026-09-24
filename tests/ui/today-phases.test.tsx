@@ -207,7 +207,12 @@ describe('Recovery outlook on the active-break card', () => {
     // The switch is the card's first element, above the block it changes.
     const mode = within(card).getByTestId('today-mode');
     expect(mode.getAttribute('role')).toBe('tablist');
-    expect(card.firstElementChild).toBe(mode);
+    // The switch and its one legend share the card's first block.
+    expect(card.firstElementChild!.contains(mode)).toBe(true);
+    // The legend says what each mode's number means, once.
+    const legend = within(card).getByTestId('mode-legend').textContent;
+    expect(legend).toContain('Plan = your target');
+    expect(legend).toContain('Outlook = research estimate');
     expect(screen.getByTestId('today-mode-plan').getAttribute('aria-selected')).toBe('true');
     // Plan mode: the day/target head owns the slot and the outlook is not there.
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 3 of 4');
@@ -293,7 +298,7 @@ describe('Today shows one job, nothing hidden', () => {
     return storage;
   }
 
-  it('renders one support card with the stage, the experiences, the plan and the journey visible', () => {
+  it('keeps the day’s action visible and the long blocks behind their summaries', () => {
     renderApp(seedLiveBreak());
     const card = screen.getByTestId('state-active-break');
     // One topic at a time, under the picker.
@@ -302,21 +307,28 @@ describe('Today shows one job, nothing hidden', () => {
     expect(screen.getByTestId('advice-picker')).toBeTruthy();
     expect(within(screen.getByTestId('daily-support')).queryByTestId('community-tip')).toBeNull();
     expect(document.querySelector('.result-lens-orbit')).toBeNull();
-    // Everything is open: heading blocks, not disclosures.
+    // The long blocks sit behind their own summaries; the day's advice does not.
     const stage = screen.getByTestId('today-stage');
-    expect(stage.tagName).toBe('SECTION');
+    expect(stage.tagName).toBe('DETAILS');
+    expect(stage.hasAttribute('open')).toBe(false);
     expect(within(stage).getByTestId('guidance-headline')).toBeTruthy();
     expect(within(stage).getByTestId('guidance-may-notice')).toBeTruthy();
     expect(within(stage).getByTestId('daily-practice')).toBeTruthy();
+    expect(screen.getByTestId('today-experiences').tagName).toBe('DETAILS');
     const community = within(screen.getByTestId('today-experiences')).getByTestId('community-tip');
     expect(community.textContent).toContain('Personal experience');
     expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
     // The rating sheet and the urge-plan block are gone from the card.
     expect(screen.queryByTestId('add-symptoms')).toBeNull();
     expect(screen.queryByTestId('today-preparation')).toBeNull();
-    // The whole journey is on the card.
-    expect(screen.getByTestId('today-timeline').tagName).toBe('SECTION');
-    expect(within(screen.getByTestId('today-timeline')).getByTestId('break-journey')).toBeTruthy();
+    // The action itself is on the card, not behind the guide's summary.
+    expect(screen.getByTestId('advice-action')).toBeTruthy();
+    expect(screen.getByTestId('advice-guide').hasAttribute('open')).toBe(false);
+    // The journey is on the card, behind its own summary.
+    const timeline = screen.getByTestId('today-timeline');
+    expect(timeline.tagName).toBe('DETAILS');
+    expect(timeline.hasAttribute('open')).toBe(false);
+    expect(within(timeline).getByTestId('break-journey')).toBeTruthy();
     expect(within(card).getByTestId('today-research-fact')).toBeTruthy();
   });
 

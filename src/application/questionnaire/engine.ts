@@ -235,6 +235,19 @@ export function countAnsweredSteps(answers: QuestionnaireAnswers, now: Instant):
   return count;
 }
 
+/**
+ * Answers that produced something. The goal choice (Q1) is the entry to the
+ * flow, so a draft that holds nothing else is not worth resuming: it would put
+ * "finish your calculation" in front of someone who only tapped a goal.
+ */
+export function countSubstantiveAnswers(answers: QuestionnaireAnswers, now: Instant): number {
+  let count = 0;
+  for (const step of resolvedPath(answers)) {
+    if (step !== 'Q1' && isStepComplete(step, answers, now)) count += 1;
+  }
+  return count;
+}
+
 export function progressFraction(currentStep: QuestionnaireStepId, answers: QuestionnaireAnswers): number {
   const path = resolvedPath(answers);
   const index = path.indexOf(currentStep);

@@ -1,13 +1,15 @@
-# Handoff — T-Break Calculator 0.30.0
+# Handoff — T-Break Calculator 0.36.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
-Live app: https://megabomb420.github.io/tbreak-calculator/
+Live app: https://megabomb420.github.io/tbreak-calculator/ · mirror: https://tbreak-calculator.pages.dev/ (Cloudflare Pages, `BASE_PATH=/`; the two origins do not share device data)
 
 ## Current product decisions
 
 The three permanent destinations are Today, Calculator and History. Science is a separate reading screen accessible from the header and Settings. Calculator remains available during an active break, so changing goals or reading about tests never requires abandoning a plan. Recalculate starts at the goal with saved answers available; editing a specific answer still opens its specific step.
 
-Today is the practical daily companion. The active card shows the day/target hero, the one-tap check-in with Undo, optional symptom ratings, the current phase's context ("What to expect") always visible rather than behind a toggle, one advice topic for every area the ratings flag as hard (with two stage-relevant defaults when nothing is rated), one practical activity and a manually controlled carousel of stage-matched Reddit experiences. THC-session logging exists only inside an active cut-down plan. The shared journey remains under **Your break timeline** with its existing phase windows and check-in markers. Calculator still shows the same journey as a preview. No per-day biological symptom predictions are introduced. Mark complete remains available only from the target instant. The quiet footer action is **End break early**, and the advice browser opens any guide without storing a preference. Scheduled cancellation, completed-break return plans and History keep their existing roles.
+Today is the practical daily companion, and the card is shaped by what fits on one screen. Above the fold: the `Your plan` / `Recovery outlook` switch with one legend line, the day/target hero with the recorded-days line, the one-tap check-in with Undo, and the day's single action. Everything long sits behind its own summary on the same card — **This stage**, **Your break timeline**, **Experiences** and the guide's reasoning — with **Your recorded changes** when the data allows it. Mark complete appears in the action zone from the target instant, and **End break early** closes the card. THC-session logging exists only inside an active cut-down plan.
+
+The day's action comes from the **How to deal with?** picker: one topic at a time, in one scrollable row, with the chosen topic's guide directly beneath it. Choosing another topic replaces the block in place and writes nothing. The optional 0–10 symptom ratings were removed in 0.35.0 — the check-in is a single tap that records the day — so a fresh break has no rating-driven topic; a stored report from an older release still names its topic in the reason line, and History still lists it. The **Your plan for urges** block is gone from Today; a plan set in the break-start sheet still leads the action on the topics it covers.
 
 Date entry has one shared editor for intake and interruption. Native input/change events, reopening an answer, clearing a value, and switching between shortcuts and a picked date keep the visible selection and submitted value aligned. Invalid dates clear the answer and explain the problem. Start-date bounds use local calendar days, including across daylight-saving changes. The visible default of one session is accepted by Continue.
 
@@ -15,13 +17,30 @@ Saved calculation numbers are immutable. `saved-result.ts` advances only withdra
 
 One shared dialog coordinator owns focus, background isolation, Escape and browser Back. Only the top dialog closes. References return to their parent; closed disclosures do not receive keyboard focus; destructive confirmations initially focus Cancel. Previous-break edits retain outcome linkage and Save & add another resets the form.
 
-Today leads with the check-in and practical advice. The advice list is chosen only from the latest symptom ratings: every area rated hard enough is shown, hardest first, each naming its own reading, and a day with no ratings keeps two stage-relevant defaults. There are no stored preferences and no topic picker to configure; a manual browser still opens any of the eleven guides. Ratings select educational content only and never alter scientific calculations.
+One passive notice at a time. The install hint is dismissed for good (the flag is `INSTALL_HINT_DISMISSED_KEY`, stored on the device and excluded from backups), so it does not return on the next tab or the next launch; the storage banner outranks it, and the update notice outranks both.
+
+History is organised by what a record *is*: **Check-ins**, **Recommendations**, **Breaks** (attempts, tracking runs and past breaks together) and **Cutting down**, with unreadable records in their own section. Each row states its numbers with a label — `28 days planned`, `0 days so far` — from one shared `durationLabel`, so a duration always reads the same way and a position always reads `Day N`.
+
+Unfinished calculations appear only after a real answer: choosing a goal no longer creates a draft, so nobody is asked to "finish" a flow they never started. Both the Today resume card and the Calculator tab state what resuming keeps and offer an explicit **Discard**.
 
 ## Evidence decisions
 
 The original research PDF and synced source documents were reviewed before changes. The public explainer links the human PET and withdrawal studies. The UI calls calculator ranges planning rules and labels the secondary view Recovery outlook. It explicitly identifies estimates beyond four weeks as unvalidated for direct human tolerance outcomes; animal findings do not establish human timing. No new biological numbers, numeric detection estimates, or detox/reset percentages were introduced. Numeric policies and historical results are unchanged.
 
 This is an educational planning product. There is no clinical diagnosis, medical endpoint, jurisdiction-specific legal advice or guarantee of a negative test. Formal clinical validation of the product estimates is not claimed.
+
+## Release 0.31.0 → 0.36.0 — one topic at a time, nothing hiding, one banner
+
+Six releases shipped on top of 0.30.0 without a handoff entry; this section records what they changed, and the paragraphs under "Current product decisions" above are the state to code against.
+
+- **0.31.0 — the orbit artwork goes, and the result switch stops floating.** The decorative rings left `ResultLensHero` and the live card. The plan/recovery switch moved from a sticky overlay inside the scrolling result body into the result header, because it was painting over the journey's phase titles as the reader scrolled; the day-by-day journey became a closed disclosure, the first-launch safety lines after "For adults." moved into a closed **Before you start**, and the install/update notices stopped floating over the tab bar by moving into the shell as an `app-banner` in normal flow.
+- **0.32.0 — everything opens.** The day card's blocks (stage, experiences, recorded changes, urge plan, timeline) and the result journey rendered inline; the active card gained the `Your plan` / `Recovery outlook` switch at its top, swapping the day/target block for the running break's own outlook panel. `ResultModeControl` became one shared component keyed by `scope` (`result`, `today`).
+- **0.33.0 — the urge plan stops writing while you type.** The editor became controlled: Today's block held a draft, showed the if–then lines it was building, wrote only on **Save plan**, and could remove the plan. The rating sheet learned to open on the day's stored report and to rewrite that day in place.
+- **0.34.0 — the card reads in the order the day happens.** Check-in, **This stage**, the ratings entry with the topics it raised beneath it, every raised topic's guide expanded one under another, then the long blocks. Tapping a topic in the browser appended its guide instead of replacing the open one.
+- **0.35.0 — one topic at a time, and two features removed on the owner's call.** `How are you feeling?` and its rating sheet, the flow, the copy and the check-in writer that fed them are gone; Today collects no symptom ratings at all, and a stored report from an older release still names its topic. The **Your plan for urges** block left Today as well (the break-start sheet keeps its optional step, and a saved plan still leads the advice lines). The advice became the **How to deal with?** picker with exactly one block under it, replaced in place.
+- **0.36.0 — the fold, the legend, the banner, History, the draft gate.** The card was compacted until the day's action sits on the first screen at 390×844 (measured: hero 214, check-in 334, picker 585, action 754 against a fold at 787); the picker flattened to one scrollable row; one legend line explains what each mode's number is; the install hint's dismissal is stored, so it never returns; History groups by record family with one labelled duration wording; and a draft only exists after an answer beyond the goal, with an explicit **Discard** in both places it can appear.
+
+What these releases deliberately reversed, and why: 0.31.0's disclosures were re-opened in 0.32.0 because the owner asked to see everything, and then partly closed again in 0.36.0 because the same owner asked for the day's action to be reachable without scrolling — the current rule is *the action and the check-in are visible; the reasoning is one tap away*, and that is the line to hold. The ratings were removed, not relocated: nothing in the app writes symptom data any more, and the code that consumes stored ratings (topic ranking, the recorded-changes block, the outlook's check-in facts) stays for existing devices.
 
 ## Release 0.30.0 — the first screen carries the safety slot
 
@@ -195,7 +214,7 @@ Validation: typecheck and the production build passed; 58 targeted UI tests (tod
 
 ## Resume point
 
-Resume current main after 0.30.0. The 0.27.x line removed the advice-topic picker and the two-topic cap, so the "What matters today" list follows the check-in ratings alone; 0.28.0 made storage report its own failures instead of claiming a save that did not happen, cleared the stale cut-down review banner, disclosed the 48-hour advice rule, widened the evidence-posture guards and added non-UTC test coverage; 0.29.0 fixed reduction day grouping so a session keeps the day it was logged on across a daylight-saving change, closed the one flow that could render no dialog at all, removed the restore probe the 0.27.1 documentation round left on `main`, and recorded the owner's decision to leave the advice list without a floor; 0.30.0 put the first-launch safety slot in place from wording the app already carried. The whole-product audit that this file previously listed as outstanding is complete, and two of its findings — the daylight-saving re-bucketing and the dialog-less flow — are closed.
+Resume current main after 0.36.0. The 0.31–0.36 arc is above. Two owner-facing decisions are now closed and should not be re-opened without a new instruction: the symptom ratings are gone from the app (0.35.0) and the day card shows one advice topic at a time (0.35.0–0.36.0). The fold rule (0.36.0) is the constraint any future addition to the day card has to respect: adding a block above the action pushes it off the first screen.
 
 What remains of that audit is the safety slot's missing reviewed content, and it waits on a clinician or lawyer rather than on an agent: health warnings for pregnancy, medication interactions and existing conditions, and a jurisdiction-specific urgent-help route. Neither exists anywhere in this repository — `sources/` holds one project-context file, `references/` nothing relevant, and no emergency number, helpline or service name appears in `src/` — so both are stated as owed in `UX_SPEC` §3.3 and `CALCULATOR_SPEC` §14 rather than invented. If a reviewer supplies wording, it replaces lines in `FIRST_LAUNCH.safety` (`src/ui/copy.ts`), and `tests/ui/copy-safety.test.ts` requires the same lines to appear in `UX_SPEC` §3.3. The uncapped advice list has no floor, which the owner has decided to leave as it is: the ratings decide the list, one hard rating means one topic, and this is a product decision rather than an outstanding defect.
 
@@ -203,9 +222,9 @@ Physical iOS Safari has been exercised by the owner on an iPhone 17 Pro: the app
 
 The backup was also exercised end to end in a real browser against the production build, three runs plus a re-run after the download path was hardened: a real download whose name, bytes and JSON contents were checked against the app's own visible state, the real file picker driven through the browser protocol, nothing written before the confirmation, a restore that reproduces the device's record ids and History exactly, a fresh export byte-identical apart from `exportedAt`, and both failure paths rejected with the device untouched — no console errors and no horizontal overflow at 390px.
 
-As of 0.27.0 the Today card is deliberately generous in two places, and both are the first things to reconsider if it ever feels too long on a small screen. The phase context ("What to expect") is always visible, which reverses the 0.23.0 choice to keep it behind a toggle: the block is three short lines, and the day it matters most is the day a tap costs the most. The advice list is uncapped, showing one topic per hard rating instead of two, which reverses the 0.22.0 two-topic rule: the cap was hiding advice the user's own ratings had asked for. Capping the list again is a one-line change in `src/application/presentation/daily-support.ts`; putting the phase context back behind a disclosure means restoring the `<details>` in `src/ui/daily-support.tsx` and its marker rules in `src/ui/styles.css`.
+The day card's length is now a measured rule rather than a preference: at 390×844 the hero, the check-in and the day's action are visible without scrolling, and anything longer renders behind a summary on the same card. That was verified after each addition in 0.36.0 (hero 214px, check-in 334px, picker 585px, action 754px, fold 787px) — a new block above the action breaks it, so it belongs below the action or behind a summary. The install hint shrinks the pane by 64px until it is dismissed, which is why it is dismissible for good.
 
-The advice picker is gone and should not come back without a deliberate decision: the stored `companion-personalisation.v2` record is still migrated, still exported by a backup and still validated, but nothing consults it, so a device that has saved topics will not see them used.
+The advice picker is back, in the shape the owner asked for in 0.35.0: **How to deal with?** is one scrollable row of all eleven topics, and the chosen topic's guide renders directly beneath it. The old picker that 0.27.0 removed was a *settings-like* preference over a stored record; this one is a per-view choice that stores nothing, which is why it does not contradict that decision. The stored `companion-personalisation.v2` record is still migrated, exported and validated, and still nothing consults it.
 
 The outcome-duration question is decided and shipped: a captured rating links the days actually abstained, not the plan's target. Nothing is pending on it.
 
@@ -242,7 +261,7 @@ The restore probe that wrote the section above left its payload on `main`: `rest
 
 Known limitation of the backup, documented rather than fixed: the restore wipes before it writes, so an I/O failure mid-write is the one case that is not atomic (a rejected file never is). One benign consequence, also documented rather than fixed: because the transient result-overlay flag is deliberately excluded from the file, a restore followed by a reload shows the "your result" overlay once — the same pre-worded state a freshly migrated device already reaches, costing no data and closing normally, and suppressing it would hide the restored plan from someone who has just moved to a new device.
 
-Release procedure: push to main, verify its Pages workflow and confirm live Settings shows 0.30.0. The deploying commit and workflow identify the release.
+Release procedure: `BASE_PATH=/ npm run build` then `npx wrangler pages deploy dist --project-name tbreak-calculator --branch main` for the Cloudflare mirror, push to main for GitHub Pages, verify that workflow, and confirm live Settings shows 0.36.0 on both origins. The deploying commit and workflow identify the release.
 
 ## Validation and release
 
@@ -251,7 +270,7 @@ Run `npm test`, `npm run typecheck`, and `npm run build` before pushing. CI repe
 Manual release smoke checklist:
 
 1. Fresh tolerance questionnaire: Pick a date → Continue → result → start now or schedule → reload.
-2. Active break: one-tap check-in, Undo, symptoms, no THC-use log, reopen plan, edit support, stage-matched Reddit carousel, return from nested references with Back/Escape.
+2. Active break: one-tap check-in, Undo, the day's topic from the **How to deal with?** picker with its guide, no THC-use log, the stage/timeline/experiences summaries opening in place, and Escape/Back returning from nested references.
 3. Calculator during a break: detection result names the selected sample; saving another result preserves the active plan.
 4. Abstinence and reduction: abstinence has no THC-use log; cut down has direct session logging, edit/pause/end controls, rolling-day counting and the zero-use route remains reachable.
 5. History: open frozen result, edit an answer, previous-break save/add/edit, completed-target boundary and outcome linkage tests.

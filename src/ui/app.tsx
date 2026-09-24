@@ -70,6 +70,8 @@ import { findPreviousBreak, lastedDays } from '../application/history/history-mo
 import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
 import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
 import { checkinRowsForBreakContext } from '../application/presentation/recovery-checkin-facts.ts';
+import { INSTALL_HINT_DISMISSED_KEY } from '../application/persistence/durable.ts';
+import { RESUME } from './copy.ts';
 import { StorageBanner } from './storage-banner.tsx';
 import { InstallHint, UpdateSnackbar, isStandaloneDisplay } from './pwa-ui.tsx';
 import { INITIAL_SHELL_STATE, shellReducer, type AppTab } from '../application/shell/shell-controller.ts';
@@ -127,7 +129,7 @@ import { ReductionStartSheet } from './reduction-start-sheet.tsx';
 import { TodayScreen, type TodayLiveData, type TodayProfileData } from './today-screen.tsx';
 import {
   applyAnswer,
-  countAnsweredSteps,
+  countSubstantiveAnswers,
   lastUseNeedsReselect,
   nextDestination,
   previousStep,
@@ -214,7 +216,9 @@ export function App({
   const [lastUseWarning, setLastUseWarning] = useState(false);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [now, setNow] = useState<Instant>(() => clock.now());
-  const [installHintDismissed, setInstallHintDismissed] = useState(false);
+  // Dismissing the install hint is a decision, not a per-session accident: it
+  // is stored so it does not come back on the next tab or the next launch.
+  const [installHintDismissed, setInstallHintDismissed] = useState(() => storage.getItem(INSTALL_HINT_DISMISSED_KEY) === '1');
   /** Completed break awaiting the one-time 0-10 outcome rating after a return
    * to THC. Null unless a return use was just logged for an eligible attempt. */
   const [outcomeAttempt, setOutcomeAttempt] = useState<StoredAttempt | null>(null);
@@ -930,7 +934,7 @@ export function App({
   // --- questionnaire plumbing (unchanged behaviour) ------------------------
 
   function persist(next: QuestionnaireSession): void {
-    const answered = countAnsweredSteps(next.answers, clock.now());
+    const answered = countSubstantiveAnswers(next.answers, clock.now());
     if (answered < 1) {
       progress.clear();
       return;
@@ -1226,8 +1230,11 @@ export function App({
 
   const overlayOpen =
     session !== null || (resultModel !== null && openFlow === null) || openFlow !== null || shell.settingsOpen || scienceOpen || outcomeAttempt !== null;
+  // One passive notice at a time: a storage problem outranks the install hint.
   const showInstallHint =
     !overlayOpen &&
+    persistent &&
+    !storageWriteFailed &&
     !installHintDismissed &&
     durableSnap.calculations.length > 0 &&
     !isStandaloneDisplay();
@@ -1248,7 +1255,16 @@ export function App({
               onDismiss={() => onDismissUpdate?.()}
             />
           ) : showInstallHint ? (
-            <InstallHint onDismiss={() => setInstallHintDismissed(true)} />
+            <InstallHint
+              onDismiss={() => {
+                try {
+                  storage.setItem(INSTALL_HINT_DISMISSED_KEY, '1');
+                } catch {
+                  /* Storage status is shown by the shell. */
+                }
+                setInstallHintDismissed(true);
+              }}
+            />
           ) : null
         }
         onSelectTab={(tab: AppTab) => dispatch({ type: 'select_tab', tab })}
@@ -1304,9 +1320,12 @@ export function App({
               <p className="body">Answer a few questions to plan a break, cut down, or understand a test.</p>
             </div>
             {draft !== null ? <div className="card">
-              <h3 className="card-title">You have an unfinished calculation</h3>
-              <button type="button" className="cta-secondary" onClick={openResume}>Resume calculation</button>
-              <p className="meta">Choosing a goal below starts a new calculation.</p>
+              <h3 className="card-title">{RESUME.unfinishedTitle}</h3>
+              <p className="meta">{RESUME.unfinishedBody}</p>
+              <div className="cta-row">
+                <button type="button" className="cta-primary" data-testid="resume-draft" onClick={openResume}>{RESUME.resume}</button>
+                <button type="button" className="text-back" data-testid="discard-draft" onClick={abandonDraft}>{RESUME.startOver}</button>
+              </div>
             </div> : null}
             <GoalCards onSelect={openGoal} />
             <button

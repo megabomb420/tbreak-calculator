@@ -16,6 +16,10 @@ import { ADVICE_PICKER } from './break-copy.ts';
  * choosing a topic never leaves the reader with the previous guide gone from
  * the page but unread.
  */
+/** Every topic in one scrollable row: the picker must not push the day's
+ * action below the fold. */
+const TOPIC_ORDER: readonly SupportArea[] = SUPPORT_AREA_GROUPS.flatMap((group) => group.areas);
+
 export function DailySupport({ view }: { readonly view: DailySupportView }) {
   const [picked, setPicked] = useState<SupportArea | null>(null);
   const shown = picked ?? view.defaultArea;
@@ -27,26 +31,19 @@ export function DailySupport({ view }: { readonly view: DailySupportView }) {
           Things look fairly settled in your check-in. A break can be uneventful, too.
         </p>
       ) : null}
-      <h3 className="card-title" data-testid="advice-picker-title">{ADVICE_PICKER.title}</h3>
-      <div className="topic-picker" data-testid="advice-picker">
-        {SUPPORT_AREA_GROUPS.map((group) => (
-          <div className="topic-group" key={group.id}>
-            <p className="micro-label">{group.label}</p>
-            <div className="advice-topics">
-              {group.areas.map((area) => (
-                <button
-                  type="button"
-                  key={area}
-                  className={area === shown ? 'advice-topic selected' : 'advice-topic'}
-                  data-testid={`advice-topic-${area}`}
-                  aria-pressed={area === shown}
-                  onClick={() => setPicked(area)}
-                >
-                  {SUPPORT_AREA_COPY[area].shortLabel}
-                </button>
-              ))}
-            </div>
-          </div>
+      <h3 className="micro-label" data-testid="advice-picker-title">{ADVICE_PICKER.title}</h3>
+      <div className="topic-picker" data-testid="advice-picker" role="group" aria-label={ADVICE_PICKER.title}>
+        {TOPIC_ORDER.map((area) => (
+          <button
+            type="button"
+            key={area}
+            className={area === shown ? 'advice-topic selected' : 'advice-topic'}
+            data-testid={`advice-topic-${area}`}
+            aria-pressed={area === shown}
+            onClick={() => setPicked(area)}
+          >
+            {SUPPORT_AREA_COPY[area].shortLabel}
+          </button>
         ))}
       </div>
       <AdviceBlock section={section} />
@@ -68,7 +65,12 @@ function AdviceBlock({ section }: { readonly section: AdviceSection }) {
       <p className="body advice-first-step" data-testid="advice-action">{section.action}</p>
       {section.triggerLine !== null ? <p className="meta" data-testid="advice-trigger">{section.triggerLine}</p> : null}
       {section.fallbackLine !== null ? <p className="meta" data-testid="advice-fallback">{section.fallbackLine}</p> : null}
-      <GuideContent area={section.area} skipFirst />
+      {/* The action is the point; the reasoning, the remaining steps and the
+          sources are here for whoever wants them. */}
+      <details className="advice-details" data-testid="advice-guide">
+        <summary>{ADVICE_PICKER.more}</summary>
+        <GuideContent area={section.area} skipFirst />
+      </details>
     </article>
   );
 }

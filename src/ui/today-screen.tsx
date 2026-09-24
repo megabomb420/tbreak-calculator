@@ -20,6 +20,7 @@ import { formatLocalDay } from './format.ts';
 import { abstinenceDayAt } from '../domain/breaks/break-time.ts';
 import { parseSubmittedTimestamp } from '../domain/schemas/time.ts';
 import { PostBreakSummary } from './post-break-summary.tsx';
+import { ADVICE_PICKER } from './break-copy.ts';
 import { DailySupport } from './daily-support.tsx';
 import { ExtraBlocks, StageBlock } from './today-guidance.tsx';
 import { presentDailySupport } from '../application/presentation/daily-support.ts';
@@ -304,7 +305,10 @@ function ActiveBreakCard(props: TodayScreenProps) {
       {/* The switch sits above the block it swaps: the day/target head and the
           running break's own recovery outlook hold the same slot. */}
       {outlook !== null ? (
-        <ResultModeControl scope="today" ariaLabel="Today view" resetMode={outlookMode} onChange={setOutlookMode} />
+        <div className="mode-with-legend">
+          <ResultModeControl scope="today" ariaLabel="Today view" resetMode={outlookMode} onChange={setOutlookMode} />
+          <p className="meta" data-testid="mode-legend">{ADVICE_PICKER.switchLegend}</p>
+        </div>
       ) : null}
       {outlookMode && outlook !== null ? (
         <section className="today-block" id="today-panel-reset" role="tabpanel" aria-labelledby="today-tab-reset" data-testid="today-outlook">
@@ -322,6 +326,11 @@ function ActiveBreakCard(props: TodayScreenProps) {
           <p className="meta" data-testid="target-date-line">
             {`${ACTIVE_BREAK_CARD.targetDateLabel} ${formatLocalDay(view.targetDate)}`}
           </p>
+          {recordedDays.size > 0 ? (
+            <p className="meta" data-testid="checkin-progress">
+              {checkinProgressLine(recordedDays.size, view.targetDays, view.day <= view.targetDays)}
+            </p>
+          ) : null}
         </header>
       )}
       {!outlookMode && stateNote !== null ? (
@@ -336,20 +345,15 @@ function ActiveBreakCard(props: TodayScreenProps) {
             {ACTIVE_BREAK_CARD.markComplete}
           </button>
         ) : null}
-        {recordedDays.size > 0 ? (
-          <p className="meta today-checkin-progress" data-testid="checkin-progress">
-            {checkinProgressLine(recordedDays.size, view.targetDays, view.day <= view.targetDays)}
-          </p>
-        ) : null}
       </div>
       <StageBlock support={support} />
       <DailySupport view={support} />
       <ExtraBlocks support={support} />
-      <section className="result-disclosure today-block" data-testid="today-timeline">
-        <h3 className="card-title">Your break timeline</h3>
+      <details className="result-disclosure today-block" data-testid="today-timeline">
+        <summary>Your break timeline</summary>
         <BreakJourney view={journey} />
         <BreakResearchNote day={view.day} />
-      </section>
+      </details>
       <div className="footer-links">
         <button type="button" className="text-back" data-testid="end-early" onClick={() => setConfirmEnd(true)}>
           {ACTIVE_BREAK_CARD.endEarly}

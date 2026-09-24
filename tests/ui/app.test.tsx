@@ -341,24 +341,24 @@ describe('questionnaire resume placement', () => {
     expect(screen.getByTestId('resume-card')).toBeTruthy();
   });
 
-  it('Start over clears the draft and restores the primary shell', () => {
+  it('Discard clears the draft and restores the primary shell', () => {
     const storage = createMemoryStorage();
     saveDraft(storage, 3);
     renderApp(storage);
-    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     const view = screen.getByTestId('today-view');
     expect(view.getAttribute('data-primary')).toBe('first-launch');
     expect(screen.queryByTestId('resume-card')).toBeNull();
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
   });
 
-  it('Start over on a resume card keeps a live break and saved profile', () => {
+  it('Discard on a resume card keeps a live break and saved profile', () => {
     const storage = createMemoryStorage();
     saveDraft(storage, 2);
     acknowledgeProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(screen.queryByTestId('resume-card')).toBeNull();
     expect(createQuestionnaireProgressStore(storage).load()).toBeNull();
     expect(createBreakAttemptsStore(storage).load()?.attempts[0]?.status).toBe('active');

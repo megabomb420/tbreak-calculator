@@ -42,21 +42,6 @@ export interface HistoryModel {
   readonly empty: boolean;
 }
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
 export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): HistoryModel {
   const previousBreaks = snapshot.previousBreaks
     .map(previousBreakEntry)
@@ -71,7 +56,7 @@ export function buildHistoryModel(snapshot: DurableSnapshot, now: Instant): Hist
     ...snapshot.corrupt.map(corruptEntry),
   ];
   feed.sort((a, b) => b.at - a.at);
-  const groups = groupByMonth(feed);
+  const groups = groupBySection(feed);
   return {
     previousBreaks,
     groups,
@@ -131,14 +116,15 @@ function attemptEntry(attempt: StoredAttempt, now: Instant): HistoryEntry {
   const interrupted = attempt.segments.some((segment) => segment.endReason === 'used_thc');
   const lasted = lastedDays(attempt.segments, now);
   const status = attemptStatusLabel(attempt.status);
+  // Two honest numbers, each labelled: the plan's length and the elapsed run.
   const subtitleParts = [status];
-  if (lasted !== null) subtitleParts.push(lasted === 1 ? '1 day' : `${lasted} days`);
+  if (lasted !== null) subtitleParts.push(`${durationLabel(lasted)} so far`);
   if (interrupted) subtitleParts.push('interrupted');
   return {
     kind: 'attempt',
     id: attempt.id,
     at: attemptAnchor(attempt),
-    title: `${attempt.targetDurationDays}-day break`,
+    title: `${durationLabel(attempt.targetDurationDays)} planned`,
     subtitle: subtitleParts.join(' · '),
     interrupted,
   };
@@ -149,7 +135,7 @@ function trackingEntry(track: StoredTrack, now: Instant): HistoryEntry {
   const lasted = lastedDays(track.segments, now);
   const status = track.status === 'ended' ? 'Ended' : track.status === 'interrupted_time_needed' ? 'Paused' : 'Tracking';
   const subtitleParts = [status];
-  if (lasted !== null) subtitleParts.push(lasted === 1 ? '1 day' : `${lasted} days`);
+  if (lasted !== null) subtitleParts.push(`${durationLabel(lasted)} so far`);
   return {
     kind: 'tracking',
     id: track.id,
@@ -183,7 +169,7 @@ function previousBreakEntry(record: StoredPreviousBreak): HistoryEntry {
     kind: 'previous-break',
     id: record.id,
     at,
-    title: record.durationDays === 1 ? 'Past break · 1 day' : `Past break · ${record.durationDays} days`,
+    title: `Past break · ${durationLabel(record.durationDays)}`,
     subtitle: score,
     interrupted: false,
   };
@@ -234,24 +220,36 @@ export function lastedDays(
   return Math.max(1, Math.floor(ms / MILLIS_PER_DAY));
 }
 
-function groupByMonth(entries: readonly HistoryEntry[]): HistoryGroup[] {
+/**
+ * Sections by record family, newest first inside each: what you logged, what
+ * the app recommended, the breaks you ran, and your cut-down plans. Records
+ * that cannot be read still appear so nothing is hidden by silence.
+ */
+const SECTION_ORDER: readonly { readonly kind: HistoryEntryKind; readonly label: string }[] = [
+  { kind: 'checkin', label: 'Check-ins' },
+  { kind: 'calculation', label: 'Recommendations' },
+  { kind: 'attempt', label: 'Breaks' },
+  { kind: 'tracking', label: 'Breaks' },
+  { kind: 'previous-break', label: 'Breaks' },
+  { kind: 'reduction', label: 'Cutting down' },
+  { kind: 'corrupt', label: 'Unavailable records' },
+];
+
+function groupBySection(entries: readonly HistoryEntry[]): HistoryGroup[] {
   const groups: HistoryGroup[] = [];
-  for (const entry of entries) {
-    const label = monthLabel(entry.at);
-    const last = groups[groups.length - 1];
-    if (last !== undefined && last.label === label) {
-      groups[groups.length - 1] = { label, entries: [...last.entries, entry] };
-    } else {
-      groups.push({ label, entries: [entry] });
-    }
+  const seen = new Set<string>();
+  for (const section of SECTION_ORDER) {
+    if (seen.has(section.label)) continue;
+    seen.add(section.label);
+    const rows = entries.filter((entry) => SECTION_ORDER.find((item) => item.kind === entry.kind)?.label === section.label);
+    if (rows.length > 0) groups.push({ label: section.label, entries: rows });
   }
   return groups;
 }
 
-function monthLabel(at: Instant): string {
-  if (at === 0) return 'Unavailable';
-  const date = new Date(at);
-  return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+/** One wording for a duration: "1 day" / "14 days". */
+export function durationLabel(days: number): string {
+  return days === 1 ? '1 day' : `${days} days`;
 }
 
 export function findCalculation(snapshot: DurableSnapshot, id: string): CalculationRecord | null {

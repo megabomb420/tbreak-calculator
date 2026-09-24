@@ -102,6 +102,8 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 
 export const ADVICE_PICKER = {
   title: 'How to deal with?',
+  more: 'Why this helps',
+  switchLegend: 'Plan = your target · Outlook = research estimate.',
   /** Shown by the recovery-outlook and check-in copy when a legacy rating
    * selects a topic; Today itself no longer collects ratings. */
   ratedReason: 'From a saved check-in rating',

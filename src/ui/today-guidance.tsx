@@ -9,8 +9,8 @@ import type { DailySupportView } from '../application/presentation/daily-support
  */
 export function StageBlock({ support }: { readonly support: DailySupportView }) {
   return (
-    <section className="result-disclosure today-block" data-testid="today-stage">
-      <h3 className="card-title">This stage</h3>
+    <details className="result-disclosure today-block" data-testid="today-stage">
+      <summary>This stage</summary>
       <p className="micro-label">{support.window.label} · What to expect</p>
       <p className="body" data-testid="guidance-headline">{support.window.headline}</p>
       <p className="body" data-testid="guidance-context">{support.window.context}</p>
@@ -22,7 +22,7 @@ export function StageBlock({ support }: { readonly support: DailySupportView }) 
         <h4>{support.practice.title}</h4>
         <p className="body">{support.practice.action}</p>
       </section>
-    </section>
+    </details>
   );
 }
 
@@ -32,10 +32,10 @@ export function ExtraBlocks({ support }: { readonly support: DailySupportView })
   const comparison = compareCheckins(support.currentCheckins, { breakDay: support.day });
   return (
     <>
-      <section className="result-disclosure today-block" data-testid="today-experiences">
-        <h3 className="card-title">Experiences</h3>
+      <details className="result-disclosure today-block" data-testid="today-experiences">
+        <summary>Experiences</summary>
         <CommunityCarousel key={support.day} tips={support.communityTips} initialId={support.communityTip.id} />
-      </section>
+      </details>
       {comparison.available ? (
         <section className="result-disclosure today-block" data-testid="today-comparison">
           <h3 className="card-title">Your recorded changes</h3>

@@ -2693,6 +2693,9 @@ select,
   min-height: 44px;
 }
 
+.mode-with-legend { display: flex; flex-direction: column; gap: 8px; }
+.mode-with-legend > .meta { margin: 0; font-size: var(--text-sm); line-height: 1.45; }
+
 .result-mode {
   position: relative;
   gap: 3px;
@@ -2837,7 +2840,7 @@ select,
 .today-screen > * { position: relative; }
 
 .today-live-card {
-  gap: var(--space-4);
+  gap: 10px;
 }
 
 /* 0.20.0 live card header: eyebrow → day/target display line → one meta line,
@@ -3620,11 +3623,16 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .advice-topic.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
 .advice-topic:hover { background: var(--bg-hover); }
 /* Topic picker: the row chooses what the block beneath it explains. */
-.topic-picker { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; }
-.topic-group { display: flex; flex-direction: column; gap: 6px; }
-.topic-group .micro-label { margin: 0; }
-.daily-support > .card-title { margin: 0; }
+.topic-picker { display: flex; gap: 8px; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 2px; scrollbar-width: none; }
+.topic-picker::-webkit-scrollbar { display: none; }
+.topic-picker .advice-topic { flex: none; }
+.daily-support > .card-title,
+.daily-support > .micro-label { margin: 0; }
 .today-plan-card > .result-disclosure { margin: 0; }
+/* Today's disclosures are rows in a card, not reading pages: tighter padding
+   and a card-sized summary, so the day's action stays above the fold. */
+.today-plan-card > .today-block.result-disclosure { padding: var(--space-3) 0; }
+.today-plan-card > .today-block.result-disclosure > summary { font-size: var(--text-base); }
 /* Expanded Today blocks: a heading and its content, no disclosure. */
 .today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .today-block > .card-title { margin: 0; }
