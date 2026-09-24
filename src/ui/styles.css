@@ -2339,6 +2339,21 @@ details.card > summary::-webkit-details-marker {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Zoom is locked app-wide (owner's call, 0.38.0). `pan-x pan-y` keeps
+   one-finger panning in both axes and immediate taps, but excludes
+   `pinch-zoom`, so a two-finger gesture cannot scale the shell; because the
+   browser intersects touch-action from the touched element up to the
+   document, the wider `manipulation` value the controls declare below cannot
+   switch pinch back on. Safari has honoured this since iOS 13; it still
+   ignores the viewport `user-scalable=no` / `maximum-scale=1` lock (iOS 10+),
+   so a browser-level pinch stays possible there and magnification is never
+   fully unavailable. Text-entry controls stay at 16px so a focus tap cannot
+   trigger Safari's own zoom. */
+html,
+body {
+  touch-action: pan-x pan-y;
+}
+
 /* Interactive controls: no accidental text selection, no iOS long-press web
    callout, immediate (non-zooming) taps. `touch-action: manipulation` keeps
    vertical scrolling, sliders and native form interaction intact. */
@@ -3734,7 +3749,8 @@ input[aria-invalid='true'] { border-color: var(--error); }
   .community-track { scroll-behavior: auto; }
   .carousel-dots span { transition: none; }
 }
-/* Keep text-entry controls readable without focus zoom; browser pinch remains available. */
+/* Keep text-entry controls readable without focus zoom (the app-wide pinch
+   lock does not cover Safari's own focus zoom). */
 input:not([type="range"]), textarea, select { font-size: max(16px, 1rem); }
 .checkin-secondary-wide { width: 100%; }
 .daily-advice { padding: 16px; border: 1px solid var(--hairline); border-radius: 18px; background: color-mix(in oklab, var(--fg) 2%, transparent); }

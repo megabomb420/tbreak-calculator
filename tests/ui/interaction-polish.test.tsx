@@ -3,9 +3,10 @@
 // Static guards over src/ui/styles.css: app controls are not accidentally
 // selectable and suppress iOS long-press web callouts + tap flash, taps use
 // `touch-action: manipulation`, editable/copyable content stays selectable,
-// keyboard focus-visible states survive, the iOS 26 viewport contract is
-// untouched and the tab bar stays even per destination. Deliberately
-// newline-agnostic so the CRLF Windows checkout does not break the guards.
+// keyboard focus-visible states survive, zoom stays locked at the viewport and
+// touch layer, the iOS 26 viewport contract is untouched and the tab bar stays
+// even per destination. Deliberately newline-agnostic so the CRLF Windows
+// checkout does not break the guards.
 
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -73,6 +74,20 @@ describe('interaction-polish CSS contract', () => {
     expect(INDEX_HTML).toMatch(/name="viewport"[^>]*width=device-width,\s*initial-scale=1/);
     expect(INDEX_HTML).toMatch(/name="viewport"[^>]*viewport-fit=cover/);
     expect(CSS).not.toMatch(/\.tab-bar\s*\{[^}]*position:\s*fixed/);
+  });
+
+  it('locks zoom at the viewport and at the touch layer', () => {
+    // Owner's call (0.38.0): the app is not pinch-zoomable. The meta lock is
+    // what Chrome/Android honour; Safari ignores it (iOS 10+) and obeys
+    // `pan-x pan-y` instead, so both layers are required.
+    expect(INDEX_HTML).toMatch(/name="viewport"[^>]*maximum-scale=1/);
+    expect(INDEX_HTML).toMatch(/name="viewport"[^>]*user-scalable=no/);
+    const locks = [...CSS.matchAll(/html,\s*body \{[^}]*\}/g)].map((m) => m[0]);
+    const lock = locks.find((rule) => /touch-action/.test(rule)) ?? '';
+    expect(lock).toMatch(/touch-action:\s*pan-x pan-y/);
+    // `manipulation` includes pinch-zoom; it must not be the widest value the
+    // controls declare without the html/body lock narrowing it.
+    expect(lock).not.toMatch(/pinch-zoom/);
   });
 
   it('lays the tab bar out as one equal column per destination', () => {
