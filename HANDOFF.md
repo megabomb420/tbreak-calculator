@@ -40,7 +40,15 @@ New calculation records no longer write `recoveryOutlookVersion`. Records that a
 
 ### Deployment (0.38.0)
 
-**Not deployed.** The working tree is complete and validated locally; publishing (push to `main`, then the Cloudflare mirror) is a deliberate step left to the owner.
+Shipped to `main` as `e7c4904` and published by `.github/workflows/pages.yml`, which re-ran `npm ci`, `npm test`, `npm run test:tz`, `npm run typecheck` and `npm run build` on Node 24 before `actions/deploy-pages`; both jobs succeeded (run 36020388972). The Cloudflare mirror was redeployed from the same tree with `BASE_PATH=/ npm run build && npx wrangler pages deploy dist --project-name tbreak-calculator --branch main`.
+
+Live verification on the deployed build at 390×844, with the service worker bypassed so a cached 0.37 shell could not mask the release:
+
+- Settings → About reads **0.38.0** on both origins; the served bundle hash and the viewport meta (`width=device-width, initial-scale=1, viewport-fit=cover`, no `maximum-scale`) match the release.
+- Today shows the day and target, the check-in with its meaning, **This stage** (window, headline, one sentence), the topic picker with the day's action and **Why this helps** at the fold (694px against a 720px content band once the one-off install banner is dismissed), and the topic-matched experiences. **What you may notice**, **What else can help**, **Your break timeline** and **Manage break** are each closed.
+- Choosing **Nausea** swaps the topic, keeps the action in the same place and leads the experiences with the nausea accounts (1 / 8).
+- A saved result opens with no mode switch, the research section with all three study links and no displayed window; the only "estimated recovery window" text on the page is the honest legacy note on that pre-0.38 record.
+- The card measures 1869px collapsed (was 3605px with every section open) with no console errors.
 
 ## Evidence decisions
 
