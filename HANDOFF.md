@@ -42,6 +42,14 @@ Numeric versions remain `tolerance-v3`, `detection-copy-v1` and `tolerance-recov
 - Browser pass at 390×844 against the dev server: questionnaire → result → break start → Today; check-in, Undo and reload persistence; topic selection and reset to the daily suggestion; cancelable last-use correction with the restart copy; History dates; `Manage break`; no console errors. Document height now matches the viewport (844), so the header no longer scrolls off.
 - Not covered: physical iOS/Safari and assistive-technology review; pinch-zoom was verified through the DOM contract (no `maximum-scale`/`user-scalable`, no gesture blocker) rather than a synthetic multi-touch gesture, which timed out in headless Chromium.
 
+### Deployment (0.37.0)
+
+Shipped to `main` as `7c04171` (feature) and `6c3b724` (the copy fix above) and published by `.github/workflows/pages.yml`, which re-ran `npm ci`, `npm test`, `npm run test:tz`, `npm run typecheck` and `npm run build` on Node 24 before `actions/deploy-pages`; both the build and deploy jobs completed successfully.
+
+Live verification on the deployed build at 390×844 (GitHub Pages, service worker bypassed so a cached 0.36 shell could not mask the release): Settings → About reads **0.37.0**; the served `index.html` carries `width=device-width, initial-scale=1, viewport-fit=cover` with no `maximum-scale`; `--app-height` is 844px with no document overscroll; Today shows the day/target, the explained check-in (**Saved · No THC reported**), the stage headline and the day's own practical activity, with **Help with**, **Experiences**, **Your break timeline**, **Recovery outlook** and **Manage break**; a topic switch plus **More ideas & sources** render that guide's remaining steps and its sources; **Manage break → Update last use** changes nothing on cancel and shows the restart copy on confirm with earlier check-ins intact; History lists dated check-ins, the dated recommendation and the break run (**Less than a day so far**); and a saved result reads **Saved result · 24 Sep 2026** with the restored plan/outlook legend and the corrected advice line.
+
+The Cloudflare Pages mirror was **not** redeployed in this session, so it still serves the previous release until that deliberate local step is run.
+
 ## Evidence decisions
 
 Existing research and versioned deterministic policies remain authoritative. Population withdrawal patterns, tolerance planning, impairment and detectability stay separate. The recovery outlook remains an explicitly unvalidated product estimate, with lower-directness evidence beyond four weeks. No negative-test guarantee, detox protocol, biological completion state or medical endpoint is introduced.
