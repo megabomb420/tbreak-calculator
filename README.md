@@ -2,7 +2,7 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.33.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
+**Version 0.34.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
 
 The same build is published on two origins: GitHub Pages under the repository subpath and Cloudflare Pages at the domain root. They do not share device data — records, drafts and the service worker belong to the origin you open, so install and check in on one of them.
 
@@ -51,4 +51,4 @@ Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/
 
 Cloudflare Pages serves the same build at the domain root with `BASE_PATH=/ npm run build`, then `npx wrangler pages deploy dist --project-name tbreak-calculator --branch main`. There is no push-triggered Cloudflare workflow: the deploy is a local, deliberate step, so a failed test run cannot publish.
 
-Verify the deployment you care about, then open the live app and check Settings → About for **0.33.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.
+Verify the deployment you care about, then open the live app and check Settings → About for **0.34.0**. Existing PWA users receive an update prompt once the replacement service worker is ready. Historical release details are retained in Git history.

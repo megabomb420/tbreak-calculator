@@ -288,13 +288,14 @@ describe('daily check-in', () => {
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(storage, storedAttempt());
     renderApp(storage);
-    // The ratings live on the card, and nothing is recorded until Save.
+    // A fresh day opens on "Not set" and stores nothing until Save.
+    expect(checkinsOf(storage)).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('add-symptoms'));
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    expect(checkinsOf(storage)).toHaveLength(0);
-    fireEvent.click(screen.getByTestId('symptom-craving-6'));
+    const craving = screen.getByRole('slider', { name: 'Craving' });
+    fireEvent.pointerDown(craving);
+    fireEvent.input(craving, { target: { value: '6' } });
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
-    expect(screen.getByTestId('symptom-craving').getAttribute('data-value')).toBe('6');
-    expect(checkinsOf(storage)).toHaveLength(0);
     fireEvent.input(screen.getByTestId('checkin-note'), { target: { value: 'steady so far' } });
     fireEvent.click(screen.getByTestId('symptoms-save'));
     const checkin = checkinsOf(storage)[0] as { craving: number; sleep: null; appetite: null; note: string; usedThc: boolean };
@@ -524,7 +525,7 @@ describe('evidence-guided companion', () => {
     const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
-    expect(screen.getByTestId('support-action').textContent).toBeTruthy();
+    expect(screen.getByTestId('advice-cravings-action').textContent).toBeTruthy();
     expect(screen.getByTestId('guidance-context').textContent).toMatch(/population pattern, not a personal prediction/i);
   });
 
@@ -547,10 +548,10 @@ describe('evidence-guided companion', () => {
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     // The saved replacement is the card's one action line, with the trigger the
     // person flagged underneath...
-    const action = within(guidance).getByTestId('support-action');
+    const action = within(guidance).getByTestId('advice-cravings-action');
     expect(action.textContent).toContain('Try your plan first');
     expect(action.textContent).toContain('go for a walk');
-    expect(within(guidance).getByTestId('support-trigger').textContent).toBe('You flagged: Evening after work.');
+    expect(within(guidance).getByTestId('advice-cravings-trigger').textContent).toBe('You flagged: Evening after work.');
     // ...without a duplicated urge-plan list, a second heading, or an invented
     // "avoid" line.
     expect(within(guidance).queryByTestId('intention-preview')).toBeNull();

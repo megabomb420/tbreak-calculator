@@ -110,6 +110,7 @@ import type { StorageAdapter } from '../infrastructure/storage/storage-adapter.t
 import { BreakStartSheet } from './break-start-sheet.tsx';
 import { ConfirmUse, type ConfirmScope } from './confirm-use.tsx';
 import { TrackingDetail } from './tracking-detail.tsx';
+import { CheckInFlow } from './checkin-flow.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
 import { HistoryScreen } from './history-screen.tsx';
 import { QuestionnaireFlow } from './questionnaire-flow.tsx';
@@ -147,6 +148,7 @@ export type Flow =
     readonly customDays: number | null }
   | { readonly kind: 'choose-break-days' }
   | { readonly kind: 'tracking-detail' }
+  | { readonly kind: 'checkin' }
   | { readonly kind: 'confirm-use'; readonly scope: ConfirmScope; readonly segmentStart: Instant }
   | { readonly kind: 'previous-break'; readonly editId: string | null }
   | { readonly kind: 'detox-evidence' }
@@ -548,6 +550,10 @@ export function App({
     markResult('acknowledged');
     dispatch({ type: 'select_tab', tab: 'today' });
     refresh();
+  }
+
+  function openCheckIn(): void {
+    setFlow({ kind: 'checkin' });
   }
 
   function confirmWhen(): void {
@@ -1227,6 +1233,26 @@ export function App({
     flow?.kind === 'break-start' && flow.customDays !== null ? flow.customDays : (breakSheetTarget ?? 0);
   const flowTrack = liveTracking?.status === 'tracking' ? liveTracking : null;
 
+  const checkInDay =
+    liveData.active !== null
+      ? liveData.active.view.day
+      : liveData.tracking !== null && liveData.tracking.view !== null
+        ? liveData.tracking.view.day
+        : null;
+  // The day's stored report, read from the running plan's own segment: the
+  // profile anchor does not exist for a chosen-length break.
+  const checkinOwner = liveAttempt !== null && liveAttempt.status === 'active'
+    ? liveAttempt
+    : liveTracking !== null && liveTracking.status === 'tracking'
+      ? liveTracking
+      : null;
+  const todayCheckinIndex = latestTodayCheckin(
+    sessionState.checkins,
+    checkinOwner === null ? null : currentSegmentAnchor(checkinOwner.segments),
+    now,
+  );
+  const todayReport = todayCheckinIndex >= 0 ? sessionState.checkins[todayCheckinIndex]! : null;
+
   // The open flow, but only while it can actually render its dialog. An
   // unrenderable flow would leave the background inert with no dialog, no
   // Escape handler and no close action; the app would freeze with no way out.
@@ -1236,6 +1262,7 @@ export function App({
       targetDays: breakSheetTargetDays,
       track: flowTrack,
       segmentStart: flow.kind === 'confirm-use' ? flow.segmentStart : null,
+      checkInDay,
       reductionPlan: liveReductionPlan,
     })
       ? flow
@@ -1296,7 +1323,7 @@ export function App({
             onSeeBreakRange={seeBreakRange}
             onStartTracking={startTracking}
             onCheckIn={saveNoUse}
-            onSaveSymptoms={saveSymptoms}
+            onAddSymptoms={openCheckIn}
             onUndoCheckin={undoCheckin}
             onConfirmWhen={confirmWhen}
             onDismissUnconfirmedUse={dismissUnconfirmedUse}
@@ -1409,10 +1436,13 @@ export function App({
           track={flowTrack}
           anchor={anchor}
           segmentStart={openFlow.kind === 'confirm-use' ? openFlow.segmentStart : null}
+          checkInDay={checkInDay}
+          todayReport={todayReport}
                   onClose={() => setFlow(null)}
           onStartBreak={startPlan}
           onChooseBreakDays={confirmChosenDays}
           canStartPlan={canStartPlan}
+          onCheckInSymptoms={saveSymptoms}
           onConfirmUse={confirmUse}
           onRecalculate={openRecalculate}
           onUpdatePreparation={updatePreparation}
@@ -1517,6 +1547,7 @@ export function flowRendersDialog(
     readonly targetDays: number;
     readonly track: StoredTrack | null;
     readonly segmentStart: Instant | null;
+    readonly checkInDay: number | null;
     readonly reductionPlan: ReductionPlan | null;
   },
 ): boolean {
@@ -1525,6 +1556,8 @@ export function flowRendersDialog(
       return inputs.targetDays >= 1;
     case 'tracking-detail':
       return inputs.track !== null;
+    case 'checkin':
+      return inputs.checkInDay !== null;
     case 'confirm-use':
       return inputs.segmentStart !== null;
     case 'log-use':
@@ -1542,10 +1575,13 @@ function FlowRenderer({
   track,
   anchor,
   segmentStart,
+  checkInDay,
+  todayReport,
   onClose,
   onStartBreak,
   onChooseBreakDays,
   canStartPlan,
+  onCheckInSymptoms,
   onConfirmUse,
   onRecalculate,
   onUpdatePreparation,
@@ -1565,10 +1601,14 @@ function FlowRenderer({
   readonly track: StoredTrack | null;
   readonly anchor: Instant | null;
   readonly segmentStart: Instant | null;
+  readonly checkInDay: number | null;
+  /** Today's stored report, so the ratings open on what was saved. */
+  readonly todayReport: import('../domain/schemas/profile.ts').DailyCheckin | null;
   readonly onClose: () => void;
   readonly onStartBreak: (mode: PostBreakMode, startAt: Instant, preparation: BreakPreparation | null) => void;
   readonly onChooseBreakDays: (days: number) => void;
   readonly canStartPlan: boolean;
+  readonly onCheckInSymptoms: (symptoms: CheckinSymptoms, note: string | null) => void;
   readonly onConfirmUse: (scope: ConfirmScope, usedAt: Instant, usedAtIso: string) => boolean;
   readonly onRecalculate: () => void;
   readonly onUpdatePreparation: (id: string, preparation: BreakPreparation | null) => void;
@@ -1608,6 +1648,15 @@ function FlowRenderer({
           checkins={checkins}
           onBack={onClose}
           profile={profile}
+        />
+      ) : null;
+    case 'checkin':
+      return checkInDay !== null ? (
+        <CheckInFlow
+          day={checkInDay}
+          recorded={todayReport}
+          onSymptomsSave={onCheckInSymptoms}
+          onClose={onClose}
         />
       ) : null;
     case 'confirm-use': {

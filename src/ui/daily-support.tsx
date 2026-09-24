@@ -1,105 +1,87 @@
 import { useState } from 'preact/hooks';
-import { SUPPORT_GUIDES, SUPPORT_SOURCES, type DailySupportView } from '../application/presentation/daily-support.ts';
+import { SUPPORT_GUIDES, SUPPORT_SOURCES, type AdviceSection, type DailySupportView } from '../application/presentation/daily-support.ts';
 import type { SupportArea } from '../application/questionnaire/companion.ts';
 import { SUPPORT_AREA_COPY, SUPPORT_AREA_GROUPS } from './companion-copy.ts';
 
 /**
- * One card, not a stack of essays: the topic Today leads with, the sentence to
- * act on, and the person's own plan when it exists. Everything else — the full
- * guide, the other rated topics, every area — opens from this card.
+ * Every topic the day's ratings raised, expanded one under another: the hardest
+ * reading first, then the rest. Tapping a topic never swaps a single card, so
+ * nothing already read disappears.
  */
 export function DailySupport({ view }: { readonly view: DailySupportView }) {
-  // Local choice only: opening another topic never writes storage.
   const [picked, setPicked] = useState<SupportArea | null>(null);
   const [topicsOpen, setTopicsOpen] = useState(false);
-  const area = picked ?? view.primaryArea;
-  const primary = area === view.primaryArea;
-  const guide = SUPPORT_GUIDES[area];
-  const selection = view.selections[0];
-  const also = view.selections.slice(1);
+  const sections: readonly AdviceSection[] = picked === null || view.sections.some((item) => item.area === picked)
+    ? view.sections
+    : [...view.sections, { area: picked, reason: 'Opened from the list', recordedAt: null, action: SUPPORT_GUIDES[picked].steps[0], triggerLine: null, fallbackLine: null }];
   return (
     <section className="daily-support" data-testid="daily-support" data-window={view.window.id} aria-label="Advice for today">
+      <p className="meta advice-basis" data-testid="advice-basis">{view.status}</p>
       {view.allComfortable ? (
         <p className="daily-comfortable" data-testid="comfortable-checkin">
           Things look fairly settled in your check-in. A break can be uneventful, too.
         </p>
       ) : null}
-      <article className="support-card" data-testid="support-card" data-area={area}>
-        <h3 className="card-title">{guide.title}</h3>
-        <p className="meta advice-reason" data-testid="support-reason">
-          {primary ? view.primaryReason : 'Opened from the list'}
-          {primary && selection?.recordedAt != null ? (
-            <> · <time dateTime={selection.recordedAt}>{new Date(selection.recordedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time></>
-          ) : null}
-        </p>
-        <p className="meta" data-testid="advice-basis">{view.status}</p>
-        <p className="body advice-first-step" data-testid="support-action">
-          {primary ? view.action : guide.steps[0]}
-        </p>
-        {primary && view.triggerLine !== null ? (
-          <p className="meta" data-testid="support-trigger">{view.triggerLine}</p>
-        ) : null}
-        {primary && view.fallbackLine !== null ? (
-          <p className="meta" data-testid="support-fallback">{view.fallbackLine}</p>
-        ) : null}
-        <details className="advice-details" open>
-          <summary>More</summary>
-          <GuideContent area={area} skipFirst />
-        </details>
-        {also.length > 0 ? (
-          <div className="support-also" data-testid="support-also">
-            <p className="micro-label">Also rated</p>
-            <div className="advice-topics">
-              {also.map((item) => (
-                <button
-                  type="button"
-                  key={item.area}
-                  className={area === item.area ? 'advice-topic selected' : 'advice-topic'}
-                  onClick={() => setPicked(item.area)}
-                >
-                  {SUPPORT_AREA_COPY[item.area].shortLabel}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          className="text-back"
-          data-testid="support-switch"
-          aria-expanded={topicsOpen}
-          onClick={() => setTopicsOpen((open) => !open)}
-        >
-          Not this?
-        </button>
-        {topicsOpen ? (
-          <div className="advice-topic-groups" data-testid="support-topics">
-            <p className="meta" data-testid="support-topics-note">
-              Your recent check-ins pick this topic, with the hardest rating first. A rating stops counting after 48 hours.
-              Unrecorded symptoms stay unknown. The order is an app choice, not a diagnosis or a recovery score.
-            </p>
-            {SUPPORT_AREA_GROUPS.map((group) => (
-              <div key={group.id}>
-                <p className="micro-label">{group.label}</p>
-                <div className="advice-topics">
-                  {group.areas.map((groupArea) => (
-                    <button
-                      type="button"
-                      key={groupArea}
-                      aria-pressed={area === groupArea}
-                      className={area === groupArea ? 'advice-topic selected' : 'advice-topic'}
-                      onClick={() => setPicked(groupArea)}
-                    >
-                      {SUPPORT_AREA_COPY[groupArea].shortLabel}
-                    </button>
-                  ))}
-                </div>
+      {sections.map((section) => <AdviceBlock key={section.area} section={section} />)}
+      <button
+        type="button"
+        className="text-back"
+        data-testid="support-switch"
+        aria-expanded={topicsOpen}
+        onClick={() => setTopicsOpen((open) => !open)}
+      >
+        Not this?
+      </button>
+      {topicsOpen ? (
+        <div className="advice-topic-groups" data-testid="support-topics">
+          <p className="meta" data-testid="support-topics-note">
+            Your recent check-ins pick this topic, with the hardest rating first. A rating stops counting after 48 hours.
+            Unrecorded symptoms stay unknown. The order is an app choice, not a diagnosis or a recovery score.
+          </p>
+          {SUPPORT_AREA_GROUPS.map((group) => (
+            <div key={group.id}>
+              <p className="micro-label">{group.label}</p>
+              <div className="advice-topics">
+                {group.areas.map((groupArea) => (
+                  <button
+                    type="button"
+                    key={groupArea}
+                    aria-pressed={sections.some((item) => item.area === groupArea)}
+                    className="advice-topic"
+                    onClick={() => setPicked(groupArea)}
+                  >
+                    {SUPPORT_AREA_COPY[groupArea].shortLabel}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : null}
-      </article>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function AdviceBlock({ section }: { readonly section: AdviceSection }) {
+  const guide = SUPPORT_GUIDES[section.area];
+  return (
+    <article className="support-card" data-testid={`advice-${section.area}`} data-area={section.area}>
+      <h3 className="card-title">{guide.title}</h3>
+      <p className="meta advice-reason" data-testid={`advice-${section.area}-reason`}>
+        {section.reason}
+        {section.recordedAt !== null ? (
+          <> · <time dateTime={section.recordedAt}>{new Date(section.recordedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time></>
+        ) : null}
+      </p>
+      <p className="body advice-first-step" data-testid={`advice-${section.area}-action`}>{section.action}</p>
+      {section.triggerLine !== null ? (
+        <p className="meta" data-testid={`advice-${section.area}-trigger`}>{section.triggerLine}</p>
+      ) : null}
+      {section.fallbackLine !== null ? (
+        <p className="meta" data-testid={`advice-${section.area}-fallback`}>{section.fallbackLine}</p>
+      ) : null}
+      <GuideContent area={section.area} skipFirst />
+    </article>
   );
 }
 

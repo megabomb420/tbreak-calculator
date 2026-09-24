@@ -203,6 +203,17 @@ export interface DailySupportInput {
   readonly targetDays?: number | null;
 }
 
+/** One topic's block: the reason it is here and the single line to act on. */
+export interface AdviceSection {
+  readonly area: SupportArea;
+  readonly reason: string;
+  readonly recordedAt: string | null;
+  /** The person's own plan first wherever their plan covers this topic. */
+  readonly action: string;
+  readonly triggerLine: string | null;
+  readonly fallbackLine: string | null;
+}
+
 /** The one card Today renders for the day. */
 export interface DailySupportView {
   readonly version: string;
@@ -211,14 +222,10 @@ export interface DailySupportView {
   /** Hard ratings only (severity >= 4), severity descending, FIELD_AREAS order
    * on a tie. Empty when nothing was rated hard enough to act on. */
   readonly selections: readonly AdviceSelection[];
-  /** The topic the card opens on: the hardest rating, else the day's practice. */
-  readonly primaryArea: SupportArea;
-  readonly primaryReason: string;
+  /** Every topic the ratings raised, hardest first, then the day's practice
+   * topic when nothing was rated hard enough. Rendered one under another. */
+  readonly sections: readonly AdviceSection[];
   readonly status: string;
-  /** The single sentence the card shows for the day. */
-  readonly action: string;
-  readonly triggerLine: string | null;
-  readonly fallbackLine: string | null;
   readonly currentCheckins: readonly DailyCheckin[];
   readonly communityTip: CommunityTip;
   readonly communityTips: readonly CommunityTip[];
@@ -250,9 +257,6 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
   // two generic essays.
   const ranked = ratings.filter(item => item.severity >= 4).sort((a, b) => b.severity - a.severity);
   const selections: AdviceSelection[] = ranked.map(item => ({ area: item.area, reason: `${item.label} ${item.value}/10 in your check-in`, recordedAt: item.recordedAt }));
-  const primary = selections[0];
-  const primaryArea: SupportArea = primary?.area ?? practice.area;
-  const planFirst = PLAN_FIRST_AREAS.includes(primaryArea);
   const replacement = input.preparation?.replacementAction?.trim() ?? '';
   const fallback = input.preparation?.fallbackPlan?.trim() ?? '';
   const customTrigger = input.preparation?.customTrigger?.trim() ?? '';
@@ -276,20 +280,27 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
   const communityTips = (orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS]).slice(0, 5);
   const communityTip = communityTips[0]!;
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
+  const shown = selections.length > 0
+    ? selections
+    : [{ area: practice.area, reason: 'For this stage of the break', recordedAt: null }];
+  const sections: AdviceSection[] = shown.map((selection) => {
+    const planFirst = PLAN_FIRST_AREAS.includes(selection.area);
+    return {
+      area: selection.area,
+      reason: selection.reason,
+      recordedAt: selection.recordedAt,
+      action: planFirst && replacement !== ''
+        ? `Try your plan first: “${replacement}”.`
+        : SUPPORT_GUIDES[selection.area].steps[0],
+      triggerLine: planFirst && triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,
+      fallbackLine: planFirst && fallback !== '' ? `If that is not possible: ${fallback}.` : null,
+    };
+  });
   return {
-    version: DAILY_SUPPORT_VERSION, day, window, selections,
-    primaryArea,
-    primaryReason: primary?.reason ?? 'For this stage of the break',
+    version: DAILY_SUPPORT_VERSION, day, window, selections, sections,
     status: hasSymptoms
       ? 'Picked from your recent check-ins.'
       : 'Rate how you feel if this is not the problem.',
-    // The person's own replacement action outranks generic advice wherever the
-    // problem is a routine, an urge or an empty evening.
-    action: planFirst && replacement !== ''
-      ? `Try your plan first: “${replacement}”.`
-      : SUPPORT_GUIDES[primaryArea].steps[0],
-    triggerLine: planFirst && triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,
-    fallbackLine: planFirst && fallback !== '' ? `If that is not possible: ${fallback}.` : null,
     currentCheckins, communityTip, communityTips,
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,

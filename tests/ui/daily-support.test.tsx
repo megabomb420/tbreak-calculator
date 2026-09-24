@@ -23,77 +23,72 @@ function setup() {
   return { storage, app };
 }
 
-/** Tap a rating on the card and save it, the way the screen works. */
-function rate(field: string, value: number): void {
-  fireEvent.click(screen.getByTestId(`symptom-${field}-${value}`));
-}
-function saveReport(): void {
-  fireEvent.click(screen.getByTestId('symptoms-save'));
+function rate(name: string, value: number): void {
+  const slider = screen.getByRole('slider', { name });
+  fireEvent.pointerDown(slider);
+  fireEvent.input(slider, { target: { value: String(value) } });
 }
 
-/** The one card Today shows, plus its two open-on-demand lists. */
-function card(): HTMLElement {
-  return screen.getByTestId('support-card');
+const AREAS = ['sleep', 'cravings', 'appetite', 'anxiety', 'irritability', 'low_mood', 'dreams', 'nausea', 'headaches', 'routine', 'boredom'];
+
+/** The topics whose guides render, in order. */
+function adviceTopicIds(): string[] {
+  return [...screen.getByTestId('daily-support').querySelectorAll('[data-testid^="advice-"]')]
+    .map((el) => el.getAttribute('data-testid')!.replace('advice-', ''))
+    .filter((id) => AREAS.includes(id));
 }
 
 describe('practical Today advice', () => {
   it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
     const { storage, app } = setup();
     expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
-    rate('sleep', 2);
-    rate('craving', 8);
-    saveReport();
-    // Both ratings are severity 8; FIELD_AREAS lists sleep first, so sleep leads
-    // and the craving becomes a one-tap alternative instead of a second essay.
-    expect(card().getAttribute('data-area')).toBe('sleep');
-    expect(screen.getByTestId('support-reason').textContent).toContain('Sleep quality 2/10');
-    expect(within(screen.getByTestId('support-also')).getByText('Cravings')).toBeTruthy();
-    expect(screen.getAllByTestId('support-card')).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    rate('Sleep quality', 2);
+    rate('Craving', 8);
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    // Both rated areas are 8 oriented: both guides render, hardest reading first.
+    expect(screen.getByTestId('advice-sleep-reason').textContent).toContain('Sleep quality 2/10');
+    expect(screen.getByTestId('advice-cravings-reason').textContent).toContain('Craving 8/10');
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.appetite).toBeNull();
     app.unmount();
     render(<App storage={storage} clock={fixedClock(NOW)} />);
-    expect(card().getAttribute('data-area')).toBe('sleep');
+    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
     fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(card().getAttribute('data-area')).toBe('sleep');
+    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
   });
 
-  it('orders every area rated 4 or harder behind one card instead of one article each', () => {
+  it('renders a guide for every area rated 4 or harder, ordered by severity', () => {
     setup();
-    rate('sleep', 2);
-    rate('appetite', 1);
-    rate('craving', 8);
-    rate('anxiety', 7);
-    saveReport();
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    rate('Sleep quality', 2);
+    rate('Appetite', 1);
+    rate('Craving', 8);
+    rate('Anxiety', 7);
+    fireEvent.click(screen.getByTestId('symptoms-save'));
     expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
-    // Appetite 1/10 is the hardest oriented rating, so it leads.
-    expect(card().getAttribute('data-area')).toBe('appetite');
-    const also = screen.getByTestId('support-also');
-    for (const label of ['Sleep', 'Cravings', 'Anxiety']) {
-      expect(within(also).getByText(label)).toBeTruthy();
-    }
-    expect(screen.getAllByTestId('support-card')).toHaveLength(1);
+    // Appetite 1/10 is the hardest oriented rating, then sleep, craving, anxiety.
+    expect(adviceTopicIds()).toEqual(['appetite', 'sleep', 'cravings', 'anxiety']);
     expect(screen.queryByTestId('advice-routine')).toBeNull();
     expect(screen.queryByTestId('advice-boredom')).toBeNull();
   });
 
   it('keeps one stage topic for a day with no ratings instead of two default essays', () => {
     setup();
-    expect(card().getAttribute('data-area')).toBe('cravings');
-    expect(screen.getByTestId('support-reason').textContent).toContain('For this stage of the break');
-    expect(screen.queryByTestId('support-also')).toBeNull();
+    expect(adviceTopicIds()).toEqual(['cravings']);
+    expect(screen.getByTestId('advice-cravings-reason').textContent).toContain('For this stage of the break');
     expect(screen.queryByTestId('advice-routine')).toBeNull();
     expect(screen.queryByTestId('advice-boredom')).toBeNull();
     expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
+    expect(screen.queryByTestId('rating-topics')).toBeNull();
   });
 
   it('does not present an area the user rated as comfortable as a problem', () => {
     setup();
-    rate('craving', 0);
-    saveReport();
-    // The card falls back to the day's practice and names no rating.
-    expect(screen.getByTestId('support-reason').textContent).toBe('For this stage of the break');
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    expect(screen.getByTestId('advice-cravings-reason').textContent).toBe('For this stage of the break');
     expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
-    expect(screen.queryByTestId('support-also')).toBeNull();
   });
 
   it('undo survives reload, repeated taps do not duplicate, and earlier ratings remain', () => {
@@ -111,7 +106,7 @@ describe('practical Today advice', () => {
     fireEvent.click(screen.getByTestId('undo-checkin'));
     expect(screen.getByTestId('checkin-cta').textContent).toBe('Check in');
     expect(createCheckinsStore(storage).load()!.checkins).toEqual([prior]);
-    expect(screen.getByTestId('support-reason').textContent).toContain('Sleep quality 2/10');
+    expect(screen.getByTestId('advice-sleep-reason').textContent).toContain('Sleep quality 2/10');
   });
 
   it('keeps the break clock and plan unchanged when checking in', () => {
@@ -124,19 +119,17 @@ describe('practical Today advice', () => {
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(false);
   });
 
-  it('swaps the card to another topic without writing stored data and keeps sources inside More', () => {
+  it('opens another topic from the list without writing stored data and keeps its sources', () => {
     const { storage } = setup();
     fireEvent.click(screen.getByTestId('support-switch'));
     const topics = screen.getByTestId('support-topics');
     fireEvent.click(within(topics).getByRole('button', { name: 'Nausea' }));
-    // A swapped topic shows its own guide step, not the day's action line.
-    expect(card().getAttribute('data-area')).toBe('nausea');
-    expect(screen.getByTestId('support-action').textContent).toContain('small, regular sips');
-    const more = within(card()).getByText('More').closest('details')!;
-    // The full guide, its sources and the seek-help line are visible by default.
-    expect(more.hasAttribute('open')).toBe(true);
-    expect(more.textContent).toContain('Repeated vomiting');
-    expect(within(more).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
+    // The opened topic is appended after the day's own topics, never replacing them.
+    expect(adviceTopicIds()).toEqual(['cravings', 'nausea']);
+    const nausea = screen.getByTestId('advice-nausea');
+    expect(within(nausea).getByTestId('advice-nausea-action').textContent).toContain('small, regular sips');
+    expect(nausea.textContent).toContain('Repeated vomiting');
+    expect(within(nausea).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
     expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
   });
 
@@ -146,14 +139,29 @@ describe('practical Today advice', () => {
     expect(screen.getByTestId('support-topics-note').textContent).toMatch(/A rating stops counting after 48 hours/);
   });
 
-  it('allows an explicit zero and takes a rating back', () => {
-    const { storage } = setup();
-    rate('craving', 0);
-    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('0');
-    // Tapping the selected number again clears the field: nothing to un-select.
-    fireEvent.click(screen.getByTestId('symptom-craving-0'));
+  it('opens on what the day already stored, and can take a rating back', () => {
+    const storage = createMemoryStorage();
+    createBreakAttemptsStore(storage).save({ schemaVersion: 'break-attempts-v1', attempts: [{
+      id: 'chosen', status: 'active', targetSource: 'chosen', calculationRecordId: null,
+      targetDurationDays: 14, postBreakMode: 'continue_abstinence', startedAt: START,
+      segments: [{ startedFromLastUseAt: START, endedAt: null, endReason: null }],
+      postBreakPlan: { mode: 'continue_abstinence' }, preparation: null, completionAcknowledged: false,
+      createdAt: START, updatedAt: START,
+    }] });
+    createCheckinsStore(storage).save({ schemaVersion: 'checkins-v1', checkins: [{
+      recordedAt: new Date(NOW).toISOString(), usedThc: false, usedAt: null,
+      craving: 6, sleep: null, anxiety: null, irritability: null, appetite: null, note: 'earlier',
+    }] });
+    render(<App storage={storage} clock={fixedClock(NOW)} />);
+    fireEvent.click(screen.getByTestId('add-symptoms'));
+    // The saved rating is shown, so it can be changed instead of being untouchable.
+    expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('6');
+    fireEvent.click(screen.getByRole('button', { name: 'Leave Craving unrecorded' }));
     expect(screen.getByTestId('symptom-craving-readout').textContent).toBe('Not set');
-    expect(screen.getByTestId('symptom-craving').getAttribute('data-value')).toBe('unset');
-    expect(createCheckinsStore(storage).load()?.checkins ?? []).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('symptoms-save'));
+    // The day's report is updated in place, not duplicated.
+    const rows = createCheckinsStore(storage).load()!.checkins;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.craving).toBeNull();
   });
 });

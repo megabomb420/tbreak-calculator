@@ -101,15 +101,20 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 // --- Check-in (UX_SPEC 10.2) -----------------------------------------------
 
 export const CHECKIN = {
-  save: "Save today's check-in",
-  update: "Update today's check-in",
+  title: 'Check-in',
+  question: 'Any THC since your last check-in?',
+  no: 'No',
+  noHelper: "I haven't used",
+  yes: 'Yes',
+  yesHelper: 'I used THC',
+  save: 'Save',
+  addSymptoms: "Add how you're feeling",
   symptomsTitle: 'How are you feeling?',
-  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Tap a number to record it, tap it again to clear it.',
-  symptomsSaveNote: "Saving also records today without THC; an unrecorded field stays unknown. Your ratings help choose today's advice.",
-  notSet: 'Not set',
-  clearRating: 'Clear this rating',
+  symptomsHelper: 'Rate the past 24 hours; for sleep, rate your last main sleep. Skip any. Your ratings help choose today’s advice.',
   noteLabel: 'Note (optional)',
   noteHelper: 'Private, stored only on this device, never analysed.',
+  close: 'Close check-in',
+  backToQuestion: 'Back',
 } as const;
 
 export const SYMPTOM_FIELDS = [
