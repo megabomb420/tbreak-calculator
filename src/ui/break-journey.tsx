@@ -125,7 +125,10 @@ function JourneyLeg({
       ) : null}
       {showDays ? <JourneyDays leg={leg} /> : null}
       {currentContent}
-      <details className="journey-leg-detail">
+      {/* The leg someone is living through opens by default: "You are here"
+          is only useful if what to expect from it is on the page. Past and
+          future legs stay closed, and the row still folds away by hand. */}
+      <details className="journey-leg-detail" open={leg.status === 'current'}>
         <summary>{JOURNEY.legDetail}</summary>
         {leg.mayNotice.length > 0 ? (
           <div className="guidance-block">

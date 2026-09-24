@@ -271,6 +271,23 @@ describe('chosen-duration break ends without a profile', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('no-profile');
   });
 
+  it('opens what to expect on the leg you are on, and leaves the others folded', () => {
+    const storage = seedChosen(toInstant(AT - 5 * DAY_MS), 10);
+    renderApp(storage); // day 6 of 10
+    const details = [...document.querySelectorAll('.journey-leg-detail')] as HTMLDetailsElement[];
+    expect(details.length).toBeGreaterThan(1);
+    const open = details.filter((row) => row.open);
+    // Exactly the leg marked "You are here" is expanded, and it names the
+    // content it is hiding from nobody.
+    expect(open).toHaveLength(1);
+    expect(open[0]!.closest('[data-status]')!.getAttribute('data-status')).toBe('current');
+    expect(within(open[0]! as HTMLElement).getByText('You may notice')).toBeTruthy();
+    // A future leg stays folded, and the row still folds away by hand.
+    expect(details.filter((row) => row.open === false).length).toBeGreaterThan(0);
+    open[0]!.open = false;
+    expect(details.filter((row) => row.open)).toHaveLength(0);
+  });
+
   it('returns to the returning state after ending early', () => {
     const storage = seedChosen(AT, 10);
     renderApp(storage);

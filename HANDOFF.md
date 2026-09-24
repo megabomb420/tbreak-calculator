@@ -15,6 +15,8 @@ Today and History are the two destinations. Starting a plan is a flow opened fro
 
 **The advice is deeper and source-grounded.** Eleven topics, each with 5–8 practical steps drawn from reviewed sources: the NSW Health quitting guide and Turning Point for urge management (delay, distract, breathe, drink water) and sleep timing, CAMH for removing paraphernalia, structure and the realistic mood timeline, NHS Every Mind Matters for sleep hygiene, healthdirect for breathing and relaxation, NHS 5 steps for activity and connection, NIDA for the symptom list. Medication, dosing, supplement and detox-product content in those sources is deliberately not reproduced. No source read offers a technique specific to vivid dreams, so the app describes them and points back to sleep care rather than inventing one.
 
+**The leg you are on opens itself.** In **Your break timeline** the leg marked "You are here" shows its **What to expect** detail (you may notice, what can help, the window context) without a tap; every other leg and the result preview stay folded, and the row can still be closed by hand.
+
 **The day has a tool, not only advice.** **Ride it out** sits in the day's advice card: a delay timer (5/10/15 minutes) that runs from a stored start instant, keeps running when the sheet is closed, and records only how the minutes went. It is the app's one real-time surface, and it exists because advice about a craving is not the same as something to do with one.
 
 **One reminder, and it says what it can do.** A local time in Settings; Today shows one line when the time has passed without a check-in, and the app may raise one local notification per day while it is alive. No server, no push: the copy says a closed app cannot be woken.
