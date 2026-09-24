@@ -9,7 +9,8 @@ import type { BreakPreparation } from '../application/break/preparation.ts';
 import { GUIDANCE_CHROME, TRACKING_CARD } from './break-copy.ts';
 import { BackIcon } from './icons.tsx';
 import { useFocusTrap } from './focus-trap.ts';
-import { DailySupport } from './daily-support.tsx';
+import { DailyGuidance } from './today-guidance.tsx';
+import { presentDailySupport } from '../application/presentation/daily-support.ts';
 import { BreakOutlook } from './break-outlook.tsx';
 import { PreparationCard } from './preparation-card.tsx';
 import { DetoxEvidencePanel } from './detox-evidence.tsx';
@@ -76,10 +77,10 @@ export function TrackingDetail(props: TrackingDetailProps) {
           <p className="meta" data-testid="open-ended-note">
             {GUIDANCE_CHROME.openEndedNote}
           </p>
-          {dayView !== null ? <DailySupport input={{
+          {dayView !== null ? <DailyGuidance support={presentDailySupport({
             day: dayView.day, now: props.now, anchor: currentSegmentAnchor(track.segments),
             checkins: props.checkins, preparation: track.preparation,
-          }} /> : null}
+          })} /> : null}
           <details className="result-disclosure timeline-disclosure">
             <summary>Explore the break timeline</summary><BreakOutlook view={outlook} />
           </details>

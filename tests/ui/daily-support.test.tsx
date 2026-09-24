@@ -29,25 +29,34 @@ function rate(name: string, value: number): void {
   fireEvent.input(slider, { target: { value: String(value) } });
 }
 
+/** The one card Today shows, plus its two open-on-demand lists. */
+function card(): HTMLElement {
+  return screen.getByTestId('support-card');
+}
+
 describe('practical Today advice', () => {
   it('updates advice immediately after check-in and preserves it on reload and a later no-use tap', () => {
     const { storage, app } = setup();
-    expect(screen.getByTestId('advice-basis').textContent).toContain('Tap How are you feeling?');
+    expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
     fireEvent.click(screen.getByTestId('add-symptoms'));
     rate('Sleep quality', 2);
     rate('Craving', 8);
     fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.getByTestId('advice-sleep').textContent).toContain('Sleep quality 2/10');
-    expect(screen.getByTestId('advice-cravings').textContent).toContain('Craving 8/10');
+    // Both ratings are severity 8; FIELD_AREAS lists sleep first, so sleep leads
+    // and the craving becomes a one-tap alternative instead of a second essay.
+    expect(card().getAttribute('data-area')).toBe('sleep');
+    expect(screen.getByTestId('support-reason').textContent).toContain('Sleep quality 2/10');
+    expect(within(screen.getByTestId('support-also')).getByText('Cravings')).toBeTruthy();
+    expect(screen.getAllByTestId('support-card')).toHaveLength(1);
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.appetite).toBeNull();
     app.unmount();
     render(<App storage={storage} clock={fixedClock(NOW)} />);
-    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
+    expect(card().getAttribute('data-area')).toBe('sleep');
     fireEvent.click(screen.getByTestId('checkin-cta'));
-    expect(screen.getByTestId('advice-sleep')).toBeTruthy();
+    expect(card().getAttribute('data-area')).toBe('sleep');
   });
 
-  it('shows a topic for every area rated 4 or harder, without a cap of two', () => {
+  it('orders every area rated 4 or harder behind one card instead of one article each', () => {
     setup();
     fireEvent.click(screen.getByTestId('add-symptoms'));
     rate('Sleep quality', 2);
@@ -56,29 +65,36 @@ describe('practical Today advice', () => {
     rate('Anxiety', 7);
     fireEvent.click(screen.getByTestId('symptoms-save'));
     expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
-    for (const area of ['appetite', 'sleep', 'cravings', 'anxiety']) {
-      expect(screen.getByTestId(`advice-${area}`)).toBeTruthy();
+    // Appetite 1/10 is the hardest oriented rating, so it leads.
+    expect(card().getAttribute('data-area')).toBe('appetite');
+    const also = screen.getByTestId('support-also');
+    for (const label of ['Sleep', 'Cravings', 'Anxiety']) {
+      expect(within(also).getByText(label)).toBeTruthy();
     }
+    expect(screen.getAllByTestId('support-card')).toHaveLength(1);
     expect(screen.queryByTestId('advice-routine')).toBeNull();
     expect(screen.queryByTestId('advice-boredom')).toBeNull();
   });
 
-  it('keeps two stage-relevant defaults for a day with no ratings', () => {
+  it('keeps one stage topic for a day with no ratings instead of two default essays', () => {
     setup();
-    expect(screen.getByTestId('advice-cravings')).toBeTruthy();
-    expect(screen.getByTestId('advice-routine')).toBeTruthy();
-    expect(screen.queryByTestId('advice-sleep')).toBeNull();
-    expect(screen.getByTestId('advice-basis').textContent).toContain('Tap How are you feeling?');
+    expect(card().getAttribute('data-area')).toBe('cravings');
+    expect(screen.getByTestId('support-reason').textContent).toContain('For this stage of the break');
+    expect(screen.queryByTestId('support-also')).toBeNull();
+    expect(screen.queryByTestId('advice-routine')).toBeNull();
+    expect(screen.queryByTestId('advice-boredom')).toBeNull();
+    expect(screen.getByTestId('advice-basis').textContent).toContain('Rate how you feel');
   });
 
-  it('does not fall back to an area the user rated as comfortable', () => {
+  it('does not present an area the user rated as comfortable as a problem', () => {
     setup();
     fireEvent.click(screen.getByTestId('add-symptoms'));
     fireEvent.click(screen.getByRole('button', { name: 'Set Craving to zero' }));
     fireEvent.click(screen.getByTestId('symptoms-save'));
-    expect(screen.queryByTestId('advice-cravings')).toBeNull();
-    expect(screen.getByTestId('advice-routine')).toBeTruthy();
-    expect(screen.getByTestId('advice-boredom')).toBeTruthy();
+    // The card falls back to the day's practice and names no rating.
+    expect(screen.getByTestId('support-reason').textContent).toBe('For this stage of the break');
+    expect(screen.getByTestId('advice-basis').textContent).toBe('Picked from your recent check-ins.');
+    expect(screen.queryByTestId('support-also')).toBeNull();
   });
 
   it('undo survives reload, repeated taps do not duplicate, and earlier ratings remain', () => {
@@ -96,7 +112,7 @@ describe('practical Today advice', () => {
     fireEvent.click(screen.getByTestId('undo-checkin'));
     expect(screen.getByTestId('checkin-cta').textContent).toBe('Check in');
     expect(createCheckinsStore(storage).load()!.checkins).toEqual([prior]);
-    expect(screen.getByTestId('advice-sleep').textContent).toContain('Sleep quality 2/10');
+    expect(screen.getByTestId('support-reason').textContent).toContain('Sleep quality 2/10');
   });
 
   it('keeps the break clock and plan unchanged when checking in', () => {
@@ -109,26 +125,26 @@ describe('practical Today advice', () => {
     expect(createCheckinsStore(storage).load()!.checkins.at(-1)!.usedThc).toBe(false);
   });
 
-  it('opens any guide without writing stored data and keeps Reddit distinct from clinical sources', () => {
+  it('swaps the card to another topic without writing stored data and keeps sources inside More', () => {
     const { storage } = setup();
-    const browser = screen.getByTestId('advice-browser');
-    browser.setAttribute('open', '');
-    fireEvent.click(within(browser).getByRole('button', { name: 'Nausea' }));
-    const guide = screen.getByTestId('opened-advice');
-    expect(guide.textContent).toContain('small, regular sips');
-    expect(guide.textContent).toContain('Repeated vomiting');
-    expect(within(guide).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
+    fireEvent.click(screen.getByTestId('support-switch'));
+    const topics = screen.getByTestId('support-topics');
+    fireEvent.click(within(topics).getByRole('button', { name: 'Nausea' }));
+    // A swapped topic shows its own guide step, not the day's action line.
+    expect(card().getAttribute('data-area')).toBe('nausea');
+    expect(screen.getByTestId('support-action').textContent).toContain('small, regular sips');
+    const more = within(card()).getByText('More').closest('details')!;
+    fireEvent.click(within(more).getByText('More'));
+    // The full guide, its sources and the seek-help line live inside More only.
+    expect(more.textContent).toContain('Repeated vomiting');
+    expect(within(more).getByRole('link', { name: /NHS/ }).getAttribute('href')).toContain('nhs.uk');
     expect(createCompanionPersonalisationStore(storage).loadOrMigrate().supportAreas).toEqual([]);
-    const community = screen.getByTestId('community-tip');
-    expect(community.textContent).toContain('Personal experience');
-    expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
   });
 
   it('discloses that a rating stops counting after 48 hours', () => {
     setup();
-    const about = screen.getByText('How these suggestions are chosen').closest('details');
-    expect(about).toBeTruthy();
-    expect(about?.textContent ?? '').toMatch(/A rating stops counting after 48 hours/);
+    fireEvent.click(screen.getByTestId('support-switch'));
+    expect(screen.getByTestId('support-topics-note').textContent).toMatch(/A rating stops counting after 48 hours/);
   });
 
   it('allows explicit zero or skip and cancels without saving', () => {

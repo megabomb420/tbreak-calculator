@@ -372,6 +372,26 @@ summary:focus-visible {
   margin-top: var(--space-2);
 }
 
+.safety-more {
+  margin-top: var(--space-2);
+}
+
+.safety-more > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.safety-more > summary::-webkit-details-marker { display: none; }
+.safety-more > summary::after { content: '+'; margin-left: auto; font-weight: 400; }
+.safety-more[open] > summary::after { content: '–'; }
+.safety-more .meta { margin: var(--space-2) 0 0; }
+
 .cta-primary,
 .cta-secondary,
 .hold-delete,
@@ -1652,8 +1672,7 @@ details.card > summary::-webkit-details-marker {
   margin-top: var(--space-5);
 }
 
-.storage-banner,
-.snackbar {
+.storage-banner {
   position: absolute;
   left: var(--gutter);
   right: var(--gutter);
@@ -1662,22 +1681,29 @@ details.card > summary::-webkit-details-marker {
   border-radius: var(--radius-md);
   background: var(--bg-raised);
   box-shadow: var(--shadow-sheet);
-  color: var(--fg);
-}
-
-.storage-banner {
   top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
   font-size: 13px;
   line-height: 18px;
   color: var(--warn);
 }
 
+/* Install and update notices sit in the shell's own flow, between the header
+   and the scrolling body: a floating bar would cover the tab bar. */
+.app-banner {
+  flex: none;
+  padding: 0 var(--gutter) var(--space-2);
+}
+
 .snackbar {
-  bottom: calc(var(--tab-bar-height) + var(--chrome-bleed) + var(--space-3));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sheet);
+  color: var(--fg);
 }
 
 .snackbar-copy {
@@ -2665,33 +2691,6 @@ select,
     color-mix(in oklab, var(--bg-card) 94%, transparent);
 }
 
-.result-lens-hero > *:not(.result-lens-orbit) {
-  position: relative;
-  z-index: 1;
-}
-
-.result-lens-orbit {
-  position: absolute;
-  right: -74px;
-  top: -58px;
-  width: 220px;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
-  border-radius: 50%;
-  opacity: 0.78;
-}
-
-.result-lens-orbit::before,
-.result-lens-orbit::after {
-  content: '';
-  position: absolute;
-  border-radius: inherit;
-  border: 1px solid color-mix(in oklab, var(--accent-strong) 16%, transparent);
-}
-
-.result-lens-orbit::before { inset: 25%; }
-.result-lens-orbit::after { inset: 44%; background: color-mix(in oklab, var(--accent-strong) 18%, transparent); }
-
 .result-lens-value,
 .result-insight-value {
   margin: 0;
@@ -2769,17 +2768,28 @@ select,
   gap: var(--space-2);
 }
 
+.result-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.result-header-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+
 .result-mode {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  position: relative;
   gap: 3px;
   padding: 4px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
   background: color-mix(in oklab, var(--bg-card) 90%, transparent);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
-  backdrop-filter: blur(16px);
 }
 
 .result-mode-option {
@@ -3474,26 +3484,10 @@ input[aria-invalid='true'] { border-color: var(--error); }
   border-top: 1px solid var(--hairline);
 }
 
-/* 0.20.0 — active-break lens identity (order-sensitive tail overrides).
-   The live Today card is the LIVE continuation of the result lens, so its
-   hero area reuses the same quiet orbit artwork as ResultLensHero: one
-   concentric ring cluster in the upper-right, painted behind the hero head.
-   The card already carries the shared lens surface (hairline, diagonal
-   accent wash, soft shadow) from the 0.12.0 system; this pass only adds the
-   orbit and keeps it strictly behind content. No new component, no min-height:
-   Day X of Y stays the dominant information and the card keeps its height. */
 .today-live-card {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-}
-
-/* Keep the lens orbit behind every card child: as a negative z-index child
-   of the isolated card it paints above the card background and below the
-   card's content, so the artwork never competes with the hero head. */
-.today-live-card .result-lens-orbit {
-  z-index: -1;
-  opacity: 0.9;
 }
 
 /* 0.20.0 — active-Today Check in action treatment.
@@ -3707,22 +3701,16 @@ input[aria-invalid='true'] { border-color: var(--error); }
   font-weight: 600;
 }
 
-/* 0.22 — practical daily guidance, with the timeline available on demand. */
+/* 0.22 — practical daily guidance: one card, depth on demand (0.31.0). */
 .daily-support { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-.daily-context { border-top: 1px solid var(--hairline); padding-top: 18px; }
-.daily-context .micro-label { margin: 0 0 8px; }
-.daily-context .card-title { margin: 12px 0 10px; }
-.daily-context .body { margin: 0; color: var(--fg-muted); }
-.daily-symptom-context { margin: 12px 0 0; line-height: 1.6; }
-.daily-section-heading .card-title { margin: 0 0 6px; }
-.daily-section-heading .meta { margin: 0; }
-.daily-help { display: flex; flex-direction: column; gap: 18px; }
-.daily-advice { padding: 18px 0 0; border-top: 1px solid var(--hairline); }
-.daily-advice-heading { display: flex; gap: 12px; align-items: flex-start; }
-.daily-advice-number { font-family: var(--font-mono); color: var(--accent-strong); font-size: 0.75rem; padding-top: 3px; }
-.daily-advice h4, .daily-practice h4, .community-tip h4, .advice-opened h4 { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
-.advice-reason { margin: 4px 0 0; line-height: 1.5; }
-.advice-first-step { margin: 12px 0 4px; }
+.support-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; border-top: 1px solid var(--hairline); padding-top: 18px; }
+.support-card .card-title { margin: 0; }
+.support-card .advice-reason { margin: 0; line-height: 1.5; }
+.support-card .advice-first-step { margin: 0; }
+.support-card .advice-details { margin-top: 2px; }
+.support-also { display: flex; flex-direction: column; gap: 8px; }
+.support-also .micro-label { margin: 0; }
+.support-card > .text-back { align-self: flex-start; padding: 4px 0; }
 .advice-details summary { display: list-item; min-height: 44px; padding: 12px 0; font-size: 0.875rem; color: var(--accent); cursor: pointer; }
 .advice-content { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
 .advice-content p { margin: 0; }
@@ -3734,8 +3722,8 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .daily-support a { overflow-wrap: anywhere; }
 .daily-practice { border-left: 2px solid var(--accent-strong); padding: 2px 0 2px 16px; }
 .daily-practice .micro-label { margin: 0 0 8px; }
+.daily-practice h4 { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
 .daily-practice .body { margin: 8px 0 0; }
-.daily-practice .meta { margin: 10px 0 0; }
 .daily-comfortable { margin: 0; color: var(--fg-muted); padding-left: 14px; border-left: 2px solid var(--ok); }
 .advice-topic-groups { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
 .advice-topic-groups .micro-label { margin: 0 0 6px; }
@@ -3743,26 +3731,13 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .advice-topic { border: 1px solid var(--hairline-strong); border-radius: 999px; background: transparent; padding: 9px 14px; min-height: 44px; font-size: 0.875rem; }
 .advice-topic.selected { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
 .advice-topic:hover { background: var(--bg-hover); }
-.advice-opened { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--hairline); }
-.community-tip { padding: 18px; border: 1px solid var(--hairline); border-radius: var(--radius-md); background: color-mix(in oklab, var(--accent) 4%, transparent); }
-.community-tip .micro-label { margin: 0 0 8px; color: var(--accent-strong); }
-.community-tip .body { margin: 10px 0; }
-.community-tip .meta { margin: 0 0 10px; }
-.daily-support .result-disclosure, .today-live-card > .daily-timeline { margin: 0; }
-.daily-timeline .journey { margin-top: 18px; }
-.today-live-card > .today-outlook { margin: 0; }
-.today-live-card > .today-outlook .reset-panel { margin-top: 18px; }
-/* The panel nests the evidence disclosure; the outer one's marker stays on the
-   outer summary so the nested toggle keeps its own +/– state. */
-.today-live-card > .today-outlook .guidance-why > summary::after { content: '+'; }
-.today-live-card > .today-outlook .guidance-why[open] > summary::after { content: '–'; }
+.today-plan-card > .result-disclosure { margin: 0; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
 .symptom-description { margin: 6px 0 8px; line-height: 1.5; }
 .symptom-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
 .symptom-actions button { min-height: 44px; font-size: 0.8125rem; }
 @media (max-width: 360px) {
-  .community-tip { padding: 14px; }
-  .daily-advice-heading { gap: 8px; }
+  .support-card { gap: 10px; }
 }
 
 /* 0.23 — direct actions and a touch-native, reader-controlled carousel. */
@@ -3772,8 +3747,7 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .checkin-receipt { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .checkin-receipt .meta { margin: 0; font-size: 0.75rem; }
 .checkin-receipt .text-back { min-height: 44px; padding: 8px 4px 8px 12px; color: var(--accent); }
-.checkin-secondary { min-height: 46px; border: 1px solid var(--hairline); border-radius: 12px; padding: 10px 8px; background: color-mix(in oklab, var(--fg) 3%, transparent); font-size: 0.8125rem; font-weight: 600; }
-.checkin-secondary:hover { background: color-mix(in oklab, var(--fg) 7%, transparent); }
+.quick-checkin > .text-back { width: 100%; }
 .community-carousel { min-width: 0; overflow: hidden; border: 1px solid var(--hairline); border-radius: 18px; background: linear-gradient(150deg, color-mix(in oklab, var(--accent) 7%, transparent), transparent 80%); }
 .community-carousel-heading { padding: 18px 18px 12px; display: flex; align-items: start; justify-content: space-between; gap: 12px; }
 .community-carousel-heading .micro-label { margin: 0; color: var(--accent-strong); font-size: 0.625rem; }
@@ -3799,7 +3773,6 @@ input[aria-invalid='true'] { border-color: var(--error); }
   .checkin-secondary:active, .carousel-arrow:not(:disabled):active, .advice-topic:active { transform: scale(.96); }
   .quick-checkin .cta-primary:not(:disabled):active { transform: scale(.985); }
   .questionnaire-overlay { animation: sheet-arrive 180ms cubic-bezier(.2,.8,.2,1); }
-  .advice-opened { animation: sheet-arrive 160ms ease-out; }
 }
 @keyframes checkin-arrive { from { transform: scale(.5) rotate(-18deg); opacity: .2; } to { transform: scale(1) rotate(0); opacity: 1; } }
 @keyframes sheet-arrive { from { transform: translateY(10px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }

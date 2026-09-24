@@ -526,11 +526,11 @@ describe('evidence-guided companion', () => {
     const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
     expect(screen.getByTestId('guidance-headline').textContent).toMatch(/peak/i);
-    expect(screen.getByTestId('guidance-primary-action').textContent).toBeTruthy();
+    expect(screen.getByTestId('support-action').textContent).toBeTruthy();
     expect(screen.getByTestId('guidance-context').textContent).toMatch(/population pattern, not a personal prediction/i);
   });
 
-  it('keeps Today guidance to the stage’s concrete help list, not the urge plan', () => {
+  it('keeps the card to the person’s own plan instead of a second urge-plan block', () => {
     const storage = createMemoryStorage();
     seedAcknowledgedProfile(storage, toleranceProfile());
     seedAttempt(
@@ -547,14 +547,16 @@ describe('evidence-guided companion', () => {
     renderApp(storage);
     const guidance = screen.getByTestId('daily-support');
     expect(guidance.getAttribute('data-window')).toBe('days_2_6');
-    // The compact card merges the day's recommendations under one heading...
-    expect(within(guidance).getByText('What matters today')).toBeTruthy();
-    const help = within(guidance).getByTestId('guidance-help');
-    expect(help.textContent).toMatch(/go for a walk/i);
-    // ...without a duplicated "what can help today" heading, without the
-    // repeated urge-plan block, and without an absurd "avoid: Stress" line.
+    // The saved replacement is the card's one action line, with the trigger the
+    // person flagged underneath...
+    const action = within(guidance).getByTestId('support-action');
+    expect(action.textContent).toContain('Try your plan first');
+    expect(action.textContent).toContain('go for a walk');
+    expect(within(guidance).getByTestId('support-trigger').textContent).toBe('You flagged: Evening after work.');
+    // ...without a duplicated urge-plan list, a second heading, or an invented
+    // "avoid" line.
+    expect(within(guidance).queryByTestId('intention-preview')).toBeNull();
     expect(within(guidance).queryByText('What can help today')).toBeNull();
-    expect(within(guidance).queryByTestId('guidance-intentions')).toBeNull();
     expect(guidance.textContent).not.toMatch(/Where practical, avoid/i);
   });
 

@@ -27,7 +27,6 @@ export function ResultLensHero({
 }) {
   return (
     <header className={`result-lens-hero is-${tone}`} data-testid={`result-lens-${tone}`}>
-      <span className="result-lens-orbit" aria-hidden="true" />
       <p className="micro-label">{eyebrow}</p>
       <h2
         id={labelledBy}

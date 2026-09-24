@@ -2,8 +2,16 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-/** GitHub Pages project site. Dev (`vite`) stays at `/`; production uses this. */
-const PAGES_BASE = '/tbreak-calculator/';
+/**
+ * GitHub Pages project site is the default production base. A hosting target
+ * on a domain root (Cloudflare Pages) sets `BASE_PATH=/`; the Pages workflow
+ * sets nothing, so its subpath build and the manifest scope stay unchanged.
+ */
+const PAGES_BASE = (() => {
+  const configured = process.env.BASE_PATH;
+  if (configured === undefined || configured === '') return '/tbreak-calculator/';
+  return configured.endsWith('/') ? configured : `${configured}/`;
+})();
 
 export default defineConfig(({ mode }) => {
   const base = mode === 'production' ? PAGES_BASE : '/';

@@ -1260,6 +1260,16 @@ export function App({
       ) : null}
       <Shell
         shell={shell}
+        banner={
+          updateReady && !overlayOpen ? (
+            <UpdateSnackbar
+              onReload={() => onReloadUpdate?.()}
+              onDismiss={() => onDismissUpdate?.()}
+            />
+          ) : showInstallHint ? (
+            <InstallHint onDismiss={() => setInstallHintDismissed(true)} />
+          ) : null
+        }
         onSelectTab={(tab: AppTab) => dispatch({ type: 'select_tab', tab })}
         onOpenSettings={() => dispatch({ type: 'open_settings' })}
         onOpenScience={() => { setScienceFromSettings(false); setScienceOpen(true); }}
@@ -1304,6 +1314,7 @@ export function App({
             onResumeReduction={resumeLiveReduction}
             onEndReduction={endLiveReduction}
             onRecommitReduction={openRecommitReduction}
+            onUpdatePreparation={updatePreparation}
           />
         ) : shell.activeTab === 'calculator' ? (
           <section className="stack calculator-screen" data-testid="calculator-screen">
@@ -1490,14 +1501,6 @@ export function App({
           dispatch({ type: 'close_settings' });
         }}
       />
-      {updateReady && !overlayOpen ? (
-        <UpdateSnackbar
-          onReload={() => onReloadUpdate?.()}
-          onDismiss={() => onDismissUpdate?.()}
-        />
-      ) : showInstallHint ? (
-        <InstallHint onDismiss={() => setInstallHintDismissed(true)} />
-      ) : null}
     </>
   );
 }

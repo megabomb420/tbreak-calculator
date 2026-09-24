@@ -4,7 +4,8 @@
 import type { DailyCheckin } from '../../domain/schemas/profile.ts';
 import type { SupportArea } from '../questionnaire/companion.ts';
 import type { BreakPreparation } from '../break/preparation.ts';
-import { primaryWindowForDay, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
+import { triggerLabel } from '../break/preparation.ts';
+import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
 export const DAILY_SUPPORT_VERSION = 'daily-support-v3';
 export const SUPPORT_SOURCES = {
@@ -202,7 +203,33 @@ export interface DailySupportInput {
   readonly targetDays?: number | null;
 }
 
-export function presentDailySupport(input: DailySupportInput) {
+/** The one card Today renders for the day. */
+export interface DailySupportView {
+  readonly version: string;
+  readonly day: number;
+  readonly window: WithdrawalWindowContent;
+  /** Hard ratings only (severity >= 4), severity descending, FIELD_AREAS order
+   * on a tie. Empty when nothing was rated hard enough to act on. */
+  readonly selections: readonly AdviceSelection[];
+  /** The topic the card opens on: the hardest rating, else the day's practice. */
+  readonly primaryArea: SupportArea;
+  readonly primaryReason: string;
+  readonly status: string;
+  /** The single sentence the card shows for the day. */
+  readonly action: string;
+  readonly triggerLine: string | null;
+  readonly fallbackLine: string | null;
+  readonly currentCheckins: readonly DailyCheckin[];
+  readonly communityTip: CommunityTip;
+  readonly communityTips: readonly CommunityTip[];
+  readonly allComfortable: boolean;
+  readonly practice: { readonly area: SupportArea; readonly title: string; readonly action: string };
+}
+
+/** Areas where the person's own plan outranks generic advice. */
+const PLAN_FIRST_AREAS: readonly SupportArea[] = ['routine', 'cravings', 'boredom'];
+
+export function presentDailySupport(input: DailySupportInput): DailySupportView {
   const day = Math.max(1, Math.floor(input.day));
   const window = primaryWindowForDay(day);
   const practice = day <= 28 ? DAILY_PRACTICES[day - 1]! : MAINTENANCE_PRACTICES[(day - 29) % MAINTENANCE_PRACTICES.length]!;
@@ -218,17 +245,21 @@ export function presentDailySupport(input: DailySupportInput) {
     const row = recent.find(item => typeof item[field] === 'number' && item[field]! >= 0 && item[field]! <= 10);
     return row === undefined ? [] : [{ area, label, value: row[field]!, severity: reverse ? 10 - row[field]! : row[field]!, recordedAt: row.recordedAt }];
   });
+  // Only a reported rating can raise a topic as a current problem, and only at
+  // severity 4 or harder. A quiet day keeps the day's own practice instead of
+  // two generic essays.
   const ranked = ratings.filter(item => item.severity >= 4).sort((a, b) => b.severity - a.severity);
   const selections: AdviceSelection[] = ranked.map(item => ({ area: item.area, reason: `${item.label} ${item.value}/10 in your check-in`, recordedAt: item.recordedAt }));
-  const comfortable = new Set(ratings.filter(item => item.severity < 4).map(item => item.area));
-  // Nothing rated hard enough to act on: two stage-relevant defaults.
-  if (selections.length === 0) {
-    for (const area of [practice.area, 'routine', 'boredom'] as SupportArea[]) {
-      if (selections.length >= 2) break;
-      if (comfortable.has(area) || selections.some(item => item.area === area)) continue;
-      selections.push({ area, reason: 'An option for this part of your break', recordedAt: null });
-    }
-  }
+  const primary = selections[0];
+  const primaryArea: SupportArea = primary?.area ?? practice.area;
+  const planFirst = PLAN_FIRST_AREAS.includes(primaryArea);
+  const replacement = input.preparation?.replacementAction?.trim() ?? '';
+  const fallback = input.preparation?.fallbackPlan?.trim() ?? '';
+  const customTrigger = input.preparation?.customTrigger?.trim() ?? '';
+  const triggerLabels = [
+    ...(input.preparation?.triggerIds ?? []).map(triggerLabel),
+    ...(customTrigger === '' ? [] : [customTrigger]),
+  ];
   const hasSymptoms = ratings.length > 0;
   const stageCommunity = COMMUNITY_TIPS.filter(tip => tip.windows.includes(window.id));
   const matchingCommunity = stageCommunity.filter(tip => tip.areas.some(area => selections.some(item => item.area === area)));
@@ -244,13 +275,23 @@ export function presentDailySupport(input: DailySupportInput) {
   const orderedCommunity = [...rotate(matchingCommunity), ...rotate(restCommunity)];
   const communityTips = (orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS]).slice(0, 5);
   const communityTip = communityTips[0]!;
-  const replacement = input.preparation?.replacementAction?.trim();
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {
-    version: DAILY_SUPPORT_VERSION, day, window, selections, currentCheckins, communityTip, communityTips,
-    status: hasSymptoms ? 'Picked from your recent check-ins.' : 'Tap How are you feeling? to make these tips more personal.',
+    version: DAILY_SUPPORT_VERSION, day, window, selections,
+    primaryArea,
+    primaryReason: primary?.reason ?? 'For this stage of the break',
+    status: hasSymptoms
+      ? 'Picked from your recent check-ins.'
+      : 'Rate how you feel if this is not the problem.',
+    // The person's own replacement action outranks generic advice wherever the
+    // problem is a routine, an urge or an empty evening.
+    action: planFirst && replacement !== ''
+      ? `Try your plan first: “${replacement}”.`
+      : SUPPORT_GUIDES[primaryArea].steps[0],
+    triggerLine: planFirst && triggerLabels.length > 0 ? `You flagged: ${triggerLabels.join(', ')}.` : null,
+    fallbackLine: planFirst && fallback !== '' ? `If that is not possible: ${fallback}.` : null,
+    currentCheckins, communityTip, communityTips,
     allComfortable: ratings.length === FIELD_AREAS.length && ranked.length === 0,
     practice: atTarget ? { area: 'routine' as SupportArea, title: 'Review your next step', action: 'At your target, decide whether to continue or finish the break. If you plan to return, review your limits first; the old amount may feel stronger.' } : practice,
-    plannedAlternative: replacement ? `At your usual use time, try your planned alternative: “${replacement}”.` : null,
   };
 }

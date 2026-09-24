@@ -9,6 +9,8 @@ export interface ShellProps {
   readonly onOpenSettings: () => void;
   readonly onOpenScience?: () => void;
   readonly children: ComponentChildren;
+  /** Install or update notice, in the shell's own flow above the scrolling body. */
+  readonly banner?: ComponentChildren;
   readonly inert?: boolean;
 }
 
@@ -18,7 +20,7 @@ const TABS: ReadonlyArray<{ id: AppTab; label: string; icon: typeof TodayIcon }>
   { id: 'history', label: 'History', icon: HistoryIcon },
 ];
 
-export function Shell({ shell, onSelectTab, onOpenSettings, onOpenScience, children, inert = false }: ShellProps) {
+export function Shell({ shell, onSelectTab, onOpenSettings, onOpenScience, children, banner, inert = false }: ShellProps) {
   const title = TABS.find((tab) => tab.id === shell.activeTab)!.label;
   return (
     <div
@@ -44,6 +46,7 @@ export function Shell({ shell, onSelectTab, onOpenSettings, onOpenScience, child
         </button>
         </div>
       </header>
+      {banner ? <div className="app-banner">{banner}</div> : null}
       <main className="app-main" key={shell.activeTab}>{children}</main>
       <nav className="tab-bar" aria-label="Primary" data-testid="tab-bar">
         {TABS.map((tab) => {

@@ -221,27 +221,25 @@ describe('Recovery outlook on the active-break card', () => {
     renderApp(storage);
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
     const card = screen.getByTestId('state-active-break');
-    // The disclosure is the card's last guidance block and starts closed.
-    const cardBlocks = [...card.children];
-    const timelineIndex = cardBlocks.findIndex((block) => block.classList.contains('daily-timeline'));
-    const outlookIndex = cardBlocks.findIndex((block) => block.classList.contains('today-outlook'));
-    expect(timelineIndex).toBeGreaterThan(-1);
-    expect(outlookIndex).toBeGreaterThan(timelineIndex);
-    const disclosure = screen.getByTestId('today-outlook');
-    expect(disclosure.hasAttribute('open')).toBe(false);
-    expect(disclosure.contains(document.activeElement)).toBe(false);
-    fireEvent.click(within(disclosure).getByText(RESET_MODE.reset));
-    expect(disclosure.hasAttribute('open')).toBe(true);
-    expect(within(disclosure).getByTestId('reset-window-value').textContent).toBe('About 1–2 weeks');
-    expect(within(disclosure).getByTestId('reset-target-day').textContent).toBe('7 days');
-    const evidence = within(disclosure).getByTestId('reset-evidence');
+    // The outlook opens as its own sheet from the footer, never inline on the
+    // card: the card's last block is the preparation button.
+    expect(within(card).queryByTestId('today-outlook')).toBeNull();
+    const opener = within(card).getByTestId('open-outlook');
+    expect(opener.textContent).toBe(RESET_MODE.reset);
+    expect(document.activeElement).not.toBe(opener);
+    fireEvent.click(opener);
+    const sheet = screen.getByTestId('today-outlook');
+    expect(sheet.getAttribute('role')).toBe('dialog');
+    expect(within(sheet).getByTestId('reset-window-value').textContent).toBe('About 1–2 weeks');
+    expect(within(sheet).getByTestId('reset-target-day').textContent).toBe('7 days');
+    const evidence = within(sheet).getByTestId('reset-evidence');
     expect(evidence.hasAttribute('open')).toBe(false);
     fireEvent.click(within(evidence).getByText(RESET_EVIDENCE.summary));
     expect(evidence.hasAttribute('open')).toBe(true);
     expect(evidence.textContent).toMatch(/D'Souza/i);
   });
 
-  it('shows no disclosure for a chosen-duration break, which owns no record', () => {
+  it('shows no outlook for a chosen-duration break, which owns no record', () => {
     const storage = createMemoryStorage();
     seedCalculatedBreak(storage);
     seedAttempt(storage, activeAttempt({ calculationRecordId: null, targetSource: 'chosen' }));
@@ -249,9 +247,10 @@ describe('Recovery outlook on the active-break card', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
     expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 4');
     expect(screen.queryByTestId('today-outlook')).toBeNull();
+    expect(screen.queryByTestId('open-outlook')).toBeNull();
   });
 
-  it('shows no disclosure on an open-ended tracking plan', () => {
+  it('shows no outlook on an open-ended tracking plan', () => {
     const storage = createMemoryStorage();
     seedCalculatedBreak(storage);
     seedTrack(storage, {
@@ -268,6 +267,8 @@ describe('Recovery outlook on the active-break card', () => {
     expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
     expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
     expect(screen.queryByTestId('today-outlook')).toBeNull();
+    expect(screen.queryByTestId('open-outlook')).toBeNull();
+    expect(screen.queryByTestId('open-timeline')).toBeNull();
   });
 
   it('renders the stored v1 outlook for a break owning a pre-v3 record', () => {
@@ -282,11 +283,83 @@ describe('Recovery outlook on the active-break card', () => {
     });
     seedAttempt(storage, activeAttempt());
     renderApp(storage);
-    const disclosure = screen.getByTestId('today-outlook');
-    fireEvent.click(within(disclosure).getByText(RESET_MODE.reset));
-    expect(within(disclosure).getByTestId('reset-v1-historical')).toBeTruthy();
-    expect(within(disclosure).getByTestId('reset-target-day').textContent).toBe('Day 7');
+    fireEvent.click(screen.getByTestId('open-outlook'));
+    const sheet = screen.getByTestId('today-outlook');
+    expect(within(sheet).getByTestId('reset-v1-historical')).toBeTruthy();
+    expect(within(sheet).getByTestId('reset-target-day').textContent).toBe('Day 7');
     // The running plan is live, so it never carries the History context label.
-    expect(within(disclosure).queryByTestId('reset-context-label')).toBeNull();
+    expect(within(sheet).queryByTestId('reset-context-label')).toBeNull();
+  });
+});
+
+// 0.31.0: Today is a daily helper. One card acts, the stage, the experiences,
+// the timeline and the outlook open on demand, and the person's own plan is the
+// action the card leads with.
+describe('Today shows one job', () => {
+  function seedLiveBreak(overrides: Partial<StoredAttempt> = {}): StorageAdapter {
+    const storage = createMemoryStorage();
+    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
+    seedAttempt(storage, activeAttempt(overrides));
+    return storage;
+  }
+
+  it('renders one support card and keeps the stage, the experiences and the journey on demand', () => {
+    renderApp(seedLiveBreak());
+    const card = screen.getByTestId('state-active-break');
+    expect(screen.getAllByTestId('support-card')).toHaveLength(1);
+    expect(screen.getByTestId('support-card').getAttribute('data-area')).toBe('cravings');
+    // The old stack is gone: no per-area essays, no duplicated practice article
+    // and no carousel inside the card.
+    expect(screen.queryByTestId('advice-cravings')).toBeNull();
+    expect(screen.queryByTestId('advice-routine')).toBeNull();
+    expect(within(screen.getByTestId('daily-support')).queryByTestId('community-tip')).toBeNull();
+    expect(within(card).queryByTestId('daily-timeline')).toBeNull();
+    expect(within(card).queryByTestId('break-journey')).toBeNull();
+    expect(document.querySelector('.result-lens-orbit')).toBeNull();
+    // Depth is one tap away: the stage block, the experiences and the journey.
+    const stage = screen.getByTestId('today-stage');
+    expect(stage.hasAttribute('open')).toBe(false);
+    expect(within(stage).getByTestId('guidance-headline')).toBeTruthy();
+    expect(within(stage).getByTestId('guidance-may-notice')).toBeTruthy();
+    fireEvent.click(within(screen.getByTestId('today-experiences')).getByText('Experiences'));
+    const community = screen.getByTestId('community-tip');
+    expect(community.textContent).toContain('Personal experience');
+    expect(within(community).getAllByRole('link')[0]!.getAttribute('href')).toContain('reddit.com/r/Petioles/comments/');
+    fireEvent.click(screen.getByTestId('open-timeline'));
+    expect(within(screen.getByTestId('timeline-sheet')).getByTestId('break-journey')).toBeTruthy();
+  });
+
+  it('writes the urge plan through the app’s own preparation writer and uses it on the card', () => {
+    const storage = seedLiveBreak();
+    renderApp(storage);
+    const opener = screen.getByTestId('edit-preparation');
+    expect(opener.textContent).toBe('Set a plan for urges');
+    fireEvent.click(opener);
+    const sheet = screen.getByTestId('preparation-sheet');
+    expect(sheet.getAttribute('role')).toBe('dialog');
+    expect(within(sheet).getByTestId('preparation-card')).toBeTruthy();
+    fireEvent.click(within(sheet).getByTestId('trigger-weekend'));
+    fireEvent.input(within(sheet).getByTestId('replacement-action'), { target: { value: 'make tea' } });
+    const stored = createBreakAttemptsStore(storage).load()!.attempts[0]!.preparation;
+    expect(stored?.triggerIds).toContain('weekend');
+    expect(stored?.replacementAction).toBe('make tea');
+    fireEvent.click(within(sheet).getByTestId('preparation-done'));
+    expect(screen.queryByTestId('preparation-sheet')).toBeNull();
+    // The card now leads with the person's own replacement instead of advice.
+    expect(screen.getByTestId('support-action').textContent).toContain('Try your plan first');
+    expect(screen.getByTestId('support-action').textContent).toContain('make tea');
+    expect(screen.getByTestId('support-trigger').textContent).toContain('You flagged');
+    expect(screen.getByTestId('edit-preparation').textContent).toBe('Edit your plan');
+  });
+
+  it('leaves the interrupted card without the support stack', () => {
+    const storage = createMemoryStorage();
+    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
+    seedAttempt(storage, activeAttempt({ status: 'interrupted_time_needed' }));
+    renderApp(storage);
+    expect(screen.getByTestId('state-interrupted')).toBeTruthy();
+    expect(screen.queryByTestId('support-card')).toBeNull();
+    expect(screen.queryByTestId('today-stage')).toBeNull();
+    expect(document.querySelector('.result-lens-orbit')).toBeNull();
   });
 });

@@ -21,15 +21,17 @@ test('four hard ratings produce four advice topics instead of two, ordered by se
   assert.ok(view.selections.every(item => item.recordedAt !== null));
   assert.match(view.selections[0]!.reason, /Appetite 1\/10 in your check-in/);
 });
-test('a day with no ratings keeps two stage-relevant defaults', () => {
+test('a day with no ratings keeps the day’s own practice and adds no default essays', () => {
   const view = presentDailySupport({ ...base });
-  assert.deepEqual(view.selections.map(item => item.area), ['cravings', 'routine']);
-  assert.ok(view.selections.every(item => item.recordedAt === null));
-  assert.equal(view.status, 'Tap How are you feeling? to make these tips more personal.');
+  assert.deepEqual(view.selections, []);
+  assert.equal(view.primaryArea, 'cravings');
+  assert.equal(view.primaryReason, 'For this stage of the break');
+  assert.equal(view.status, 'Rate how you feel if this is not the problem.');
 });
-test('a comfortable rating keeps its area out of the default pair', () => {
+test('a comfortable rating alone raises no topic and keeps the day’s practice', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0 })] });
-  assert.deepEqual(view.selections.map(item => item.area), ['routine', 'boredom']);
+  assert.deepEqual(view.selections, []);
+  assert.equal(view.primaryArea, 'cravings');
   assert.equal(view.status, 'Picked from your recent check-ins.');
 });
 test('missing fields and a subsequent no-use tap do not erase rated symptoms or create zero scores', () => {
@@ -47,15 +49,36 @@ test('old, future, invalid and pre-segment records never select current symptom 
     row({ recordedAt: new Date(NOW + 1).toISOString(), anxiety: 10 }),
     row({ recordedAt: 'invalid', craving: 10 }), row({ usedThc: true, irritability: 10 }),
   ] });
-  assert.ok(view.selections.every(item => item.recordedAt === null));
+  assert.deepEqual(view.selections, []);
   assert.equal(view.currentCheckins.length, 0);
   const stale = presentDailySupport({ ...base, checkins: [row({ recordedAt: new Date(NOW - 2 * DAY).toISOString(), sleep: 0 })] });
-  assert.ok(stale.selections.every(item => item.recordedAt === null));
+  assert.deepEqual(stale.selections, []);
 });
 test('comfortable ratings are not presented as symptom problems and do not imply tolerance recovery', () => {
   const view = presentDailySupport({ ...base, checkins: [row({ craving: 0, sleep: 10, irritability: 0, anxiety: 0, appetite: 10 })] });
   assert.equal(view.allComfortable, true);
-  assert.deepEqual(view.selections.map(item => item.area), ['routine', 'boredom']);
+  assert.deepEqual(view.selections, []);
+  assert.equal(view.primaryArea, 'cravings');
+});
+test('the person’s own replacement leads the card for routine, urge and empty-time topics', () => {
+  const replacement = 'walk around the block';
+  // Day 4's practice is an urge topic, so the saved plan outranks the guide.
+  const view = presentDailySupport({ ...base, preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: replacement, fallbackPlan: 'call a friend' } });
+  assert.equal(view.primaryArea, 'cravings');
+  assert.equal(view.action, `Try your plan first: “${replacement}”.`);
+  assert.equal(view.triggerLine, 'You flagged: Evening after work.');
+  assert.equal(view.fallbackLine, 'If that is not possible: call a friend.');
+});
+test('a symptom topic keeps its guide action and drops the plan lines even when a plan exists', () => {
+  const view = presentDailySupport({
+    ...base,
+    checkins: [row({ sleep: 1 })],
+    preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: 'walk around the block', fallbackPlan: 'call a friend' },
+  });
+  assert.equal(view.primaryArea, 'sleep');
+  assert.equal(view.action, 'Choose a wake-up time you can keep tomorrow, even after a rough night.');
+  assert.equal(view.triggerLine, null);
+  assert.equal(view.fallbackLine, null);
 });
 test('different days have practical tasks without changing the evidence window', () => {
   const a = presentDailySupport({ ...base, day: 3 });
@@ -68,7 +91,7 @@ test('different days have practical tasks without changing the evidence window',
 });
 test('a missing anchor cannot reuse another break’s symptoms', () => {
   const view = presentDailySupport({ ...base, anchor: null, checkins: [row({ anxiety: 10 })] });
-  assert.ok(view.selections.every(item => item.recordedAt === null));
+  assert.deepEqual(view.selections, []);
 });
 test('Reddit experiences stay inside the current break stage', () => {
   for (const day of [1, 4, 10, 17, 24, 40]) {

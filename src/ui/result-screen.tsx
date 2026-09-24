@@ -87,8 +87,19 @@ export function ResultScreen({
   onDelete,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
+  // The plan/recovery switch belongs to the result header, not the scrolling
+  // body: sticky chrome over the journey hid the phase titles behind it.
+  const [resetMode, setResetMode] = useState(false);
+  const [modeRecordId, setModeRecordId] = useState<string | null>(outlookRecord?.id ?? null);
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!historical, rootRef, onAcknowledge);
+  const outlook = recoveryOutlookFromRecord(outlookRecord);
+  const recordId = outlookRecord?.id ?? null;
+  if (recordId !== modeRecordId) {
+    setModeRecordId(recordId);
+    setResetMode(false);
+  }
+  const showModeControl = view.kind === 'tolerance_result' && outlook !== null;
 
   return (
     <div
@@ -101,17 +112,21 @@ export function ResultScreen({
       aria-labelledby="result-title"
       ref={rootRef}
     >
-      <header className="questionnaire-header">
-        <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
-          <CloseIcon />
-        </button>
-        <span className="flow-title">{historical ? "Saved result" : "Your result"}</span>
+      <header className={showModeControl ? 'questionnaire-header result-header' : 'questionnaire-header'}>
+        <div className="result-header-bar">
+          <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
+            <CloseIcon />
+          </button>
+          <span className="flow-title">{historical ? "Saved result" : "Your result"}</span>
+        </div>
+        {showModeControl ? <ResultModeControl resetMode={resetMode} onChange={setResetMode} /> : null}
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
         {runningPlanNotice ? <p className="banner">You already have a plan running. Save this result for later, or end your current plan from Today before starting another.</p> : null}
         <ResultBody
           view={view}
+          resetMode={resetMode}
           onEditStep={onEditStep}
           onSeeBreakRange={onSeeBreakRange}
           onOpenNominalThc={() => setThcOpen(true)}
@@ -147,6 +162,7 @@ export function ResultScreen({
 
 function ResultBody({
   view,
+  resetMode,
   onEditStep,
   onSeeBreakRange,
   onOpenNominalThc,
@@ -159,6 +175,8 @@ function ResultBody({
   onRecalculateWithHistory,
 }: {
   readonly view: ResultView;
+  /** Chosen in the result header; picks the plan or the reset panel. */
+  readonly resetMode: boolean;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
   readonly onSeeBreakRange: () => void;
   readonly onOpenNominalThc: () => void;
@@ -170,17 +188,7 @@ function ResultBody({
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
 }) {
-  // Predicted-reset segment: default is the actionable plan. The mode resets
-  // to "plan" whenever the underlying record changes so a reused component
-  // never carries a stale selection across records.
-  const [resetMode, setResetMode] = useState(false);
   const outlook: ToleranceRecoveryOutlook | null = recoveryOutlookFromRecord(outlookRecord);
-  const [modeRecordId, setModeRecordId] = useState<string | null>(outlookRecord?.id ?? null);
-  const recordId = outlookRecord?.id ?? null;
-  if (recordId !== modeRecordId) {
-    setModeRecordId(recordId);
-    setResetMode(false);
-  }
   const legacyReset = historical && outlook?.version === RECOVERY_OUTLOOK_V1_VERSION;
 
   switch (view.kind) {
@@ -209,7 +217,10 @@ function ResultBody({
             <p className="meta">{view.uncertainty}</p>
           </ResultLensHero>
           {view.outlook !== null ? (
-            <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
+            <details className="result-disclosure" data-testid="plan-stages">
+              <summary>What the days usually feel like</summary>
+              <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
+            </details>
           ) : null}
           <YourPlanGuide
             drivers={view.drivers}
@@ -247,7 +258,6 @@ function ResultBody({
       );
       return (
         <div className="stack">
-          <ResultModeControl resetMode={resetMode} onChange={setResetMode} />
           {resetMode ? resetBody : planBody}
         </div>
       );
