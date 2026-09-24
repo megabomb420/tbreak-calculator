@@ -40,7 +40,7 @@ const SECTIONS = [
   {
     title: 'Your data stays here',
     body: 'Calculations and guidance work on your device. No account is needed, and your answers are not sent to an AI service. Research links open external websites and require a connection.',
-    note: 'This is a planning tool, not medical advice. Your check-ins record your experience; they do not diagnose symptoms.',
+    note: 'This is a planning tool, not medical advice. Your check-ins record the days you report; they do not diagnose symptoms.',
   },
 ];
 

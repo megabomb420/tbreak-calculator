@@ -10,7 +10,7 @@ export function YourPlanGuide({
       <section className="plan-priority" data-testid="plan-priority">
         <div>
           <p className="micro-label">Advice during your break</p>
-          <p className="body">Today offers practical advice for your stage of the break. Optional symptom check-ins make it more relevant.</p>
+          <p className="body">Today offers practical advice for your stage of the break, and every topic guide is one tap away.</p>
         </div>
       </section>
 

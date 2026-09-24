@@ -30,6 +30,7 @@ Numeric versions remain `tolerance-v3`, `detection-copy-v1` and `tolerance-recov
 - Removed superseded guidance presenters, the unused concepts panel, the zoom blocker and obsolete source/DOM-shape tests; kept legacy-data consumers and live behavioural coverage.
 - A saved result names its own local day in the detail header, and the result screen's plan/outlook control carries its one-line legend again (Today no longer owns a mode control, so the legend moved to the surface that still switches).
 - The backup export test asserts the file records the app's own `APP_VERSION` rather than a fixture string, so release metadata cannot drift unnoticed.
+- Removed the last copy that implied symptom check-ins are still collected (the result screen's "Advice during your break" line, plus the Science data note), which 0.35.0's removal of ratings had left describing a capability the app no longer has.
 - Aligned package, lockfile, About, README, UX/architecture/calculator/evidence specs at 0.37.0, and made Science describe the advice inputs the app actually has.
 
 ### Validation (0.37.0)
