@@ -1,8 +1,8 @@
 # T-Break UX specification
 
-Version: **0.37.0**
+Version: **0.38.0**
 
-Current revision (0.37.0): Today leads with the break day, an explained one-tap check-in, a visible stage headline and one existing practical activity. **Help with** is a native select containing today's suggestion and all eleven guides; switching topics replaces the action and writes nothing. Long context, experiences, timeline and the break's own recovery outlook are optional disclosures, not competing primary modes. **Manage break → Update last use** confirms a new anchor while preserving earlier segments; cancel changes nothing. History rows carry local dates and distinguish elapsed complete days from day position. Deleted recommendations are not regenerated from leftover snapshots. Browser zoom is supported. Numeric policies and historical calculation meanings are unchanged. Release history lives in HANDOFF.md and Git history.
+Current revision (0.38.0): the recovery outlook is retired as a user-facing concept and mode. The result screen is one body, in this order: plan target with planning range and uncertainty → the break journey ("what to expect") → **Why this plan** → an always-visible research section, **What the research can and cannot say** (the four-week human CB1 PET reference, the "what this does not mean" list, and links to Hirvonen, D'Souza and Budney) → history → answers. The app no longer estimates a personal recovery window or date; a saved result that still carries an outlook version is explained by one line in that research section and never recomputed. Today keeps the day itself on the page — **This stage**, the topic action with **Why this helps**, and Experiences — while the long material sits behind one row each: **What you may notice** in the stage, **What else can help** in the guide (the remaining steps, **What to avoid**, **When to get advice** and sources), **Your break timeline**, and **Manage break**. Every one of the eleven guides carries an explanation, practical steps, **What to avoid** and its sources, plus **When to get advice** where one applies, and Experiences follow the selected topic, capped at eight. **Help with** is a native select containing today's suggestion and all eleven guides; switching topics replaces the block in place and writes nothing. **Manage break → Update last use** confirms a new anchor while preserving earlier segments; cancel changes nothing. History rows carry local dates and distinguish elapsed complete days from day position. Deleted recommendations are not regenerated from leftover snapshots. Browser zoom is supported. Numeric policies and historical calculation meanings are unchanged. Release history lives in HANDOFF.md and Git history.
 
 ## 1. Product framing and design principles
 
@@ -22,7 +22,7 @@ It is a focused utility, not a wellness platform, not a medical intake, not a ma
 1. **Fast to an answer.** Cut down takes two inputs after choosing the goal; the longest tolerance path is six steps including the goal. A daily user reaches a recommended range in under a minute. `currentPatternDuration` is the first substantive use-profile question on every route that uses it, so the planner target is known before frequency details are collected. Nothing else is asked after the calculation.
 2. **One decision per screen.** One question, or one very small logical group, per step. No long scrolling forms anywhere.
 3. **Buttons over keyboards.** Sliders, steppers, chips, and date wheels by default. Free text exists in exactly one place: the optional check-in note.
-4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v3 anchor rule), Why-this-result copy, and break-outlook wording — and, in the single bounded tolerance-v3 case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years), the recommended range itself by one band; it is never a days-added formula.
+4. **Ask only what can change the output.** If an answer cannot affect the deterministic result, the plan, local history, or the contextual explanation shown for that result, the question is not in the flow. `currentPatternDuration` is allowed because it changes the planning target inside the recommended range (tolerance-v3 anchor rule), Why-this-plan copy, and break-outlook wording — and, in the single bounded tolerance-v3 case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years), the recommended range itself by one band; it is never a days-added formula.
 5. **Honest by construction.** No reset percentage, detox percentage, guaranteed clean date, exact universal reset date, or numeric detection window — these outputs do not exist in the engines and MUST NOT be simulated visually (no fake "receptor recovery" rings).
 6. **Tolerance ≠ detection ≠ impairment.** Separate goals, separate flows, separate result cards, visually and verbally separated.
 7. **Estimates are first-class.** Users remember "about two weeks ago," not ISO timestamps. Every date question offers coarse, human answers; the UI converts them to the required timestamp shape.
@@ -89,7 +89,7 @@ Timezone changes reformat displays only; stored instants are UTC.
 - **Tabs (3):** `Today`, `Calculator`, `History`. Calculator exposes all four goals, draft resume and the latest saved use-profile result. Opening a new calculation does not end a live break.
 - **Settings:** gear icon, top-right of every tab header, opens a modal screen. Settings is a rare destination; a permanent tab for it is wasted chrome.
 - **Science:** a source-linked reading screen opened from the header or Settings. Closing it returns to its origin.
-- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, an expandable live journey, and a quiet end-early action. Users think "how is my break going," which is a Today question.
+- **Break plan:** not a tab and not a separate screen. The active-break card on `Today` *is* the plan: hero head (Day X of Y, target date), the full-width **Check in** action, relevant daily advice, a live journey behind one summary, and a quiet end-early action. Users think "how is my break going," which is a Today question.
 - **Transient full-screen flows** (slide over the shell, own close/back, never in nav):
   - the questionnaire;
   - the result view reached from the questionnaire (a result opened from History is a normal pushed screen);
@@ -108,7 +108,7 @@ Exactly one primary state at a time:
 | `first-launch` | no data at all | Welcome (§3.3), CTA **Get started** |
 | `no-profile` | returning, never finished a questionnaire | Goal chips (same four options as Q1), each launching the questionnaire pre-selected |
 | `profile-no-break` | result saved, no active attempt | Saved result card. For a tolerance result the card reuses the shared Your-plan result lens (§9): the planning target leads (`28 DAYS`), the evidence range + RangeBand sit beneath it, and **Start this break** is the primary action with **Recalculate** / **View result** secondary. Other result kinds use the matching compact summary card. |
-| `active-break` | attempt `active` | Day/target hero, recorded-check-in count, direct check-in with Undo, stage headline and one practical action. **Help with** switches between today's suggestion and eleven guides. Guide depth, experiences, timeline and recovery outlook open on demand. **Manage break** offers last-use correction and ending early; **Mark complete** appears from the target instant. No session logger or rating sheet. |
+| `active-break` | attempt `active` | Day/target hero, recorded-check-in count, direct check-in with Undo, stage headline and one practical action. **This stage**, **Help with** (today's suggestion or any of the eleven guides: the action and **Why this helps** on the page, the remaining steps, **What to avoid**, **When to get advice** and sources one tap away) and **Experiences** for the selected topic stay open; **Your break timeline** and **Manage break** are disclosures, the latter offering last-use correction and ending early; **Mark complete** appears from the target instant. No session logger or rating sheet. |
 | `interrupted` | legacy attempt `interrupted_time_needed` | Upgrade-safe recovery surface for an older pending use report. Timing is suspended; **Confirm when** or dismiss the unconfirmed report. New releases do not create this state from active-break Today. |
 | `completed-break` | attempt `completed`, unacknowledged | Completion card ("Break complete — 28 days"), post-break plan summary; acknowledging once flips to `profile-no-break` |
 | `abstinence-tracking` | ongoing abstinence tracking, no active attempt | "Day N since your last use", check-in CTA, no target date, no completion state |
@@ -245,7 +245,7 @@ Field mapping:
 | Q2D | `DetectionRequest.matrix` | detection goal |
 | Q3D | `DetectionRequest.context` | detection goal |
 
-Q4/Q5 are asked on range-requested routes from **4 use-days up** because the tolerance-v3 classification reads intensity signals at that boundary (`tolerance-policy-v3`: sessions ≥ 2, concentrates, or dabbing can move a 4–15 use-day profile one adjacent band to 14–21, and a 16–25 use-day profile to 21–28). Asking a 1–3 use-day user about concentrates cannot change their 2–7 result, so those fields are optional there and never required at 0. Q6 is the first use-profile question because duration is exposure context for Why-this-result, outlook wording, and — under tolerance-v3 — the planning-target anchor inside the range, with one bounded range move for an already-frequent (16–25 use-days) long-established pattern; it is never a days-added formula. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion carries a stored duration band that the baseline-low result ignores. A 4–15 use-day profile that also involves concentrate or multi-session use IS routed to Q4/Q5 and classified one adjacent band up; the rationale explains that intensity moved the band.
+Q4/Q5 are asked on range-requested routes from **4 use-days up** because the tolerance-v3 classification reads intensity signals at that boundary (`tolerance-policy-v3`: sessions ≥ 2, concentrates, or dabbing can move a 4–15 use-day profile one adjacent band to 14–21, and a 16–25 use-day profile to 21–28). Asking a 1–3 use-day user about concentrates cannot change their 2–7 result, so those fields are optional there and never required at 0. Q6 is the first use-profile question because duration is exposure context for Why-this-plan, outlook wording, and — under tolerance-v3 — the planning-target anchor inside the range, with one bounded range move for an already-frequent (16–25 use-days) long-established pattern; it is never a days-added formula. Zero use-days is only discovered after Q6, so a 0-day tolerance_reset completion carries a stored duration band that the baseline-low result ignores. A 4–15 use-day profile that also involves concentrate or multi-session use IS routed to Q4/Q5 and classified one adjacent band up; the rationale explains that intensity moved the band.
 
 ### 5.2 Step-by-step copy deck
 
@@ -298,7 +298,7 @@ Presets set the slider (which can then be fine-tuned). No "I don't know" — the
 >
 > Helper: "Not how long you have ever used — how long this current pattern has been your usual level."
 
-This is **not** lifetime cannabis use. The answer selects the planning target inside the recommended range (a recently established pattern — under 1 month / 1–6 months — targets the lower end; a pattern established for 6+ months, or a legacy profile with no answer, targets the upper end), plus Why-this-result copy and break-outlook wording. It MUST NOT add, subtract, or multiply days as a formula. Under tolerance-v3 it may move the recommended range itself in exactly one bounded case — a frequent (16–25 use-days) pattern established for 2–5 / 5+ years is classified into the adjacent 21–28 band; every other duration answer leaves the range unchanged.
+This is **not** lifetime cannabis use. The answer selects the planning target inside the recommended range (a recently established pattern — under 1 month / 1–6 months — targets the lower end; a pattern established for 6+ months, or a legacy profile with no answer, targets the upper end), plus Why-this-plan copy and break-outlook wording. It MUST NOT add, subtract, or multiply days as a formula. Under tolerance-v3 it may move the recommended range itself in exactly one bounded case — a frequent (16–25 use-days) pattern established for 2–5 / 5+ years is classified into the adjacent 21–28 band; every other duration answer leaves the range unchanged.
 
 **Q4 — Sessions** (chips `1` `2` `3+`; stepper escape hatch up to 9)
 
@@ -350,7 +350,7 @@ Helper: "This only changes which notes we show you — it never changes the scie
 - Q6 (current-pattern duration) is the first use-profile question after Q1 on `tolerance_reset` and abstinence. It is skipped on reduction and detection. Zero use-days is only discovered after Q6 on the tolerance route; the stored duration band is then ignored by the baseline-low result.
 - Q2 (use days) follows Q6 on the tolerance route and follows Q1 directly on reduction. Q3 (last use) appears only on tolerance when use-days ∈ 1–30; it is replaced by optional Q3-opt when tolerance use-days = 0.
 - Q4/Q5 appear on tolerance when use-days ∈ 4–30 because intensity can change that classification. Reduction asks Q4 alone for every positive use-day answer because session frequency sets the behavioural plan baseline; it never asks Q5. Neither route asks Q4 at 0.
-- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises outlook wording.
+- Abstinence asks no use-days, sessions, products, or routes: none of them change the abstinence numeric output. Q6 is asked because duration still personalises the break-outlook wording.
 - Reduction asks no last use, duration, product or route: the tracker needs only frequency and typical sessions. The engine attaches no withdrawal display and no target on this route.
 - Detection is exactly 2 questions and collects no use profile (per `ARCHITECTURE.md` §6).
 - Previous breaks and post-break mode never appear in the initial questionnaire (§7, §8).
@@ -457,7 +457,7 @@ Every post-break screen leads with two direct messages (spec §10): "Tolerance m
 
 ### 9.1 Tolerance result screen (`tolerance_result`)
 
-An accessible **“Your plan” | “Recovery outlook”** segmented control (default “Your plan”; tablist semantics) selects between two modes. “Your plan” is the reading screen below; “Recovery outlook” renders the versioned non-engine recovery outlook (`tolerance-recovery-outlook-v2`, CALCULATOR_SPEC §7.11; copy module `src/ui/recovery-copy.ts`) in this order: likely recovery window + definition/disclaimer → Your plan target and plan range → separate Human CB1 reference → conditional Extended recovery explanation → time-only timeline → optional check-in facts → optional descriptive personal history → evidence disclosure with direct/extended/limitations sections. “Your plan” cards, in scroll order:
+The result screen is one body: one scroll from the plan target to the answers, with no second mode to switch into. The app does not estimate a personal recovery window or date anywhere. In scroll order:
 
 1. **Primary card — plan target first, evidence range beneath:**
 
@@ -466,9 +466,11 @@ An accessible **“Your plan” | “Recovery outlook”** segmented control (de
    > Planning range: 21–28 days
    > Limited certainty: this is a broad planning heuristic, and individual response varies.
 
-   The hero element is the actionable planning target (large “N days” numeral, accessible label “Plan for N days”), because that is what the user acts on. The broad evidence range is the supporting meta line directly beneath it (“Planning range: min–max days”), and the range-band rail marks the target's position inside those bounds, so the two are never conflated: the target is a planning choice inside the evidence range, not a second, tighter claim. The target stays position-aware in the Why-this-result rationale: at the lower anchor of the range (a recently established pattern) it reads “the planner selects 21 days — the lower end of the same 21–28 day evidence range”; at the upper anchor “…the upper end…”. An interior target raised by a clean in-range history observation is described as the user's own observed anchor (history never widens or narrows the evidence range). The uncertainty sentence is exactly one plain line — no badges, no meters (spec §7.6). A short **planning-context** meta line (spec §7.6) may follow it, e.g. "Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. Fuller exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty." Never a percentage.
+   The hero element is the actionable planning target (large “N days” numeral, accessible label “Plan for N days”), because that is what the user acts on. The broad evidence range is the supporting meta line directly beneath it (“Planning range: min–max days”), and the range-band rail marks the target's position inside those bounds, so the two are never conflated: the target is a planning choice inside the evidence range, not a second, tighter claim. The target stays position-aware in the Why-this-plan rationale: at the lower anchor of the range (a recently established pattern) it reads “the planner selects 21 days — the lower end of the same 21–28 day evidence range”; at the upper anchor “…the upper end…”. An interior target raised by a clean in-range history observation is described as the user's own observed anchor (history never widens or narrows the evidence range). The uncertainty sentence is exactly one plain line — no badges, no meters (spec §7.6). A short **planning-context** meta line (spec §7.6) may follow it, e.g. "Planning context: use frequency, how long the current pattern has lasted, sessions, products, and routes. Fuller exposure context shapes the recommendation inside the evidence bounds — it does not raise scientific certainty." Never a percentage.
 
-2. **Why this result** — driver list mapped via §14, e.g. for a long-established daily user:
+2. **The break journey — "what to expect"** — full Day 1 → planning-target roadmap from BreakOutlookV1 (§9.7). A 2 / 7 / 14 / 21 / 28 day anchor target shows exactly those days; an interior target raised by a clean in-range history observation runs exactly Days 1 → that observed day. Every planned day is inspectable before **Start this break**. Not 28 giant cards: a compact day-chip strip plus one inspector, plus overlapping evidence windows.
+
+3. **Why this plan** — driver list mapped via §14, e.g. for a long-established daily user:
    > - You use THC daily or nearly daily
    > - Multiple sessions per day
    > - This current pattern has been typical for many years
@@ -480,9 +482,7 @@ An accessible **“Your plan” | “Recovery outlook”** segmented control (de
 
    Duration drivers and target-rationale lines are presentation-layer only. They MUST NOT appear as Tolerance Engine driver codes. A frozen pre-0.7.0 record whose stored target is the top of the range keeps the historical contextual line ("How long this pattern has lasted is useful context. It does not change the recommended day range.") and never claims a lower-end choice.
 
-3. **Your break outlook** — full Day 1 → planning-target roadmap from BreakOutlookV1 (§9.7). A 2 / 7 / 14 / 21 / 28 day anchor target shows exactly those days; an interior target raised by a clean in-range history observation runs exactly Days 1 → that observed day. Every planned day is inspectable before **Start this break**. Not 28 giant cards: a compact day-chip strip plus one inspector, plus overlapping evidence windows.
-
-4. **Useful withdrawal / tolerance context** — expandable CB1 / concept note from EvidenceGuidanceV1. Approximately four weeks is a research reference in chronic users, not a personal reset day.
+4. **Research section — "What the research can and cannot say"** — always visible, never behind a disclosure, and never a second mode. Static reviewed copy (`src/ui/research-copy.ts`, with the CB1 concept note from EvidenceGuidanceV1 via `src/ui/research-context.tsx`) carries: the four-week human CB1 PET population reference and what it is not; the "what this does not mean" list (reaching the planning target does not prove a full reset; CB1 receptor availability is not subjective tolerance; withdrawal easing, tolerance, impairment and drug-test detectability are four separate questions; animal findings do not establish a human timetable); and direct links to Hirvonen et al., D'Souza et al. and Budney et al. It contains no window, percentage or personal date. A stored record carrying `recoveryOutlookVersion` (a result saved before 0.38.0) adds exactly one line — `legacyOutlookNote` — stating that the app then also showed an estimated recovery window, that it was a product heuristic rather than a validated human timeline, and that the stored target and range below are unchanged. Nothing is recomputed for such a record.
 
 5. **History prompt card** (§7) or, when records exist and were included, the **history insight card** (§9.2).
 
@@ -501,7 +501,7 @@ Present only when the engine returns a non-null `HistoryInsight`. Copy per §14,
 ### 9.3 Abstinence planning screen (`planning_only`, goal = abstinence)
 
 - Header: "Staying off THC — your plan." No range, no target date, no completion state.
-- Full break outlook (§9.7) as an open-ended 1–28 inspectable reference, anchored to last use (Q2A always collects it). After-28 remains available; there is no finish line.
+- Full break journey (§9.7) as an open-ended 1–28 inspectable reference, anchored to last use (Q2A always collects it). After-28 remains available; there is no finish line.
 - Phase-based plan content (§10.1) by `breakDay`.
 - **Start tracking** CTA → opens ongoing abstinence tracking (§9.8).
 - No return-to-use controls anywhere on this path.
@@ -543,7 +543,7 @@ Prohibited: X–Y windows, pass/fail, "clean date", cutoff numbers, jurisdiction
 
 ### 9.7 Break outlook (BreakOutlookV1)
 
-Shared by the Calculator result and the Today active-break card. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation.
+Shared by the Calculator result and the Today active-break card. One deterministic derivation from EvidenceGuidanceV1 overlapping windows plus optional exposure context. UI MUST NOT invent a second science-copy implementation. The name is the derivation's, not a user-facing mode: the result renders it as the break journey ("what to expect") and Today as **Your break timeline**.
 
 - Finite planning target: exactly Days 1–`preferredTargetDays` — usually one of the anchor targets 2 / 7 / 14 / 21 / 28, or an interior observed in-range history anchor under the tolerance-v3 override. No duplicates, no gaps, no extra days.
 - Open-ended tracking: Days 1–28 inspectable plus the After-28 window. No finish percentage at day 28.
@@ -577,9 +577,9 @@ Abstinence has no finite break, so it MUST NOT be modelled as a `BreakAttempt` w
 The active-break card *is* the running plan; there is no pushed plan-detail screen.
 
 - Hero head: phase eyebrow, "Day X of Y" (labelled **plan progress** — never biological progress), target date beneath. Past the planning target the label reads "Day N · M-day plan" instead of a broken fraction.
-- Practical daily advice is one support card before the timeline. Its action is visible; **More ideas & sources** opens the explanation, remaining guide steps and sources. See §17.
-- **Your break timeline** is a closed disclosure: Start → evidence phases → Target, past-day check-in markers and the current leg marked "You are here". Each leg's expectations have their own disclosure.
-- The calculated break's own frozen **Recovery outlook** (§9.1) is a lower disclosure. Opening it never removes the day/target header or daily action. Chosen-duration breaks and open-ended trackers have no such panel; unrelated saved results are never borrowed.
+- Practical daily advice is one support card before the timeline, headed **Help with**. The action and **Why this helps** are visible; the guide's **What else can help**, **What to avoid**, **When to get advice** and sources sit behind that one row, so a five-to-eight-step guide cannot bury the day. See §17.
+- **Your break timeline** is a closed disclosure: Start → evidence phases → Target, past-day check-in markers and the current leg marked "You are here". Each leg's **What to expect** detail remains its own disclosure inside it.
+- No section of the card is a recovery-outlook panel, and no unrelated saved result is ever borrowed. A saved result that predates 0.38.0 is explained only by the legacy line in the result screen's research section (§9.1), never on Today.
 - Action zone: full-width **Check in**; **Mark complete** appears on/after the target date (never silent auto-complete).
 - **Manage break** contains **Update last use** and **End break early**. The latter requires confirmation and has a neutral resulting state.
 - Post-break return mode (§8) is chosen at break start and shown read-only on the completion card; break-start copy does not promise mid-plan changes.
@@ -625,7 +625,7 @@ Entry: **Today → Manage break → Update last use** for a finite break; **Upda
 - **Keyboard:** only the check-in note raises it; `inputmode="decimal"` on numeric escape hatches; CTA bar lifts above the keyboard.
 - **Haptics:** light tick on slider snap and chip select; warning haptic on validation error; respects OS settings.
 - **Validation:** inline, on-step, never toast-only; errors announced via `aria-live="polite"`.
-- **Progressive disclosure:** nominal THC link, previous-break add, evidence and guide depth, "Your answers" rows. Nothing mandatory hides behind an expander.
+- **Progressive disclosure:** the nominal THC link, previous-break add, **Why this plan**, each journey leg's **What to expect**, the "Your answers" rows, and **Manage break**. Nothing mandatory hides behind an expander; the guide's remaining steps, the symptom list, the break timeline and **Manage break**. Nothing mandatory hides behind an expander: the check-in, the stage, the topic's action and reason, and the experiences stay on the page.
 - **No long forms:** max one logical group per step (Q5's two chip groups is the ceiling); anything taller than ~1.5 viewport heights is split.
 - **Accessibility:** WCAG 2.2 AA contrast on the §12 palette; full screen-reader pass on questionnaire, check-in, interruption; status never by colour alone; dynamic type to 130 % without breakage; focus order = visual order; every icon button labelled.
 - **Standalone/PWA:** manifest `display: standalone`; theme-color matches `bg/base` for seamless launch; iOS apple-touch-icon; no reliance on `beforeinstallprompt` (Settings shows per-platform manual install steps); service-worker updates apply on next launch via passive "Update ready" snackbar, never mid-flow.
@@ -694,7 +694,7 @@ Everything in v1: questionnaire, both engines, nominal THC, results, plans, chec
 - No offline banners, no reconnect toasts — nothing v1 does needs a network.
 - One neutral Settings line: "Fully offline-capable · all data on this device".
 - Service worker caches shell + static policies/templates at install; updates download passively and apply on next launch, never mid-flow.
-- Runtime generative AI is intentionally out of scope: result explanations, Recovery Intelligence, evidence summaries, and personal-history insights are deterministic and local. There is no "enhanced explanation" card placeholder and no runtime inference dependency.
+- Runtime generative AI is intentionally out of scope: result explanations, the research section's reference copy, evidence summaries, and personal-history insights are deterministic and local. There is no "enhanced explanation" card placeholder and no runtime inference dependency.
 
 ### 13.3 Storage failure modes
 
@@ -749,7 +749,7 @@ One template module maps engine codes to the copy quoted here. Components MUST N
 
 A code missing from this table renders nothing and is logged locally — never freestyle copy.
 
-The recovery-outlook (“Recovery outlook”) content is separately versioned as `tolerance-recovery-outlook-v2` (with v1 retained for historical records) and mapped by `src/ui/recovery-copy.ts` — see the 0.9.2 revision note above and `EVIDENCE_CONTENT_SPEC.md`. Codes absent from either module render nothing.
+The result screen's research section is static reviewed copy, not engine codes: `src/ui/research-copy.ts` holds the section title, the reference note, the "what this does not mean" list, the three study links, and the single `legacyOutlookNote` line shown for a saved result that carries `recoveryOutlookVersion` (a result calculated before 0.38.0, when the app still showed an estimated recovery window). It renders no window, percentage or personal date. See `EVIDENCE_CONTENT_SPEC.md` for the underlying reference content. Codes absent from the template module render nothing.
 
 ---
 
@@ -766,6 +766,7 @@ The recovery-outlook (“Recovery outlook”) content is separately versioned as
 - **R7 — Intake burden.** Resolved: previous-break questions → contextual flow (§7); post-break mode → break-start sheet (§8). Initial questionnaire is 2–6 steps (§5.4); Q4/Q5 are asked from 4 use-days under tolerance-v3.
 - **R8 — Timestamp precision vs human memory.** Mitigated by day-part chips (§4.3); documented as a known, accepted ±12 h modelling error because all displays are day-granular. No change required, but the domain spec SHOULD acknowledge that UI-submitted instants are modelled points with `user_estimate` provenance, not measurements.
 - **R9 — "The duration question feels pointless" (0.7.0).** Resolved by the tolerance-v2 target rule (`CALCULATOR_SPEC.md` §7.3): duration now selects the planning target anchor inside the unchanged evidence range — recently established (`under_1_month`, `1_to_6_months`) → lower anchor; established (≥ 6 months) or legacy-missing → upper anchor. The range never moves and no duration-to-days formula exists. UX wiring: position-aware "Plan for N days" line, duration + target-rationale driver bullets, and a deterministic planning-context note (never a percentage). Q6 routing is unchanged.
+- **R10 — Predicted recovery window retired (0.38.0).** Resolved by removal. The result-mode switch, the personalised predicted recovery window, the check-in-facts presenter and the separate outlook copy module are gone: the app cannot defend a personal recovery window from the evidence, and a large "estimated recovery window" read as exactly the prediction the product forbids. The result is one body whose research section carries the four-week human CB1 population reference openly; a stored record that still carries an outlook version renders unchanged with one honest legacy line and never a window (`CALCULATOR_SPEC.md` §7.11). Today has no outlook panel at all. Numeric policies are untouched.
 
 ### 15.2 Domain/spec changes (all landed; retained as the decision record)
 
@@ -799,15 +800,15 @@ Domain prerequisites from §15.2 landed with the earlier slices (D1–D5 validat
 Acceptance: every path in §5.1 reachable with the stated step counts; every terminal state renders from real engine output; no prohibited string (§9.1, §9.6) appears; all flows complete offline; all flows complete with a screen reader; resume works across restarts; no screen asks a question that cannot change a v1 output, plan, history record, or result-explanation.
 
 
-## 17. Practical daily support (0.22.0)
+## 17. Practical daily support (0.22.0; guide contract 0.38.0)
 
-Today prioritises a brief daily visit: where you are, what this stage can bring, and one useful next action. The stage headline is visible in its disclosure summary. The day's activity is an editorial schedule, not an exact-day biological prediction.
+Today prioritises a brief daily visit: where you are, what this stage can bring, and one useful next action. **This stage** is an always-open section — its window label, headline and one sentence of context are visible on the page, while the list of what people commonly notice is one tap away under **What you may notice**. The day's activity is an editorial schedule, not an exact-day biological prediction.
 
-The native **Help with** select exposes today's suggestion and all eleven topic guides without horizontal scrolling. A manual choice replaces the action in place and writes nothing; selecting today's suggestion restores it. The choice resets on a new break day. A fresh break defaults to its existing day-specific practical activity. Preserved recent ratings can raise their own topic, with a dated reason. A saved replacement plan takes precedence on routine, cravings and boredom topics. **More ideas & sources** contains the guide's explanation and all steps not already shown, including the first step when a different practice or personal action leads.
+The native **Help with** select exposes today's suggestion and all eleven topic guides without horizontal scrolling. The block keeps the day's depth in one place: the topic heading, the line to act on and **Why this helps** are always visible, and the rest of the topic — **What else can help** (every step not already shown as the action, so the guide's first step does appear there when the day's own activity or a saved plan supplies the action), **What to avoid**, **When to get advice** and the sources — sits behind that single row, closed by default. A five-to-eight-step guide must never bury the day's action, and the first screen is measured against that rule (at 390×844 the check-in, this stage, the topic picker and the action line all sit above the fold). Each of the eleven guides carries an explanation, five to eight practical steps, an avoid line, and sources drawn from the reviewed `SUPPORT_SOURCES` set (NSW Health's clinical withdrawal guidance and do-it-yourself quitting guide, Turning Point, CAMH, NHS sleep advice and Every Mind Matters, healthdirect relaxation, NHS 5 steps to wellbeing, NIDA, and the project's other reviewed links; the **When to get advice** line is present on nine guides and omitted on the two where none is warranted). A manual choice replaces the block in place and writes nothing; selecting today's suggestion restores it. The choice resets on a new break day. A fresh break defaults to its existing day-specific practical activity. Preserved recent ratings from earlier releases can raise their own topic, with a dated reason. A saved replacement plan takes precedence on routine, cravings and boredom topics, where the plan's own action, trigger and fallback lines lead the block in place of the guide's first-step action.
 
-No new symptom ratings are collected. Existing ratings and notes retain their stored meaning, freshness rules and History access. No-use-only saves do not erase earlier ratings; ratings never change scientific calculations.
+No symptom ratings are collected. Existing ratings and notes retain their stored meaning, freshness rules and History access. No-use-only saves do not erase earlier ratings; ratings never change scientific calculations.
 
-A manually controlled carousel draws from 17 reviewed paraphrases across 12 r/Petioles discussions, inside **Experiences**. Stage tags determine eligibility; preserved recent ratings influence ranking. Up to five cards are shown. Each identifies an individual experience, not a prediction, and links its source. No medical claim is sourced to Reddit. Curated text works offline; external links require a connection.
+**Experiences** is the open section beneath the guide: "What other people reported around this topic and this stage of a break." A manually controlled carousel draws from 44 reviewed paraphrases across 12 r/Petioles discussions. Stage windows decide which accounts are eligible; the accounts that speak to the selected topic lead, followed by the rest of the stage's accounts, and the carousel is capped at eight cards. Each identifies an individual experience, not a prediction, and links its source. No medical claim is sourced to Reddit. Curated text works offline; external links require a connection.
 
 
 ## 18. PWA interaction polish (0.23.0)
@@ -821,7 +822,7 @@ Touch feedback is brief and never delays persistence or navigation: pressed stat
 
 Browser pinch zoom and accessibility magnification remain available. No viewport maximum scale, user-scalable restriction or JavaScript gesture blocker is installed. Inputs use at least 16px. One-finger scrolling, carousel swiping, keyboard handling and safe areas remain. Viewport fill accepts outer-screen height only when both dimensions match the device screen, avoiding desktop-window oversizing. Physical iOS testing remains outstanding.
 
-The visual system is deliberately discreet: ink navy, slate blue and warm sand; no weed green, cannabis leaf, smoke or dispensary signalling. The installed icon stays a neutral pause/interval mark. Soft gradients, hairlines, small press states, sheet entrance and carousel movement provide app-like depth without becoming flashy. `prefers-reduced-motion` removes decorative movement. Clinical/source material remains behind relevant disclosures; the daily surface speaks in direct everyday language.
+The visual system is deliberately discreet: ink navy, slate blue and warm sand; no weed green, cannabis leaf, smoke or dispensary signalling. The installed icon stays a neutral pause/interval mark. Soft gradients, hairlines, small press states, sheet entrance and carousel movement provide app-like depth without becoming flashy. `prefers-reduced-motion` removes decorative movement. Clinical and source material is presented where it belongs on the page: the result's research section sits open beneath the plan, and the daily surface speaks in direct everyday language.
 
 ## 20. Local backup (0.26.0)
 

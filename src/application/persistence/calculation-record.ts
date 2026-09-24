@@ -47,7 +47,8 @@ export interface CalculationRecord {
   readonly calculatedAt: Instant;
   readonly inputSchemaVersion: string;
   readonly policyVersion: string;
-  /** Absent on pre-0.9.2 records, which retain recovery-outlook-v1 semantics. */
+  /** Retired display concept. Present on records created before 0.38.0, which
+   *  also carried a recovery outlook; new records no longer set it. */
   readonly recoveryOutlookVersion?: RecoveryOutlookVersion;
   readonly snapshot: RawAnswerSnapshot;
   readonly result: FrozenEngineResult;
@@ -232,7 +233,6 @@ export function freezeCalculation(
     calculatedAt,
     inputSchemaVersion: PROFILE_SCHEMA_VERSION,
     policyVersion: TOLERANCE_POLICY_VERSION,
-    recoveryOutlookVersion: RECOVERY_OUTLOOK_VERSION,
     snapshot,
     result: { type: 'tolerance', value },
   };

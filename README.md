@@ -2,16 +2,16 @@
 
 A private, mobile-first planner for tolerance breaks, cutting down, staying off THC, and understanding drug-test basics.
 
-**Version 0.37.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
+**Version 0.38.0** · [Open the app](https://megabomb420.github.io/tbreak-calculator/) · [Cloudflare Pages mirror](https://tbreak-calculator.pages.dev/)
 
 The same build is published on two origins: GitHub Pages under the repository subpath and Cloudflare Pages at the domain root. They do not share device data — records, drafts and the service worker belong to the origin you open, so install and check in on one of them.
 
 ## Product
 
-- **Today:** the break day, an explained one-tap check-in, a visible stage summary and one practical action. **Help with** opens any of eleven guides; research depth stays optional. **Manage break** updates last use without discarding earlier days.
+- **Today:** the break day, an explained one-tap check-in, the stage you are in, one practical action with its full guide open, others' experiences matched to that topic, and your break timeline. **Manage break** updates last use without discarding earlier days.
 - **Calculator:** all four goals remain reachable while a plan is running; unfinished answers can be resumed.
-- **History:** dated immutable calculation results, check-ins, previous breaks and cut-down logs; elapsed time is distinct from day position. Explicit corrections and deletion never regenerate a deleted recommendation.
-- **Science:** a separate, source-linked explainer available from every main screen and Settings.
+- **History:** dated immutable calculation results (a saved result keeps its stored numbers), check-ins, previous breaks and cut-down logs; elapsed time is distinct from day position. Explicit corrections and deletion never regenerate a deleted recommendation.
+- **Science:** a separate, source-linked explainer available from every main screen and Settings. The result screen shows one planning target plus a research section on what the four-week human reference does and does not mean; the app estimates no personal recovery window.
 
 Calculations are deterministic and work on the device. There is no account, runtime AI, analytics, or cloud sync. Durable records use IndexedDB with a local-storage fallback; drafts use local storage. Browser data clearing removes saved records; Settings → **Your data** saves everything stored on the device to a backup file and restores from one. The installed PWA works offline after its first successful load.
 
@@ -43,7 +43,7 @@ The development server uses port 8080. Preview serves the production build on po
 - [HANDOFF.md](HANDOFF.md): current decisions and release validation.
 - [Research PDF](references/tbreak-science-project.pdf) and `sources/TBREAK_PROJECT_CONTEXT.md`: research basis. All `sources/` files are read-only synced references.
 
-Numeric policies remain `tolerance-v3`, `detection-copy-v1`, and `tolerance-recovery-outlook-v2`. Stored results retain their original numbers and policy versions. Only live elapsed-time guidance advances; a new calculation creates a new record.
+Numeric policies remain `tolerance-v3` and `detection-copy-v1`. Stored results retain their original numbers and policy versions; the retired outlook version marker is read only to explain an older saved result. Only live elapsed-time guidance advances; a new calculation creates a new record.
 
 ## Deploy
 
@@ -51,4 +51,4 @@ Push to `main` runs `.github/workflows/pages.yml`: clean install, domain/golden/
 
 Cloudflare Pages serves the same build at the domain root with `BASE_PATH=/ npm run build`, then `npx wrangler pages deploy dist --project-name tbreak-calculator --branch main`. There is no push-triggered Cloudflare workflow: the deploy is a local, deliberate step, so a failed test run cannot publish.
 
-After a deliberate deployment, verify Settings → About matches the release being deployed. This working-tree release is **0.37.0**; a version bump alone does not publish it. Existing PWA users receive an update prompt once a replacement service worker is ready.
+After a deliberate deployment, verify Settings → About matches the release being deployed. This working-tree release is **0.38.0**; a version bump alone does not publish it. Existing PWA users receive an update prompt once a replacement service worker is ready.

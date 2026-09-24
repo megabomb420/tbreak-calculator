@@ -3610,6 +3610,25 @@ input[aria-invalid='true'] { border-color: var(--error); }
 .support-card .advice-first-step { margin: 0; }
 .advice-content { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
 .advice-content p { margin: 0; }
+/* The guide's depth sits behind one row, so the action and its reason keep
+   the day's first screen. */
+.advice-details { border-top: 1px solid var(--hairline); }
+.advice-details > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  color: var(--accent-strong);
+}
+.advice-details > summary::-webkit-details-marker { display: none; }
+.advice-details > summary::after { content: '+'; font-family: var(--font-body); color: var(--fg-muted); font-size: 1.15rem; }
+.advice-details[open] > summary::after { content: '−'; }
+.advice-why { margin: 0; }
 .advice-steps { margin: 0; padding-left: 20px; }
 .advice-steps li + li { margin-top: 10px; }
 .advice-help { padding: 12px 14px; border-left: 2px solid var(--warn); background: color-mix(in oklab, var(--warn) 5%, transparent); font-size: 0.875rem; line-height: 1.55; }
@@ -3624,14 +3643,38 @@ input[aria-invalid='true'] { border-color: var(--error); }
    and a card-sized summary, so the day's action stays above the fold. */
 .today-plan-card > .today-block.result-disclosure { padding: var(--space-3) 0; }
 .today-plan-card > .today-block.result-disclosure > summary { font-size: var(--text-base); }
-/* Expanded Today blocks: a heading and its content, no disclosure. */
-.today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+/* Today's sections are open reading blocks: a heading, a hairline, and the
+   content. Only the occasional panels (recovery outlook, break management)
+   keep the disclosure pattern. */
+.today-block { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; border-top: 1px solid var(--hairline); padding: var(--space-4) 0; }
+.today-block:first-of-type { border-top: 0; }
 .today-block > .card-title { margin: 0; }
-.stage-headline { display: block; margin-top: 4px; font-family: var(--font-body); font-weight: 500; line-height: 1.4; }
-.today-block > summary .micro-label { display: block; font-family: var(--font-body); font-size: .625rem; color: var(--fg-muted); }
-.advice-picker-label { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.advice-picker-label > .micro-label { flex: none; }
-.advice-picker-label select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); padding: 8px; background: var(--bg-card); color: var(--fg); font: inherit; }
+/* Section headings: the display face carries the structure, so the small
+   uppercase kickers only label context. */
+.section-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  text-wrap: balance;
+}
+.section-subheading {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+.stage-headline { display: block; margin: 0; font-family: var(--font-display); font-size: 1.0625rem; font-weight: 500; line-height: 1.35; color: var(--fg); }
+.stage-label { display: block; margin: 0; font-size: 0.6875rem; font-weight: 600; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--fg-faint); }
+.advice-picker-label { display: block; min-width: 0; }
+.advice-picker-label select { min-width: 0; width: 100%; min-height: 44px; margin-top: var(--space-2); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); padding: 8px; background: var(--bg-card); color: var(--fg); font: inherit; }
 .checkin-meaning { margin: 8px 0 0; line-height: 1.4; }
 .today-plan-card.tracking > .daily-support { margin: 0 20px 20px; }
 @media (max-width: 360px) {

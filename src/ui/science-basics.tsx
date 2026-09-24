@@ -19,9 +19,9 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'How to read the recovery outlook',
-    body: 'The recovery outlook is a separate app estimate. It uses broad rules about your pattern; it does not measure your biology. Some estimates extend past four weeks, but direct human tolerance studies have not validated those extra days. Animal findings cannot establish a human recovery timetable.',
-    note: 'Treat your plan target as a point to review your goal, not proof of complete recovery.',
+    title: 'What the app will not estimate',
+    body: 'The app does not calculate a personal recovery date, window or percentage. Your plan is a planning target inside a broad research-informed range: a point to review your goal, not proof that tolerance has fully reset. Extra abstinence can still serve habit change, continued abstinence or personal aims, but it does not earn a continuing reset score.',
+    note: 'Reaching your target, feeling better, and a drug test result are three different questions. The app keeps them apart.',
   },
   {
     title: 'Withdrawal follows a different timeline',
@@ -71,7 +71,7 @@ export function ScienceBasicsPanel({ onClose }: { readonly onClose: () => void }
         </section>
         <section className="reading-section">
           <h3 className="card-title">Experiences from Reddit</h3>
-          <p className="body">These are selected, paraphrased experiences from individual commenters, checked on 20 September 2026. Today matches them to the broad stage of the break; the reported days are still personal experiences, not a recovery schedule.</p>
+          <p className="body">These are selected, paraphrased experiences from individual commenters in r/Petioles, checked on 20 and 24 September 2026. Today matches them to the topic you are dealing with and to the broad stage of the break; the reported days are still personal experiences, not a recovery schedule.</p>
           <p className="meta">Only the described idea is included. Other advice in the linked discussion has not been endorsed. The app does not load Reddit or send your data there; links open externally.</p>
           {COMMUNITY_TIPS.filter((tip, index, all) => all.findIndex(item => item.href === tip.href) === index)
             .map(tip => <a className="text-link source-link" href={tip.href} key={tip.href} target="_blank" rel="noopener noreferrer">r/Petioles · {tip.thread} ↗</a>)}

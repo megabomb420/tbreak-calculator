@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { adviceSectionFor, presentDailySupport, type DailySupportInput, type DailySupportView } from '../../src/application/presentation/daily-support.ts';
+import { adviceSectionFor, presentDailySupport, SUPPORT_GUIDES, type DailySupportInput, type DailySupportView } from '../../src/application/presentation/daily-support.ts';
 import type { DailyCheckin } from '../../src/domain/schemas/profile.ts';
 
 const NOW = Date.parse('2026-09-20T12:00:00Z');
@@ -78,7 +78,8 @@ test('a symptom topic keeps its guide action and drops the plan lines even when 
     preparation: { triggerIds: ['evening_after_work'], customTrigger: null, replacementAction: 'walk around the block', fallbackPlan: 'call a friend' },
   });
   assert.equal(view.defaultArea, 'sleep');
-  assert.equal(shown(view).action, 'Choose a wake-up time you can keep tomorrow, even after a rough night.');
+  // The topic keeps its own guide action rather than any practice or plan line.
+  assert.equal(shown(view).action, SUPPORT_GUIDES.sleep.steps[0]);
   assert.equal(shown(view).triggerLine, null);
   assert.equal(shown(view).fallbackLine, null);
 });

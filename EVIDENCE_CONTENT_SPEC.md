@@ -1,10 +1,10 @@
 # Evidence content specification
 
-App version: **0.37.0**
-Content models: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`, `daily-support-v4` (numeric rules unchanged).
+App version: **0.38.0**
+Content models: `evidence-guidance-v1`, `break-outlook-v2`, `daily-support-v5` (numeric rules unchanged).
 Research basis: the original project PDF and synced project source documents. Numeric engines remain governed by CALCULATOR_SPEC.md.
 
-Current communication contract: UI ranges are **planning ranges** and the secondary result mode is **Recovery outlook**. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
+Current communication contract: UI ranges are **planning ranges**, and the result screen carries a research section instead of a second, competing estimate. Estimates are not clinically validated personal timelines. Direct human CB1 imaging findings do not establish subjective tolerance recovery, and preclinical evidence cannot validate extra human recovery days. The dedicated Science screen links Hirvonen, D’Souza and Budney primary studies; the core experience uses short caveats and expandable detail. Copy clarifications do not change stored results or numeric policies.
 
 ## 1. Role
 
@@ -12,8 +12,8 @@ Current communication contract: UI ranges are **planning ranges** and the second
 
 Module: `src/domain/guidance/evidence-guidance-v1.ts`  
 Outlook: `src/domain/guidance/break-outlook.ts` (`break-outlook-v2`; BreakOutlookV1 architecture unchanged)  
-Recovery outlook (0.9.2): `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outlook-v2`; section 13); user copy `src/ui/recovery-copy.ts`
-Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`; recovery check-in facts `src/application/presentation/recovery-checkin-facts.ts` over `src/domain/checkins/checkin-summary.ts`  
+Retired outlook layer (0.9.2, retired 0.38.0): `src/domain/recovery/recovery-outlook.ts` (version constants only; section 13); research copy `src/ui/research-copy.ts`, rendering `src/ui/research-context.tsx`
+Presentation: `src/application/presentation/break-guidance.ts`, `break-outlook.ts`, `checkin-comparison.ts`; result research section `src/ui/research-context.tsx` over `src/ui/research-copy.ts`  
 Version strings: `evidence-guidance-v1`, `break-outlook-v2`, `tolerance-recovery-outlook-v2`
 
 ## 2. Source distinctions (preserved)
@@ -174,9 +174,17 @@ Result and Today MUST reuse this module. Result shows the full span; Today shows
 
 Current-pattern duration may change outlook wording, the personalisation note, Why-this-result copy, and — under the tolerance-v3 rules — the planning target inside the recommended range, plus the recommended range itself only in the single bounded case (a frequent 16–25 use-days pattern established for 2–5 / 5+ years moves one band to 21–28). The research PDF treats duration as meaningful exposure context. It does **not** supply a duration-to-days formula, so none is implemented anywhere. The personalisation note distinguishes a recently established high-frequency pattern (stronger withdrawal may be more plausible at that intensity; the note does not call a recent pattern long-established) from a long-established one.
 
-## 13. Recovery outlook content (0.9.2)
+## 13. Retired outlook layer and the research section (0.38.0)
 
-Content version: `tolerance-recovery-outlook-v2`. “Recovery outlook” is the compact navigation label; its lead defines the construct as a **likely tolerance recovery window**: a product estimate of when tolerance may approach a near-maximal reduction relative to the stored current pattern. It is not a full-reset claim, receptor percentage, detox estimate, drug-test prediction, or clinical endpoint. The unchanged tolerance-v3 plan, the predicted window, and the Day-28 human biological reference render as distinct concepts.
+**The personalised predicted recovery window is retired.** Until 0.37.x the app rendered a `tolerance-recovery-outlook-v2` interpretation beside the plan, headed by a large estimated window (for example “About 4–6 weeks”) that the code itself classified as a product heuristic, with the segment beyond Day 28 resting mainly on indirect, preclinical support. A headline figure of that size reads as a personal prediction, and no disclaimer underneath it undoes that.
+
+What is presented instead, in the result screen's research section (`src/ui/research-copy.ts`, `src/ui/research-context.tsx`):
+
+- the four-week human CB1 PET reference as a **population research reference**, with the published studies linked;
+- an explicit **what this does not mean** list: reaching a planning target is not proof of full reset, CB1 availability is not subjective tolerance, and withdrawal, tolerance, impairment and detectability stay separate questions;
+- one honest line for a saved result that was calculated while the window was still shown.
+
+The app estimates no personal recovery date, window, percentage or endpoint anywhere. `src/domain/recovery/recovery-outlook.ts` retains only the stored version constants, `BIOLOGICAL_REFERENCE_DAYS = 28` and `hadRecoveryOutlook()`; new calculation records no longer write `recoveryOutlookVersion`, and a stored value is read only to explain an older saved result. Stored results are never rewritten or recomputed.
 
 ### Fresh evidence table and classification
 
@@ -193,38 +201,38 @@ Content version: `tolerance-recovery-outlook-v2`. “Recovery outlook” is the 
 | C | Ricci et al., 2026 systematic review | Human; 26 heterogeneous studies | Abstinence from ≥72 hours to months/years | Narrative synthesis reports CB1 imaging normalization within four weeks, early cognitive improvement, and endpoint/profile variability | Neurocognitive review, not an abstinence re-challenge study; narrative synthesis | Current context for heterogeneous recovery; does not validate a post-28 tolerance window |
 | D | Dudok et al., 2015 | Mouse; small animal counts with many sampled boutons | High-dose THC twice daily for 6.5 days; recovery at 11.5 days and 6 weeks | Hippocampal CB1-positive bouton signal: marked downregulation; partial restoration at 11.5 days and restoration by 6 weeks | Preclinical, regional, high-dose injection; animal time does not convert directly to human time | Only an indirect outer-uncertainty anchor near six weeks; not proof humans reset at Day 42 |
 | D | Hoffman et al., 2023 review | Preclinical mechanistic synthesis plus human PET context | Varying rodent chronic-THC paradigms | Regional desensitisation/downregulation and recovery occur on different schedules | Review of heterogeneous animal models | Biological plausibility for uneven multi-week recovery; no validated personal human duration |
-| E | Recovery Outlook v2 | Product rule, not a study | Existing frequency, intensity and duration inputs only | Coarse 2–7 through 28–42 windows under §7.11 | Not clinically validated; post-28 segment depends mainly on B uncertainty + D mechanism | Conservative decision support; not a biological/full-reset endpoint |
+| E | Retired outlook window (v1/v2, ≤0.37.x) | Product rule, not a study | Existing frequency, intensity and duration inputs only | Coarse 2–7 through 28–42 windows | Not clinically validated; the post-28 segment depended mainly on B uncertainty + D mechanism | **Retired in 0.38.0**: the app no longer estimates a personal window; the four-week reference is shown as research context |
 
 Reviewed sources: Hirvonen et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC3223558/)); D’Souza et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC4742341/)); Ceccarini et al. ([PubMed](https://pubmed.ncbi.nlm.nih.gov/24373053/)); Colizzi & Bhattacharyya ([PubMed](https://pubmed.ncbi.nlm.nih.gov/30056176/)); Ramaekers et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC4881034/)); Mason et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC7757162/)); Lee et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC3986824/)); Bosker et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC3534640/)); Pope et al. ([PubMed](https://pubmed.ncbi.nlm.nih.gov/11576028/)); Krzyzanowski & Purdon ([PubMed](https://pubmed.ncbi.nlm.nih.gov/31886689/)); Ricci et al. ([PubMed](https://pubmed.ncbi.nlm.nih.gov/41872072/)); Dudok et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC4281300/)); Hoffman et al. ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC10528043/)).
 
-The evidence for **recovery continuing beyond 28 days** is not direct human tolerance evidence. Human PET work leaves incomplete regional recovery and an unobserved post-Day-28 trajectory; human sleep/withdrawal/cognitive findings are contextual only; animal CB1 recovery supplies the main multi-week mechanistic support. Therefore any post-28 bound MUST be labelled lower-directness product heuristic.
+The evidence for **recovery continuing beyond 28 days** is not direct human tolerance evidence. Human PET work leaves incomplete regional recovery and an unobserved post-Day-28 trajectory; human sleep/withdrawal/cognitive findings are contextual only; animal CB1 recovery supplies the main multi-week mechanistic support. Because that support cannot carry a personal duration, the app no longer converts it into a displayed window at all.
 
-### Required disclosure and provenance separation
+### Required disclosure content
 
-The disclosure renders **Direct human reference**, **Extended recovery evidence**, and **What this does not mean** separately. It MUST state that the outer day is not scientifically proven as complete reset, CB1 availability is not subjective tolerance, persistent sleep/withdrawal/cognitive endpoints are not automatically tolerance, and animal timelines do not translate directly to humans. Personal 0–10 history and check-in facts remain in their own blocks; v2 history is descriptive and never changes the predicted window.
+The research section MUST keep the four-week reference, the linked human studies and the **what this does not mean** points, and MUST NOT reintroduce a personal recovery window, date, percentage or reset score. A stored `recoveryOutlookVersion` is used only to show the legacy line; it never reproduces the old numbers.
 
-Reference: `src/domain/recovery/recovery-outlook.ts` (`tolerance-recovery-outlook-v2`); user copy `src/ui/recovery-copy.ts`. Preserved v1 rendering applies to old records without a stored outlook version.
+Reference: `src/domain/recovery/recovery-outlook.ts` (version constants only); user copy `src/ui/research-copy.ts`; rendering `src/ui/research-context.tsx`.
 
 ## 14. Change control
 
-Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `tolerance-recovery-outlook-v2` / `daily-support-v4` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
+Copy or window-bound changes increment `evidence-guidance-v1` / `break-outlook-v2` / `daily-support-v5` (or replace with a later version) and update tests. They must not edit tolerance/detection golden fixtures.
 
 
-## 15. Daily support (daily-support-v4)
+## 15. Daily support (daily-support-v5)
 
 `src/application/presentation/daily-support.ts` selects **educational advice**, independently of tolerance, recovery and detection engines. `src/ui/daily-support.tsx` is shared by active finite breaks and open-ended tracking; it shows the stage summary headline, the day's practical action and the topic guides. Evidence phase context still comes from `EvidenceGuidanceV1` without changing its numeric windows.
 
-The practical layer contains eleven symptom/habit guides, 28 original daily activity prompts and a maintenance rotation. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
+The practical layer contains eleven symptom/habit guides — each with an explanation, five to eight practical steps, what tends to make it worse, when to get advice and its reviewed sources — plus 28 original daily activity prompts and a maintenance rotation. Under **Help with**, the action line and **Why this helps** are always visible; the remaining steps, the avoid line, the advice line and the sources sit behind one closed row (**What else can help**), because a five-to-eight-step guide open by default would bury the day's action. These activities are scheduled editorial choices, not a model of daily withdrawal or CB1 recovery. At the planning target the prompt asks the user to review the next step, without automatically completing the plan or implying a reset.
 
 **Current input: the check-in records the day.** The one-tap check-in writes `usedThc`, `usedAt` and an optional note; its symptom fields are always null, so a fresh break has no rating-driven topic. **Help with** exposes all eleven topics as one native selection, and the user's choice is per view: it stores nothing, and no stored preference takes part in selection.
 
-**Primary action precedence.** The day's own practice action is the default topic. A legacy stored rating (below) raises its own topic ahead of that default, and the user's saved urge plan leads wherever it covers a routine, an urge or an empty evening — its replacement action as the line, with the flagged trigger labels and the fallback plan beneath it. The **More ideas & sources** disclosure carries that topic's guide, including the guide's own first step when the primary line came from a different practice or from the user's plan. Copy shape only: none of this reaches the tolerance, recovery or detection engines.
+**Primary action precedence.** The day's own practice action is the default topic. A legacy stored rating (below) raises its own topic ahead of that default, and the user's saved urge plan leads wherever it covers a routine, an urge or an empty evening — its replacement action as the line, with the flagged trigger labels and the fallback plan beneath it. The guide beneath always shows **Why this helps**, **What else can help** (every step the action line does not already cover), **What to avoid** and **When to get advice**. Copy shape only: none of this reaches the tolerance, recovery or detection engines.
 
 **Legacy input: stored ratings are still honoured.** For a device with check-ins written before 0.35.0, selection reads the latest non-null field rating from a no-use check-in recorded within the last 48 hours and within the current abstinence segment, up to the injected current instant. Lower sleep/appetite ratings mean greater difficulty; higher craving/anxiety/irritability ratings mean greater difficulty. An oriented score of 4 is a display-priority rule only, and the five rating fields bound the list at five. Missing values remain unknown, and a later unrated check-in does not erase an earlier rating. A rating only names the topic and its own reading ("Sleep quality 2/10 in your check-in"); a comfortable rating is never presented as a problem. Nothing in this app writes symptom ratings any more, so this path fires only for a stored legacy report.
 
 ### Community experiences
 
-The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles discussions**; the content version is `daily-support-v4`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
+The carousel is drawn from **44 curated paraphrase cards across 39 r/Petioles discussions**; the content version is `daily-support-v5`. Each card carries a `windows[]` stage tag and is eligible only when the current primary evidence window matches:
 
 | `windows[]` tag | Stage |
 |---|---|
@@ -235,7 +243,9 @@ The carousel is drawn from **17 curated paraphrase cards across 12 r/Petioles di
 | `days_21_28` | week 4 |
 | `beyond_28` | beyond day 28 |
 
-Today displays **at most five** cards from the active window, ranking cards that match the topic a stored legacy rating raised first and rotating the rest day to day. The window tag only decides when a card is contextually useful; it does not turn the reported day into a prediction.
+The first batch (17 cards) was checked on 2026-09-20 and the second (27 cards) on 2026-09-24. Threads whose opening post had been deleted, and threads built around supplements, detox claims or dosing, were excluded.
+
+The experiences follow the topic currently on screen: the cards tagged with that topic lead, then the rest of the stage's cards, capped at eight (the position dots stay tappable). Within each group the rotation is day to day, and a stored legacy rating still lifts its own topic first. The window tag only decides when a card is contextually useful; it does not turn the reported day into a prediction.
 
 Source roles (checked 2026-09-20):
 
@@ -243,8 +253,13 @@ Source roles (checked 2026-09-20):
 - [NHS insomnia](https://www.nhs.uk/conditions/insomnia/), [nausea](https://www.nhs.uk/symptoms/feeling-sick-nausea/), [headaches](https://www.nhs.uk/symptoms/headaches/): general self-care and relevant escalation signs, not THC-specific efficacy trials.
 - [Lee et al., 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3986824/): sleep/dream variability during abstinence; no personal sleep-resolution date.
 - [UVM practical break guide](https://www.uvm.edu/health/t-break-week-1): routines, alternatives and coping examples. Its claims about a universal break length/THC clearance are not used.
+- [NSW Health, do-it-yourself guide to quitting cannabis](https://yourroom.health.nsw.gov.au/publicationdocuments/do-it-yourself-guide-to-quitting.pdf) and [Turning Point, Getting through cannabis withdrawal](https://turning-point-website-prod.s3.ap-southeast-2.amazonaws.com/drupal-s3fs/s3fs-public/2020-04/TP_Getting%20Through%20Cannabis%20Withdrawal.pdf): the urge-management sequence (delay, distract, breathe, drink water), sleep timing, and the low-risk activities used for empty time. Medication advice in both documents is not reproduced.
+- [CAMH, getting through cannabis withdrawal](https://camh.ca/-/media/professionals-files/treating-conditions-and-disorders/getting-through-cannabis-withdrawal-camh-pdf.pdf): removing cannabis and paraphernalia, building structure into the day, and the point that mood commonly takes a week or two — or longer — to return to its usual level. Its sleep-aid and melatonin advice is not reproduced.
+- [NHS Every Mind Matters, sleep](https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-fall-asleep-faster-and-sleep-better), [healthdirect, relaxation techniques](https://www.healthdirect.gov.au/relaxation-techniques-for-stress-relief), [NHS, 5 steps to mental wellbeing](https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/five-steps-to-mental-wellbeing/): general self-care used for sleep timing, breathing and relaxation steps, and activity ideas. Not THC-specific evidence.
+- [NIDA, cannabis](https://nida.nih.gov/research-topics/cannabis-marijuana): the withdrawal symptom list used to describe vivid or unsettling dreams as commonly reported. No prevalence figure or medication content is reproduced.
+No source read offers a management technique specific to vivid dreams during withdrawal; the app therefore describes them and points back to sleep care rather than inventing a method.
 
-Reviewed r/Petioles discussions behind the 17 cards:
+Reviewed r/Petioles discussions behind the cards (first batch; the second batch's threads are listed in the shipped `COMMUNITY_TIPS` array with their own URLs, titles and stages):
 
 | Discussion | Cards drawn from it |
 |---|---|
@@ -260,5 +275,7 @@ Reviewed r/Petioles discussions behind the 17 cards:
 | [When a short break changes the plan](https://www.reddit.com/r/Petioles/comments/pnyhex/has_anyone_taken_a_tolerance_break_for_a_week_or/) | `day-twenty-two-rethink` |
 | [Returning after a 30+ day break](https://www.reddit.com/r/Petioles/comments/s0dwms/to_those_who_have_completed_a_successful_30_day/) | `after-month-perspective` |
 | [A difficult day after 90 days](https://www.reddit.com/r/Petioles/comments/159owf8/weird_day_after_90_days/) | `beyond-ninety-variable` |
+
+Card coverage by topic after the second batch: routine 18, craving 16, sleep 13, boredom 9, low mood 8, appetite 8, dreams 7, anxiety 6, irritability 5, nausea 4, headaches 3 — the thin topics from the first batch (nausea, headaches, irritability) were the priority for the additions. No source read offered a technique specific to vivid dreams, so dream cards stay descriptive.
 
 Reddit content is labelled individual experience and is distinct from clinical/self-care guidance; each card states that it is not a prediction of the user's own break. Only the named idea is endorsed for inclusion; other comments, supplement regimens, detox claims and guaranteed timelines are excluded. Curated paraphrases are bundled locally, with source links that navigate externally. No live feed, scraping at runtime or user-data transmission is added.

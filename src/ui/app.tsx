@@ -65,9 +65,7 @@ import { downloadTextFile, pickTextFile, type PickedTextFile } from './backup-fi
 import { toPreviousBreakInput } from '../application/persistence/previous-break-store.ts';
 import type { StoredPreviousBreak } from '../application/persistence/previous-break-store.ts';
 import { findPreviousBreak, lastedDays } from '../application/history/history-model.ts';
-import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
 import { pendingOutcomeForReturn } from '../domain/recovery/outcome-capture.ts';
-import { checkinRowsForBreakContext } from '../application/presentation/recovery-checkin-facts.ts';
 import { INSTALL_HINT_DISMISSED_KEY } from '../application/persistence/durable.ts';
 import { RESUME } from './copy.ts';
 import { StorageBanner } from './storage-banner.tsx';
@@ -301,9 +299,9 @@ export function App({
     };
   }
 
-  /** Predicted-reset panel source for the live result: the frozen record of
-   * the current snapshot run (never a re-run of the engine). */
-  const liveOutlookRecord = useMemo(() => {
+  /** The frozen record behind the live result screen, when this run owns one.
+   * Used to present saved numbers, never to re-run the engine. */
+  const liveResultRecord = useMemo(() => {
     const runId = snapshotRecord?.runId;
     if (runId === undefined) return null;
     return durableSnap.calculations.find((record) => record.id === runId) ?? null;
@@ -314,17 +312,6 @@ export function App({
   const ownerId = currentLiveAttempt(sessionState.attempts)?.calculationRecordId
     ?? currentLiveTracking(sessionState.tracking)?.calculationRecordId;
   const companionSnapshot = savedUseProfile(durableSnap.calculations, snapshotRecord, ownerId);
-
-  /** Personal check-in rows for the live result's Predicted-reset view, when
-   * a clean active/completed break context exists. */
-  const checkinFacts = useMemo(() => {
-    const rows = checkinRowsForBreakContext({
-      checkins: checkinsRecord,
-      attempts: attemptsRecord,
-      now,
-    });
-    return rows === null ? null : { rows };
-  }, [checkinsRecord, attemptsRecord, now]);
 
   /** After a confirmed return use, surface the one-time outcome capture for
    * the newest eligible completed attempt without a mark, if any. */
@@ -369,7 +356,7 @@ export function App({
     draft === null &&
     resultRecord?.status !== 'acknowledged';
   const resultModel: ResultView | null = showResult && snapshotRecord !== null
-    ? (liveOutlookRecord !== null ? presentSavedResult(liveOutlookRecord, now) : runCalculation(snapshotRecord.snapshot, snapshotRecord.updatedAt))
+    ? (liveResultRecord !== null ? presentSavedResult(liveResultRecord, now) : runCalculation(snapshotRecord.snapshot, snapshotRecord.updatedAt))
     : null;
   // Profile summary for the Today card (result saved and acknowledged).
   const profileView: ResultView | null =
@@ -397,16 +384,6 @@ export function App({
         }
       : null;
 
-  /** Recovery outlook for Today's active-break disclosure: only the frozen
-   * record the running attempt itself owns. A chosen-duration plan stores no
-   * calculation, so the companion fallback must not supply one. */
-  const activeRecordId =
-    liveAttempt !== null && liveAttempt.status === 'active' ? liveAttempt.calculationRecordId : null;
-  const activeOutlook =
-    activeRecordId !== null && companionSnapshot?.runId === activeRecordId
-      ? recoveryOutlookFromRecord(durableSnap.calculations.find((record) => record.id === activeRecordId) ?? null)
-      : null;
-
   const liveData: TodayLiveData = {
     now,
     active: activeView !== null ? { attempt: liveAttempt!, view: activeView } : null,
@@ -423,8 +400,6 @@ export function App({
       companionSnapshot !== null && companionSnapshot.snapshot.kind === 'use_profile'
         ? exposureFromProfile(companionSnapshot.snapshot.profile)
         : null,
-    outlook: activeOutlook,
-    checkinFacts,
   };
   const suggestedLimits = profileSnapshot?.snapshot.kind === 'use_profile'
     ? suggestedReductionLimits({
@@ -1399,8 +1374,7 @@ export function App({
           onStartTracking={canStartPlan ? startTracking : undefined}
           onStartReduction={canStartPlan ? () => setFlow({ kind: 'reduction-start' }) : undefined}
           trackingAvailable={resultModel.kind === 'baseline_low' ? anchor !== null : true}
-          outlookRecord={liveOutlookRecord}
-          checkinFacts={checkinFacts}
+          outlookRecord={liveResultRecord}
           onAddPastBreak={
             resultModel.kind === 'tolerance_result' ? () => setFlow({ kind: 'previous-break', editId: null }) : undefined
           }

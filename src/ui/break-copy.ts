@@ -102,7 +102,12 @@ export const QUANTITY_STRATEGY_OPTIONS = [
 
 export const ADVICE_PICKER = {
   title: 'Help with',
-  more: 'More ideas & sources',
+  /** Headings inside the always-open guide block. */
+  why: 'Why this helps',
+  more: 'What else can help',
+  avoid: 'What to avoid',
+  help: 'When to get advice',
+  suggestion: 'Today’s suggestion',
 } as const;
 
 // --- Interruption (UX_SPEC 10.3) -------------------------------------------

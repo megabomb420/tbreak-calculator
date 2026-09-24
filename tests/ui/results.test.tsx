@@ -72,7 +72,7 @@ describe('result screens from engine output', () => {
     expect(screen.getByTestId('journey-target')).toBeTruthy();
     expect(result.textContent ?? '').toMatch(/This current pattern has been typical for a few months/);
     expect(result.textContent ?? '').toMatch(/lower end of the 7–14-day range/);
-    expect(screen.getByTestId('cb1-note')).toBeTruthy();
+    expect(screen.getByTestId('research-context')).toBeTruthy();
   });
 
   it('shows exactly Days 1–2 for a recent infrequent pattern and Days 1–7 for a long-established one', () => {

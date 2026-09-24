@@ -8,7 +8,7 @@ import { createCompanionPersonalisationStore } from '../../src/application/progr
 import { fixedClock } from '../../src/infrastructure/clock.ts';
 import { toInstant } from '../../src/domain/schemas/time.ts';
 import { DailySupport } from '../../src/ui/daily-support.tsx';
-import { presentDailySupport, SUPPORT_GUIDES } from '../../src/application/presentation/daily-support.ts';
+import { communityTipsFor, presentDailySupport, SUPPORT_GUIDES } from '../../src/application/presentation/daily-support.ts';
 
 const NOW = toInstant(Date.parse('2026-09-20T12:00:00Z'));
 const START = toInstant(NOW - 3 * 86_400_000);
@@ -54,10 +54,41 @@ describe('practical Today advice', () => {
     expect(block().getAttribute('data-area')).toBe('irritability');
   });
 
-  it('does not drop a guide step when a personal action replaces it', () => {
+  it('keeps the action and its reason visible, with the topic depth one tap away', () => {
     setup({ preparation: { triggerIds: [], customTrigger: null, replacementAction: 'make tea', fallbackPlan: null } });
-    const steps = within(screen.getByTestId('advice-guide')).getAllByRole('listitem').map(item => item.textContent);
-    expect(steps).toEqual(SUPPORT_GUIDES.cravings.steps);
+    const card = block();
+    // The reason is part of the day, not depth.
+    expect(within(card).getByTestId('advice-why').textContent).toBe(SUPPORT_GUIDES.cravings.explanation);
+    expect(within(card).getByTestId('advice-why-title').textContent).toBe('Why this helps');
+    expect(screen.getByTestId('advice-action').textContent).toBe('Try your plan first: “make tea”.');
+    // The remaining steps, pitfalls, advice line and sources are one tap away,
+    // so a 5–8 step guide cannot bury the day's action.
+    const more = within(card).getByTestId('advice-more');
+    expect(more.tagName).toBe('DETAILS');
+    expect(more.hasAttribute('open')).toBe(false);
+    expect(within(more).getByTestId('advice-steps').querySelectorAll('li')).toHaveLength(SUPPORT_GUIDES.cravings.steps.length);
+    fireEvent.click(within(more).getByText('What else can help'));
+    expect(more.hasAttribute('open')).toBe(true);
+    expect(within(card).getByTestId('advice-avoid').textContent).toBe(SUPPORT_GUIDES.cravings.avoid);
+  });
+
+  it('lists every guide step that the shown action does not already cover', () => {
+    setup();
+    pick('sleep');
+    const listed = [...screen.getByTestId('advice-steps').querySelectorAll('li')].map((item) => item.textContent);
+    expect(listed).toEqual(SUPPORT_GUIDES.sleep.steps.slice(1));
+  });
+
+  it('follows the chosen topic in the experiences beneath it', () => {
+    const view = (day: number) => presentDailySupport({ day, now: NOW, anchor: START, checkins: [], preparation: null });
+    render(<DailySupport view={view(4)} />);
+    const firstSlide = () => document.querySelector('.community-slide')?.textContent ?? '';
+    expect(firstSlide()).not.toBe('');
+    pick('headaches');
+    const shown = communityTipsFor(view(4), 'headaches');
+    // The card that speaks to the chosen topic leads once it is picked.
+    expect(shown[0]!.areas).toContain('headaches');
+    expect(firstSlide()).toContain(shown[0]!.title);
   });
 
   it('replaces the block in place when another topic is picked, and writes nothing', () => {

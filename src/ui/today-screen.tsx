@@ -29,10 +29,7 @@ import { researchFactForDay } from './research-facts.ts';
 import { presentBreakOutlook } from '../application/presentation/break-outlook.ts';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import type { ExposureContext } from '../domain/guidance/break-outlook.ts';
-import type { ToleranceRecoveryOutlook } from '../domain/recovery/recovery-outlook.ts';
 import type { ReductionPlan, ReductionPlanState } from '../domain/reduction/reduction-engine.ts';
-import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
-import { PredictedResetPanel } from './predicted-reset.tsx';
 
 export interface TodayLiveData {
   readonly now: number;
@@ -44,11 +41,6 @@ export interface TodayLiveData {
   readonly reduction: { readonly plan: ReductionPlan; readonly state: ReductionPlanState } | null;
   readonly checkins: readonly DailyCheckin[];
   readonly exposure: ExposureContext | null;
-  /** Recovery outlook of the active break's own frozen record, when it has
-   * one; drives the closed Recovery outlook disclosure on the active card. */
-  readonly outlook: ToleranceRecoveryOutlook | null;
-  /** Live check-in facts for that outlook panel (the result screen's view). */
-  readonly checkinFacts: RecoveryCheckinFactsView | null;
 }
 
 export interface TodayProfileData {
@@ -250,7 +242,6 @@ function ActiveBreakCard(props: TodayScreenProps) {
   const [confirmEnd, setConfirmEnd] = useState(false);
   if (active === null) return null;
   const { attempt, view } = active;
-  const outlook = props.live.outlook;
   const phaseRaw = view.pastTarget ? 'extended' : view.atOrPastTargetDate ? 'reached' : phaseForDay(view.day, view.targetDays);
   const phase = phaseRaw as keyof typeof ACTIVE_BREAK_CARD.phaseEyebrow;
   const chosen = attempt.targetSource === 'chosen';
@@ -328,14 +319,7 @@ function ActiveBreakCard(props: TodayScreenProps) {
         <BreakJourney view={journey} />
         <BreakResearchNote day={view.day} />
       </details>
-      {outlook !== null ? (
-        <details className="result-disclosure today-block" data-testid="today-outlook">
-          <summary>Recovery outlook</summary>
-          <p className="meta">Research context, not a measure of your recovery.</p>
-          <PredictedResetPanel outlook={outlook} historical={false} contextLabel={null} checkinFacts={props.live.checkinFacts} />
-        </details>
-      ) : null}
-      <details className="result-disclosure today-block">
+      <details className="result-disclosure today-block" data-testid="today-manage">
         <summary>Manage break</summary>
         <p className="meta">Used THC since you started? Update the clock without losing your earlier days.</p>
         <button type="button" className="cta-secondary" data-testid="update-last-use" onClick={props.onConfirmWhen}>Update last use</button>

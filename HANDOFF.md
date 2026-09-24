@@ -1,23 +1,50 @@
-# Handoff — T-Break Calculator 0.37.0
+# Handoff — T-Break Calculator 0.38.0
 
 Repository: https://github.com/megabomb420/tbreak-calculator · branch `main`
-Live app: https://megabomb420.github.io/tbreak-calculator/ · mirror: https://tbreak-calculator.pages.dev/ (Cloudflare Pages, `BASE_PATH=/`; the two origins do not share device data)
+Live app: https://megabomb420.github.io/tbreak-calculator/ · mirror: https://tbreak-calculator.pages.dev/ (Cloudflare Pages; the two origins do not share device data)
 
 ## Current product decisions
 
-Today, Calculator and History remain the three destinations; Science is separate. The existing discreet ink/slate/sand visual system, local-first storage, shared date editor and dialog coordinator remain.
+Today, Calculator and History remain the three destinations; Science is separate. Local-first storage, the shared date editor, the dialog coordinator and the discreet ink/slate/sand identity are unchanged.
 
-Today leads with the day and target, a check-in that explains its no-THC meaning, a visible stage headline and one useful action. No primary recovery-mode switch: the calculated break's own outlook is a lower disclosure that never removes the day's action. The default action now actually uses the existing day-specific practice sequence, instead of hiding it under stage detail and showing a generic topic step in its place.
+**The result screen has one body and one number that matters.** The planning target leads, with the planning range and the uncertainty line directly beneath it, then the break journey (**what may happen across the break**), **Why this plan**, a **research section**, your history and your answers. There is no second estimate competing with the target, and no mode switch.
 
-**Help with** is a native select for today's suggestion and all eleven topics. It replaces the action in place, writes nothing and resets on the next break day. Stored recent ratings still select relevant topics; a saved personal replacement still leads on routine/craving/boredom topics. **More ideas & sources** retains every guide step not already shown, including the first generic step when a different action leads.
+**The research section replaced the recovery-outlook mode.** It states the four-week human CB1 PET reference as a population research reference, links the published studies (Hirvonen, D'Souza, Budney), and lists what the reference does not mean: a reached target is not proof of reset, CB1 availability is not subjective tolerance, and withdrawal, tolerance, impairment and detectability stay separate questions. The app estimates **no** personal recovery window, date, percentage or endpoint. A saved result that was calculated while the window was still shown carries one honest line explaining that the estimate was a product heuristic and is no longer part of the result.
 
-One-tap check-ins and persistent Undo remain. The receipt says **No THC reported** rather than implying a complete day has elapsed. Ratings and the urge-plan editor stay removed; their stored data is preserved. **Manage break → Update last use** restores a necessary correction path after THC use, without bringing back a session logger. Opening or cancelling changes nothing; confirmation reuses the existing atomic suspend/confirm transitions, preserves earlier segments and check-ins, and moves only the live anchor and target date. Cut-down session logging stays separate.
+**Today is a daily read, not a set of drawers.** Every section is open: the day and target, the explained one-tap check-in, **This stage** (window label, headline, context, what people commonly notice), **Help with** (a native topic selector with the day's suggestion first) whose full guide is always visible — *Why this helps*, *What else can help*, *What to avoid*, *When to get advice*, sources — then **Experiences** and **Your break timeline**. Only **Manage break** (last-use correction, ending early) stays collapsed; the recovery-outlook disclosure is gone.
 
-History is grouped into Check-ins, Recommendations, Breaks (attempts/tracking) and Cutting down, with manually entered past breaks above and unreadable records in their own section. Rows carry local dates; manually entered breaks label the save date. Complete elapsed days are not confused with day position. A deleted recommendation never reappears as a newly derived plan. Historical result links open the goal they name instead of silently restarting the old questionnaire.
+**The advice is deeper and source-grounded.** Eleven topics, each with 5–8 practical steps drawn from reviewed sources: the NSW Health quitting guide and Turning Point for urge management (delay, distract, breathe, drink water) and sleep timing, CAMH for removing paraphernalia, structure and the realistic mood timeline, NHS Every Mind Matters for sleep hygiene, healthdirect for breathing and relaxation, NHS 5 steps for activity and connection, NIDA for the symptom list. Medication, dosing, supplement and detox-product content in those sources is deliberately not reproduced. No source read offers a technique specific to vivid dreams, so the app describes them and points back to sleep care rather than inventing one.
 
-Browser zoom is enabled: the previous fixed-scale lock is deliberately retired for accessibility. Viewport sizing checks width as well as height before trusting the outer screen box, so a tall desktop window cannot inflate the root column, hide the header or add document scroll. Safe-area and mobile-toolbar behaviour is otherwise unchanged.
+**Experiences follow the topic on screen.** The cards tagged with the selected topic lead, then the rest of the stage's cards, capped at eight so the position dots stay tappable; the rotation is day to day and a stored legacy rating still lifts its own topic first.
 
-Numeric versions remain `tolerance-v3`, `detection-copy-v1` and `tolerance-recovery-outlook-v2`; historical records keep their original values and outlook versions. Daily-support presentation is `daily-support-v4`, built only from the reviewed guides and practices. No new medical claims, recovery percentages, detection windows or dosing advice were introduced.
+One-tap check-ins with persistent Undo, **Manage break → Update last use**, the cut-down tracker and its session log, History's dated groups, the backup/restore contract, browser zoom and the viewport sizing rule are unchanged from 0.37.0.
+
+## Release 0.38.0 — the honest result, and advice worth reading
+
+- **The predicted recovery window is retired.** `tolerance-recovery-outlook-v2`'s displayed window (and v1's fixed-reference panel) is gone from the result screen and from Today, together with the `Your plan | Recovery outlook` switch, the check-in-facts presenter and the panel components. The headline figure could not be defended: the code itself classified the days beyond the four-week human reference as a product heuristic resting mainly on preclinical support, and a large "estimated recovery window" reads as a personal prediction that no disclaimer underneath it can undo.
+- **What replaces it.** A research section that answers the question the old panel was trying to answer — what the research says, what stays uncertain, and whether reaching the target means a reset — using the reviewed CB1 paragraphs that already existed, the study links, and a new "what this does not mean" list.
+- **Today keeps the day open and the depth one row away.** Visible: the day and target, the check-in with its meaning, **This stage** (window, headline, one sentence), the topic picker with the day's action and **Why this helps**, and the topic-matched experiences. Behind one row each: **What you may notice**, the guide's **What else can help** (remaining steps, **What to avoid**, **When to get advice**, sources), **Your break timeline** and **Manage break**. Section headings moved to the display face with uppercase kickers; measured at 390×844 the card went from 3605px to 1869px and the day's action now sits at 694px against a 720px first screen, so a five-to-eight-step guide cannot bury it.
+- **Richer, source-grounded advice**: eleven guides rewritten with 5–8 steps each, verified sources added to `SUPPORT_SOURCES`, `daily-support-v4` → `daily-support-v5`.
+- **Experiences are topic-matched** and the pool was raised from five to eight cards per view; the card library grew from 17 cards across 12 r/Petioles discussions to 44 cards across 39, prioritising the thinly covered topics (nausea, headaches, irritability) and adding late-break and return-to-use accounts.
+- Retired the dead machinery: `predicted-reset.tsx`, `result-mode-control.tsx`, `recovery-copy.ts`, `recovery-checkin-facts.ts` and their tests are deleted; `recovery-outlook.ts` keeps only the stored version constants, `BIOLOGICAL_REFERENCE_DAYS` and `hadRecoveryOutlook()`.
+
+### Compatibility
+
+New calculation records no longer write `recoveryOutlookVersion`. Records that already carry it (`tolerance-recovery-outlook-v1`/`v2`) remain valid, are never rewritten or recomputed, and keep their stored planning target and range exactly as calculated — the only addition is the legacy line in the research section. `isValidCalculationRecord` still accepts both version strings, so a restored backup from an older release loads unchanged.
+
+### Validation (0.38.0)
+
+- `npm test`, `npm run test:tz`, `npm run typecheck` and `npm run build` are green on the final tree (counts recorded in the release output below).
+- Browser pass at 390×844 on the dev server: result screen (plan hero, journey, why-this-plan, research section with the three study links, no mode switch, no estimate), Today (all sections open, topic selector, topic-matched experiences, timeline), History (dated rows, saved result with its day), `Manage break` flows.
+- Not covered: physical iOS/Safari and assistive-technology review.
+
+### Deployment (0.38.0)
+
+**Not deployed.** The working tree is complete and validated locally; publishing (push to `main`, then the Cloudflare mirror) is a deliberate step left to the owner.
+
+## Evidence decisions
+
+The research section and the guides use only material already reviewed in this repository plus the pages listed in the sources above. Nothing new was invented; the four-week CB1 figure stays a population reference, never a personal finish line, and no window, percentage or reset score is produced anywhere. The excluded content from those sources — medication protocols, sleep aids and melatonin, nicotine replacement, multivitamins, detox products, taper percentages — is documented in `EVIDENCE_CONTENT_SPEC.md` §15 and is not shipped.
 
 ## Release 0.37.0 — a practical daily companion
 
@@ -50,10 +77,14 @@ Live verification on the deployed build at 390×844 (GitHub Pages, service worke
 
 The Cloudflare Pages mirror was **not** redeployed in this session, so it still serves the previous release until that deliberate local step is run.
 
-## Evidence decisions
+### Evidence decisions (0.37.0)
 
-Existing research and versioned deterministic policies remain authoritative. Population withdrawal patterns, tolerance planning, impairment and detectability stay separate. The recovery outlook remains an explicitly unvalidated product estimate, with lower-directness evidence beyond four weeks. No negative-test guarantee, detox protocol, biological completion state or medical endpoint is introduced.
+Existing research and versioned deterministic policies remain authoritative. Population withdrawal patterns, tolerance planning, impairment and detectability stay separate. No negative-test guarantee, detox protocol, biological completion state or medical endpoint is introduced.
 
 Clinical review of health exclusions and location-appropriate urgent-help routing remains outstanding; this release does not invent them. Backup restore retains its documented non-atomic I/O-failure case. Reference material under `sources/` stays read-only.
 
 ## Release 0.31.0 → 0.36.0 — one topic at a time, nothing hiding, one banner
+
+## Release 0.31.0 → 0.36.0 — one topic at a time, nothing hiding, one banner
+
+Six releases shipped on top of 0.30.0; the details are in Git history, and the summary is: **0.31.0** removed the decorative orbit artwork, moved the mode switch out of the scrolling body and put the notices into normal flow; **0.32.0** reopened the journeys and guidelines that 0.31.0 had closed and gave the active card its `Your plan` / `Recovery outlook` switch; **0.33.0** made the urge plan a controlled editor that writes only on save; **0.34.0** reordered the day card to the order the day happens; **0.35.0** removed the 0–10 symptom ratings and the urge-plan block from Today and settled on one advice topic at a time; **0.36.0** compacted the card until the day's action fitted the first screen at 390×844, flattened the topic picker into one row, added the install-hint dismissal, grouped History by record family and gated the questionnaire draft behind a real answer.

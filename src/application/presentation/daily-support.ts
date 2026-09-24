@@ -7,13 +7,24 @@ import type { BreakPreparation } from '../break/preparation.ts';
 import { triggerLabel } from '../break/preparation.ts';
 import { primaryWindowForDay, type WithdrawalWindowContent, type WithdrawalWindowId } from '../../domain/guidance/evidence-guidance-v1.ts';
 
-export const DAILY_SUPPORT_VERSION = 'daily-support-v4';
+export const DAILY_SUPPORT_VERSION = 'daily-support-v5';
+
+/** How many accounts the carousel holds. Enough that a picked topic has
+ * company, few enough that the position dots stay tappable. */
+export const COMMUNITY_TIP_LIMIT = 8;
 export const SUPPORT_SOURCES = {
   withdrawal: { label: 'NSW Health · cannabis withdrawal', href: 'https://www.health.nsw.gov.au/aod/professionals/Publications/clinical-guidance-withdrawal-alcohol-and-other-drugs.pdf#page=34', kind: 'Clinical guidance' },
+  cravings: { label: 'NSW Health · do-it-yourself quitting guide', href: 'https://yourroom.health.nsw.gov.au/publicationdocuments/do-it-yourself-guide-to-quitting.pdf', kind: 'Clinical guidance' },
+  turningPoint: { label: 'Turning Point · getting through cannabis withdrawal', href: 'https://turning-point-website-prod.s3.ap-southeast-2.amazonaws.com/drupal-s3fs/s3fs-public/2020-04/TP_Getting%20Through%20Cannabis%20Withdrawal.pdf', kind: 'Clinical guidance' },
+  camh: { label: 'CAMH · getting through cannabis withdrawal', href: 'https://camh.ca/-/media/professionals-files/treating-conditions-and-disorders/getting-through-cannabis-withdrawal-camh-pdf.pdf', kind: 'Clinical guidance' },
   sleep: { label: 'NHS · sleep advice', href: 'https://www.nhs.uk/conditions/insomnia/', kind: 'General self-care' },
+  sleepRoutine: { label: 'NHS Every Mind Matters · sleep', href: 'https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-fall-asleep-faster-and-sleep-better', kind: 'General self-care' },
+  relaxation: { label: 'healthdirect · relaxation techniques', href: 'https://www.healthdirect.gov.au/relaxation-techniques-for-stress-relief', kind: 'General self-care' },
+  wellbeing: { label: 'NHS · 5 steps to mental wellbeing', href: 'https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/five-steps-to-mental-wellbeing/', kind: 'General self-care' },
   nausea: { label: 'NHS · nausea', href: 'https://www.nhs.uk/symptoms/feeling-sick-nausea/', kind: 'General self-care' },
   headaches: { label: 'NHS · headaches', href: 'https://www.nhs.uk/symptoms/headaches/', kind: 'General self-care' },
   dreams: { label: 'Lee et al. · sleep during abstinence', href: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3986824/', kind: 'Human study' },
+  symptoms: { label: 'NIDA · cannabis withdrawal symptoms', href: 'https://nida.nih.gov/research-topics/cannabis-marijuana', kind: 'Research overview' },
   habits: { label: 'University of Vermont · practical break guide', href: 'https://www.uvm.edu/health/t-break-week-1', kind: 'Practical guidance' },
 } as const;
 export type SupportSourceId = keyof typeof SUPPORT_SOURCES;
@@ -21,100 +32,191 @@ export type SupportSourceId = keyof typeof SUPPORT_SOURCES;
 export interface SupportGuide {
   readonly title: string;
   readonly explanation: string;
-  readonly steps: readonly [string, string, string];
+  readonly steps: readonly string[];
   readonly avoid: string;
   readonly seekHelp: string | null;
   readonly sources: readonly SupportSourceId[];
 }
 
+// Every guide follows the same shape: why it helps, then what else can help,
+// then what tends to make it worse, then when to get advice. Steps stay
+// practical and non-prescriptive — no doses, no products, no timelines.
 export const SUPPORT_GUIDES: Record<SupportArea, SupportGuide> = {
   sleep: {
     title: 'Trouble sleeping',
-    explanation: 'Difficulty falling asleep, waking often and feeling unrefreshed can occur during a break. Sleep may take longer to settle than appetite or irritability.',
-    steps: ['Choose a wake-up time you can keep tomorrow, even after a rough night.', 'Keep caffeine out of the six hours before bed. Use the last hour for something quiet, such as reading.', 'Go to bed when sleepy. Keep the room dark and quiet, and avoid using alcohol as a sleep aid.'],
-    avoid: 'Trying to force an early bedtime or sleeping in for hours can make the next night harder.',
-    seekHelp: 'Speak to a clinician if sleep loss is making daily life hard to manage or changes to your routine are not helping.',
-    sources: ['sleep', 'dreams'],
+    explanation: 'Difficulty falling asleep, waking often and feeling unrefreshed are common early in a break, and sleep often takes longer to settle than appetite or irritability. A steady routine also replaces the part of the evening that used to signal bedtime.',
+    steps: [
+      'Keep the same wake-up time every day, even after a rough night.',
+      'Keep caffeine to the earlier part of the day, and avoid alcohol as a way of getting to sleep.',
+      'Use the last hour before bed for something quiet: reading, a breathing exercise, calming music or a podcast.',
+      'Go to bed only when you feel sleepy. If you are still awake after about twenty minutes, get up, do something relaxing somewhere comfortable, and go back when you feel drowsy.',
+      'Keep the room dark, quiet and cool, with clocks out of view and your phone silenced and face down.',
+      'If you wake in the night, settle back into the quiet routine instead of checking the time.',
+      'Be active during the day rather than close to bedtime, and keep large meals away from the last hours before sleep.',
+    ],
+    avoid: 'Chasing a perfect night, sleeping in for hours or going to bed early to catch up usually makes the next night harder.',
+    seekHelp: 'Speak to a clinician if sleep loss is making daily life hard to manage, or if a steady routine and time are not helping.',
+    sources: ['sleep', 'sleepRoutine', 'turningPoint', 'dreams'],
   },
   cravings: {
     title: 'When an urge hits',
-    explanation: 'An urge can be tied to a familiar time, place or activity. It can return after the early physical discomfort has eased.',
-    steps: ['Leave the place where you would usually use. Put the cannabis and equipment out of sight.', 'Give yourself a short pause before deciding anything. Try one song, a shower, a walk or a small task.', 'If the urge is still strong, contact someone or switch activities. Note the trigger for next time.'],
-    avoid: 'Keeping the usual session set up in front of you makes the decision harder. There is no fixed number of minutes every craving lasts.',
+    explanation: 'An urge is usually tied to a time, place, feeling or activity rather than to physical withdrawal, and it can return after the early discomfort has eased. Urges rise and fall, and how long one lasts varies, so the useful thing to have ready is the next step rather than a way to stop the feeling.',
+    steps: [
+      'Remove the cannabis and the equipment from the room you usually use in. Seeing them is a trigger in itself.',
+      'Delay the decision. An urge passes if you do not act on it, so give yourself a few minutes first.',
+      'Distract yourself with something that uses your hands or gets you moving: music, tidying, a walk, a game.',
+      'Breathe out slowly a few times, and drink some water in small sips.',
+      'Change the high-risk situation rather than testing yourself in it: leave, ring someone, or start something unrelated.',
+      'Notice what happened just before the urge — time, place, mood, company — and write it down while it is fresh.',
+      'Plan for the situations you cannot avoid: who will be there, what you will say, and when you will leave.',
+      'Expect urges to come back even in a good week. A returning urge is not a failed break.',
+    ],
+    avoid: 'Keeping the usual session set up in front of you makes the decision harder, and waiting to “feel ready” keeps the choice open. Craving is a normal part of stopping for regular users, not a sign that the break is failing.',
     seekHelp: 'If repeated urges keep ending breaks you want to take, a clinician or drug support service can help you make a workable plan.',
-    sources: ['habits', 'withdrawal'],
+    sources: ['cravings', 'turningPoint', 'habits'],
   },
   appetite: {
     title: 'Eating with little appetite',
-    explanation: 'Food may be less appealing early in a break, especially if using before meals was part of the routine.',
-    steps: ['Try a small portion of something familiar: toast, yoghurt, soup or a banana.', 'Set a time for the next small meal rather than waiting until you feel very hungry.', 'Sip fluids regularly. If nausea is the main problem, open the nausea guide below.'],
-    avoid: 'Forcing a large meal or skipping food all day can leave you feeling worse.',
+    explanation: 'Food can be less appealing early in a break, especially if using before meals was part of the routine. Appetite usually returns gradually, and eating on a schedule in the meantime keeps the missed meals from adding headaches, low energy and irritability.',
+    steps: [
+      'Aim for small, light meals regularly through the day rather than waiting until you feel very hungry.',
+      'Keep familiar, easy food within reach: toast, yoghurt, soup, a banana, nuts or a sandwich.',
+      'Sip fluids through the day, and eat at your usual meal times even when the portion is small.',
+      'Choose something balanced where you can — a steady diet helps with mood and energy as well as appetite.',
+      'Prepare or buy one easy meal in advance, so the decision is already made when you are tired.',
+      'If nausea is the main problem, start with the nausea topic instead — a settled stomach makes eating easier.',
+    ],
+    avoid: 'Forcing a large meal, skipping food all day, or filling up on caffeine can leave you feeling worse.',
     seekHelp: 'Get medical advice if you cannot eat enough, are losing weight, or poor appetite is not improving. Repeated vomiting needs separate assessment.',
-    sources: ['withdrawal', 'nausea'],
+    sources: ['withdrawal', 'camh', 'nausea'],
   },
   anxiety: {
     title: 'Anxiety or restlessness',
-    explanation: 'Tension and restlessness can occur after stopping. Sleep loss, caffeine and existing anxiety can also contribute.',
-    steps: ['Move somewhere quieter and reduce what you are trying to do at once.', 'Try a gentle walk or a familiar, repetitive task. If comfortable, breathe slowly without holding your breath.', 'Have a small meal if you have missed one, and skip extra coffee or energy drinks for now.'],
+    explanation: 'Tension, restlessness and a racing mind can occur after stopping, and missed sleep, skipped meals and extra caffeine all add to it. New or worrying physical symptoms deserve attention rather than being written off as withdrawal.',
+    steps: [
+      'Make the space around you quieter and calmer, and reduce what you are trying to do at once.',
+      'Breathe slowly and count: in for three, out for three, letting the out-breath be the longer one.',
+      'Try a relaxation you can repeat: a slow walk, gentle stretching, a warm bath, or tensing and releasing each muscle group in turn.',
+      'Ground yourself by naming what you can hear and see, and where your body is resting.',
+      'Have a small meal if you have missed one, and keep caffeine and energy drinks to the earlier part of the day.',
+      'Write down what is on your mind. Most lists can wait until tomorrow.',
+      'Tell one person what today is like, even briefly. Saying it out loud usually makes the day smaller.',
+    ],
     avoid: 'Do not automatically label new physical symptoms as anxiety or withdrawal.',
     seekHelp: 'Seek medical advice if anxiety is severe, worsening or stopping you from functioning. Chest pain, fainting or serious breathing difficulty need urgent assessment.',
-    sources: ['withdrawal'],
+    sources: ['relaxation', 'withdrawal', 'turningPoint'],
   },
   irritability: {
     title: 'A shorter temper',
-    explanation: 'Irritability can be part of early withdrawal. Being tired or hungry may add to it.',
-    steps: ['Pause the conversation before replying if you can feel yourself getting wound up.', 'Tell the other person you need a short break, then move somewhere quieter.', 'Return to the issue after food, rest or a walk. Delay an avoidable argument if possible.'],
+    explanation: 'Irritability can be part of early withdrawal, and being tired, hungry or in a noisy place adds to it. It tends to come and go rather than climbing steadily.',
+    steps: [
+      'Pause before replying when you feel the temperature rising. A few seconds is usually enough to change the reply.',
+      'Say plainly that you need a short break, then leave the room.',
+      'Come back to the subject after food, rest or a walk.',
+      'Postpone one avoidable demand instead of pushing through everything at once.',
+      'Give the tension somewhere physical to go: a walk, a shower, stretching, or tidying one room.',
+      'Plan ahead for the situations where patience is thinnest — the evening, driving, or a crowded house.',
+      'Cut back on caffeine while this lasts: it can add to restlessness and a short fuse.',
+      'Where you can, keep your surroundings quiet, calm and private rather than noisy and crowded.',
+    ],
     avoid: 'A difficult day does not make every disagreement a withdrawal symptom.',
     seekHelp: 'Get help if anger feels unmanageable or you are worried about harming yourself or someone else.',
-    sources: ['withdrawal'],
+    sources: ['withdrawal', 'symptoms'],
   },
   low_mood: {
     title: 'Feeling flat',
-    explanation: 'Low mood can occur during a break, but the calendar cannot tell you its cause or when it will lift.',
-    steps: ['Pick one small activity with a clear end: make lunch, wash up or walk around the block.', 'Arrange some contact with someone you know, even if it is a short call.', 'Keep a manageable plan for the next part of the day rather than filling every hour.'],
-    avoid: 'Do not dismiss persistent or worsening low mood as something you must simply wait out.',
+    explanation: 'Low mood can occur during a break, but the calendar cannot tell you its cause or when it will lift. Small, concrete activity usually helps more than waiting to feel motivated, because the mood tends to follow the activity rather than the other way round.',
+    steps: [
+      'Pick one small task with a clear end: make lunch, wash up, or walk around the block.',
+      'Do it before you feel like it, and treat finishing as enough for now.',
+      'Get moving and outside for a while — exercise lifts mood even when it does not remove the cause.',
+      'Arrange some contact with someone you know, even a short call, a shared meal or a game.',
+      'Learn or make something small: cooking something new, a repair, a craft, or a puzzle.',
+      'Keep a manageable plan for the rest of the day rather than filling every hour.',
+      'Write down three things that went all right at the end of the day.',
+      'Expect this to take a while. Mood commonly takes a week or two — sometimes longer — to return to its usual level, so do not judge your baseline after a few days.',
+    ],
+    avoid: 'Do not dismiss persistent or worsening low mood as something you simply have to wait out.',
     seekHelp: 'Contact a clinician if low mood persists, worsens or makes everyday life difficult. If you might act on thoughts of self-harm, seek emergency help now.',
-    sources: ['withdrawal'],
+    sources: ['wellbeing', 'camh', 'withdrawal'],
   },
   dreams: {
     title: 'Vivid or unsettling dreams',
-    explanation: 'Dreams can become more noticeable during abstinence. They do not measure how much THC has left your body.',
-    steps: ['After waking, take a moment to orient yourself to the room before trying to sleep again.', 'Use the same quiet wind-down routine tonight; avoid building the evening around worrying about another dream.', 'Record how rested you feel in your sleep check-in, not how unusual the dream was.'],
-    avoid: 'A vivid dream is not evidence of a completed tolerance reset.',
+    explanation: 'Dreams often become more noticeable during abstinence, usually alongside lighter or broken sleep. They do not measure how much THC has left your body, and they usually settle as sleep does.',
+    steps: [
+      'After waking, take a moment to orient yourself: name the room, the day, and one thing you can see.',
+      'Keep the same quiet wind-down routine tonight instead of building the evening around the worry of another dream.',
+      'Keep a small light or a familiar object nearby if waking in a dark room makes a vivid dream harder to shake off.',
+      'Write the dream down briefly if it helps to get it out of your head before going back to sleep.',
+      'Note how rested you felt in the morning rather than how strange the dream was.',
+      'Keep caffeine and screens out of the last part of the evening, as you would for any disturbed sleep.',
+      'If waking in the night has become the pattern, treat it as a sleep problem: keep the wake time steady and follow the sleep topic below.',
+    ],
+    avoid: 'A vivid dream is not evidence of a completed tolerance reset, and it is not a sign that the break is going wrong. Vivid or unsettling dreams are commonly reported during cannabis withdrawal.',
     seekHelp: 'Talk to a clinician if nightmares repeatedly disrupt sleep or leave you distressed during the day.',
-    sources: ['dreams', 'sleep'],
+    sources: ['dreams', 'symptoms', 'sleepRoutine'],
   },
   nausea: {
     title: 'Nausea or an unsettled stomach',
-    explanation: 'Stomach symptoms have several possible causes. Being on a break does not establish that withdrawal is responsible.',
-    steps: ['Take small, regular sips of a cool drink.', 'Try smaller portions and avoid strong-smelling, greasy food if it makes nausea worse.', 'Eat slowly and stay upright after eating.'],
+    explanation: 'Stomach symptoms have several possible causes, and being on a break does not establish that withdrawal is responsible. Small amounts of fluid and plain food are usually easier to keep down than a large meal.',
+    steps: [
+      'Take small, regular sips of a cool drink rather than a large glass at once, and keep drinking through the day.',
+      'Try small, light meals rather than a full plate: toast, crackers, rice, yoghurt or soup.',
+      'Avoid strong-smelling or greasy food while it is making things worse.',
+      'Eat slowly and stay upright for a while after eating.',
+      'Get some air and loosen tight clothing.',
+      'If vomiting starts, keep sipping fluids and seek advice early rather than waiting for it to pass.',
+    ],
     avoid: 'Repeated vomiting or severe abdominal pain should not be treated as an ordinary part of a break.',
     seekHelp: 'Seek prompt medical advice for repeated vomiting, inability to keep fluids down or severe abdominal pain. If nausea persists for several days, arrange a review.',
-    sources: ['nausea', 'withdrawal'],
+    sources: ['nausea', 'withdrawal', 'turningPoint'],
   },
   headaches: {
     title: 'Headaches',
-    explanation: 'Headaches can have many causes, including missed meals, changes in caffeine, stress and illness.',
-    steps: ['Have water and something to eat if you have missed a meal.', 'Take a screen break and relax somewhere comfortable.', 'Note when the headache started and whether it is unusual for you.'],
+    explanation: 'Headaches can have many causes, including missed meals, changes in caffeine, poor sleep, stress and illness. Noting when they happen is more useful than assuming they are withdrawal.',
+    steps: [
+      'Have some water and something to eat if you have missed a meal.',
+      'If you are cutting down on caffeine, do it gradually — stopping suddenly can bring its own headache.',
+      'A warm bath, a gentle walk or some slow breathing can ease the tension that often comes with withdrawal.',
+      'Rest somewhere quiet and dim, and take a break from screens.',
+      'Keep meals and sleep reasonably regular while they are recurring.',
+      'Note when each headache started, what you had eaten, and how you slept, so a pattern can be seen rather than guessed at.',
+    ],
     avoid: 'Extra water does not speed THC clearance. Do not assume an unusual headache is withdrawal.',
     seekHelp: 'A sudden, extremely painful headache, or one with weakness, confusion or speech problems, needs emergency assessment. Recurrent or worsening headaches need medical review.',
-    sources: ['headaches'],
+    sources: ['turningPoint', 'headaches'],
   },
   routine: {
     title: 'The usual time to use',
-    explanation: 'A familiar setting can prompt the habit even when you are not feeling much withdrawal.',
-    steps: ['Identify the next moment you would normally use: after work, after dinner or before bed.', 'Change one part of that moment. Move rooms, go outside or start a different activity.', 'Prepare the alternative now so you do not have to invent it when the urge arrives.'],
-    avoid: 'Leaving the old routine completely unchanged can keep prompting the same decision.',
+    explanation: 'A familiar time, place or activity can prompt the habit even when you are not feeling much withdrawal. The old routine keeps its pull when nothing else occupies that slot.',
+    steps: [
+      'Name the moment you would normally use: after work, after dinner, before bed, or the first hour of the day.',
+      'Change one part of it — a different room, a different chair, a walk, or a different order to the evening.',
+      'Decide what you will actually do in that slot, and put what you need in reach beforehand.',
+      'Move the things that belong to the old routine out of sight: equipment, papers, paraphernalia, the usual spot on the table.',
+      'If you are still using at all, delay the first session of the day rather than cutting it out completely; that one change weakens the automatic part fastest.',
+      'Keep a note of when you use and what set it off. A written record shows the pattern far better than memory.',
+      'Keep the rest of the day’s shape with regular meals, a steady wake-up time and something to look forward to.',
+    ],
+    avoid: 'Leaving the old routine completely unchanged can keep prompting the same decision, and an abstract plan with no time in it is easy to postpone. Bulk-buying or restocking soon after being paid strengthens the same pull.',
     seekHelp: null,
-    sources: ['habits'],
+    sources: ['camh', 'habits', 'withdrawal'],
   },
   boredom: {
     title: 'Filling the empty time',
-    explanation: 'A break can leave a gap where a session used to be. It helps to choose something specific for that gap.',
-    steps: ['Pick a task that uses your hands: cook, draw, do a puzzle or fix one small thing.', 'Put what you need within reach before your usual session time.', 'If you lose interest, change the activity or location. The first choice does not have to work.'],
+    explanation: 'A break can leave a gap where a session used to be. Empty time is the hardest thing to fill with a decision you have not made yet, so choosing something specific in advance — ideally something you would want to do anyway — works better than a general intention to stay busy.',
+    steps: [
+      'Write out a short list in advance of things you can do instead: films, cooking, music, a walk, ringing someone.',
+      'Pick easy activities while withdrawal is strong. Long concentration is not required, and short trips out count.',
+      'Choose something with a natural end so it does not become another task to avoid.',
+      'Set it up before your usual session time, so nothing has to be decided in the moment.',
+      'Keep one option that uses your hands, one that gets you out of the house, and one for when you are tired.',
+      'Use part of what you are not spending on cannabis for something you would actually enjoy.',
+      'Notice which activities helped, and use those again rather than starting from scratch.',
+    ],
     avoid: 'An empty evening and an abstract promise to stay busy are a difficult combination.',
     seekHelp: null,
-    sources: ['habits'],
+    sources: ['cravings', 'wellbeing', 'habits'],
   },
 };
 
@@ -185,6 +287,33 @@ export const COMMUNITY_TIPS: readonly CommunityTip[] = [
   { id: 'later-energy-routine', areas: ['routine', 'sleep', 'boredom'], windows: ['days_14_21', 'days_21_28', 'beyond_28'], period: 'After the early days', title: 'More energy changed the morning routine', text: 'After a difficult first four days, one person reported more energy, waking with the alarm, feeling rested and arriving at work on time during the rest of a 30-day break.', href: 'https://www.reddit.com/r/Petioles/comments/v2hl1r/i_took_a_break_for_30_days_ended_on_saturday_and/', thread: 'A 30-day break, day by day' },
   { id: 'after-month-perspective', areas: ['routine', 'anxiety'], windows: ['days_21_28', 'beyond_28'], period: 'After 39 days', title: 'The old amount no longer fit', text: 'After 39 days, a former daily user found that a relatively small return session became uncomfortably strong. The experience changed how they thought about moderation and all-night sessions.', href: 'https://www.reddit.com/r/Petioles/comments/s0dwms/to_those_who_have_completed_a_successful_30_day/', thread: 'Returning after a 30+ day break' },
   { id: 'beyond-ninety-variable', areas: ['cravings', 'anxiety', 'low_mood', 'sleep'], windows: ['beyond_28'], period: 'Around 90 days', title: 'Better did not mean symptom-free', text: 'One long-term daily user said sleep and most other things were better after 90 days, while occasional cravings, anxiety and flat days still appeared. Their account is a useful counterweight to tidy recovery stories.', href: 'https://www.reddit.com/r/Petioles/comments/159owf8/weird_day_after_90_days/', thread: 'A difficult day after 90 days' },
+  { id: 'nausea-day-two-vomiting', areas: ['nausea'], windows: ['days_1_3', 'days_2_6'], period: 'Day 2', title: 'The flu-like version', text: 'After heavy cart use, one person reported vomiting several times at night on day 2, sweating and chills, and managing only a piece of toast the next morning. A commenter in the same thread described the same flu-like pattern and judged day 3 the peak.', href: 'https://www.reddit.com/r/Petioles/comments/1vrwaa1/nausea_and_vomiting_from_tolerance_break/', thread: 'Nausea and vomiting from a tolerance break' },
+  { id: 'nausea-morning-stomach', areas: ['nausea', 'appetite'], windows: ['days_1_3', 'days_2_6', 'days_7_14'], period: 'First days', title: 'Morning stomach upset derailed attempts', text: 'A five-year smoker described attempts to cut back being derailed by morning stomach upset that only the first smoke relieved. A commenter said the first four or five days were the worst and ate snacks rather than meals.', href: 'https://www.reddit.com/r/Petioles/comments/1vy0soi/how_do_i_get_past_the_nausea/', thread: 'How do I get past the nausea' },
+  { id: 'nausea-eating-triggered', areas: ['nausea', 'appetite'], windows: ['days_1_3', 'days_2_6'], period: 'First week', title: 'Eating itself triggered nausea', text: 'A heavy cart user who stopped before a trip lost their appetite almost completely and found that eating brought on nausea; fruit smoothies were what they could manage. A commenter said this had happened on every break for one to two weeks.', href: 'https://www.reddit.com/r/Petioles/comments/mbxmes/ive_been_using_carts_heavily_for_a_couple_years/', thread: 'Appetite gone, and eating made it worse' },
+  { id: 'appetite-first-three-days', areas: ['appetite', 'nausea'], windows: ['days_1_3', 'days_2_6'], period: 'Days 1–3', title: 'Three days of almost no food', text: 'One person reported managing only fruit for a day and being sick several times, then eating a banana, crackers and a small plate of pasta on day 3. A commenter described a similar first three days.', href: 'https://www.reddit.com/r/Petioles/comments/cxur22/struggling_the_most_i_ever_have_on_a_tolerance/', thread: 'Struggling the most on a tolerance break' },
+  { id: 'headache-day-four', areas: ['headaches'], windows: ['days_2_6', 'days_7_14'], period: 'Day 4', title: 'A headache that outlasted the night', text: 'A daily heavy user described an excruciating headache that began one night on day 4 and was still there on waking, easing after drinking more water. A commenter reported constant headaches through the first two to three weeks.', href: 'https://www.reddit.com/r/Petioles/comments/1v3clgb/on_day_4_of_t_break_and_my_head_is_killing_me/', thread: 'Day 4 and my head is killing me' },
+  { id: 'irritability-day-one-rage', areas: ['irritability', 'low_mood'], windows: ['days_1_3', 'days_2_6'], period: 'Day 1', title: 'Day one brought rage, then flatness', text: 'After a year of daily edibles, one person described day one as seething rage, being short with their children at bedtime, crying, and finding food, sleep, television and books uninteresting. A commenter in the same thread wrote at day 46 that the rage and irritability had eased after the first week or two while feeling flat remained.', href: 'https://www.reddit.com/r/Petioles/comments/1r6sn2c/taking_my_first_break_i_had_no_idea_it_would_be/', thread: 'My first break — I had no idea it would be like this' },
+  { id: 'irritability-then-sadness', areas: ['irritability', 'low_mood', 'cravings'], windows: ['days_2_6', 'days_7_14'], period: 'First week', title: 'Irritability, then sadness', text: 'One person described their mood flipping to irritability and anger about nothing in particular after about a week without smoking, followed by sadness and crying. A commenter in week two replaced the session with slow breathing, or drinking through a straw, to satisfy the physical urge.', href: 'https://www.reddit.com/r/Petioles/comments/1ntrv0y/t_break_help_pleaseeee/', thread: 'T-break help, please' },
+  { id: 'irritability-sweating-aggression', areas: ['irritability', 'headaches'], windows: ['days_1_3', 'days_2_6'], period: 'First days', title: 'Uncharacteristic anger, headaches and sweating', text: 'A recreational user used to sleep changes, vivid dreams and a few days of poor appetite reported this break bringing uncharacteristic aggression along with headaches and sweating, and said both eased within a few days.', href: 'https://www.reddit.com/r/Petioles/comments/1u9xsn1/how_to_deal_with_annoying_sweating_and_aggression/', thread: 'Sweating and aggression during a break' },
+  { id: 'sleep-day-five', areas: ['sleep'], windows: ['days_2_6', 'days_7_14'], period: 'Day 5', title: 'Good habits did not fix it overnight', text: 'On day 5 one person reported almost no sleep despite daily exercise, strict caffeine, meal, fluid and screen cut-offs, and daily meditation: too tired to follow a film, and still unable to fall asleep.', href: 'https://www.reddit.com/r/Petioles/comments/18z85ru/tbreak_insomnia/', thread: 'T-break insomnia' },
+  { id: 'sleep-night-one', areas: ['sleep', 'cravings'], windows: ['days_1_3'], period: 'Night 1', title: 'Night one can be the hardest', text: 'A nightly-only user described giving in on the first night after hours of restlessness and anxiety. A commenter who vaped heavily through the day said they could sleep through without night sweats by around day 4–5.', href: 'https://www.reddit.com/r/Petioles/comments/s3wunh/ive_been_a_nightly_only_cannabis_user_for_a_few/', thread: 'Nightly user who failed the first night' },
+  { id: 'sleep-three-weeks', areas: ['sleep', 'appetite', 'low_mood'], windows: ['days_14_21', 'days_21_28'], period: 'Week 3', title: 'Sleep and appetite still unsettled at three weeks', text: 'A lighter user stopping before surgery reported at three weeks being unable to sleep before around 3am, waking early, and appetite swinging between constant hunger and none, describing the stretch as just surviving instead of living.', href: 'https://www.reddit.com/r/Petioles/comments/1vnv4nc/3_weeks_without_and_my_sleep_and_appetite_is/', thread: 'Three weeks without, sleep and appetite unsettled' },
+  { id: 'dreams-day-23', areas: ['dreams', 'sleep'], windows: ['days_21_28', 'beyond_28'], period: 'Day 23', title: 'Intense dreams at day 23', text: 'Someone on day 23 of a month-long break, after daily use for most of a decade, still had intense conflict-heavy dreams. A commenter six months in said the dreams had stayed vivid and they had grown used to them.', href: 'https://www.reddit.com/r/Petioles/comments/1w90kb7/day_23_why_are_my_dreams_still_insane/', thread: 'Day 23: why are my dreams still intense?' },
+  { id: 'dreams-forty-two-days', areas: ['dreams', 'sleep'], windows: ['beyond_28'], period: 'Day 42', title: 'Dreaming was the worst part', text: 'At 42 days one person said vivid dreams affected their mood on waking and sometimes continued after waking mid-night, and that dreaming was the hardest part of stopping. A commenter at 60 days described vivid dreams about ordinary events leaving them emotionally drained.', href: 'https://www.reddit.com/r/Petioles/comments/1thr1sn/42_days_no_weed_but_my_dreams_are_horrible/', thread: '42 days without, and the dreams are horrible' },
+  { id: 'dreams-nightmares-eased', areas: ['dreams'], windows: ['days_7_14', 'days_14_21'], period: 'Around day 11', title: 'Nightmares that eased', text: 'Around day 11 after five months of use, one person described terrifying, violent nightmares and wrote that they missed dreamless sleep. A commenter said their nightmares eased within the first two weeks and then appeared only occasionally.', href: 'https://www.reddit.com/r/Petioles/comments/1w6ps28/any_advice_on_dealing_with_the_weird_messed_up/', thread: 'Advice on the nightmares after quitting' },
+  { id: 'mood-week-two-crochet', areas: ['low_mood', 'boredom'], windows: ['days_7_14', 'days_14_21'], period: 'Week 2', title: 'Keeping hands busy through the flat stretch', text: 'After seven years of daily use one person crocheted through the first withdrawal days, then found motivation low in week two and said the hardest part was having nothing to reach for. A commenter at day 23 called days 6–18 awful on very little sleep, then noticed laughing more easily and their creative drive returning.', href: 'https://www.reddit.com/r/Petioles/comments/1pbv2sg/day_15_off_weed_picked_up_crochet_as_a_way_to/', thread: 'Day 15 off, crochet as a way through' },
+  { id: 'boredom-main-driver', areas: ['boredom', 'cravings'], windows: ['days_1_3', 'days_2_6', 'days_7_14'], period: 'Early days', title: 'Boredom as the main driver', text: 'One person called boredom the biggest reason they smoked, warned that the first stretch feels like sitting around as a sad lump before energy returns, and advised against forcing a hobby you like the idea of but do not enjoy. Walking the dog with music and cooking a proper meal helped most.', href: 'https://www.reddit.com/r/Petioles/comments/a9wl9i/tips_with_boredom_on_a_t_break/', thread: 'Tips for boredom on a T-break' },
+  { id: 'boredom-low-effort', areas: ['boredom'], windows: ['days_2_6', 'days_7_14'], period: 'Mid-break', title: 'Low-effort immersion', text: 'Someone who had been smoking heavily at home out of boredom found being at home sober unbearable. A commenter suggested paint-by-numbers or colour-by-numbers as low-stress and absorbing, and they planned to colour old sketches and arrange a walk with friends.', href: 'https://www.reddit.com/r/Petioles/comments/k49mql/advice_for_being_bored_on_a_tbreak/', thread: 'Advice for being bored on a T-break' },
+  { id: 'boredom-day-two-argument', areas: ['boredom', 'irritability', 'routine'], windows: ['days_1_3'], period: 'Day 2', title: 'Boredom can turn into a row', text: 'On day 2 one person said irritability was taking over and they argued with their partner about being intensely bored, having already cleaned everything in the house. A commenter suggested starting an activity they had never done while high, and evenings became dog walks.', href: 'https://www.reddit.com/r/Petioles/comments/p2fyqq/first_major_t_break/', thread: 'First major T-break' },
+  { id: 'craving-cold-shower', areas: ['cravings', 'routine'], windows: ['days_2_6', 'days_7_14', 'days_14_21'], period: 'Strong urges', title: 'Treating the urge as information', text: 'One person treats a craving as information rather than a command and, for the strongest ones where their mind argues for just one hit, uses a cold shower to break the moment. A commenter added that leaving the house for a park walk helps with the thinking.', href: 'https://www.reddit.com/r/Petioles/comments/u49oa6/for_those_on_tbreaks_every_time_you_overcome_a/', thread: 'Every craving you overcome counts' },
+  { id: 'craving-month-three', areas: ['cravings'], windows: ['beyond_28'], period: 'About 2½ months', title: 'A late spike after a quiet month', text: 'About two and a half months into a three-month break, one person had almost no cravings in the second month and then a brutal week around weeks 8–10, naming job stress as the trigger. A commenter argued the spike was about meeting more triggers, not about the week count.', href: 'https://www.reddit.com/r/Petioles/comments/1vus5yt/stronger_urges_in_month_3/', thread: 'Stronger urges in month 3?' },
+  { id: 'craving-four-weeks', areas: ['cravings', 'routine'], windows: ['days_21_28', 'beyond_28'], period: 'Week 4', title: 'Physical eased before the urges did', text: 'A heavy user at four weeks said cravings were as strong as in week one and that the usual reassurance had not matched their experience so far. A commenter reported most physical effects gone by four weeks, with cravings taking months.', href: 'https://www.reddit.com/r/Petioles/comments/1seimzx/4_weeks_not_smoking_and_really_struggling/', thread: 'Four weeks without and really struggling' },
+  { id: 'routine-hide-the-stash', areas: ['routine', 'cravings', 'dreams'], windows: ['days_1_3', 'days_2_6', 'days_7_14'], period: 'Weeks 1–3', title: 'Box it up before you start', text: 'A diary-style account: boxing up and hiding everything before starting; vivid dreams and a clearer head in week one; cravings strong enough in week two that having anything in the house would have ended it; by week three the pull felt more like a want than a need. Drinking water, less caffeine, training and walks were what helped.', href: 'https://www.reddit.com/r/Petioles/comments/l4sbek/tips_tricks_and_tales_from_my_tolerance_break/', thread: 'Tips and tales from my tolerance break' },
+  { id: 'routine-morning-session', areas: ['routine', 'low_mood'], windows: ['days_1_3', 'days_2_6'], period: 'Tapering', title: 'The morning session was the last to go', text: 'After tapering from nine joints a day to three or four, one person could not drop the morning one because their mood was very low without it. They later reported that a slow morning routine — hot drinks, reading, then a walk — worked better than forcing a workout.', href: 'https://www.reddit.com/r/Petioles/comments/1v43v29/advice_for_stopping_morning_smoke/', thread: 'Advice for stopping the morning smoke' },
+  { id: 'return-first-hit-stronger', areas: ['routine', 'cravings'], windows: ['days_21_28', 'beyond_28'], period: 'First session back', title: 'The first sessions back hit much harder', text: 'After six days off, someone who had been dabbing heavily described nearly greening out on two cart hits, then doing so again on a single bowl. A commenter advised starting with a very small hit.', href: 'https://www.reddit.com/r/Petioles/comments/18jmng6/update_on_my_6_day_t_break/', thread: 'Update on my six-day break' },
+  { id: 'return-ninety-days', areas: ['routine', 'cravings'], windows: ['beyond_28'], period: 'After 90 days', title: 'A long break did not promise a dramatic first high', text: 'After 90 days off one person felt underwhelmed by their first smoke and wondered whether tolerance had really reset. A commenter described keeping to one or two very small hits, hours apart, and finding the effects strong for months afterwards.', href: 'https://www.reddit.com/r/Petioles/comments/196wd98/after_a_90_day_break_from_weed_the_first_smoke/', thread: 'The first smoke after a 90-day break' },
+  { id: 'return-eight-months', areas: ['routine'], windows: ['beyond_28'], period: 'After 8 months', title: 'Comfortable, then much too strong', text: 'After roughly eight months off, one person felt only mildly affected by two puffs, took three more after dinner, and became extremely stoned and uncomfortable in company, feeling flat the next day. A commenter described the same pattern becoming milder after about a week of smoking again.', href: 'https://www.reddit.com/r/Petioles/comments/wdt5fx/smoked_again_after_8_months/', thread: 'Smoked again after eight months' },
+  { id: 'routine-training-felt-different', areas: ['routine', 'sleep'], windows: ['days_14_21', 'days_21_28'], period: 'Week 3', title: 'Training felt different for a while', text: 'A daily smoker of more than a year found at week three that they could no longer manage more than five to ten minutes of cardio, down from an hour, and felt overheated and drenched. A commenter attributed the temperature regulation to withdrawal and said it commonly settles within a few weeks.', href: 'https://www.reddit.com/r/Petioles/comments/1s85dmj/struggling_with_endurance_while_working_out_after/', thread: 'Endurance while working out after three weeks' },
 ];
 
 type RatedField = 'craving' | 'sleep' | 'irritability' | 'anxiety' | 'appetite';
@@ -242,6 +371,16 @@ export interface DailySupportView {
 /** Areas where the person's own plan outranks generic advice. */
 const PLAN_FIRST_AREAS: readonly SupportArea[] = ['routine', 'cravings', 'boredom'];
 
+/** The accounts the carousel shows for the topic on screen: the ones that
+ * speak to that topic first, then the rest of the stage's accounts, so the
+ * experiences follow whatever the person is dealing with. */
+export function communityTipsFor(view: DailySupportView, area: SupportArea | null): readonly CommunityTip[] {
+  if (area === null) return view.communityTips.slice(0, COMMUNITY_TIP_LIMIT);
+  const matching = view.communityTips.filter((tip) => tip.areas.includes(area));
+  const rest = view.communityTips.filter((tip) => !tip.areas.includes(area));
+  return [...matching, ...rest].slice(0, COMMUNITY_TIP_LIMIT);
+}
+
 /** One topic's block. The picker can ask for any topic, so the plan rules live
  * here rather than in the components. */
 export function adviceSectionFor(view: DailySupportView, area: SupportArea): AdviceSection {
@@ -253,7 +392,7 @@ export function adviceSectionFor(view: DailySupportView, area: SupportArea): Adv
     recordedAt: selection?.recordedAt ?? null,
     action: planFirst && view.plan.replacement !== ''
       ? `Try your plan first: “${view.plan.replacement}”.`
-      : SUPPORT_GUIDES[area].steps[0],
+      : SUPPORT_GUIDES[area].steps[0]!,
     usesPersonalPlan: planFirst && view.plan.replacement !== '',
     triggerLine: planFirst ? view.plan.triggerLine : null,
     fallbackLine: planFirst ? view.plan.fallbackLine : null,
@@ -300,7 +439,7 @@ export function presentDailySupport(input: DailySupportInput): DailySupportView 
     return [...rows.slice(at), ...rows.slice(0, at)];
   };
   const orderedCommunity = [...rotate(matchingCommunity), ...rotate(restCommunity)];
-  const communityTips = (orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS]).slice(0, 5);
+  const communityTips = orderedCommunity.length > 0 ? orderedCommunity : [...COMMUNITY_TIPS];
   const communityTip = communityTips[0]!;
   const atTarget = input.targetDays != null && (day === input.targetDays || day === input.targetDays + 1);
   return {

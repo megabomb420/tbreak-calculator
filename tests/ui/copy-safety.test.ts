@@ -20,7 +20,7 @@ import * as resultCopy from '../../src/ui/result-copy.ts';
 import * as breakCopy from '../../src/ui/break-copy.ts';
 import * as companionCopy from '../../src/ui/companion-copy.ts';
 import * as researchFacts from '../../src/ui/research-facts.ts';
-import * as recoveryCopy from '../../src/ui/recovery-copy.ts';
+import { RESEARCH } from '../../src/ui/research-copy.ts';
 import * as dailySupport from '../../src/application/presentation/daily-support.ts';
 import { MESSAGE_TEMPLATES } from '../../src/application/presentation/message-templates.ts';
 import { DETECTION_BANNER, DETECTION_WHAT_HELPS } from '../../src/application/presentation/result-presentation.ts';
@@ -90,7 +90,7 @@ describe('advice, community, research and recovery copy', () => {
   const DAY_MS = 24 * 3_600_000;
   // The advice and reset surfaces hold copy inline in their components, so the
   // guard reads those files whole instead of only their exported constants.
-  const inlineSources = ['src/ui/daily-support.tsx', 'src/ui/community-carousel.tsx', 'src/ui/predicted-reset.tsx', 'src/ui/science-basics.tsx']
+  const inlineSources = ['src/ui/daily-support.tsx', 'src/ui/community-carousel.tsx', 'src/ui/research-context.tsx', 'src/ui/research-copy.ts', 'src/ui/science-basics.tsx']
     .map((source) => readFileSync(resolve(ROOT, source), 'utf8'))
     .join('\n');
   const dumped = JSON.stringify({
@@ -105,7 +105,7 @@ describe('advice, community, research and recovery copy', () => {
       }),
     ),
     researchFacts,
-    recoveryCopy,
+    researchCopy: RESEARCH,
     companionCopy,
     inlineSources,
   });
@@ -139,6 +139,8 @@ describe('spec copy follows the shipped strings', () => {
     }
     expect(uxSpec).not.toContain('A private, on-device planner');
     expect(evidenceSpec).not.toContain('“Predicted reset”');
-    expect(evidenceSpec).toMatch(new RegExp(`“${recoveryCopy.RESET_MODE.reset}”[^.]{0,40}compact navigation label`));
+    // The retired mode's label must not survive anywhere in the specs.
+    expect(evidenceSpec).not.toContain('Recovery outlook');
+    expect(uxSpec).not.toContain('Recovery outlook');
   });
 });

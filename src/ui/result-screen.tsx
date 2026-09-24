@@ -6,12 +6,7 @@ import { calculateNominalFlowerThc } from '../domain/nominal-thc/nominal-thc-eng
 import { NOMINAL_THC_POLICY_V1 } from '../domain/policies/nominal-thc-policy-v1.ts';
 import { weeklyUseDayRate } from '../domain/reduction/reduction-engine.ts';
 import type { CalculationRecord } from '../application/persistence/calculation-record.ts';
-import { recoveryOutlookFromRecord } from '../application/history/present-calculation.ts';
-import {
-  RECOVERY_OUTLOOK_V1_VERSION,
-  type ToleranceRecoveryOutlook,
-} from '../domain/recovery/recovery-outlook.ts';
-import type { RecoveryCheckinFactsView } from '../application/presentation/recovery-checkin-facts.ts';
+import { hadRecoveryOutlook } from '../domain/recovery/recovery-outlook.ts';
 import {
   aroundDay,
   daysSince,
@@ -28,11 +23,8 @@ import { BreakJourney } from './break-journey.tsx';
 import { presentBreakJourney } from '../application/presentation/break-journey.ts';
 import { useFocusTrap } from './focus-trap.ts';
 import { DETECTION_EDUCATION_V1 } from '../domain/guidance/evidence-guidance-v1.ts';
-import { presentCb1Education } from '../application/presentation/break-guidance.ts';
-import { PredictedResetPanel } from './predicted-reset.tsx';
-import { RESET_MODE } from './recovery-copy.ts';
+import { ResearchContext } from './research-context.tsx';
 import { ResultLensHero } from './result-lens.tsx';
-import { ResultModeControl } from './result-mode-control.tsx';
 import { YourPlanGuide } from './your-plan-guide.tsx';
 
 export interface ResultScreenProps {
@@ -56,11 +48,9 @@ export interface ResultScreenProps {
   /** Local day the saved result was calculated (History detail only). */
   readonly savedDateLabel?: string | null;
   readonly runningPlanNotice?: boolean;
-  /** The frozen calculation this result came from, when one exists. Drives the
-   * Predicted-reset panel from frozen data only (never re-runs an engine). */
+  /** The frozen calculation behind this result, when one exists. Read only for
+   *  its stored version fields; the screen never re-runs an engine. */
   readonly outlookRecord?: CalculationRecord | null;
-  /** Personal check-in facts for the live result (predicted-reset only). */
-  readonly checkinFacts?: RecoveryCheckinFactsView | null;
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
   readonly onRecalculate?: () => void;
@@ -84,26 +74,15 @@ export function ResultScreen({
   savedDateLabel = null,
   runningPlanNotice = false,
   outlookRecord = null,
-  checkinFacts = null,
   onAddPastBreak,
   onRecalculateWithHistory,
   onRecalculate,
   onDelete,
 }: ResultScreenProps) {
   const [thcOpen, setThcOpen] = useState(false);
-  // The plan/recovery switch belongs to the result header, not the scrolling
-  // body: sticky chrome over the journey hid the phase titles behind it.
-  const [resetMode, setResetMode] = useState(false);
-  const [modeRecordId, setModeRecordId] = useState<string | null>(outlookRecord?.id ?? null);
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(!historical, rootRef, onAcknowledge);
-  const outlook = recoveryOutlookFromRecord(outlookRecord);
-  const recordId = outlookRecord?.id ?? null;
-  if (recordId !== modeRecordId) {
-    setModeRecordId(recordId);
-    setResetMode(false);
-  }
-  const showModeControl = view.kind === 'tolerance_result' && outlook !== null;
+  const legacyOutlook = hadRecoveryOutlook(outlookRecord?.recoveryOutlookVersion);
 
   return (
     <div
@@ -116,7 +95,7 @@ export function ResultScreen({
       aria-labelledby="result-title"
       ref={rootRef}
     >
-      <header className={showModeControl ? 'questionnaire-header result-header' : 'questionnaire-header'}>
+      <header className="questionnaire-header">
         <div className="result-header-bar">
           <button type="button" className="icon-button" aria-label={RESULT.close} onClick={onAcknowledge} data-autofocus>
             <CloseIcon />
@@ -129,23 +108,19 @@ export function ResultScreen({
               : 'Your result'}
           </span>
         </div>
-        {showModeControl ? <ResultModeControl scope="result" ariaLabel="Result view" resetMode={resetMode} onChange={setResetMode} /> : null}
-        {showModeControl ? <p className="meta result-mode-legend" data-testid="result-mode-legend">{RESULT.modeLegend}</p> : null}
       </header>
       <div className="questionnaire-body result-body">
         {historical ? <p className="meta">{RESULT.historicalNote}</p> : null}
         {runningPlanNotice ? <p className="banner">You already have a plan running. Save this result for later, or end your current plan from Today before starting another.</p> : null}
         <ResultBody
           view={view}
-          resetMode={resetMode}
           onEditStep={onEditStep}
           onSeeBreakRange={onSeeBreakRange}
           onOpenNominalThc={() => setThcOpen(true)}
           onBreakRecommendation={onBreakRecommendation}
           onDetectionBasics={onDetectionBasics}
           historical={historical}
-          outlookRecord={outlookRecord}
-          checkinFacts={checkinFacts}
+          legacyOutlook={legacyOutlook}
           onAddPastBreak={historical ? undefined : onAddPastBreak}
           onRecalculateWithHistory={historical ? undefined : onRecalculateWithHistory}
         />
@@ -173,48 +148,37 @@ export function ResultScreen({
 
 function ResultBody({
   view,
-  resetMode,
   onEditStep,
   onSeeBreakRange,
   onOpenNominalThc,
   onBreakRecommendation,
   onDetectionBasics,
   historical,
-  outlookRecord,
-  checkinFacts,
+  legacyOutlook,
   onAddPastBreak,
   onRecalculateWithHistory,
 }: {
   readonly view: ResultView;
-  /** Chosen in the result header; picks the plan or the reset panel. */
-  readonly resetMode: boolean;
   readonly onEditStep: (step: QuestionnaireStepId) => void;
   readonly onSeeBreakRange: () => void;
   readonly onOpenNominalThc: () => void;
   readonly onBreakRecommendation: () => void;
   readonly onDetectionBasics: () => void;
   readonly historical: boolean;
-  readonly outlookRecord: CalculationRecord | null;
-  readonly checkinFacts: RecoveryCheckinFactsView | null;
+  /** The saved record was calculated while the app still showed an outlook. */
+  readonly legacyOutlook: boolean;
   readonly onAddPastBreak?: () => void;
   readonly onRecalculateWithHistory?: () => void;
 }) {
-  const outlook: ToleranceRecoveryOutlook | null = recoveryOutlookFromRecord(outlookRecord);
-  const legacyReset = historical && outlook?.version === RECOVERY_OUTLOOK_V1_VERSION;
-
   switch (view.kind) {
     case 'tolerance_result': {
-      // The actionable planning target leads; the broad evidence range stays
-      // visible directly underneath so a target inside a shared range is never
-      // buried. The target is a planning choice, not a predicted reset date.
-      const planBody = (
-        <div
-          id="result-panel-plan"
-          className="stack result-lens-panel"
-          data-testid="result-plan-panel"
-          role="tabpanel"
-          aria-labelledby="result-tab-plan"
-        >
+      // One body, one number that matters. The actionable planning target
+      // leads; the broad evidence range stays visible directly underneath so a
+      // target inside a shared range is never buried. What might happen across
+      // the break follows as the journey, and the research section closes it
+      // with what the four-week reference is and is not.
+      return (
+        <div className="stack result-lens-panel" data-testid="result-plan-panel">
           <ResultLensHero
             eyebrow={PLAN_LENS.eyebrow}
             value={view.preferredTargetDays}
@@ -234,7 +198,7 @@ function ResultBody({
             drivers={view.drivers}
             contextNote={view.contextNote}
           />
-          <Cb1ContextNote />
+          <ResearchContext legacyOutlook={legacyOutlook} />
           <HistoryCard
             insight={view.history}
             onAddPastBreak={onAddPastBreak}
@@ -242,31 +206,6 @@ function ResultBody({
           />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
           <FooterLinks onDetection={onDetectionBasics} onNominalThc={onOpenNominalThc} detection={false} />
-        </div>
-      );
-      if (outlook === null) return planBody;
-      const resetBody = (
-        <div
-          id="result-panel-reset"
-          className="stack result-lens-panel"
-          data-testid="result-reset-panel"
-          role="tabpanel"
-          aria-labelledby="result-tab-reset"
-        >
-          <h2 id="result-title" className="sr-only">
-            {RESET_MODE.reset}
-          </h2>
-          <PredictedResetPanel
-            outlook={outlook}
-            historical={historical}
-            contextLabel={legacyReset ? RESET_MODE.historicalContext : null}
-            checkinFacts={checkinFacts}
-          />
-        </div>
-      );
-      return (
-        <div className="stack">
-          {resetMode ? resetBody : planBody}
         </div>
       );
     }
@@ -284,7 +223,7 @@ function ResultBody({
           {view.outlook !== null ? (
             <BreakJourney view={presentBreakJourney(view.outlook, { preview: true })} />
           ) : view.withdrawal ? <WithdrawalTrack withdrawal={view.withdrawal} /> : null}
-          <Cb1ContextNote />
+          <ResearchContext legacyOutlook={legacyOutlook} />
           <AnswersCard answers={view.answers} onEditStep={onEditStep} />
         </div>
       );
@@ -361,20 +300,6 @@ function ResultBody({
         </header>
       );
   }
-}
-
-function Cb1ContextNote() {
-  const cb1 = presentCb1Education();
-  return (
-    <details className="card guidance-why" data-testid="cb1-note">
-      <summary className="card-title">{cb1.title}</summary>
-      {cb1.paragraphs.map((paragraph) => (
-        <p key={paragraph} className="body">
-          {paragraph}
-        </p>
-      ))}
-    </details>
-  );
 }
 
 function HistoryCard({

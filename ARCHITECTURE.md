@@ -1,6 +1,6 @@
 # T-Break Application Architecture
 
-Version: **0.37.0**
+Version: **0.38.0**
 Research basis: `sources/TBREAK_PROJECT_CONTEXT.md` and `references/tbreak-science-project.pdf`. Numeric contracts: `CALCULATOR_SPEC.md`.
 
 Current implementation additions:
@@ -10,9 +10,9 @@ Current implementation additions:
 - `ui/focus-trap.ts` coordinates the topmost dialog, keyboard focus, inert background, focus restoration and one browser-history entry per open flow stack. Transitions do not accumulate obsolete steps.
 - Shell destinations are Today, Calculator and History. Science and questionnaire/result/detail screens use the shared overlay contract.
 - `companion-personalisation-v2` remains independent of use-profile calculations. Nothing selects or renders its `supportAreas[]`; the record stays migratable on load and part of the backup format.
-- Numeric versions remain tolerance-v3 and tolerance-recovery-outlook-v2; legacy outlook v1 semantics are retained for old records.
-- `daily-support-v4` renders the existing editorial practice by default, with legacy-rated topic and personal-plan precedence. Manual topics are local UI state, reset by break day; no ratings are collected.
-- Today keeps research outlook below the daily action in a disclosure. `Manage break` reuses atomic suspend/confirm orchestration; opening/canceling never persists a paused intermediate state.
+- Numeric version remains tolerance-v3. The `tolerance-recovery-outlook-v1` / `-v2` version markers are retained for stored-record validation only: no window is built, so `domain/recovery/recovery-outlook.ts` keeps just the two constants, `BIOLOGICAL_REFERENCE_DAYS = 28` and `hadRecoveryOutlook()`. New calculation records do not set `recoveryOutlookVersion`; stored records that carry it stay valid and are explained by one legacy line in the result's research section.
+- `daily-support-v5` renders the editorial practice by default, with legacy-rated topic and personal-plan precedence. Manual topics are local UI state, reset by break day; no ratings are collected. All eleven guides keep the action and its explanation on the page, with the remaining steps, "What to avoid", sources and, where one applies, "When to get advice" behind one collapsed row; the Experiences carousel is matched to the selected topic and capped at eight.
+- Today's stage, advice and experiences are open sections; the break timeline, the symptom list, the guide's remaining steps and `Manage break` are single-row disclosures. `Manage break` reuses atomic suspend/confirm orchestration; opening/canceling never persists a paused intermediate state.
 - History dates use shared local formatting; complete elapsed days are separate from abstinence-day position. Deleting a calculation invalidates its display snapshot rather than re-running an engine.
 - Corrupt IndexedDB rows carry their source store in the hydrated model; deletion must not infer that store from a display category or delete a valid same-ID row in another family.
 - Web Storage fallback propagates refused durable writes to the existing failure channel; transient drafts remain best-effort. Synchronous form-save failures keep forms open. Browser zoom is enabled, and viewport sizing checks both screen dimensions.
@@ -44,7 +44,8 @@ Runtime generative AI is intentionally not part of the product architecture (see
 - deterministic result, withdrawal, break-plan, check-in, history, and post-break views;
 - versioned EvidenceGuidanceV1 companion content (withdrawal windows, detox claims, trigger/precommitment copy);
 - BreakOutlookV1 day-by-day presentation over those windows (Result / Today), including the 0.7.2 grouped-roadmap presentation transform (consecutive equivalent days collapse into `Days N–M` labels; the exact per-day model stays authoritative);
-- versioned recovery-outlook interpretation over frozen tolerance results (current `tolerance-recovery-outlook-v2`, retained v1 for legacy records): a profile-sensitive window, separate biological-reference wording, time milestones, capped factual personal history, recorded check-in facts, and post-break outcome marks (`break-outcome-marks-v1`) — deterministic, local, and offline;
+- the result screen's static research section (`ui/research-context.tsx` over `ui/research-copy.ts` plus the CB1 concept note): the four-week human CB1 PET population reference, the "what this does not mean" list, direct study links, and the one-line explanation for a stored record that predates 0.38.0 — deterministic, local, offline, and containing no window, percentage or personal date;
+- post-break outcome marks (`break-outcome-marks-v1`), offered once per completed break after a real return to THC;
 - IndexedDB persistence and complete local deletion;
 - local backup export/restore of the stored records through Settings, with validated replace semantics (§9); and
 - PWA shell/offline support, with the single service-worker update state (snackbar + Settings About) driven from `registerSW` in `src/ui/main.tsx`;
@@ -370,7 +371,7 @@ Why: frequent use + multiple sessions/high-potency concentrate route
 
 The card MUST NOT say reset complete, 100% reset, detoxed, or safe to resume the previous exposure. The recommended range stays the only evidence-claiming number; the planning target is a labelled heuristic choice inside it.
 
-Tolerance results may also be shown in a versioned recovery-outlook mode (**“Recovery outlook”**, current `tolerance-recovery-outlook-v2`), selected by an accessible **“Your plan” | “Recovery outlook”** segmented control (default “Your plan”). The reset mode and the frozen-history outlook are presentation derived from stored record data only — they never re-run an engine and never change the stored result. V2 produces a separate predicted window (maximum 42 under the reviewed highest-burden rule); the plan stays capped at 28 and Day 28 stays a human biological reference. The record-level outlook version prevents old v1 History from adopting later semantics.
+The tolerance result is a single body: plan hero (planning target) with the evidence range and one uncertainty line beneath it, the BreakOutlookV1 journey ("what to expect"), **Why this plan**, the always-visible research section, history, then the answer rows. There is no second mode, no segmented control and no predicted recovery window: the app does not estimate a personal recovery window or date. Day 28 is presented only as the four-week human CB1 population reference inside the research section (`ui/research-context.tsx`), which is derived from stored record data and static reviewed copy and never re-runs an engine or changes the stored result. A stored record that carries `recoveryOutlookVersion` is a result calculated before 0.38.0: it renders unchanged, with one legacy line (`research-copy.ts` `legacyOutlookNote`) explaining why no window is shown for it. The record-level outlook version is read only for that explanation and never causes a v1 History entry to adopt later semantics.
 
 ### 10.2 Withdrawal and progress
 
@@ -405,7 +406,7 @@ Runtime generative AI is intentionally out of scope. The shipped PWA contains
 no LLM, no model configuration, no provider inference layer, no AI consent
 flow, no response-schema validation, and no runtime prompt infrastructure.
 
-User-facing explanations, Recovery Intelligence, evidence summaries, and
+User-facing explanations, the research section's reference copy, evidence summaries, and
 personal-history insights are deterministic and derived from reviewed
 structured data that is stored or computed locally. No extension point is
 retained "just in case"; if the product direction ever changes, that decision
@@ -472,7 +473,7 @@ UX_SPEC §16 then sequences the UI as: (1) shell + Today router + draft persiste
 - outside-range/mixed previous-history behaviour;
 - tolerance-v3 multi-factor bounded exposure classification and the in-range history target override;
 - active reduction tracking (`reduction-records-v2`) with the derived two-breach-day review rule; the tracker never generates or rewrites a calculation record;
-- the deterministic recovery-outlook presentation boundary (`tolerance-recovery-outlook-v2`), post-break outcome capture (`break-outcome-marks-v1`, offered once per completed break after a real return to THC, never for continued abstinence);
+- the result presentation boundary: one body with static reviewed research copy (`ui/research-context.tsx`, `ui/research-copy.ts`) and no personalised recovery window — the retired `tolerance-recovery-outlook-v1` / `-v2` markers are kept only to validate and honestly explain stored records; post-break outcome capture (`break-outcome-marks-v1`, offered once per completed break after a real return to THC, never for continued abstinence);
 - strict v1 input minimisation;
 - qualitative-only detection;
 - minimal local-only architecture; and

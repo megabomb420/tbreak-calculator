@@ -1,4 +1,4 @@
-// Target boundaries, legacy recovery outlooks and interrupted states.
+// Target boundaries and interrupted states on the Today card.
 
 import { render, screen, within } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
@@ -18,8 +18,6 @@ import {
   createBreakAttemptsStore,
   type StoredAttempt,
 } from '../../src/application/progress/break-attempt-record.ts';
-import { createTrackingRecordsStore, type StoredTrack } from '../../src/application/progress/tracking-record.ts';
-import { createCalculationRecordsStore, freezeCalculation } from '../../src/application/persistence/calculation-record.ts';
 
 const AT: Instant = toInstant(1787184000000); // 2026-08-20T00:00:00Z
 const clock = fixedClock(AT);
@@ -112,6 +110,28 @@ describe('Today phase states (0.11)', () => {
     expect(note.textContent ?? '').toMatch(EXTENDED_NOTE);
   });
 
+  it('keeps the day on the first screen and the long material one tap away', () => {
+    const storage = createMemoryStorage();
+    seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
+    seedAttempt(storage, activeAttempt());
+    renderApp(storage);
+    // Open, because the day is not a set of drawers: the stage, the topic and
+    // its action, and the experiences around that topic.
+    for (const id of ['today-stage', 'daily-support', 'today-experiences']) {
+      const node = screen.getByTestId(id);
+      expect(node.tagName).toBe('SECTION');
+      expect(screen.getByTestId('advice-action').textContent?.length ?? 0).toBeGreaterThan(0);
+      expect(screen.getByTestId('advice-why')).toBeTruthy();
+    }
+    // Behind one tap each, because they are long: the guide's remaining steps,
+    // the symptom list, the journey and break management.
+    for (const id of ['advice-more', 'stage-may-notice', 'today-timeline', 'today-manage']) {
+      const node = screen.getByTestId(id);
+      expect(node.tagName).toBe('DETAILS');
+      expect(node.hasAttribute('open')).toBe(false);
+    }
+  });
+
   it('marks the interrupted card as calm and recoverable with progress preserved', () => {
     const storage = createMemoryStorage();
     seedSnapshot(storage, { kind: 'use_profile', profile: profile('2026-08-17T00:00:00Z') });
@@ -125,103 +145,3 @@ describe('Today phase states (0.11)', () => {
 
 
 });
-
-// Regression: the Recovery outlook stays reachable while a calculated break is
-// the primary Today card. It is the frozen record's own view behind a closed
-// disclosure, so Today reads as the practical card by default.
-describe('Recovery outlook on the active-break card', () => {
-  function toleranceProfile(): UseProfileInput {
-    return {
-      goal: 'tolerance_reset',
-      breakRequested: true,
-      postBreakMode: null,
-      thcUseDaysLast30: { value: 10, provenance: 'user_estimate' },
-      sessionsPerUseDay: { value: 1, provenance: 'user_estimate' },
-      products: ['flower'],
-      routes: ['smoking'],
-      lastUseAt: { value: new Date(AT - 2 * 86400000).toISOString(), provenance: 'user_estimate' },
-      currentPatternDuration: { value: '1_to_6_months', provenance: 'user_estimate' },
-      previousBreaks: [],
-    };
-  }
-
-  /** Acknowledged use profile with its frozen calculation record (run-1). */
-  function seedCalculatedBreak(
-    storage: StorageAdapter,
-    mutate?: (record: ReturnType<typeof freezeCalculation>) => ReturnType<typeof freezeCalculation>,
-  ): void {
-    const snapshot = { kind: 'use_profile' as const, profile: toleranceProfile() };
-    createQuestionnaireSnapshotStore(storage).save({
-      schemaVersion: QUESTIONNAIRE_SNAPSHOT_SCHEMA_VERSION,
-      snapshot,
-      updatedAt: AT,
-      runId: 'run-1',
-    });
-    createResultViewStore(storage).save({
-      schemaVersion: RESULT_VIEW_SCHEMA_VERSION,
-      status: 'acknowledged',
-      updatedAt: AT,
-    });
-    const frozen = freezeCalculation('run-1', snapshot, AT);
-    createCalculationRecordsStore(storage).save({
-      schemaVersion: 'calculation-records-v1',
-      records: [mutate === undefined ? frozen : mutate(frozen)],
-      corrupt: [],
-    });
-  }
-
-  function seedTrack(storage: StorageAdapter, track: StoredTrack): void {
-    createTrackingRecordsStore(storage).save({ schemaVersion: 'tracking-records-v1', records: [track] });
-  }
-
-
-  it('does not invent an outlook for a chosen-duration break with no calculation', () => {
-    const storage = createMemoryStorage();
-    seedCalculatedBreak(storage);
-    seedAttempt(storage, activeAttempt({ calculationRecordId: null, targetSource: 'chosen' }));
-    renderApp(storage);
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('active-break');
-    expect(screen.getByTestId('break-day-label').textContent).toBe('Day 4 of 4');
-    expect(screen.queryByTestId('today-outlook')).toBeNull();
-  });
-
-  it('does not borrow a finite outlook for open-ended tracking', () => {
-    const storage = createMemoryStorage();
-    seedCalculatedBreak(storage);
-    seedTrack(storage, {
-      id: 'track-1',
-      calculationRecordId: 'run-1',
-      status: 'tracking',
-      startedAt: AT,
-      segments: [{ startedFromLastUseAt: toInstant(AT - 2 * 86400000), endedAt: null, endReason: null }],
-      preparation: null,
-      createdAt: AT,
-      updatedAt: AT,
-    });
-    renderApp(storage);
-    expect(screen.getByTestId('today-view').getAttribute('data-primary')).toBe('abstinence-tracking');
-    expect(screen.getByTestId('state-abstinence-tracking')).toBeTruthy();
-    expect(screen.queryByTestId('today-outlook')).toBeNull();
-    expect(screen.queryByTestId('today-timeline')).toBeNull();
-  });
-
-  it('renders the stored v1 outlook for a break owning a pre-v3 record', () => {
-    const storage = createMemoryStorage();
-    seedCalculatedBreak(storage, (frozen) => {
-      const { recoveryOutlookVersion: _recoveryOutlookVersion, ...legacy } = frozen;
-      return {
-        ...legacy,
-        policyVersion: 'tolerance-v1',
-        result: { type: 'tolerance', value: { ...frozen.result.value, policyVersion: 'tolerance-v1' } },
-      };
-    });
-    seedAttempt(storage, activeAttempt());
-    renderApp(storage);
-    const outlook = screen.getByTestId('today-outlook');
-    expect(within(outlook).getByTestId('reset-v1-historical')).toBeTruthy();
-    expect(within(outlook).getByTestId('reset-target-day').textContent).toBe('Day 7');
-    // The running plan is live, so it never carries the History context label.
-    expect(within(outlook).queryByTestId('reset-context-label')).toBeNull();
-  });
-});
-
